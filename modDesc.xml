@@ -24,6 +24,12 @@ Source code, issue tracker and docs: https://github.com/rittermod/FS25_Realistic
 Changelog
 
 v0.6.1.0-dev:
+- Fix server crash when client inseminates cow with straw (AnimalInseminationEvent)
+- Fix stream corruption in AI auto-insemination event (AIAnimalInseminationEvent)
+- Fix pregnancy event silently failing to match animals on client (AnimalPregnancyEvent)
+- Fix client-side error when buying semen in multiplayer (SemenBuyEvent)
+- Fix disease treatment toggle not syncing to server in multiplayer (DiseaseDialog)
+- Fix settings dependency check using undefined variable (RL_BroadcastSettingsEvent)
 - Fix black screen when multiplayer client tries to ride a horse
 - Fix multiplayer client unable to clean horses
 

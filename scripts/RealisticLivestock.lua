@@ -264,7 +264,10 @@ FinanceStats.statNameToIndex["medicine"] = #FinanceStats.statNames
 
 
 function RealisticLivestock.loadMap()
-    
+    Log = RmLogging.getLogger("RL")
+    Log:setLevel(RmLogging.LOG_LEVEL.TRACE)
+    RmLogging.registerConsoleCommands()
+
     RealisticLivestock.mapAreaCode = RealisticLivestock.MAP_TO_AREA_CODE[g_currentMission.missionInfo.mapTitle] or 1
 	g_overlayManager:addTextureConfigFile(modDirectory .. "gui/helpicons.xml", "rlHelpIcons")
     g_overlayManager:addTextureConfigFile(modDirectory .. "gui/icons.xml", "realistic_livestock")

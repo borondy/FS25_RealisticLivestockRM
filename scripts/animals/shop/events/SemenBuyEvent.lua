@@ -60,6 +60,7 @@ function SemenBuyEvent:readStream(streamId, connection)
 	self.position = { x, y, z }
 	self.rotation = { rx, ry, rz }
 
+	Log:trace("SemenBuyEvent:readStream calling run()")
 	self:run(connection)
 
 end
@@ -73,7 +74,7 @@ function SemenBuyEvent:writeStream(streamId, connection)
 	streamWriteUInt16(streamId, self.quantity)
 	streamWriteFloat32(streamId, self.price)
 	streamWriteUInt8(streamId, self.farmId)
-	
+
 	streamWriteFloat32(streamId, self.position[1])
 	streamWriteFloat32(streamId, self.position[2])
 	streamWriteFloat32(streamId, self.position[3])
@@ -81,8 +82,6 @@ function SemenBuyEvent:writeStream(streamId, connection)
 	streamWriteFloat32(streamId, self.rotation[1])
 	streamWriteFloat32(streamId, self.rotation[2])
 	streamWriteFloat32(streamId, self.rotation[3])
-
-	self:run(connection)
 
 end
 
@@ -95,5 +94,6 @@ function SemenBuyEvent:run(connection)
     dewar:register(self.position, self.rotation, self.animal, self.quantity)
 
 	g_currentMission:addMoney(self.price, self.farmId, MoneyType.SEMEN_PURCHASE, true, true)
+	Log:trace("SemenBuyEvent:run dewar registered farm=%s qty=%s", tostring(self.farmId), tostring(self.quantity))
 
 end
