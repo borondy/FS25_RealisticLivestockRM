@@ -5,7 +5,8 @@ local hasLoaded = false
 
 -- Initialize the font manager (inlined from FontLibrary)
 RealisticLivestock.fontManager = RmFontManager.new(g_currentModDirectory)
-RealisticLivestock.FONTS = RealisticLivestock.fontManager:loadFontsFromXMLFile(g_currentModDirectory .. "fonts/fonts.xml", g_currentModDirectory)
+RealisticLivestock.FONTS = RealisticLivestock.fontManager:loadFontsFromXMLFile(
+g_currentModDirectory .. "fonts/fonts.xml", g_currentModDirectory)
 
 -- Expose font functions in mod namespace (no global pollution)
 RealisticLivestock.setTextFont = function(fontName)
@@ -265,11 +266,11 @@ FinanceStats.statNameToIndex["medicine"] = #FinanceStats.statNames
 
 function RealisticLivestock.loadMap()
     Log = RmLogging.getLogger("RL")
-    Log:setLevel(RmLogging.LOG_LEVEL.TRACE)
+    Log:setLevel(RmLogging.LOG_LEVEL.INFO)
     RmLogging.registerConsoleCommands()
 
     RealisticLivestock.mapAreaCode = RealisticLivestock.MAP_TO_AREA_CODE[g_currentMission.missionInfo.mapTitle] or 1
-	g_overlayManager:addTextureConfigFile(modDirectory .. "gui/helpicons.xml", "rlHelpIcons")
+    g_overlayManager:addTextureConfigFile(modDirectory .. "gui/helpicons.xml", "rlHelpIcons")
     g_overlayManager:addTextureConfigFile(modDirectory .. "gui/icons.xml", "realistic_livestock")
     g_overlayManager:addTextureConfigFile(modDirectory .. "gui/fileTypeIcons.xml", "fileTypeIcons")
     g_rlConsoleCommandManager = RLConsoleCommandManager.new()
@@ -283,46 +284,34 @@ function RealisticLivestock.loadMap()
 
     MoneyType.MEDICINE = MoneyType.register("medicine", "rl_ui_medicine")
     MoneyType.LAST_ID = MoneyType.LAST_ID + 1
-
 end
-
-
 
 addModEventListener(RealisticLivestock)
 
 
 function RealisticLivestock.getMapCountryCode()
-    
     local areaCode = RealisticLivestock.AREA_CODES[RealisticLivestock.mapAreaCode]
 
     if areaCode ~= nil then return areaCode.code end
 
     return "UK"
-
 end
-
 
 function RealisticLivestock.getMapCountryIndex()
-
     return RealisticLivestock.mapAreaCode or 1
-
 end
 
-
 function RealisticLivestock.formatAge(age)
-
     local years = math.floor(age / 12)
     local months = age % 12
 
     local monthsString = months == 1 and g_i18n:getText("rl_ui_month") or g_i18n:getText("rl_ui_months")
 
-    if years > 0 then return string.format("%s %s, %s %s", years, years == 1 and g_i18n:getText("rl_ui_year") or g_i18n:getText("rl_ui_years"), months, monthsString) end
+    if years > 0 then return string.format("%s %s, %s %s", years,
+            years == 1 and g_i18n:getText("rl_ui_year") or g_i18n:getText("rl_ui_years"), months, monthsString) end
 
     return string.format("%s %s", months, monthsString)
-
 end
-
-
 
 -- #################################################
 -- THE MAJORITY OF THIS FILE IS LEGACY AND IS UNUSED
@@ -332,7 +321,6 @@ end
 
 
 function RealisticLivestock:updateReproduction(spec, cluster, numNewAnimals, freeSlots, isServer)
-
     local totalOffspring = 0
     local totalParents = cluster.numAnimals
     local parentAge = cluster.age
@@ -372,7 +360,7 @@ function RealisticLivestock:updateReproduction(spec, cluster, numNewAnimals, fre
                 deathChance = deathChance - 10
             elseif parentAge <= 48 then
                 noChildProb = 24
-                deathChance = deathChance -8
+                deathChance = deathChance - 8
             elseif parentAge <= 60 then
                 noChildProb = 21
                 deathChance = deathChance - 2
@@ -572,7 +560,7 @@ function RealisticLivestock:updateReproduction(spec, cluster, numNewAnimals, fre
             end
         end
 
-        print("parent #" .. (i + 1) .. ": ".. childNum .. " children")
+        print("parent #" .. (i + 1) .. ": " .. childNum .. " children")
         totalOffspring = totalOffspring + childNum
 
         if parentDied == true then
@@ -627,7 +615,7 @@ function RealisticLivestock:updateReproduction(spec, cluster, numNewAnimals, fre
         animalsToSell = totalOffspring - freeSlots
     end
 
-        cluster.monthsSinceLastBirth = 0
+    cluster.monthsSinceLastBirth = 0
 
     if totalOffspring > 0 then cluster.isParent = true end
 
@@ -644,7 +632,8 @@ function RealisticLivestock:updateReproduction(spec, cluster, numNewAnimals, fre
         if isServer then
             g_currentMission:addMoneyChange(totalAnimalPrice, farmIndex, MoneyType.SOLD_ANIMALS, true)
         else
-            g_client:getServerConnection():sendEvent(MoneyChangeEvent.new(totalAnimalPrice, MoneyType.SOLD_ANIMALS, farmIndex))
+            g_client:getServerConnection():sendEvent(MoneyChangeEvent.new(totalAnimalPrice, MoneyType.SOLD_ANIMALS,
+                farmIndex))
         end
 
         if farm ~= nil then
@@ -655,7 +644,6 @@ function RealisticLivestock:updateReproduction(spec, cluster, numNewAnimals, fre
     end
 
     if totalOffspring >= 1 then
-
         local numMale = math.random(0, totalOffspring)
 
         if numMale >= 1 then
@@ -669,7 +657,6 @@ function RealisticLivestock:updateReproduction(spec, cluster, numNewAnimals, fre
         end
 
         if totalOffspring - numMale >= 1 then
-
             local femaleCluster = g_currentMission.animalSystem:createClusterFromSubTypeIndex(cluster:getSubTypeIndex())
             femaleCluster.numAnimals = totalOffspring - numMale
             femaleCluster.monthsSinceLastBirth = 0
@@ -677,7 +664,6 @@ function RealisticLivestock:updateReproduction(spec, cluster, numNewAnimals, fre
             femaleCluster.lactatingAnimals = 0
             femaleCluster.gender = "female"
             spec.clusterSystem:addPendingAddCluster(femaleCluster)
-
         end
 
         local animalTypeReal = g_currentMission.animalSystem:getTypeByIndex(subType.typeIndex)
@@ -685,15 +671,13 @@ function RealisticLivestock:updateReproduction(spec, cluster, numNewAnimals, fre
             local stats = g_currentMission:farmStats(farmIndex)
             stats:updateStats(animalTypeReal.statsBreedingName, totalOffspring)
         end
-
     end
 
-    if totalOffspring > 0 or animalsToSell > 0 then g_currentMission:addIngameNotification(FSBaseMission.INGAME_NOTIFICATION_CRITICAL, msgText) end
-
+    if totalOffspring > 0 or animalsToSell > 0 then g_currentMission:addIngameNotification(
+        FSBaseMission.INGAME_NOTIFICATION_CRITICAL, msgText) end
 end
 
 function RealisticLivestock.KillAnimals(spec, cluster, amount)
-
     cluster.numAnimals = cluster.numAnimals - amount
 
     if cluster.numAnimals <= 0 then
@@ -708,13 +692,11 @@ function RealisticLivestock.KillAnimals(spec, cluster, amount)
     end
 
     spec:updateVisualAnimals()
-
 end
 
 -- Animals can die from low health
 
 function RealisticLivestock.CalculateLowHealthMonthlyAnimalDeaths(spec, cluster)
-
     if cluster.numAnimals <= 0 then
         return
     end
@@ -731,7 +713,7 @@ function RealisticLivestock.CalculateLowHealthMonthlyAnimalDeaths(spec, cluster)
     deathChance = 0.8 - (health / 100)
 
     if math.random() <= deathChance then
-    if cluster.age < 6 then health = health - 10 end
+        if cluster.age < 6 then health = health - 10 end
         numAnimalsToDispose = math.random(math.max(1, (0.8 - (health / 100)) * numAnimals))
         if numAnimalsToDispose < 1 then
             numAnimalsToDispose = 1
@@ -795,16 +777,14 @@ function RealisticLivestock.CalculateLowHealthMonthlyAnimalDeaths(spec, cluster)
 
         msgText = numAnimalsToDispose .. " " .. animalTypeText .. " died due to low health"
 
-        if numAnimalsToDispose >= 1 then g_currentMission:addIngameNotification(FSBaseMission.INGAME_NOTIFICATION_CRITICAL, msgText) end
+        if numAnimalsToDispose >= 1 then g_currentMission:addIngameNotification(
+            FSBaseMission.INGAME_NOTIFICATION_CRITICAL, msgText) end
     end
-
 end
-
 
 -- Animals can die from old age
 
 function RealisticLivestock.CalculateOldAgeMonthlyAnimalDeaths(spec, cluster)
-
     if cluster.numAnimals <= 0 then
         return
     end
@@ -899,16 +879,14 @@ function RealisticLivestock.CalculateOldAgeMonthlyAnimalDeaths(spec, cluster)
 
         msgText = numAnimalsToDispose .. " " .. animalTypeText .. " died due to old age"
 
-        if numAnimalsToDispose >= 1 then g_currentMission:addIngameNotification(FSBaseMission.INGAME_NOTIFICATION_CRITICAL, msgText) end
+        if numAnimalsToDispose >= 1 then g_currentMission:addIngameNotification(
+            FSBaseMission.INGAME_NOTIFICATION_CRITICAL, msgText) end
     end
-
 end
-
 
 -- Animals can die randomly regardless of health such as due to broken legs - will be sold at a reduced price (lower quality meat)
 
 function RealisticLivestock.CalculateRandomMonthlyAnimalDeaths(spec, cluster, isServer)
-
     if cluster.numAnimals <= 0 then
         return
     end
@@ -980,7 +958,8 @@ function RealisticLivestock.CalculateRandomMonthlyAnimalDeaths(spec, cluster, is
             if isServer then
                 g_currentMission:addMoneyChange(totalAnimalPrice, farmIndex, MoneyType.SOLD_ANIMALS, true)
             else
-                g_client:getServerConnection():sendEvent(MoneyChangeEvent.new(totalAnimalPrice, MoneyType.SOLD_ANIMALS, farmIndex))
+                g_client:getServerConnection():sendEvent(MoneyChangeEvent.new(totalAnimalPrice, MoneyType.SOLD_ANIMALS,
+                    farmIndex))
             end
 
             if farm ~= nil then
@@ -1043,17 +1022,14 @@ function RealisticLivestock.CalculateRandomMonthlyAnimalDeaths(spec, cluster, is
         msgText = numAnimalsToDispose .. " " .. animalTypeText .. " died due to accidents"
         if animalsCanBeSold then msgText = msgText .. ", sold for £" .. math.floor(totalAnimalPrice) end
 
-        if numAnimalsToDispose >= 1 then g_currentMission:addIngameNotification(FSBaseMission.INGAME_NOTIFICATION_CRITICAL, msgText) end
-
+        if numAnimalsToDispose >= 1 then g_currentMission:addIngameNotification(
+            FSBaseMission.INGAME_NOTIFICATION_CRITICAL, msgText) end
     end
-
 end
-
 
 -- check if given animal pen has a viable male animal for reproduction
 
 function RealisticLivestock.hasMaleAnimalInPen(spec, subT, female)
-
     if spec == nil then return false end
 
     local clusterSystem = spec.clusterSystem or spec
@@ -1065,7 +1041,6 @@ function RealisticLivestock.hasMaleAnimalInPen(spec, subT, female)
     local fatherId = (female ~= nil and female.fatherId ~= "-1") and female.fatherId or "-2"
 
     for _, animal in pairs(animals) do
-
         if animal.isCastrated or animal.genetics.fertility <= 0 then continue end
 
         local s = animalSystem:getSubTypeByIndex(animal:getSubTypeIndex())
@@ -1080,22 +1055,17 @@ function RealisticLivestock.hasMaleAnimalInPen(spec, subT, female)
         elseif s.name ~= "RAM_GOAT" and s.name ~= "BULL_WATERBUFFALO" then
             if animal.gender == "male" and ((animalType == AnimalType.COW and animal.age < 132) or (animalType == AnimalType.SHEEP and animal.age < 72) or (animalType == AnimalType.HORSE and animal.age < 300) or animalType == AnimalType.CHICKEN or (animalType == AnimalType.PIG and animal.age < 48)) then return true end
         end
-
     end
 
     return false
-
 end
-
 
 -- Monthly Animal Update Call
 
 
 function RealisticLivestock.onPeriodChanged(self, func)
-
     if self.isServer then
-
-        local minTemp =  math.floor(g_currentMission.environment.weather.temperatureUpdater.currentMin)
+        local minTemp = math.floor(g_currentMission.environment.weather.temperatureUpdater.currentMin)
 
         local spec = self.spec_husbandryAnimals
         local clusters = spec.clusterSystem:getClusters()
@@ -1104,7 +1074,6 @@ function RealisticLivestock.onPeriodChanged(self, func)
         local animalSystem = g_currentMission.animalSystem
 
         for _, cluster in ipairs(clusters) do
-
             if cluster.monthsSinceLastBirth == nil then
                 cluster.monthsSinceLastBirth = 0
             end
@@ -1136,22 +1105,18 @@ function RealisticLivestock.onPeriodChanged(self, func)
                 if numNewAnimals > 0 then
                     RealisticLivestock:updateReproduction(spec, cluster, numNewAnimals, freeSlots, self.isServer)
                 end
-
             end
 
             RealisticLivestock.CalculateRandomMonthlyAnimalDeaths(spec, cluster, self.isServer)
             RealisticLivestock.CalculateOldAgeMonthlyAnimalDeaths(spec, cluster)
             RealisticLivestock.CalculateLowHealthMonthlyAnimalDeaths(spec, cluster)
-
         end
 
         spec.minTemp = minTemp
 
         self:raiseActive()
     end
-
 end
-
 
 --PlaceableHusbandryAnimals.onPeriodChanged = Utils.overwrittenFunction(PlaceableHusbandryAnimals.onPeriodChanged, RealisticLivestock.onPeriodChanged)
 
@@ -1186,7 +1151,7 @@ function RealisticLivestock:updateInfo(superFunc, infoTable)
 
     if spec.animalTypeIndex == AnimalType.COW and milkSpec ~= nil then
         if spec.infoLactatingAnimals == nil then
-            spec.infoLactatingAnimals = {title="Lactating animals", text=""}
+            spec.infoLactatingAnimals = { title = "Lactating animals", text = "" }
         end
         spec.infoLactatingAnimals.text = string.format("%d", lactatingAnimals)
         table.insert(infoTable, spec.infoLactatingAnimals)
@@ -1220,7 +1185,7 @@ function RealisticLivestock.addAnimals(self, superFunc, subTypeIndex, numAnimals
         cluster.subTypeIndex = subTypeIndex
         self:addCluster(cluster)
     else
-        for i=1, numAnimals do
+        for i = 1, numAnimals do
             cluster = animalSystem:createClusterFromSubTypeIndex(subTypeIndex)
             cluster.numAnimals = 1
             cluster.age = age
@@ -1241,7 +1206,8 @@ function RealisticLivestock:saveHusbandryToXMLFile(superFunc, xmlFile, key, used
     xmlFile:setInt(key .. "#minTemp", self.spec_husbandryAnimals.minTemp)
 end
 
-PlaceableHusbandryAnimals.saveToXMLFile = Utils.overwrittenFunction(PlaceableHusbandryAnimals.saveToXMLFile, RealisticLivestock.saveHusbandryToXMLFile)
+PlaceableHusbandryAnimals.saveToXMLFile = Utils.overwrittenFunction(PlaceableHusbandryAnimals.saveToXMLFile,
+    RealisticLivestock.saveHusbandryToXMLFile)
 
 function RealisticLivestock:loadHusbandryFromXMLFile(superFunc, xmlFile, key)
     local r = superFunc(self, xmlFile, key)
@@ -1255,4 +1221,5 @@ function RealisticLivestock:loadHusbandryFromXMLFile(superFunc, xmlFile, key)
     return r
 end
 
-PlaceableHusbandryAnimals.loadFromXMLFile = Utils.overwrittenFunction(PlaceableHusbandryAnimals.loadFromXMLFile, RealisticLivestock.loadHusbandryFromXMLFile)
+PlaceableHusbandryAnimals.loadFromXMLFile = Utils.overwrittenFunction(PlaceableHusbandryAnimals.loadFromXMLFile,
+    RealisticLivestock.loadHusbandryFromXMLFile)
