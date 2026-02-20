@@ -1,5 +1,6 @@
 > [!NOTE]
 > My version of the awesome [FS25 Realistic Livestock](https://github.com/Arrow-kb/FS25_RealisticLivestock) mod by [Arrow-kb](https://github.com/Arrow-kb).
+>
 > Proudly cooperating with [FS25_EnhancedLivestock](https://github.com/renfordt/FS25_EnhancedLivestock) mod by [Renfordt](https://github.com/renfordt).
 
 # FS25 Realistic Livestock - Ritter version
