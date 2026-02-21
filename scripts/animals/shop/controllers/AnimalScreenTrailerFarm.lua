@@ -54,7 +54,6 @@ function AnimalScreenTrailerFarm:applySourceBulk(animalTypeIndex, items)
 
     local trailer = self.trailer
     local husbandry = self.husbandry
-    local clusterSystemTrailer = trailer:getClusterSystem()
     local ownerFarmId = trailer:getOwnerFarmId()
 
     local sourceItems = self.sourceItems[animalTypeIndex]
@@ -70,7 +69,9 @@ function AnimalScreenTrailerFarm:applySourceBulk(animalTypeIndex, items)
             local errorCode = AnimalMoveEvent.validate(trailer, husbandry, ownerFarmId, animal.subTypeIndex)
 
             if errorCode ~= nil then continue end
-    
+
+            if husbandry:getNumOfFreeAnimalSlots(animal.subTypeIndex) <= totalMovedAnimals then continue end
+
             totalMovedAnimals = totalMovedAnimals + 1
 
             table.insert(self.sourceAnimals, animal)
@@ -83,10 +84,12 @@ function AnimalScreenTrailerFarm:applySourceBulk(animalTypeIndex, items)
 	g_messageCenter:subscribe(AnimalMoveEvent, self.onAnimalMovedToFarm, self)
 	g_client:getServerConnection():sendEvent(AnimalMoveEvent.new(trailer, husbandry, self.sourceAnimals, "TARGET"))
 
-    if totalMovedAnimals == 1 then
-        husbandry:addRLMessage("MOVED_ANIMALS_TARGET_SINGLE", nil, { trailer:getName() })
-    elseif totalMovedAnimals > 0 then
-        husbandry:addRLMessage("MOVED_ANIMALS_TARGET_MULTIPLE", nil, { totalMovedAnimals, trailer:getName() })
+    if husbandry.addRLMessage ~= nil then
+        if totalMovedAnimals == 1 then
+            husbandry:addRLMessage("MOVED_ANIMALS_TARGET_SINGLE", nil, { trailer:getName() })
+        elseif totalMovedAnimals > 0 then
+            husbandry:addRLMessage("MOVED_ANIMALS_TARGET_MULTIPLE", nil, { totalMovedAnimals, trailer:getName() })
+        end
     end
 
 end
@@ -113,7 +116,9 @@ function AnimalScreenTrailerFarm:applyTargetBulk(animalTypeIndex, items)
             local errorCode = AnimalMoveEvent.validate(husbandry, trailer, ownerFarmId, animal.subTypeIndex)
 
             if errorCode ~= nil then continue end
-    
+
+            if trailer:getNumOfFreeAnimalSlots(animal.subTypeIndex) <= totalMovedAnimals then continue end
+
             totalMovedAnimals = totalMovedAnimals + 1
 
             table.insert(self.targetAnimals, animal)
@@ -126,10 +131,12 @@ function AnimalScreenTrailerFarm:applyTargetBulk(animalTypeIndex, items)
 	g_messageCenter:subscribe(AnimalMoveEvent, self.onAnimalMovedToTrailer, self)
 	g_client:getServerConnection():sendEvent(AnimalMoveEvent.new(husbandry, trailer, self.targetAnimals, "SOURCE"))
 
-    if totalMovedAnimals == 1 then
-        husbandry:addRLMessage("MOVED_ANIMALS_SOURCE_SINGLE", nil, { trailer:getName() })
-    elseif totalMovedAnimals > 0 then
-        husbandry:addRLMessage("MOVED_ANIMALS_SOURCE_MULTIPLE", nil, { totalMovedAnimals, trailer:getName() })
+    if husbandry.addRLMessage ~= nil then
+        if totalMovedAnimals == 1 then
+            husbandry:addRLMessage("MOVED_ANIMALS_SOURCE_SINGLE", nil, { trailer:getName() })
+        elseif totalMovedAnimals > 0 then
+            husbandry:addRLMessage("MOVED_ANIMALS_SOURCE_MULTIPLE", nil, { totalMovedAnimals, trailer:getName() })
+        end
     end
 
 end
@@ -159,7 +166,9 @@ function RL_AnimalScreenTrailerFarm:applyTarget(_, _, animalIndex)
 	g_messageCenter:subscribe(AnimalMoveEvent, self.onAnimalMovedToTrailer, self)
 	g_client:getServerConnection():sendEvent(AnimalMoveEvent.new(husbandry, trailer, self.targetAnimals))
 
-    husbandry:addRLMessage("MOVED_ANIMALS_SOURCE_SINGLE", nil, { trailer:getName() })
+    if husbandry.addRLMessage ~= nil then
+        husbandry:addRLMessage("MOVED_ANIMALS_SOURCE_SINGLE", nil, { trailer:getName() })
+    end
 
     return true
 
@@ -193,7 +202,9 @@ function RL_AnimalScreenTrailerFarm:applySource(_, animalTypeIndex, animalIndex)
 	g_messageCenter:subscribe(AnimalMoveEvent, self.onAnimalMovedToFarm, self)
 	g_client:getServerConnection():sendEvent(AnimalMoveEvent.new(trailer, husbandry, self.sourceAnimals))
 
-    husbandry:addRLMessage("MOVED_ANIMALS_TARGET_SINGLE", nil, { trailer:getName() })
+    if husbandry.addRLMessage ~= nil then
+        husbandry:addRLMessage("MOVED_ANIMALS_TARGET_SINGLE", nil, { trailer:getName() })
+    end
 
     return true
 

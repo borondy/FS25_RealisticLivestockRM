@@ -75,6 +75,8 @@ function AnimalMoveEvent:run(connection)
 	local userId = g_currentMission.userManager:getUniqueUserIdByConnection(connection)
 	local farmId = g_farmManager:getFarmForUniqueUserId(userId).farmId
 
+	local validatedCount = 0
+
 	for _, animal in pairs(self.animals) do
 
 		local errorCode = AnimalMoveEvent.validate(self.sourceObject, self.targetObject, farmId, animal.subTypeIndex)
@@ -83,7 +85,14 @@ function AnimalMoveEvent:run(connection)
 			connection:sendEvent(AnimalMoveEvent.newServerToClient(errorCode))
 			return
 		end
-	
+
+		validatedCount = validatedCount + 1
+
+		if self.targetObject:getNumOfFreeAnimalSlots(animal.subTypeIndex) < validatedCount then
+			connection:sendEvent(AnimalMoveEvent.newServerToClient(AnimalMoveEvent.MOVE_ERROR_NOT_ENOUGH_SPACE))
+			return
+		end
+
 	end
 
 	local clusterSystemSource = self.sourceObject:getClusterSystem()
