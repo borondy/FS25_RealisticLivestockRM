@@ -78,7 +78,7 @@ AnimalScreen.onClose = Utils.appendedFunction(AnimalScreen.onClose, RealisticLiv
 --- Some mods (e.g. EPP butchers) bypass AnimalScreen.show() and open the screen directly
 --- via g_gui:showGui("AnimalScreen"), skipping RL's setup (isTrailerFarm, NAV_ACTIONS, filters).
 --- This function re-derives the missing state from the controller so RL features work correctly.
---- Safe to call multiple times — NAV_ACTIONS are only added once.
+--- Safe to call multiple times - NAV_ACTIONS are only added once.
 function RealisticLivestock_AnimalScreen.ensureInitialized(self)
     -- Derive isTrailerFarm from controller properties
     self.isTrailerFarm = self.controller ~= nil and self.controller.trailer ~= nil and self.controller.husbandry ~= nil and not self.isDealer

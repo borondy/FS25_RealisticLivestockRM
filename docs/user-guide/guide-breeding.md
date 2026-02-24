@@ -185,12 +185,15 @@ If a pen is at maximum capacity when offspring are born, **excess newborns are a
 
 ## Artificial Insemination
 
-If you don't want to keep males, artificial insemination (AI) is available through the herdsman menu:
+If you don't want to keep males, artificial insemination (AI) is available through the livestock menu. Press **I** on a female animal to open the insemination dialog.
 
 - Breeds your female without needing a physical male in the pen
 - Uses an AI animal pool (can be refreshed in settings)
 - Same breed restrictions apply (Water Buffalo and Goats need breed-specific AI)
 - Same health and age requirements apply
+- The insemination button is automatically disabled when the female is ineligible (pregnant, too young, or recovering from birth)
+
+> **Multiplayer note:** Semen dewars (AI canisters) cannot be physically picked up by clients. The dewar interaction menu works, but moving dewars only works in singleplayer or as the host.
 
 ---
 

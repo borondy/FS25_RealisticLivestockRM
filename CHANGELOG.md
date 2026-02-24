@@ -1,11 +1,14 @@
 # Changelog
 
-## v1.0.1.0-dev:
+## v1.0.1.0:
 - Add Hof Bergmann map support - exotic animals (ducks, geese, cats, rabbits) now support full breeding and reproduction
 - Add basic support for butchers using Extended Production Point (EPP) mod
+- Add missing translation keys across all languages
+- Improve offspring subtype selection for maps with non-standard animal configurations
+- Update Italian translation (contributed by FirenzeIT)
+- Fix "Manage Animals" (R) key interfering with other mods' keybindings in different menu tabs
 - Fix bulk move allowing more animals than target pen capacity
 - Fix error when moving animals to Extended Production Points (EPP butchers)
-- Improve offspring subtype selection for maps with non-standard animal configurations
 
 ## v1.0.0.0:
 - Add "Manage Animals" (R) button to in-game animal menu for easier management

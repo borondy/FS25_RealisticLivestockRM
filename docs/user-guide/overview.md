@@ -44,6 +44,14 @@ Males and females have different fertility windows - boars retire from breeding 
 
 See the [Breeding Guide](guide-breeding.md) for full details per species.
 
+### Animal Management
+
+Individual animals can be monitored, marked, and castrated:
+
+- **Monitoring** - Place monitors on animals to track their stats over time. View active monitors in the livestock menu.
+- **Marking** - Mark animals for visual identification in your herd
+- **Castration** - Castrate males for a small sell price bonus. Castrated animals grow faster but cannot breed.
+
 ### Diseases
 
 Five diseases can affect your animals:
@@ -80,18 +88,39 @@ Almost everything can be tuned to your preference:
 - Control dealer stock size
 - Customise ear tag colours
 - Export animal data to CSV
+- Choose between individual event messages or daily summaries
 
 See the [Settings Reference](reference-settings.md) for all options.
 
 ### Livestock Menu
 
-The mod adds a comprehensive livestock menu with several tabs:
+Press **R** in the animal menu to open the livestock management screen. It has several tabs:
 
 - **Animal overview** - Browse individual animals with their stats, genetics, and health
 - **Herdsman** - Set up automation rules for your herds
 - **Artificial insemination** - Breed without keeping males
-- **Message log** - Track births, deaths, diseases, and other events
+- **Message log** - Track births, deaths, diseases, and other events (supports daily summary mode)
 - **CSV export** - Export detailed data for analysis
+
+### Controls
+
+| Key | Action | Where |
+|-----|--------|-------|
+| **R** | Open Manage Animals | Animal menu |
+| **A** | Select / deselect | Buy and sell dialogs |
+| **Shift + T** | Toggle 3D name tags | In-game |
+| **X** | Mark animal | Animal detail view |
+| **M** | Toggle monitor | Animal detail view |
+| **I** | Insemination | Animal detail view (females only) |
+| **C** | Castrate | Animal detail view (males only) |
+| **D** | Disease treatment | Animal detail view |
+
+*All keybindings can be remapped in the game's input settings.*
+
+### Map & Mod Support
+
+- **Hof Bergmann** - Exotic animals (ducks, geese, cats, rabbits) are fully supported with breeding and reproduction
+- **Extended Production Point (EPP)** - Basic support for moving animals to EPP butchers
 
 ---
 

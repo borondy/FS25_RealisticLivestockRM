@@ -37,6 +37,14 @@ If you previously used the original [FS25 Realistic Livestock](https://github.co
 
 If a conflicting mod is detected, the game will show a warning dialog at startup.
 
+### Map Support
+
+- **Hof Bergmann** - Exotic animals (ducks, geese, cats, rabbits) fully supported with breeding and reproduction
+
+### Mod Compatibility
+
+- **FS25_ExtendedProductionPoint (EPP)** - Basic support for butchers using the EPP mod
+
 ## Documentation
 
 **[Mod Overview](overview.md)** - How the mod works: what changes from vanilla FS25, how animals are tracked, and what to expect.
@@ -46,10 +54,10 @@ If a conflicting mod is detected, the game will show a warning dialog at startup
 Per-species reference with breeds, production, prices, breeding, and lifespan data:
 
 - [Cattle](factsheet-cattle.md) - 7 breeds including dairy, beef, and highland
-- [Pigs](factsheet-pigs.md) - 4 breeds with large litter mechanics
+- [Pigs](factsheet-pigs.md) - 3 breeds with large litter mechanics
 - [Sheep & Goats](factsheet-sheep.md) - 5 breeds covering wool, meat, and goat milk
 - [Horses](factsheet-horses.md) - 8 colour variants, no diseases
-- [Chickens](factsheet-chickens.md) - 3 breeds with egg production curves
+- [Chickens](factsheet-chickens.md) - Hens and roosters with egg production curves
 
 ### Guides
 

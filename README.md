@@ -35,7 +35,7 @@ This is a maintained version of the original mod by Arrow-kb, who has discontinu
 - Based on Arrow-kb's Realistic Livestock mod (v1.2.0.5), released under GPL-3 license
 - Savegame data from Arrow-kb's original version is automatically migrated on first load
 - Font Library mod is no longer required (functionality has been inlined)
-- Incompatible with FS25_EnhancedLivestock and FS25_MoreVisualAnimals (use FS25_MoreVisualAnimalsRM instead)
+- Incompatible with FS25_EnhancedLivestock, FS25_MoreVisualAnimals, and FS25_EnhancedAnimalSystem (use FS25_MoreVisualAnimalsRM instead of FS25_MoreVisualAnimals)
 
 ## Installation
 
