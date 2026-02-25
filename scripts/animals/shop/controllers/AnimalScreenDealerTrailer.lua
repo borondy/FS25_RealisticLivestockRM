@@ -12,8 +12,6 @@ function RL_AnimalScreenDealerTrailer:initTargetItems(_)
         end
     end
 
-    table.sort(self.targetItems, RL_AnimalScreenBase.sortAnimals)
-
 end
 
 AnimalScreenDealerTrailer.initTargetItems = Utils.overwrittenFunction(AnimalScreenDealerTrailer.initTargetItems, RL_AnimalScreenDealerTrailer.initTargetItems)
@@ -46,8 +44,6 @@ function RL_AnimalScreenDealerTrailer:initSourceItems(_)
 
             end
 
-            if self.sourceItems[animalTypeIndex] ~= nil then table.sort(self.sourceItems[animalTypeIndex], RL_AnimalScreenBase.sortSaleAnimals) end
-
         end
 
         return
@@ -56,15 +52,13 @@ function RL_AnimalScreenDealerTrailer:initSourceItems(_)
 
     local animalTypeIndex = animalType.typeIndex
     local animals = animalSystem:getSaleAnimalsByTypeIndex(animalTypeIndex)
-    
+
     self.sourceItems = { [animalTypeIndex] = {} }
 
     for _, animal in pairs(animals) do
         local item = AnimalItemNew.new(animal)
         table.insert(self.sourceItems[animalTypeIndex], item)
     end
-
-    table.sort(self.sourceItems[animalTypeIndex], RL_AnimalScreenBase.sortSaleAnimals)
 
 end
 

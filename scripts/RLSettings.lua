@@ -240,6 +240,29 @@ RLSettings.SETTINGS = {
 			["name"] = "useCustomAnimals",
 			["state"] = 2
 		}
+	},
+
+	["geneticsDisplay"] = {
+		["index"] = 13,
+		["type"] = "MultiTextOption",
+		["default"] = 1,
+		["values"] = { 1, 2, 3 }
+	},
+
+	["geneticsPosition"] = {
+		["index"] = 14,
+		["type"] = "BinaryOption",
+		["default"] = 1,
+		["values"] = { 1, 2 }
+	},
+
+	["sortByGenetics"] = {
+		["index"] = 15,
+		["type"] = "BinaryOption",
+		["dynamicTooltip"] = true,
+		["default"] = 1,
+		["binaryType"] = "offOn",
+		["values"] = { false, true }
 	}
 
 }

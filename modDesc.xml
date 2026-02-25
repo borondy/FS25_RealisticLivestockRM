@@ -1,6 +1,6 @@
 <modDesc descVersion="106">
     <author>Ritter</author>
-    <version>1.0.1.1</version>
+    <version>1.0.2.0-dev</version>
     <title>
         <en>Realistic Livestock - Ritter version</en>
         <it>Allevamento Realistico - Versione Ritter</it>
@@ -23,6 +23,10 @@ Documentation: https://rittermod.github.io/FS25_RealisticLivestockRM
 Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivestockRM
 
 Changelog
+
+v1.0.2.0-dev:
+- Added genetics display in animal names (average score, or full breakdown per trait)
+- Added sort by genetics option for animal lists
 
 v1.0.1.1:
 - Fixed compatibility with Hof Bergmann's subtype filter for animal pens

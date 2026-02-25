@@ -12,8 +12,6 @@ function RL_AnimalScreenTrailer:initTargetItems(_)
         end
     end
 
-    table.sort(self.targetItems, RL_AnimalScreenBase.sortAnimals)
-
 end
 
 AnimalScreenTrailer.initTargetItems = Utils.overwrittenFunction(AnimalScreenTrailer.initTargetItems, RL_AnimalScreenTrailer.initTargetItems)

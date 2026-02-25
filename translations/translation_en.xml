@@ -530,6 +530,19 @@
 		<text name="rl_settings_animalsXML_tooltip" text="Set path to a custom animals XML file"/>
 		<text name="rl_settings_animalsXML_text" text="Set Animals XML Path"/>
 
+		<text name="rl_settings_geneticsDisplay_label" text="Genetics Display"/>
+		<text name="rl_settings_geneticsDisplay_tooltip" text="Show numeric genetics values in animal names"/>
+		<text name="rl_settings_geneticsDisplay_texts_1" text="Off"/>
+		<text name="rl_settings_geneticsDisplay_texts_2" text="Short"/>
+		<text name="rl_settings_geneticsDisplay_texts_3" text="Long"/>
+		<text name="rl_settings_geneticsPosition_label" text="Genetics Position"/>
+		<text name="rl_settings_geneticsPosition_tooltip" text="Where to show genetics in the name"/>
+		<text name="rl_settings_geneticsPosition_texts_1" text="Prefix"/>
+		<text name="rl_settings_geneticsPosition_texts_2" text="Postfix"/>
+		<text name="rl_settings_sortByGenetics_label" text="Sort by Genetics"/>
+		<text name="rl_settings_sortByGenetics_tooltip_1" text="Animals are sorted by type and age"/>
+		<text name="rl_settings_sortByGenetics_tooltip_2" text="Animals are sorted by genetics (highest first)"/>
+
 
 
 		<!--  HELP  -->

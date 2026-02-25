@@ -1,4 +1,65 @@
+local Log = RmLogging.getLogger("RLRM")
+
 RealisticLivestock_InGameMenuAnimalsFrame = {}
+
+
+local function computeAvgGenetics(animal)
+    local genetics = animal.genetics
+    if genetics == nil or type(genetics) ~= "table" then return 0 end
+    local total = 0
+    local count = 0
+    for _, value in pairs(genetics) do
+        if value ~= nil then
+            total = total + value
+            count = count + 1
+        end
+    end
+    return count > 0 and (total / count) or 0
+end
+
+
+local function sortRawAnimals(a, b)
+    local aDisease = a:getHasAnyDisease()
+    local bDisease = b:getHasAnyDisease()
+    if aDisease and not bDisease then return true end
+    if bDisease and not aDisease then return false end
+
+    local sortByGenetics = RLSettings.SETTINGS.sortByGenetics
+    if sortByGenetics ~= nil and sortByGenetics.state == 2 then
+        local aGen = computeAvgGenetics(a)
+        local bGen = computeAvgGenetics(b)
+        if aGen ~= bGen then return aGen > bGen end
+    end
+
+    return a.age < b.age
+end
+
+
+function RealisticLivestock_InGameMenuAnimalsFrame:reloadList(superFunc)
+    superFunc(self)
+
+    if self.husbandrySubTypes == nil or #self.husbandrySubTypes == 0 then return end
+
+    if #self.husbandrySubTypes > 1 then
+        table.sort(self.husbandrySubTypes)
+    end
+
+    for _, subTypeIndex in ipairs(self.husbandrySubTypes) do
+        local animals = self.subTypeIndexToClusters[subTypeIndex]
+        if animals ~= nil and #animals > 1 then
+            table.sort(animals, sortRawAnimals)
+        end
+    end
+
+    self.list:reloadData()
+
+    Log:debug("AnimalsFrame: reloadList sorted %d subTypes", #self.husbandrySubTypes)
+end
+
+InGameMenuAnimalsFrame.reloadList = Utils.overwrittenFunction(
+    InGameMenuAnimalsFrame.reloadList,
+    RealisticLivestock_InGameMenuAnimalsFrame.reloadList
+)
 
 
 function RealisticLivestock_InGameMenuAnimalsFrame:displayCluster(superFunc, animal, husbandry)
@@ -17,7 +78,8 @@ function RealisticLivestock_InGameMenuAnimalsFrame:displayCluster(superFunc, ani
             local name = animal:getName()
             name = name ~= "" and (" (" .. name .. ")") or ""
 
-            self.animalDetailTypeNameText:setText(animal.uniqueId .. name)
+            local displayName = RL_AnimalScreenBase.formatDisplayName(animal.uniqueId .. name, animal)
+            self.animalDetailTypeNameText:setText(displayName)
             self.animalDetailTypeImage:setImageFilename(visual.store.imageFilename)
 
             local ageMonth = g_i18n:formatNumMonth(age)
@@ -58,7 +120,8 @@ function RealisticLivestock_InGameMenuAnimalsFrame:populateCellForItemInSection(
     local animal = self.subTypeIndexToClusters[subType][animalIndex]
 
     if g_currentMission.animalSystem:getVisualByAge(subType, animal:getAge()) ~= nil then
-        cell:getAttribute("name"):setText(animal.uniqueId .. (animal:getName() == "" and "" or (" (" .. animal:getName() .. ")")))
+        local baseName = animal.uniqueId .. (animal:getName() == "" and "" or (" (" .. animal:getName() .. ")"))
+        cell:getAttribute("name"):setText(RL_AnimalScreenBase.formatDisplayName(baseName, animal))
         cell:getAttribute("count"):setVisible(false)
     end
 

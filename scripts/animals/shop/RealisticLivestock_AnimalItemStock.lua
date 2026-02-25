@@ -17,6 +17,23 @@ function RealisticLivestock_AnimalItemStock.new(animal)
 	local subType = g_currentMission.animalSystem:getSubTypeByIndex(animal.subTypeIndex)
 	self.title = g_fillTypeManager:getFillTypeTitleByIndex(subType.fillTypeIndex)
 
+	self.cachedSellPrice = animal:getSellPrice()
+
+	local genetics = animal:getGenetics()
+	if genetics ~= nil then
+		local total = 0
+		local count = 0
+		for _, value in pairs(genetics) do
+			if value ~= nil then
+				total = total + value
+				count = count + 1
+			end
+		end
+		self.cachedAvgGenetics = count > 0 and (total / count) or 0
+	else
+		self.cachedAvgGenetics = 0
+	end
+
 	local hasMonitor = animal.monitor.active or animal.monitor.removed
 	
 	self.infos = {
@@ -129,6 +146,20 @@ function RealisticLivestock_AnimalItemStock.new(animal)
 end
 
 AnimalItemStock.new = RealisticLivestock_AnimalItemStock.new
+
+
+function AnimalItemStock:getDisplayName()
+
+	return RL_AnimalScreenBase.formatDisplayName(self.cluster:getName(), self.cluster)
+
+end
+
+
+function AnimalItemStock:getPrice()
+
+	return self.cachedSellPrice
+
+end
 
 
 function AnimalItemStock:getHasAnyDisease()

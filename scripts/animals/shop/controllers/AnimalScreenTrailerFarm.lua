@@ -14,8 +14,6 @@ function RL_AnimalScreenTrailerFarm:initTargetItems(_)
         end
     end
 
-    table.sort(self.targetItems, RL_AnimalScreenBase.sortAnimals)
-
 end
 
 AnimalScreenTrailerFarm.initTargetItems = Utils.overwrittenFunction(AnimalScreenTrailerFarm.initTargetItems, RL_AnimalScreenTrailerFarm.initTargetItems)
@@ -40,10 +38,6 @@ function RL_AnimalScreenTrailerFarm:initSourceItems(_)
         end
     end
 
-
-    for _, category in pairs(self.sourceItems) do
-        table.sort(category, RL_AnimalScreenBase.sortAnimals)
-    end
 
 end
 

@@ -141,6 +141,8 @@ function RealisticLivestock_AnimalScreen:setController(_, husbandry, vehicle, is
 	self.controller:setTargetBulkActionFinishedCallback(self.onTargetBulkActionFinished, self)
 	self.controller:setErrorCallback(self.onError, self)
 
+	RL_AnimalScreenBase.sortItems(self.controller)
+
 	self.sourceList:reloadData(true)
 
 end
@@ -1832,6 +1834,7 @@ AnimalScreen.updateInfoBox = Utils.overwrittenFunction(AnimalScreen.updateInfoBo
 
 function RealisticLivestock_AnimalScreen:updateScreen(superFunc, state)
 
+    RL_AnimalScreenBase.sortItems(self.controller)
 
     self.isAutoUpdatingList = true
     self.sourceList:reloadData(true)
@@ -2016,6 +2019,8 @@ function RealisticLivestock_AnimalScreen:populateCellForItemInSection(_, list, _
 
         if name == nil or name == "" then name = string.format("%s %s %s", RealisticLivestock.AREA_CODES[animal.birthday.country].code, animal.farmId, animal.uniqueId) end
 
+        name = RL_AnimalScreenBase.formatDisplayName(name, animal)
+
         local visual = g_currentMission.animalSystem:getVisualByAge(animal.subTypeIndex, animal.age)
 
         cell:getAttribute("name"):setText(name)
@@ -2191,19 +2196,20 @@ function RealisticLivestock_AnimalScreen:populateCellForItemInSection(_, list, _
         end
 
         
-        local name = animal:getName()
+        local name = item:getDisplayName()
+        local baseName = animal:getName()
         local identifier = animal:getIdentifiers()
 
-        if name == "" then
-            cell:getAttribute("idNoName"):setText(identifier)
+        if baseName == "" then
+            cell:getAttribute("idNoName"):setText(RL_AnimalScreenBase.formatDisplayName(identifier, animal))
         else
             cell:getAttribute("name"):setText(name)
             cell:getAttribute("id"):setText(identifier)
         end
 
-        cell:getAttribute("id"):setVisible(name ~= "")
-        cell:getAttribute("name"):setVisible(name ~= "")
-        cell:getAttribute("idNoName"):setVisible(name == "")
+        cell:getAttribute("id"):setVisible(baseName ~= "")
+        cell:getAttribute("name"):setVisible(baseName ~= "")
+        cell:getAttribute("idNoName"):setVisible(baseName == "")
 
         cell:getAttribute("icon"):setImageFilename(item:getFilename())
         cell:getAttribute("price"):setValue(item:getPrice())
@@ -2298,6 +2304,9 @@ function RealisticLivestock_AnimalScreen:populateCellForItemInSection(_, list, _
             local name = item:getName()
 
             if not self.isHorse and not self.isBuyMode and item.cluster ~= nil and item.cluster.uniqueId ~= nil then name = item.cluster.uniqueId .. (name == "" and "" or (" (" .. name .. ")")) end
+
+            local animal = item.animal or item.cluster
+            name = RL_AnimalScreenBase.formatDisplayName(name, animal)
 
             cell:getAttribute("name"):setText(name)
 
@@ -2425,6 +2434,8 @@ function AnimalScreen:reapplyFilters()
 
     if self.filters == nil then
         self.filteredItems = nil
+        Log:debug("AnimalScreen: reapplyFilters noFilters, sorting only")
+        RL_AnimalScreenBase.sortItems(self.controller)
         return
     end
 
@@ -2433,6 +2444,8 @@ function AnimalScreen:reapplyFilters()
     else
         self.controller:initTargetItems()
     end
+
+    RL_AnimalScreenBase.sortItems(self.controller)
 
     local animalTypeIndex = self.sourceSelectorStateToAnimalType[self.sourceSelector:getState()]
     local items = self.isBuyMode and self.controller:getSourceItems(animalTypeIndex, self.isBuyMode) or self.controller:getTargetItems()

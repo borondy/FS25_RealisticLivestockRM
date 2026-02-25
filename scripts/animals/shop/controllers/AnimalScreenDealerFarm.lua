@@ -12,8 +12,6 @@ function RL_AnimalScreenDealerFarm:initTargetItems(_)
         end
     end
 
-    table.sort(self.targetItems, RL_AnimalScreenBase.sortAnimals)
-
 end
 
 AnimalScreenDealerFarm.initTargetItems = Utils.overwrittenFunction(AnimalScreenDealerFarm.initTargetItems, RL_AnimalScreenDealerFarm.initTargetItems)
@@ -30,8 +28,6 @@ function RL_AnimalScreenDealerFarm:initSourceItems(_)
         local item = AnimalItemNew.new(animal)
         table.insert(self.sourceItems[animalTypeIndex], item)
     end
-
-    table.sort(self.sourceItems[animalTypeIndex], RL_AnimalScreenBase.sortSaleAnimals)
 
 end
 

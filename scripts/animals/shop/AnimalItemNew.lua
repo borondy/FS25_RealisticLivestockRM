@@ -103,7 +103,9 @@ function AnimalItemNew.new(animal)
 	end
 
 
-	local averageGenetics = totalGeneticsValues / totalGenetics
+	local averageGenetics = totalGenetics > 0 and (totalGeneticsValues / totalGenetics) or 0
+	self.cachedAvgGenetics = averageGenetics
+	self.cachedSellPrice = animal:getSellPrice()
 
     if averageGenetics >= 1.65 then
 		qualityText = g_i18n:getText("rl_ui_genetics_extremelyGood")
@@ -139,6 +141,13 @@ function AnimalItemNew:getName()
 end
 
 
+function AnimalItemNew:getDisplayName()
+
+	return RL_AnimalScreenBase.formatDisplayName(self:getName(), self.animal)
+
+end
+
+
 function AnimalItemNew:getTitle()
 
 	return self.title
@@ -148,7 +157,7 @@ end
 
 function AnimalItemNew:getPrice()
 
-	return self.animal:getSellPrice() * 1.075
+	return self.cachedSellPrice * 1.075
 
 end
 
