@@ -598,7 +598,7 @@
 		<text name="rl_message_boughtAnimals_multiple" text="%s animals were bought for %s"/>
 		<text name="rl_message_soldAnimals_single" text="1 animal was sold for %s"/>
 		<text name="rl_message_soldAnimals_multiple" text="%s animals were sold for %s"/>
-		<text name="rl_message_movedAnimalsTo_single" text="1 animals was moved to %s"/>
+		<text name="rl_message_movedAnimalsTo_single" text="1 animal was moved to %s"/>
 		<text name="rl_message_movedAnimalsTo_multiple" text="%s animals were moved to %s"/>
 		<text name="rl_message_movedAnimalsFrom_single" text="1 animal was moved from %s"/>
 		<text name="rl_message_movedAnimalsFrom_multiple" text="%s animals were moved from %s"/>

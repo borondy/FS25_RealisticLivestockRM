@@ -119,9 +119,9 @@ function AnimalMoveEvent:run(connection)
 
 	if husbandry.addRLMessage ~= nil then
 		if #self.animals == 1 then
-			husbandry:addRLMessage(string.format("MOVE_ANIMALS_%s_SINLGE", self.moveType), nil, { trailer:getName() })
+			husbandry:addRLMessage(string.format("MOVED_ANIMALS_%s_SINGLE", self.moveType), nil, { trailer:getName() })
 		elseif #self.animals > 0 then
-			husbandry:addRLMessage(string.format("MOVE_ANIMALS_%s_MULTIPLE", self.moveType), nil, { #self.animals, trailer:getName() })
+			husbandry:addRLMessage(string.format("MOVED_ANIMALS_%s_MULTIPLE", self.moveType), nil, { #self.animals, trailer:getName() })
 		end
 	end
 

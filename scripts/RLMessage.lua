@@ -85,22 +85,22 @@ RLMessage = {
 		["importance"] = 3
 	},
 	["MOVED_ANIMALS_SOURCE_SINGLE"] = {
-		["text"] = "movedAnimalsFrom_single",
-		["title"] = "movement",
-		["importance"] = 3
-	},
-	["MOVED_ANIMALS_SOURCE_MULTIPLE"] = {
-		["text"] = "movedAnimalsFrom_multiple",
-		["title"] = "movement",
-		["importance"] = 3
-	},
-	["MOVED_ANIMALS_TARGET_SINGLE"] = {
 		["text"] = "movedAnimalsTo_single",
 		["title"] = "movement",
 		["importance"] = 3
 	},
-	["MOVED_ANIMALS_TARGET_MULTIPLE"] = {
+	["MOVED_ANIMALS_SOURCE_MULTIPLE"] = {
 		["text"] = "movedAnimalsTo_multiple",
+		["title"] = "movement",
+		["importance"] = 3
+	},
+	["MOVED_ANIMALS_TARGET_SINGLE"] = {
+		["text"] = "movedAnimalsFrom_single",
+		["title"] = "movement",
+		["importance"] = 3
+	},
+	["MOVED_ANIMALS_TARGET_MULTIPLE"] = {
+		["text"] = "movedAnimalsFrom_multiple",
 		["title"] = "movement",
 		["importance"] = 3
 	},
