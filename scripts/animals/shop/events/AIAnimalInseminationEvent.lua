@@ -33,7 +33,7 @@ function AIAnimalInseminationEvent:readStream(streamId, connection)
 
 	for i = 1, numItems do
 
-		local identifiers = Animal.readStreamIdentifiers(streamId, connection)
+		local identifiers = RLAnimalUtil.readStreamIdentifiers(streamId, connection)
 		local dewarUniqueId = streamReadString(streamId)
 
 		table.insert(self.items, { ["animal"] = identifiers, ["dewar"] = dewarUniqueId })
@@ -53,7 +53,7 @@ function AIAnimalInseminationEvent:writeStream(streamId, connection)
 
 	for _, item in pairs(self.items) do
 		
-		item.animal:writeStreamIdentifiers(streamId, connection)
+		RLAnimalUtil.writeStreamIdentifiers(item.animal, streamId, connection)
 		streamWriteString(streamId, item.dewar)
 		Log:trace("AIInseminationEvent:writeStream dewar=%s", tostring(item.dewar))
 
@@ -82,18 +82,14 @@ function AIAnimalInseminationEvent:run(connection)
 
 			if dewar:getUniqueId() == item.dewar then
 
-				for _, animal in pairs(clusterSystem.animals) do
+				local animal = RLAnimalUtil.find(clusterSystem.animals, identifiers.farmId, identifiers.uniqueId, identifiers.country or identifiers.birthday.country)
 
-					if animal.farmId == identifiers.farmId and animal.uniqueId == identifiers.uniqueId and animal.birthday.country == (identifiers.country or identifiers.birthday.country) then
-					
-						animal:setInsemination(dewar.animal)
-						dewar:changeStraws(-1)
-						Log:trace("AIInseminationEvent:run inseminated %s dewar=%s", tostring(identifiers.uniqueId), tostring(item.dewar))
-
-						break
-
-					end
-
+				if animal ~= nil then
+					animal:setInsemination(dewar.animal)
+					dewar:changeStraws(-1)
+					Log:trace("AIInseminationEvent:run inseminated %s dewar=%s", tostring(identifiers.uniqueId), tostring(item.dewar))
+				else
+					Log:trace("AIInseminationEvent:run animal not found uniqueId=%s", tostring(identifiers.uniqueId))
 				end
 
 				break

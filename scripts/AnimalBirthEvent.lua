@@ -29,7 +29,7 @@ function AnimalBirthEvent:readStream(streamId, connection)
     local hasObject = streamReadBool(streamId)
 
     self.object = hasObject and NetworkUtil.readNodeObject(streamId) or nil
-    self.animal = Animal.readStreamIdentifiers(streamId, connection)
+    self.animal = RLAnimalUtil.readStreamIdentifiers(streamId, connection)
 
     local numChildren = streamReadUInt8(streamId)
     self.children = {}
@@ -53,7 +53,7 @@ function AnimalBirthEvent:writeStream(streamId, connection)
 
     if self.object ~= nil then NetworkUtil.writeNodeObject(streamId, self.object) end
     
-    self.animal:writeStreamIdentifiers(streamId, connection)
+    RLAnimalUtil.writeStreamIdentifiers(self.animal, streamId, connection)
 
     streamWriteUInt8(streamId, #self.children)
 
@@ -64,9 +64,17 @@ function AnimalBirthEvent:writeStream(streamId, connection)
 end
 
 
+--- Process birth on receiving end: add children to herd, update parent state (clear pregnancy,
+--- set lactating for cows/goats), and optionally remove parent if she died during birth.
+--- Handles both cluster path (husbandry) and non-cluster path (animalSystem) independently.
 function AnimalBirthEvent:run(connection)
 
     local identifiers = self.animal
+
+    local country = identifiers.country or identifiers.birthday.country
+
+    Log:trace("BirthEvent:run uniqueId=%s children=%d parentDied=%s cluster=%s",
+        tostring(identifiers.uniqueId), #self.children, tostring(self.parentDied), tostring(self.object ~= nil))
 
     if self.object == nil then
 
@@ -74,25 +82,21 @@ function AnimalBirthEvent:run(connection)
 
         for _, child in pairs(self.children) do table.insert(animals, child) end
 
-        for i, animal in pairs(animals) do
+        local parent = RLAnimalUtil.find(animals, identifiers.farmId, identifiers.uniqueId, country)
 
-            if animal.farmId == identifiers.farmId and animal.uniqueId == identifiers.uniqueId and animal.birthday.country == (identifiers.country or identifiers.birthday.country) then
+        if parent ~= nil then
+            parent.isParent = true
+            parent.monthsSinceLastBirth = 0
+            parent.pregnancy = nil
+            parent.impregnatedBy = nil
+            parent.isPregnant = false
+            parent.reproduction = 0
 
-                animal.isParent = true
-                animal.monthsSinceLastBirth = 0
-                animal.pregnancy = nil
-                animal.impregnatedBy = nil
-                animal.isPregnant = false
-                animal.reproduction = 0
+            if parent.animalTypeIndex == AnimalType.COW or parent.subType == "GOAT" then parent.isLactating = true end
 
-                if animal.animalTypeIndex == AnimalType.COW or animal.subType == "GOAT" then animal.isLactating = true end 
-
-                if self.parentDied then table.remove(animals, i) end
-
-                break
-
-            end
-
+            if self.parentDied then RLAnimalUtil.findAndRemove(animals, identifiers.farmId, identifiers.uniqueId, country) end
+        else
+            Log:trace("BirthEvent:run parent not found uniqueId=%s", tostring(identifiers.uniqueId))
         end
 
     else
@@ -101,26 +105,22 @@ function AnimalBirthEvent:run(connection)
 
         for _, child in pairs(self.children) do clusterSystem:addCluster(child) end
 
-        for _, animal in pairs(clusterSystem.animals) do
+        local parent = RLAnimalUtil.find(clusterSystem.animals, identifiers.farmId, identifiers.uniqueId, country)
 
-            if animal.farmId == identifiers.farmId and animal.uniqueId == identifiers.uniqueId and animal.birthday.country == (identifiers.country or identifiers.birthday.country) then
+        if parent ~= nil then
+            parent.isParent = true
+            parent.monthsSinceLastBirth = 0
+            parent.pregnancy = nil
+            parent.impregnatedBy = nil
+            parent.isPregnant = false
+            parent.reproduction = 0
 
-                animal.isParent = true
-                animal.monthsSinceLastBirth = 0
-                animal.pregnancy = nil
-                animal.impregnatedBy = nil
-                animal.isPregnant = false
-                animal.reproduction = 0
-
-                if animal.animalTypeIndex == AnimalType.COW or animal.subType == "GOAT" then animal.isLactating = true end 
-
-                break
-
-            end
-
+            if parent.animalTypeIndex == AnimalType.COW or parent.subType == "GOAT" then parent.isLactating = true end
+        else
+            Log:trace("BirthEvent:run parent not found uniqueId=%s (cluster)", tostring(identifiers.uniqueId))
         end
-        
-        if self.parentDied then clusterSystem:removeCluster(identifiers.farmId .. " " .. identifiers.uniqueId .. " " .. (identifiers.country or identifiers.birthday.country)) end
+
+        if self.parentDied then clusterSystem:removeCluster(RLAnimalUtil.toKeyFromIdentifiers(identifiers)) end
 
     end
 

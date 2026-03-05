@@ -34,7 +34,7 @@ function AIAnimalSellEvent:readStream(streamId, connection)
 
 	for i = 1, numAnimals do
 
-		local identifiers = Animal.readStreamIdentifiers(streamId, connection)
+		local identifiers = RLAnimalUtil.readStreamIdentifiers(streamId, connection)
 		table.insert(self.animals, identifiers)
 
 	end
@@ -52,7 +52,7 @@ function AIAnimalSellEvent:writeStream(streamId, connection)
 
 	streamWriteUInt16(streamId, #self.animals)
 
-	for _, animal in pairs(self.animals) do animal:writeStreamIdentifiers(streamId, connection) end
+	for _, animal in pairs(self.animals) do RLAnimalUtil.writeStreamIdentifiers(animal, streamId, connection) end
 
 	streamWriteFloat32(streamId, self.price)
 
@@ -63,9 +63,11 @@ function AIAnimalSellEvent:run(connection)
 
 	local clusterSystem = self.object:getClusterSystem()
 
+	Log:trace("AIAnimalSellEvent:run selling %d animals", #self.animals)
+
 	for i, identifier in pairs(self.animals) do
 
-		clusterSystem:removeCluster(identifier.farmId .. " " .. identifier.uniqueId .. " " .. (identifier.country or identifier.birthday.country))
+		clusterSystem:removeCluster(RLAnimalUtil.toKeyFromIdentifiers(identifier))
 
 	end
 

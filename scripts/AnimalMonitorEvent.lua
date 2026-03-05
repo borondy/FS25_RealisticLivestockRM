@@ -27,7 +27,7 @@ end
 function AnimalMonitorEvent:readStream(streamId, connection)
 
     self.object = NetworkUtil.readNodeObject(streamId)
-    self.animal = Animal.readStreamIdentifiers(streamId, connection)
+    self.animal = RLAnimalUtil.readStreamIdentifiers(streamId, connection)
 
     self.active = streamReadBool(streamId)
     self.removed = streamReadBool(streamId)
@@ -41,7 +41,7 @@ function AnimalMonitorEvent:writeStream(streamId, connection)
 
     NetworkUtil.writeNodeObject(streamId, self.object)
     
-    self.animal:writeStreamIdentifiers(streamId, connection)
+    RLAnimalUtil.writeStreamIdentifiers(self.animal, streamId, connection)
 
     streamWriteBool(streamId, self.active)
     streamWriteBool(streamId, self.removed)
@@ -54,17 +54,15 @@ function AnimalMonitorEvent:run(connection)
     local identifiers = self.animal
     local clusterSystem = self.object:getClusterSystem()
 
-    for _, animal in pairs(clusterSystem.animals) do
+    local animal = RLAnimalUtil.find(clusterSystem.animals, identifiers.farmId, identifiers.uniqueId, identifiers.country or identifiers.birthday.country)
 
-        if animal.farmId == identifiers.farmId and animal.uniqueId == identifiers.uniqueId and animal.birthday.country == (identifiers.country or identifiers.birthday.country) then
-
-            animal.monitor.active = self.active
-            animal.monitor.removed = self.removed
-
-            return
-
-        end
-
+    if animal ~= nil then
+        animal.monitor.active = self.active
+        animal.monitor.removed = self.removed
+        Log:trace("MonitorEvent:run updated %s active=%s removed=%s",
+            tostring(identifiers.uniqueId), tostring(self.active), tostring(self.removed))
+    else
+        Log:trace("MonitorEvent:run animal not found uniqueId=%s", tostring(identifiers.uniqueId))
     end
 
 end

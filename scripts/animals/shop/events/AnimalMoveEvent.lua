@@ -97,9 +97,11 @@ function AnimalMoveEvent:run(connection)
 
 	local clusterSystemSource = self.sourceObject:getClusterSystem()
 
+	Log:trace("MoveEvent:run moving %d animals type=%s", #self.animals, tostring(self.moveType))
+
 	for _, animal in pairs(self.animals) do
 
-		clusterSystemSource:removeCluster(animal.farmId .. " " .. animal.uniqueId .. " " .. animal.birthday.country)
+		clusterSystemSource:removeCluster(RLAnimalUtil.toKey(animal.farmId, animal.uniqueId, animal.birthday.country))
 		animal.id, animal.idFull = nil, nil
 		self.targetObject:addCluster(animal)
 

@@ -26,7 +26,7 @@ end
 function AnimalNameChangeEvent:readStream(streamId, connection)
 
     self.object = NetworkUtil.readNodeObject(streamId)
-    self.animal = Animal.readStreamIdentifiers(streamId, connection)
+    self.animal = RLAnimalUtil.readStreamIdentifiers(streamId, connection)
 
     local hasName = streamReadBool(streamId)
 
@@ -41,7 +41,7 @@ function AnimalNameChangeEvent:writeStream(streamId, connection)
 
     NetworkUtil.writeNodeObject(streamId, self.object)
     
-    self.animal:writeStreamIdentifiers(streamId, connection)
+    RLAnimalUtil.writeStreamIdentifiers(self.animal, streamId, connection)
 
     streamWriteBool(streamId, self.name ~= nil and self.name ~= "")
 
@@ -55,16 +55,13 @@ function AnimalNameChangeEvent:run(connection)
     local identifiers = self.animal
     local clusterSystem = self.object:getClusterSystem()
 
-    for _, animal in pairs(clusterSystem.animals) do
+    local animal = RLAnimalUtil.find(clusterSystem.animals, identifiers.farmId, identifiers.uniqueId, identifiers.country or identifiers.birthday.country)
 
-        if animal.farmId == identifiers.farmId and animal.uniqueId == identifiers.uniqueId and animal.birthday.country == (identifiers.country or identifiers.birthday.country) then
-
-            animal.name = self.name
-
-            return
-
-        end
-
+    if animal ~= nil then
+        animal.name = self.name
+        Log:trace("NameChangeEvent:run renamed %s to '%s'", tostring(identifiers.uniqueId), tostring(self.name))
+    else
+        Log:trace("NameChangeEvent:run animal not found uniqueId=%s", tostring(identifiers.uniqueId))
     end
 
 end

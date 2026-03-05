@@ -28,7 +28,7 @@ end
 function AnimalInseminationEvent:readStream(streamId, connection)
 
 	self.object = NetworkUtil.readNodeObject(streamId)
-	self.animal = Animal.readStreamIdentifiers(streamId, connection)
+	self.animal = RLAnimalUtil.readStreamIdentifiers(streamId, connection)
 	
 	self.semen = { ["genetics"] = {} }
 
@@ -58,7 +58,7 @@ end
 function AnimalInseminationEvent:writeStream(streamId, connection)
 
 	NetworkUtil.writeNodeObject(streamId, self.object)
-	self.animal:writeStreamIdentifiers(streamId, connection)
+	RLAnimalUtil.writeStreamIdentifiers(self.animal, streamId, connection)
 
 	local semen = self.semen
 
@@ -84,16 +84,13 @@ function AnimalInseminationEvent:run(connection)
 	local clusterSystem = self.object:getClusterSystem()
 	local identifiers = self.animal
 
-	for _, animal in pairs(clusterSystem.animals) do
+	local animal = RLAnimalUtil.find(clusterSystem.animals, identifiers.farmId, identifiers.uniqueId, identifiers.country or identifiers.birthday.country)
 
-		if animal.farmId == identifiers.farmId and animal.uniqueId == identifiers.uniqueId and animal.birthday.country == (identifiers.country or identifiers.birthday.country) then
-					
-			animal:setInsemination(self.semen)
-			Log:trace("InseminationEvent:run applied to %s", tostring(identifiers.uniqueId))
-			break
-
-		end
-
+	if animal ~= nil then
+		animal:setInsemination(self.semen)
+		Log:trace("InseminationEvent:run applied to %s", tostring(identifiers.uniqueId))
+	else
+		Log:trace("InseminationEvent:run animal not found uniqueId=%s", tostring(identifiers.uniqueId))
 	end
 
 end

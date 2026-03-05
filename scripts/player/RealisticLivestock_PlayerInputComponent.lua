@@ -117,7 +117,7 @@ PlayerInputComponent.registerGlobalPlayerActionEvents = Utils.appendedFunction(P
 
 function RealisticLivestock_PlayerInputComponent.onFinishedRideBlending(superFunc, _, args)
     local placeable = args[1]
-    placeable:startRiding(args[2].farmId .. " " .. args[2].uniqueId, args[3])
+    placeable:startRiding(RLAnimalUtil.toShortKey(args[2].farmId, args[2].uniqueId), args[3])
 end
 
 PlayerInputComponent.onFinishedRideBlending = Utils.overwrittenFunction(PlayerInputComponent.onFinishedRideBlending, RealisticLivestock_PlayerInputComponent.onFinishedRideBlending)

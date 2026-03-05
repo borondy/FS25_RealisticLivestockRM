@@ -27,7 +27,7 @@ end
 function AnimalUpdateEvent:readStream(streamId, connection)
 
     self.object = NetworkUtil.readNodeObject(streamId)
-    self.animal = Animal.readStreamIdentifiers(streamId, connection)
+    self.animal = RLAnimalUtil.readStreamIdentifiers(streamId, connection)
 
     self.trait = streamReadString(streamId)
     local valueType = streamReadString(streamId)
@@ -49,7 +49,7 @@ function AnimalUpdateEvent:writeStream(streamId, connection)
 
     NetworkUtil.writeNodeObject(streamId, self.object)
     
-    self.animal:writeStreamIdentifiers(streamId, connection)
+    RLAnimalUtil.writeStreamIdentifiers(self.animal, streamId, connection)
     streamWriteString(streamId, self.trait)
     
     local valueType = type(self.value)
@@ -71,15 +71,13 @@ function AnimalUpdateEvent:run(connection)
     local clusterSystem = self.object:getClusterSystem()
     local identifiers = self.animal
 
-    for _, animal in pairs(clusterSystem.animals) do
+    local animal = RLAnimalUtil.find(clusterSystem.animals, identifiers.farmId, identifiers.uniqueId, identifiers.country or identifiers.birthday.country)
 
-        if animal.farmId == identifiers.farmId and animal.uniqueId == identifiers.uniqueId and animal.birthday.country == (identifiers.country or identifiers.birthday.country) and animal.animalTypeIndex == identifiers.animalTypeIndex then
-
-            animal[self.trait] = self.value
-            return
-
-        end
-
+    if animal ~= nil and animal.animalTypeIndex == identifiers.animalTypeIndex then
+        animal[self.trait] = self.value
+        Log:trace("UpdateEvent:run set %s.%s=%s", tostring(identifiers.uniqueId), tostring(self.trait), tostring(self.value))
+    else
+        Log:trace("UpdateEvent:run animal not found or type mismatch uniqueId=%s", tostring(identifiers.uniqueId))
     end
 
 end

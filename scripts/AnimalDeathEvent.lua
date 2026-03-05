@@ -27,7 +27,7 @@ function AnimalDeathEvent:readStream(streamId, connection)
     local hasObject = streamReadBool(streamId)
 
     self.object = hasObject and NetworkUtil.readNodeObject(streamId) or nil
-    self.animal = Animal.readStreamIdentifiers(streamId, connection)
+    self.animal = RLAnimalUtil.readStreamIdentifiers(streamId, connection)
 
     self:run(connection)
 
@@ -40,28 +40,24 @@ function AnimalDeathEvent:writeStream(streamId, connection)
 
     if self.object ~= nil then NetworkUtil.writeNodeObject(streamId, self.object) end
     
-    self.animal:writeStreamIdentifiers(streamId, connection)
+    RLAnimalUtil.writeStreamIdentifiers(self.animal, streamId, connection)
 
 end
 
 
+--- Remove dead animal from herd. Uses findAndRemove for non-cluster path (animalSystem)
+--- or removeCluster with toKeyFromIdentifiers for cluster path (husbandry).
 function AnimalDeathEvent:run(connection)
 
     local identifiers = self.animal
 
     if self.object == nil then
         local animals = g_currentMission.animalSystem.animals[identifiers.animalTypeIndex]
-
-        for i, animal in pairs(animals) do
-
-            if animal.farmId == identifiers.farmId and animal.uniqueId == identifiers.uniqueId and animal.birthday.country == (identifiers.country or identifiers.birthday.country) then
-                table.remove(animals, i)
-                return
-            end
-
-        end
+        RLAnimalUtil.findAndRemove(animals, identifiers.farmId, identifiers.uniqueId, identifiers.country or identifiers.birthday.country)
     else
-        self.object:getClusterSystem():removeCluster(identifiers.farmId .. " " .. identifiers.uniqueId .. " " .. (identifiers.country or identifiers.birthday.country))
+        self.object:getClusterSystem():removeCluster(RLAnimalUtil.toKeyFromIdentifiers(identifiers))
     end
+
+    Log:trace("DeathEvent:run removed uniqueId=%s cluster=%s", tostring(identifiers.uniqueId), tostring(self.object ~= nil))
 
 end

@@ -197,7 +197,7 @@ function RL_AnimalScreenDealer:applyTarget(_, animalTypeIndex, animalIndex)
 	end
 
     local animal = item.animal or item.cluster
-    husbandry:getClusterSystem():removeCluster(animal.farmId .. " " .. animal.uniqueId .. " " .. animal.birthday.country)
+    husbandry:getClusterSystem():removeCluster(RLAnimalUtil.toKey(animal.farmId, animal.uniqueId, animal.birthday.country))
     g_currentMission:addMoney(price + transportationFee, ownerFarmId, MoneyType.NEW_ANIMALS_COST, true, true)
     
     g_currentMission.animalSystem:removeSaleAnimal(animalTypeIndex, animal.birthday.country, animal.farmId, animal.uniqueId)

@@ -27,7 +27,7 @@ function AnimalPregnancyEvent:readStream(streamId, connection)
     local hasObject = streamReadBool(streamId)
 
     self.object = hasObject and NetworkUtil.readNodeObject(streamId) or nil
-    self.animal = Animal.readStreamIdentifiers(streamId, connection)
+    self.animal = RLAnimalUtil.readStreamIdentifiers(streamId, connection)
 
     local pregnancy = { ["expected"] = {}, ["pregnancies"] = {} }
     local impregnatedBy = {}
@@ -73,7 +73,7 @@ function AnimalPregnancyEvent:writeStream(streamId, connection)
 
     end
     
-    self.animal:writeStreamIdentifiers(streamId, connection)
+    RLAnimalUtil.writeStreamIdentifiers(self.animal, streamId, connection)
     
     local pregnancy = self.animal.pregnancy
     local impregnatedBy = self.animal.impregnatedBy
@@ -114,22 +114,18 @@ function AnimalPregnancyEvent:run(connection)
 
     Log:trace("PregnancyEvent:run uniqueId=%s", tostring(identifiers.uniqueId))
 
-    for _, animal in pairs(animals) do
+    local animal = RLAnimalUtil.find(animals, identifiers.farmId, identifiers.uniqueId, identifiers.country or identifiers.birthday.country)
 
-        if animal.uniqueId == identifiers.uniqueId and animal.farmId == identifiers.farmId and animal.birthday.country == (identifiers.country or identifiers.birthday.country) then
+    if animal ~= nil then
+        animal.isPregnant = true
+        animal.pregnancy = self.pregnancy
+        animal.impregnatedBy = self.impregnatedBy
+        animal.reproduction = 0
 
-            animal.isPregnant = true
-            animal.pregnancy = self.pregnancy
-            animal.impregnatedBy = self.impregnatedBy
-            animal.reproduction = 0
-
-            animal:changeReproduction(animal:getReproductionDelta())
-            Log:trace("PregnancyEvent:run applied pregnancy to %s", tostring(animal.uniqueId))
-
-            return
-
-        end
-
+        animal:changeReproduction(animal:getReproductionDelta())
+        Log:trace("PregnancyEvent:run applied pregnancy to %s", tostring(animal.uniqueId))
+    else
+        Log:trace("PregnancyEvent:run animal not found uniqueId=%s", tostring(identifiers.uniqueId))
     end
 
 end

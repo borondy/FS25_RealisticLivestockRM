@@ -1063,24 +1063,7 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
 
 
 
-    local uniqueId = tostring(lastAnimalId)
-    local idLen = string.len(uniqueId)
-
-    if idLen < 5 then
-        if idLen == 1 then
-            uniqueId = "1000" .. uniqueId
-        elseif idLen == 2 then
-            uniqueId = "100" .. uniqueId
-        elseif idLen == 3 then
-            uniqueId = "10" .. uniqueId
-        elseif idLen == 4 then
-            uniqueId = "1" .. uniqueId
-        end
-    end
-
-    local concatenatedId = farmId .. uniqueId
-    local checkDigit = (tonumber(concatenatedId)::number % 7) + 1
-    uniqueId = checkDigit .. uniqueId
+    local uniqueId = RLAnimalUtil.generateUniqueId(farmId, lastAnimalId)
 
 
     local geneticsModifier = farmQuality * 1000
@@ -1324,30 +1307,12 @@ end
 
 
 function AnimalSystem:removeSaleAnimal(animalTypeIndex, countryIndex, farmId, uniqueId)
-
-    for i, animal in pairs(self.animals[animalTypeIndex]) do
-
-        if animal.birthday.country == countryIndex and animal.farmId == farmId and animal.uniqueId == uniqueId then
-            table.remove(self.animals[animalTypeIndex], i)
-            return
-        end
-
-    end
-
+    RLAnimalUtil.findAndRemove(self.animals[animalTypeIndex], farmId, uniqueId, countryIndex)
 end
 
 
 function AnimalSystem:removeAIAnimal(animalTypeIndex, countryIndex, farmId, uniqueId)
-
-    for i, animal in pairs(self.aiAnimals[animalTypeIndex]) do
-
-        if animal.birthday.country == countryIndex and animal.farmId == farmId and animal.uniqueId == uniqueId then
-            table.remove(self.aiAnimals[animalTypeIndex], i)
-            return
-        end
-
-    end
-
+    RLAnimalUtil.findAndRemove(self.aiAnimals[animalTypeIndex], farmId, uniqueId, countryIndex)
 end
 
 
@@ -1727,24 +1692,7 @@ function AnimalSystem:createNewAIAnimal(animalTypeIndex)
 
     local age = math.random(subType.reproductionMinAgeMonth, subType.reproductionMinAgeMonth * 3)
 
-    local uniqueId = tostring(lastAnimalId)
-    local idLen = string.len(uniqueId)
-
-    if idLen < 5 then
-        if idLen == 1 then
-            uniqueId = "1000" .. uniqueId
-        elseif idLen == 2 then
-            uniqueId = "100" .. uniqueId
-        elseif idLen == 3 then
-            uniqueId = "10" .. uniqueId
-        elseif idLen == 4 then
-            uniqueId = "1" .. uniqueId
-        end
-    end
-
-    local concatenatedId = farmId .. uniqueId
-    local checkDigit = (tonumber(concatenatedId)::number % 7) + 1
-    uniqueId = checkDigit .. uniqueId
+    local uniqueId = RLAnimalUtil.generateUniqueId(farmId, lastAnimalId)
 
 
     local geneticsModifier = farmQuality * 1000

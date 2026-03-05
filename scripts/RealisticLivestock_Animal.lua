@@ -32,13 +32,7 @@ function Animal.resolveSubType(subTypeIndex, subTypeName)
 end
 
 
---- Compute check digit from farm herd ID and animal ID
----@param farmHerdId string
----@param id string
----@return number checkDigit Value 1-7
-function Animal.computeCheckDigit(farmHerdId, id)
-    return (tonumber(farmHerdId .. id) % 7) + 1
-end
+-- computeCheckDigit moved to RLAnimalUtil.computeCheckDigit (no delegate — no legacy callers)
 
 
 function Animal.new(age, health, monthsSinceLastBirth, gender, subTypeIndex, reproduction, isParent, isPregnant, isLactating, clusterSystem, id, motherId, fatherId, pos, name, dirt, fitness, riding, farmId, weight, genetics, impregnatedBy, variation, children, monitor, isCastrated, diseases, recentlyBoughtByAI, marks, insemination)
@@ -205,23 +199,7 @@ function Animal.new(age, health, monthsSinceLastBirth, gender, subTypeIndex, rep
 
                 self.farmId = tostring(farmHerdId)
 
-                id = tostring(id)
-                local idLen = string.len(id)
-
-                if idLen < 5 then
-                    if idLen == 1 then
-                        id = "1000" .. id
-                    elseif idLen == 2 then
-                        id = "100" .. id
-                    elseif idLen == 3 then
-                        id = "10" .. id
-                    elseif idLen == 4 then
-                        id = "1" .. id
-                    end
-                end
-
-                local checkDigit = Animal.computeCheckDigit(farmHerdId, id)
-                id = checkDigit .. id
+                id = RLAnimalUtil.generateUniqueId(farmHerdId, id)
             end
         end
 
@@ -1084,32 +1062,15 @@ function Animal:readStream(streamId, connection)
 end
 
 
+-- Delegates (backward compatibility — remove in future cleanup)
 function Animal:writeStreamIdentifiers(streamId, connection)
-
-    streamWriteString(streamId, self.uniqueId)
-    streamWriteString(streamId, self.farmId)
-    streamWriteUInt8(streamId, self.birthday.country)
-    streamWriteUInt8(streamId, self.animalTypeIndex)
-
-    return true
-
+    Log:trace("DELEGATE: Animal:writeStreamIdentifiers called — use RLAnimalUtil.writeStreamIdentifiers directly")
+    return RLAnimalUtil.writeStreamIdentifiers(self, streamId, connection)
 end
 
-
-function Animal.readStreamIdentifiers(streamId, connection)
-
-    local uniqueId = streamReadString(streamId)
-    local farmId = streamReadString(streamId)
-    local country = streamReadUInt8(streamId)
-    local animalTypeIndex = streamReadUInt8(streamId)
-
-    return {
-        ["uniqueId"] = uniqueId,
-        ["farmId"] = farmId,
-        ["country"] = country,
-        ["animalTypeIndex"] = animalTypeIndex
-    }
-
+Animal.readStreamIdentifiers = function(streamId, connection)
+    Log:trace("DELEGATE: Animal.readStreamIdentifiers called — use RLAnimalUtil.readStreamIdentifiers directly")
+    return RLAnimalUtil.readStreamIdentifiers(streamId, connection)
 end
 
 
@@ -1246,27 +1207,8 @@ function Animal:setUniqueId(farmId)
 
         local id = g_currentMission.animalSystem:getNextAnimalIdForFarm(self.birthday.country, self.animalTypeIndex, farmId)
 
-        id = tostring(id)
-        local idLen = string.len(id)
-
-        if idLen < 5 then
-            if idLen == 1 then
-                id = "1000" .. id
-            elseif idLen == 2 then
-                id = "100" .. id
-            elseif idLen == 3 then
-                id = "10" .. id
-            elseif idLen == 4 then
-                id = "1" .. id
-            end
-        end
-
-        local concatenated = farmId .. id
-        local checkDigit = (tonumber(concatenated)::number % 7) + 1
-        id = checkDigit .. id
-
         self.farmId = tostring(farmId)
-        self.uniqueId = id
+        self.uniqueId = RLAnimalUtil.generateUniqueId(farmId, id)
 
         return
     
@@ -1296,35 +1238,18 @@ function Animal:setUniqueId(farmId)
             farm.stats.statistics.farmId = farmHerdId
         end
 
-        id = tostring(id)
-        local idLen = string.len(id)
-
-        if idLen < 5 then
-            if idLen == 1 then
-                id = "1000" .. id
-            elseif idLen == 2 then
-                id = "100" .. id
-            elseif idLen == 3 then
-                id = "10" .. id
-            elseif idLen == 4 then
-                id = "1" .. id
-            end
-        end
-
-        local concatenated = farmHerdId .. id
-        local checkDigit = (tonumber(concatenated)::number % 7) + 1
-        id = checkDigit .. id
-
         self.farmId = tostring(farmHerdId)
-        self.uniqueId = id
+        self.uniqueId = RLAnimalUtil.generateUniqueId(farmHerdId, id)
 
     end
 
 end
 
 
+-- Delegate (backward compatibility — remove in future cleanup)
 function Animal:getHash()
-    return (100 + self.age) + (1000 * (100 + self.health)) + (1000000 * (100 + self.reproduction)) + (1000000000 * (100 + self.subTypeIndex))
+    Log:trace("DELEGATE: Animal:getHash called — use RLAnimalUtil.getHash directly")
+    return RLAnimalUtil.getHash(self)
 end
 
 

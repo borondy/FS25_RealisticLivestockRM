@@ -120,16 +120,12 @@ function RealisticLivestock_AnimalClusterSystem:readStream(_, streamId, connecti
         local farmId = streamReadString(streamId)
 
         local existingAnimal = false
+        local found = RLAnimalUtil.find(self.animals, farmId, uniqueId, country)
 
-        for _, animal in pairs(self.animals) do
-
-            if animal.birthday.country == country and animal.animalTypeIndex == animalTypeIndex and animal.uniqueId == uniqueId and animal.farmId == farmId then
-                animal:readStream(streamId, connection)
-                animal.foundThisUpdate = true
-                existingAnimal = true
-                break
-            end
-
+        if found and found.animalTypeIndex == animalTypeIndex then
+            found:readStream(streamId, connection)
+            found.foundThisUpdate = true
+            existingAnimal = true
         end
 
         if not existingAnimal then
@@ -211,7 +207,7 @@ function RealisticLivestock_AnimalClusterSystem:getClusterById(superFunc, id)
 
 
     for _, animal in pairs(self.animals) do
-        if animal.farmId .. " " .. animal.uniqueId .. " " .. animal.birthday.country == id then return animal end
+        if RLAnimalUtil.toKey(animal.farmId, animal.uniqueId, animal.birthday.country) == id then return animal end
     end
 
     if index == nil or self.animals == nil or self.animals[index] == nil then return nil end
@@ -276,7 +272,7 @@ function RealisticLivestock_AnimalClusterSystem:removeCluster(_, animalIndex)
         animal:setClusterSystem(nil)
     else
         for i, animal in pairs(self.animals) do
-            if animal.farmId .. " " .. animal.uniqueId .. " " .. animal.birthday.country == animalIndex then
+            if RLAnimalUtil.toKey(animal.farmId, animal.uniqueId, animal.birthday.country) == animalIndex then
 
                 local spec = self.owner.spec_husbandryAnimals
 
@@ -395,7 +391,7 @@ function RealisticLivestock_AnimalClusterSystem:updateIdMapping(superFunc)
 
     for index, animal in pairs(self.animals) do
         if index == nil then continue end
-        self.idToIndex[animal.farmId .. " " .. animal.uniqueId] = index
+        self.idToIndex[RLAnimalUtil.toShortKey(animal.farmId, animal.uniqueId)] = index
     end
         
     if self.owner.updatedClusters ~= nil then self.owner:updatedClusters(self.owner, self.animals) end

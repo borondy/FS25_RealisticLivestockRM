@@ -12,7 +12,7 @@ local modDirectory = g_currentModDirectory
 -- SECTION 0: Logging
 source(modDirectory .. "scripts/rmlib/RmLogging.lua")
 Log = RmLogging.getLogger("RLRM")
-Log:setLevel(RmLogging.LOG_LEVEL.INFO)
+Log:setLevel(RmLogging.LOG_LEVEL.TRACE)
 
 -- SECTION 1: Font Library
 source(modDirectory .. "scripts/fontlib/RmFontCharacter.lua")
@@ -23,6 +23,7 @@ source(modDirectory .. "scripts/gui/MPLoadingScreen.lua")
 
 -- SECTION 2b: Utilities
 source(modDirectory .. "scripts/utils/RmSafeUtils.lua")
+source(modDirectory .. "scripts/utils/RLAnimalUtil.lua")
 
 -- SECTION 2c: Constants
 source(modDirectory .. "scripts/RLConstants.lua")
