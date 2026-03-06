@@ -133,11 +133,17 @@ function RealisticLivestock_AnimalScreen:setController(_, husbandry, vehicle, is
     self.tabHerdsman:setVisible(self.isDirectFarm)
     self.tabMove:setVisible(self.isDirectFarm)
 
-    -- Set move tab icon at runtime — XML iconSliceId doesn't resolve mod textures
+    -- Set tab icons at runtime — XML iconSliceId doesn't resolve mod textures
     -- on hardcoded Button elements (only works for gui.* namespace icons).
     -- Runtime setImageSlice() goes through g_overlayManager:getSliceInfoById()
     -- which properly resolves mod-registered texture configs.
+    self.tabBuyButton:setImageSlice(nil, "rlExtra.buy_animal")
+    self.tabSellButton:setImageSlice(nil, "rlExtra.sell_animal")
     self.tabMoveButton:setImageSlice(nil, "rlExtra.move_animal")
+    self.tabInfoButton:setImageSlice(nil, "rlExtra.info_animal")
+    self.tabAIButton:setImageSlice(nil, "rlExtra.manage_animal")
+    self.tabLogButton:setImageSlice(nil, "rlExtra.notify_animal")
+    self.tabHerdsmanButton:setImageSlice(nil, "rlExtra.herdsman")
 
     -- Move controller (direct farm only, separate from sell controller)
     if self.isDirectFarm then
