@@ -482,14 +482,19 @@ function Animal.loadFromXMLFile(xmlFile, key, clusterSystem, isLegacy)
     local diseases = {}
 
     xmlFile:iterate(key .. ".diseases.disease", function (_, diseaseKey)
-    
+
+        if g_diseaseManager == nil then
+            Log:warning("Skipping disease load: g_diseaseManager unavailable")
+            return
+        end
+
         local diseaseType = g_diseaseManager:getDiseaseByTitle(xmlFile:getString(diseaseKey .. "#title"))
         local disease = Disease.new(diseaseType)
 
         disease:loadFromXMLFile(xmlFile, diseaseKey)
 
         table.insert(diseases, disease)
-    
+
     end)
 
     
@@ -1019,13 +1024,18 @@ function Animal:readStream(streamId, connection)
 
     for i = 1, numDiseases do
 
-        local diseaseType = g_diseaseManager:getDiseaseByTitle(streamReadString(streamId))
+        local diseaseTitle = streamReadString(streamId)
+        local diseaseType = g_diseaseManager ~= nil and g_diseaseManager:getDiseaseByTitle(diseaseTitle) or nil
         local disease = Disease.new(diseaseType)
 
         disease:readStream(streamId, connection)
 
         table.insert(diseases, disease)
 
+    end
+
+    if g_diseaseManager == nil and numDiseases > 0 then
+        Log:warning("g_diseaseManager unavailable during readStream, %d disease(s) loaded without type", numDiseases)
     end
 
     self.diseases = diseases
@@ -1139,13 +1149,18 @@ function Animal:readStreamUnborn(streamId, connection)
 
     for i = 1, numDiseases do
 
-        local diseaseType = g_diseaseManager:getDiseaseByTitle(streamReadString(streamId))
+        local diseaseTitle = streamReadString(streamId)
+        local diseaseType = g_diseaseManager ~= nil and g_diseaseManager:getDiseaseByTitle(diseaseTitle) or nil
         local disease = Disease.new(diseaseType)
 
         disease:readStream(streamId, connection)
 
         table.insert(diseases, disease)
 
+    end
+
+    if g_diseaseManager == nil and numDiseases > 0 then
+        Log:warning("g_diseaseManager unavailable during readUpdateStream, %d disease(s) loaded without type", numDiseases)
     end
 
     self.diseases = diseases
@@ -2113,7 +2128,7 @@ end
 
 function Animal:onDayChanged(spec, isServer, day, month, year, currentDayInPeriod, daysPerPeriod, isSaleAnimal)
 
-    if g_server ~= nil then g_diseaseManager:onDayChanged(self) end
+    if g_server ~= nil and g_diseaseManager ~= nil then g_diseaseManager:onDayChanged(self) end
 
     self:setRecentlyBoughtByAI(false)
     
@@ -2269,9 +2284,9 @@ function Animal:onDayChanged(spec, isServer, day, month, year, currentDayInPerio
 
     if self.deathEnabled and g_server ~= nil and (self.clusterSystem == nil or self.clusterSystem.owner:getOwnerFarmId() ~= FarmManager.INVALID_FARM_ID) then
 
-        lowHealthDeath = self:CalculateLowHealthMonthlyAnimalDeaths()
-        if lowHealthDeath == 0 then oldDeath = self:CalculateOldAgeMonthlyAnimalDeaths() end
-        if spec ~= nil and lowHealthDeath == 0 and oldDeath == 0 then randomDeath, randomMoney = self:CalculateRandomMonthlyAnimalDeaths(spec) end
+        lowHealthDeath = self:calculateLowHealthMonthlyAnimalDeaths()
+        if lowHealthDeath == 0 then oldDeath = self:calculateOldAgeMonthlyAnimalDeaths() end
+        if spec ~= nil and lowHealthDeath == 0 and oldDeath == 0 then randomDeath, randomMoney = self:calculateRandomMonthlyAnimalDeaths(spec) end
 
         if lowHealthDeath > 0 or oldDeath > 0 or randomDeath > 0 then g_server:broadcastEvent(AnimalDeathEvent.new(self.clusterSystem ~= nil and self.clusterSystem.owner or nil, self)) end
 
@@ -2802,7 +2817,11 @@ end
 
 
 
-function Animal:CalculateLowHealthMonthlyAnimalDeaths()
+--- Evaluate monthly death chance from low health. Animals below 80 health
+--- face increasing death probability scaled by health genetics.
+--- Called from onPeriodChanged (server-side only).
+--- @return number 1 if animal died, 0 otherwise
+function Animal:calculateLowHealthMonthlyAnimalDeaths()
 
     if self.numAnimals <= 0 or self.isDead then
         return 0
@@ -2830,7 +2849,11 @@ end
 
 
 
-function Animal:CalculateOldAgeMonthlyAnimalDeaths()
+--- Evaluate monthly death chance from old age. Each animal type has a
+--- min/max age range; death probability increases once past minAge.
+--- Called from onPeriodChanged (server-side only).
+--- @return number 1 if animal died, 0 otherwise
+function Animal:calculateOldAgeMonthlyAnimalDeaths()
 
     if self.numAnimals <= 0 or self.isDead then
         return 0
@@ -2886,9 +2909,13 @@ function Animal:CalculateOldAgeMonthlyAnimalDeaths()
 end
 
 
--- Animals can die randomly regardless of health such as due to broken legs - will be sold at a reduced price (lower quality meat)
-
-function Animal:CalculateRandomMonthlyAnimalDeaths(spec)
+--- Evaluate monthly random death chance (e.g., broken legs, accidents).
+--- Dead animals may be sold at reduced price (lower quality meat).
+--- Called from onPeriodChanged (server-side only).
+--- @param spec table Husbandry animal spec (provides animalTypeIndex, minTemp)
+--- @return number deaths 1 if animal died, 0 otherwise
+--- @return number money Sale proceeds if animal was sold, 0 otherwise
+function Animal:calculateRandomMonthlyAnimalDeaths(spec)
 
     if self.numAnimals <= 0 or self.isDead then
         return 0, 0
@@ -3126,21 +3153,6 @@ function Animal:updateInput()
         end
 
         self.input[fillType] = litersPerDay / 24
-
-    end
-
-
-    if water ~= nil then
-
-        local litersPerDay = water:get(self.age)
-
-        if self.isLactating then litersPerDay = litersPerDay * 1.5 end
-
-        if self.reproduction ~= nil and self.reproduction > 0 and self.pregnancy ~= nil and self.pregnancy.pregnancies ~= nil then
-            litersPerDay = litersPerDay * math.pow(1 + ((self.reproduction / 100) / 5), #self.pregnancy.pregnancies)
-        end
-
-        self.input.water = litersPerDay / 24
 
     end
 
@@ -3409,7 +3421,7 @@ end
 
 function Animal:getHasAnyDisease()
 
-	return g_diseaseManager.diseasesEnabled and #self.diseases > 0
+	return g_diseaseManager ~= nil and g_diseaseManager.diseasesEnabled and #self.diseases > 0
 
 end
 

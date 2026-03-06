@@ -533,7 +533,7 @@ end
 
 -- Animals can die from low health
 
-function RealisticLivestock.CalculateLowHealthMonthlyAnimalDeaths(spec, cluster)
+function RealisticLivestock.calculateLowHealthMonthlyAnimalDeaths(spec, cluster)
     if cluster.numAnimals <= 0 then
         return
     end
@@ -623,7 +623,7 @@ end
 
 -- Animals can die from old age
 
-function RealisticLivestock.CalculateOldAgeMonthlyAnimalDeaths(spec, cluster)
+function RealisticLivestock.calculateOldAgeMonthlyAnimalDeaths(spec, cluster)
     if cluster.numAnimals <= 0 then
         return
     end
@@ -727,7 +727,7 @@ end
 
 -- Animals can die randomly regardless of health such as due to broken legs - will be sold at a reduced price (lower quality meat)
 
-function RealisticLivestock.CalculateRandomMonthlyAnimalDeaths(spec, cluster, isServer)
+function RealisticLivestock.calculateRandomMonthlyAnimalDeaths(spec, cluster, isServer)
     if cluster.numAnimals <= 0 then
         return
     end
@@ -989,9 +989,9 @@ function RealisticLivestock.onPeriodChanged(self, func)
                 end
             end
 
-            RealisticLivestock.CalculateRandomMonthlyAnimalDeaths(spec, cluster, self.isServer)
-            RealisticLivestock.CalculateOldAgeMonthlyAnimalDeaths(spec, cluster)
-            RealisticLivestock.CalculateLowHealthMonthlyAnimalDeaths(spec, cluster)
+            RealisticLivestock.calculateRandomMonthlyAnimalDeaths(spec, cluster, self.isServer)
+            RealisticLivestock.calculateOldAgeMonthlyAnimalDeaths(spec, cluster)
+            RealisticLivestock.calculateLowHealthMonthlyAnimalDeaths(spec, cluster)
         end
 
         spec.minTemp = minTemp
