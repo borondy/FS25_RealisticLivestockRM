@@ -45,6 +45,8 @@ If a conflicting mod is detected, the game will show a warning dialog at startup
 
 - **FS25_ExtendedProductionPoint (EPP)** - Basic support for butchers using the EPP mod
 
+*Looking for more breeds or animal types? See the [FAQ](faq.md#can-you-add-more-breeds-or-animal-types).*
+
 ## Documentation
 
 **[Mod Overview](overview.md)** - How the mod works: what changes from vanilla FS25, how animals are tracked, and what to expect.
@@ -66,6 +68,10 @@ In-depth explanations of the mod's core systems:
 - [Genetics](guide-genetics.md) - How traits work, inheritance, and the CVM gene
 - [Breeding & Reproduction](guide-breeding.md) - Breeding requirements, gestation, lactation, and complications
 - [Diseases](guide-diseases.md) - How diseases spread, treatment, immunity, and prevention
+
+### FAQ
+
+- [Frequently Asked Questions](faq.md) - Common questions about genetics, breeding, and the mod
 
 ### Reference
 

@@ -1,0 +1,112 @@
+# Frequently Asked Questions
+
+Common questions about Realistic Livestock RM, covering genetics, breeding, and mod scope.
+
+> **Note:** This documentation was generated with AI assistance and may contain inaccuracies. If you spot an error, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues).
+
+---
+
+## How can offspring have worse genetics than their parents?
+
+**Short answer:** Breeding two high-genetics animals improves your odds of good offspring, but it doesn't guarantee every single one will match the parents. Some calves will be better, some will be worse - that's how real genetics works, and the mod simulates this.
+
+### What changed from the original mod
+
+Arrow-kb's original version used a simple model where offspring were randomly placed somewhere between the two parents' values. No variation beyond that range, no chance of outperforming the parents, and no regression. It was predictable but unrealistic.
+
+The current version uses a more realistic genetic model: the offspring's trait value is based on the **average of both parents** plus some **random variation**. This means offspring can exceed both parents - or fall below both.
+
+### Why it happens
+
+Each parent carries a mix of "good" and "not so good" genes. A high-producing cow doesn't only carry great genes - she also carries some weaker ones that aren't visible in her own stats. When two parents each pass a random half of their genes to the calf, the calf might inherit an unlucky combination and end up worse than either parent.
+
+### What the mod does
+
+The mod calculates the average of both parents' trait values (the "mid-parent value"), then adds random variation using a bell curve. Most offspring land near that average, but some land higher and some lower - with roughly equal probability in both directions.
+
+```mermaid
+%%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#1565c0"}}}}%%
+xychart-beta
+    title "Offspring Trait Distribution Around Mid-Parent Value"
+    x-axis "Trait Value (relative to mid-parent)" ["Much Lower", "Lower", "Slightly Lower", "Mid-Parent", "Slightly Higher", "Higher", "Much Higher"]
+    y-axis "Likelihood" 0 --> 100
+    bar [3, 12, 28, 100, 28, 12, 3]
+```
+
+*Most offspring cluster around the mid-parent average. A few will be noticeably better or worse. Extreme outliers in either direction are rare but possible.*
+
+### Regression to the mean
+
+This is a well-known phenomenon in genetics called **regression to the mean**, first discovered by Francis Galton in the 1880s. He noticed that children of very tall parents were tall, but usually not quite as tall as their parents. The same goes the other way - children of short parents tend to be a bit taller than their parents.
+
+In the mod, breeding two "Extremely High" productivity cows will produce calves that are above average - but many of them will be "Very High" rather than "Extremely High." The parents were statistical outliers, and their offspring tend to drift back towards the population average.
+
+### Where you'll notice it first
+
+Chickens cycle through generations much faster than other animals (2-month hatching vs 10-month cattle gestation), so genetic drift shows up in your chicken flock first. If you're seeing unexpected drops in egg production across generations, this is likely why.
+
+### The good news - but it takes work
+
+Over many generations, consistently breeding your best animals **does** improve the herd average. But "consistently" is the key word - you have to actively manage who breeds with who. If you let a herd stay together through multiple generations without culling, lower-genetics offspring will breed with each other and the herd average will drift towards the mean over time.
+
+To maintain a top-tier herd:
+
+- **Cull low-genetics animals** from your breeding stock - sell or castrate them
+- **Only let your best breed with your best** - don't leave it to chance
+- **Check offspring genetics** each generation and remove underperformers
+
+This is more work than the old model, but it's what real livestock farmers do - and it makes the breeding game genuinely interesting as a long-term strategy rather than a one-time setup.
+
+See the [Genetics Guide](guide-genetics.md#breeding--inheritance) for practical breeding strategies.
+
+### Further reading
+
+For the curious, here's the real science behind the simulation:
+
+- [Regression to the Mean](https://select-statistics.co.uk/blog/regression-to-the-mean-as-relevant-today-as-it-was-in-the-1900s/) - Select Statistics - accessible explanation of Galton's original discovery
+- [The Infinitesimal Model](https://en.wikipedia.org/wiki/Infinitesimal_model) - Wikipedia - the formal genetics model behind the simulation
+- [Mendel's Law of Segregation](https://www.khanacademy.org/science/ap-biology/heredity/mendelian-genetics-ap/a/the-law-of-segregation) - Khan Academy - why gene inheritance is random
+- [Estimating Trait Heritability](https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/) - Nature - how heritability works in real livestock breeding
+
+---
+
+## Can you add more breeds or animal types?
+
+**Short answer:** Ritter focuses on game mechanics, not 3D modelling, so new breeds created from scratch are unlikely. However, there are ways to get additional breeds working - and maps that include their own animals can be supported.
+
+### Why the mod doesn't include new breeds
+
+Creating animal breeds requires 3D models, textures, and animations - a completely different skill set from the scripting and game mechanics this mod focuses on. The mod works with whatever breeds the base game and DLCs provide (currently 7 cattle breeds, 3 pig breeds, 5 sheep/goat breeds, 8 horse colour variants, and chickens).
+
+### It's not just about the visuals
+
+Each breed in Realistic Livestock has detailed configuration in `animals.xml`: food consumption curves by age, production rates at different life stages, target weights, sell prices, breeding parameters, and more. Simply plugging in a third-party animal model without this tuning means the animal won't behave realistically - it would use generic default values, losing much of what makes the mod interesting.
+
+In other words, adding a breed properly is a two-part job:
+
+1. **The 3D model** - visual appearance, textures, animations (modelling skill)
+2. **The simulation data** - realistic food, production, pricing, and breeding curves (XML configuration)
+
+Ritter can do part 2 but not part 1. Without a proper 3D model to work with, there's nothing to configure.
+
+### Third-party animal packages (advanced)
+
+The [FS25 Animal Package - Vanilla Edition](https://www.farming-simulator.com/mod.php?mod_id=333997&title=fs2025) is a proper third-party animal package with additional breeds. It can work with Realistic Livestock, but requires manual XML configuration:
+
+1. Merge the animal package's breed definitions into a single `animals.xml`
+2. Use the mod's [Custom Animals](reference-settings.md#custom-animals) setting to load your custom file
+3. See [Arrow-kb's compatibility guide](https://github.com/Arrow-kb/FS25_RealisticLivestock/discussions/335) for detailed setup instructions
+
+This is for advanced users comfortable with editing XML files. The animals will work but may not have fully tuned realistic characteristics unless you configure the production and consumption values yourself.
+
+### Map-based animals
+
+When a map includes its own animal types, the mod can add built-in support with full breeding and reproduction. **Hof Bergmann** is the first example - its exotic animals (ducks, geese, cats, rabbits) are fully supported since v1.0.1.0.
+
+If you're playing a map with custom animals that aren't supported yet, [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues) and it can be considered.
+
+### A note on unauthorized breed packs
+
+Some breed packs floating around online are stolen copies of other mods with minor texture swaps. These are not supported and may cause conflicts. Stick to breed packs from known sources like the official [Farming Simulator mod hub](https://www.farming-simulator.com/mods.php?title=fs2025).
+
+If a good, proper animal package gains traction in the community, adding built-in support is something Ritter would consider.

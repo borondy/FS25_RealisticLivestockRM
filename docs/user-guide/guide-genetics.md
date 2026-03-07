@@ -114,19 +114,22 @@ Animals purchased from the dealer have randomised genetics. Most will be average
 
 ## Breeding & Inheritance
 
-Offspring inherit traits from both parents. While the exact inheritance mechanism depends on both parent values, selective breeding works:
+Offspring inherit traits from both parents. The mod calculates the average of both parents' trait values, then adds random variation. This means:
 
-- Breeding two high-productivity cows tends to produce higher-productivity calves
+- Breeding two high-productivity cows **tends** to produce higher-productivity calves
+- But individual offspring can end up better or worse than either parent
 - Breeding two animals with poor genetics risks passing those traits on
 - Over multiple generations, focused selection can significantly improve your herd's average genetics
+
+> **Important:** High-genetics parents don't guarantee high-genetics offspring. Without active herd management, genetics will drift towards average over generations - a real phenomenon called *regression to the mean*. See the [FAQ](faq.md#how-can-offspring-have-worse-genetics-than-their-parents) for a full explanation.
 
 ### Breeding Strategy
 
 1. **Identify your goals:** Milk production? Sell value? Low feed cost?
 2. **Check genetics** on all animals before breeding
 3. **Keep the best:** Animals with High or Very High in your target trait
-4. **Sell the rest:** Animals with Low or worse in key traits
-5. **Be patient:** Genetic improvement takes multiple generations
+4. **Sell or castrate the rest:** Remove animals with Low or worse genetics from your breeding stock - don't let them reproduce
+5. **Be patient:** Genetic improvement takes multiple generations and active culling each generation
 
 ---
 

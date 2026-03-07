@@ -123,6 +123,8 @@ Press **R** in the animal menu to open the livestock management screen. It has s
 - **Hof Bergmann** - Exotic animals (ducks, geese, cats, rabbits) are fully supported with breeding and reproduction
 - **Extended Production Point (EPP)** - Basic support for moving animals to EPP butchers
 
+*Looking for more breeds or animal types? See the [FAQ](faq.md#can-you-add-more-breeds-or-animal-types) for what's possible.*
+
 ---
 
 ## Species Factsheets
@@ -141,3 +143,4 @@ Each species has a detailed factsheet with breed comparisons, production ranges,
 - [Disease Guide](guide-diseases.md) - Prevention, treatment, and immunity
 - [Breeding Guide](guide-breeding.md) - Fertility windows, offspring tables, lactation
 - [Settings Reference](reference-settings.md) - Every configurable option explained
+- [FAQ](faq.md) - Common questions about genetics inheritance, breeding, and more

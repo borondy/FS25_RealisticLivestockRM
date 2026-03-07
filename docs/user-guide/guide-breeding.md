@@ -224,7 +224,7 @@ Plan your breeding based on gestation periods:
 
 1. **Track male ages.** The #1 surprise is boars stopping at 4 years. Set up reminders or check your boar ages regularly.
 
-2. **Breed for genetics.** Offspring inherit from parents. Pair your best animals and sell poor-genetics offspring for a steady improvement each generation.
+2. **Actively manage your breeding stock.** Offspring inherit from parents, but individual calves can be worse than either parent due to natural genetic variation. Pair your best animals, sell or castrate underperformers, and don't let a herd breed unchecked through generations - genetics will drift towards average without active culling. See the [FAQ](faq.md#how-can-offspring-have-worse-genetics-than-their-parents) for why this happens.
 
 3. **Keep health above 75%.** Below 75%, breeding fails entirely. Below 60%, the mother risks death. Good food, water, straw, and medical treatment are essential.
 
