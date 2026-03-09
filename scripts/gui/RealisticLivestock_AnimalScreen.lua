@@ -133,7 +133,7 @@ function RealisticLivestock_AnimalScreen:setController(_, husbandry, vehicle, is
     self.tabHerdsman:setVisible(self.isDirectFarm)
     self.tabMove:setVisible(self.isDirectFarm)
 
-    -- Set tab icons at runtime — XML iconSliceId doesn't resolve mod textures
+    -- Set tab icons at runtime -- XML iconSliceId doesn't resolve mod textures
     -- on hardcoded Button elements (only works for gui.* namespace icons).
     -- Runtime setImageSlice() goes through g_overlayManager:getSliceInfoById()
     -- which properly resolves mod-registered texture configs.
@@ -1917,7 +1917,7 @@ function RealisticLivestock_AnimalScreen:updateInfoBox(superFunc, isSourceSelect
             if not Platform.isMobile then self:updatePrice() end
 
 
-            self.infoBox:setVisible(not self.isInfoMode)
+            self.infoBox:setVisible(not self.isInfoMode and not self.isMoveMode)
             self.parentBox:setVisible(self.isInfoMode and not self.isBuyMode)
             self.buttonRename:setVisible(self.isInfoMode)
 
@@ -1979,7 +1979,7 @@ function RealisticLivestock_AnimalScreen:updateScreen(superFunc, state)
 
 
     self.detailsContainer:setVisible(hasAnimals)
-    self.infoBox:setVisible(not self.isInfoMode)
+    self.infoBox:setVisible(not self.isInfoMode and not self.isMoveMode)
     self.numAnimalsBox:setVisible(false)
     self.parentBox:setVisible(self.isInfoMode)
     self.geneticsBox:setVisible(self.isInfoMode)
@@ -2035,7 +2035,7 @@ AnimalScreen.updateScreen = Utils.overwrittenFunction(AnimalScreen.updateScreen,
 
 function RealisticLivestock_AnimalScreen:setMaxNumAnimals()
 
-    self.infoBox:setVisible(not self.isInfoMode)
+    self.infoBox:setVisible(not self.isInfoMode and not self.isMoveMode)
     self.numAnimalsBox:setVisible(false)
     self.parentBox:setVisible(self.isInfoMode and not self.isBuyMode)
     self.geneticsBox:setVisible(self.isInfoMode)
@@ -2633,7 +2633,7 @@ function AnimalScreen:onMoveDestinationSelected(entry)
     local confirmText = table.concat(confirmLines, "\n")
     YesNoDialog.show(self.onMoveConfirmed, self, confirmText, g_i18n:getText("rl_ui_moveBulkConfirmTitle"))
 
-    Log:trace("onMoveDestinationSelected: showing confirm — %d valid, %d rejected",
+    Log:trace("onMoveDestinationSelected: showing confirm - %d valid, %d rejected",
         #validationResult.valid, #validationResult.rejected)
 end
 
