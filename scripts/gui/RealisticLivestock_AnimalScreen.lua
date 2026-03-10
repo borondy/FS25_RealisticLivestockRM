@@ -894,6 +894,11 @@ function AnimalScreen:onClickHerdsmanMode()
     self.herdsmanOptions["semen"].values = dewarValues
     self.herdsmanOptions["semen"].texts = dewarTexts
 
+    -- Hide castrate tab for chickens (castration not supported, see AIAnimalManager:601)
+    local isChicken = animalTypeIndex == AnimalType.CHICKEN
+    local castrateTabButton = self.herdsmanPageCastrateButtonBg.parent
+    castrateTabButton:setVisible(not isChicken)
+    castrateTabButton.parent:invalidateLayout()
 
     self:onClickHerdsmanPageBuy()
 
@@ -1044,8 +1049,10 @@ end
 
 function AnimalScreen:onClickEnableHerdsman(state, button)
 
+    -- Safety net: chickens can't castrate. Use setIsChecked with skipAnimation to prevent
+    -- sliderState drift (setState alone decrements sliderState below 0 on each click)
     if self.currentHerdsmanPage == "castrate" and self.husbandry:getAnimalTypeIndex() == AnimalType.CHICKEN then
-        button:setState(1)
+        button:setIsChecked(false, true)
         return
     end
 
