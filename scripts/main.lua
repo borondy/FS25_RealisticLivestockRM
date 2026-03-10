@@ -26,7 +26,7 @@ source(modDirectory .. "scripts/utils/RmSafeUtils.lua")
 source(modDirectory .. "scripts/utils/RLAnimalUtil.lua")
 
 -- SECTION 2c: Constants
-source(modDirectory .. "scripts/RLConstants.lua")
+source(modDirectory .. "scripts/core/RLConstants.lua")
 
 -- SECTION 3: Animal Husbandry - Cluster System
 source(modDirectory .. "scripts/animals/husbandry/cluster/RealisticLivestock_AnimalCluster.lua")
@@ -45,7 +45,7 @@ source(modDirectory .. "scripts/animals/husbandry/placeables/RealisticLivestock_
 source(modDirectory .. "scripts/animals/husbandry/placeables/RealisticLivestock_PlaceableHusbandryPallets.lua")
 
 -- SECTION 5: Animal Husbandry - Core Systems
-source(modDirectory .. "scripts/animals/husbandry/AnimalSystemStateEvent.lua")
+source(modDirectory .. "scripts/events/AnimalSystemStateEvent.lua")
 source(modDirectory .. "scripts/animals/husbandry/RealisticLivestock_HusbandrySystem.lua")
 source(modDirectory .. "scripts/animals/husbandry/RealisticLivestock_AnimalNameSystem.lua")
 source(modDirectory .. "scripts/animals/husbandry/RealisticLivestock_AnimalSystem.lua")
@@ -92,7 +92,7 @@ source(modDirectory .. "scripts/fillTypes/RealisticLivestock_FillTypeManager.lua
 source(modDirectory .. "scripts/bridge/RLMapBridge.lua")
 
 -- SECTION 11b: Breeding Mathematics
-source(modDirectory .. "scripts/BreedingMath.lua")
+source(modDirectory .. "scripts/animal/BreedingMath.lua")
 
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")
@@ -127,8 +127,8 @@ source(modDirectory .. "scripts/handTools/HandTool.lua")
 source(modDirectory .. "scripts/handTools/HandToolSystem.lua")
 source(modDirectory .. "scripts/handTools/RLHandTools.lua")
 
--- SECTION 16: Objects
-source(modDirectory .. "scripts/objects/Dewar.lua")
+-- SECTION 16: Insemination - Dewar
+source(modDirectory .. "scripts/insemination/Dewar.lua")
 
 -- SECTION 17: Placeables
 source(modDirectory .. "scripts/placeables/RealisticLivestock_PlaceableSystem.lua")
@@ -142,28 +142,48 @@ source(modDirectory .. "scripts/vehicles/specializations/RealisticLivestock_Live
 source(modDirectory .. "scripts/vehicles/specializations/Rideable.lua")
 source(modDirectory .. "scripts/vehicles/RealisticLivestock_VehicleSystem.lua")
 
--- SECTION 20: Core Mod Files
-source(modDirectory .. "scripts/AIAnimalManager.lua")
-source(modDirectory .. "scripts/AIStrawUpdater.lua")
-source(modDirectory .. "scripts/AnimalBirthEvent.lua")
-source(modDirectory .. "scripts/AnimalDeathEvent.lua")
-source(modDirectory .. "scripts/AnimalMonitorEvent.lua")
-source(modDirectory .. "scripts/AnimalNameChangeEvent.lua")
-source(modDirectory .. "scripts/AnimalPregnancyEvent.lua")
-source(modDirectory .. "scripts/AnimalUpdateEvent.lua")
-source(modDirectory .. "scripts/DewarManager.lua")
-source(modDirectory .. "scripts/Disease.lua")
-source(modDirectory .. "scripts/DiseaseManager.lua")
-source(modDirectory .. "scripts/FSCareerMissionInfo.lua")
-source(modDirectory .. "scripts/I18N.lua")
-source(modDirectory .. "scripts/RealisticLivestock.lua")
-source(modDirectory .. "scripts/RealisticLivestock_Animal.lua")
-source(modDirectory .. "scripts/RealisticLivestock_FSBaseMission.lua")
-source(modDirectory .. "scripts/RLConsoleCommandManager.lua")
-source(modDirectory .. "scripts/RLMessage.lua")
-source(modDirectory .. "scripts/RLMessageAggregator.lua")
-source(modDirectory .. "scripts/RLSettings.lua")
-source(modDirectory .. "scripts/RL_BroadcastSettingsEvent.lua")
+-- SECTION 20a: Herdsman (automated herd management)
+source(modDirectory .. "scripts/herdsman/AIAnimalManager.lua")
+
+-- SECTION 20b: Insemination (dewar/straw infrastructure)
+source(modDirectory .. "scripts/insemination/AIStrawUpdater.lua")
+
+-- SECTION 20c: Events (general lifecycle events)
+source(modDirectory .. "scripts/events/AnimalBirthEvent.lua")
+source(modDirectory .. "scripts/events/AnimalDeathEvent.lua")
+source(modDirectory .. "scripts/events/AnimalMonitorEvent.lua")
+source(modDirectory .. "scripts/events/AnimalNameChangeEvent.lua")
+source(modDirectory .. "scripts/events/AnimalPregnancyEvent.lua")
+source(modDirectory .. "scripts/events/AnimalUpdateEvent.lua")
+source(modDirectory .. "scripts/events/RL_BroadcastSettingsEvent.lua")
+
+-- SECTION 20d: Insemination (dewar manager)
+source(modDirectory .. "scripts/insemination/DewarManager.lua")
+
+-- SECTION 20e: Disease
+source(modDirectory .. "scripts/disease/Disease.lua")
+source(modDirectory .. "scripts/disease/DiseaseManager.lua")
+
+-- SECTION 20f: Core (lifecycle, settings, i18n)
+source(modDirectory .. "scripts/core/FSCareerMissionInfo.lua")
+source(modDirectory .. "scripts/core/I18N.lua")
+source(modDirectory .. "scripts/core/RealisticLivestock.lua")
+
+-- SECTION 20g: Animal entity
+source(modDirectory .. "scripts/animal/RealisticLivestock_Animal.lua")
+
+-- SECTION 20h: Core (FS base mission hooks)
+source(modDirectory .. "scripts/core/RealisticLivestock_FSBaseMission.lua")
+
+-- SECTION 20i: Console commands
+source(modDirectory .. "scripts/console/RLConsoleCommandManager.lua")
+
+-- SECTION 20j: Messaging
+source(modDirectory .. "scripts/messaging/RLMessage.lua")
+source(modDirectory .. "scripts/messaging/RLMessageAggregator.lua")
+
+-- SECTION 20k: Core (settings)
+source(modDirectory .. "scripts/core/RLSettings.lua")
 
 -- =============================================================================
 -- TESTING (conditional - delete tests/ folder for production)
