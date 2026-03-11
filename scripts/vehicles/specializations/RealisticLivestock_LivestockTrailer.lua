@@ -21,7 +21,14 @@ function RealisticLivestock_LivestockTrailer:addCluster(superFunc, cluster)
 
         for i=1, cluster.numAnimals do
             local subType = g_currentMission.animalSystem:getSubTypeByIndex(cluster.subTypeIndex)
-            local animal = Animal.new(cluster.age, cluster.health, nil, subType.gender, cluster.subTypeIndex, cluster.reproduction, false, false, false, clusterSystem)
+            local animal = Animal.new({
+                age = cluster.age,
+                health = cluster.health,
+                gender = subType.gender,
+                subTypeIndex = cluster.subTypeIndex,
+                reproduction = cluster.reproduction,
+                clusterSystem = clusterSystem
+            })
             clusterSystem:addCluster(animal)
         end
         clusterSystem:updateNow()

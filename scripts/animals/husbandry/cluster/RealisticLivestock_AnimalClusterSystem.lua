@@ -342,9 +342,32 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
         if animalsToAdd.numAnimals ~= nil then
             local subType = g_currentMission.animalSystem:getSubTypeByIndex(animalsToAdd.subTypeIndex)
             for i=1, animalsToAdd.numAnimals do
-                local genetics = animalsToAdd.genetics or nil
-                local impregnatedBy = animalsToAdd.impregnatedBy or nil
-                local animal = Animal.new(animalsToAdd.age, animalsToAdd.health, animalsToAdd.monthsSinceLastBirth or 0, subType.gender, animalsToAdd.subTypeIndex, animalsToAdd.reproduction or 0, animalsToAdd.isParent or false, animalsToAdd.isPregnant or false, animalsToAdd.isLactating or false, self, animalsToAdd.uniqueId, animalsToAdd.motherId, animalsToAdd.fatherId, nil, animalsToAdd.name, animalsToAdd.dirt, animalsToAdd.fitness, animalsToAdd.riding, animalsToAdd.farmId, animalsToAdd.weight, genetics, impregnatedBy, animalsToAdd.variation, animalsToAdd.children, animalsToAdd.monitor)
+                local animal = Animal.new({
+                    age = animalsToAdd.age,
+                    health = animalsToAdd.health,
+                    monthsSinceLastBirth = animalsToAdd.monthsSinceLastBirth,
+                    gender = subType.gender,
+                    subTypeIndex = animalsToAdd.subTypeIndex,
+                    reproduction = animalsToAdd.reproduction,
+                    isParent = animalsToAdd.isParent,
+                    isPregnant = animalsToAdd.isPregnant,
+                    isLactating = animalsToAdd.isLactating,
+                    clusterSystem = self,
+                    uniqueId = animalsToAdd.uniqueId,
+                    motherId = animalsToAdd.motherId,
+                    fatherId = animalsToAdd.fatherId,
+                    name = animalsToAdd.name,
+                    dirt = animalsToAdd.dirt,
+                    fitness = animalsToAdd.fitness,
+                    riding = animalsToAdd.riding,
+                    farmId = animalsToAdd.farmId,
+                    weight = animalsToAdd.weight,
+                    genetics = animalsToAdd.genetics,
+                    impregnatedBy = animalsToAdd.impregnatedBy,
+                    variation = animalsToAdd.variation,
+                    children = animalsToAdd.children,
+                    monitor = animalsToAdd.monitor
+                })
                 self:addCluster(animal)
                 isDirty = true
             end
@@ -361,9 +384,32 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
             else
                 local subType = g_currentMission.animalSystem:getSubTypeByIndex(animalToAdd.subTypeIndex)
                 for i=1, animalToAdd.numAnimals do
-                    local genetics = animalToAdd.genetics or nil
-                    local impregnatedBy = animalToAdd.impregnatedBy or nil
-                    local animal = Animal.new(animalToAdd.age, animalToAdd.health, animalToAdd.monthsSinceLastBirth or 0, subType.gender, animalToAdd.subTypeIndex, animalToAdd.reproduction or 0, animalToAdd.isParent or false, animalToAdd.isPregnant or false, animalToAdd.isLactating or false, self, animalToAdd.uniqueId, animalToAdd.motherId, animalToAdd.fatherId, nil, animalToAdd.name, animalToAdd.dirt, animalToAdd.fitness, animalToAdd.riding, animalToAdd.farmId, animalToAdd.weight, genetics, impregnatedBy, animalToAdd.variation, animalToAdd.children, animalToAdd.monitor)
+                    local animal = Animal.new({
+                        age = animalToAdd.age,
+                        health = animalToAdd.health,
+                        monthsSinceLastBirth = animalToAdd.monthsSinceLastBirth,
+                        gender = subType.gender,
+                        subTypeIndex = animalToAdd.subTypeIndex,
+                        reproduction = animalToAdd.reproduction,
+                        isParent = animalToAdd.isParent,
+                        isPregnant = animalToAdd.isPregnant,
+                        isLactating = animalToAdd.isLactating,
+                        clusterSystem = self,
+                        uniqueId = animalToAdd.uniqueId,
+                        motherId = animalToAdd.motherId,
+                        fatherId = animalToAdd.fatherId,
+                        name = animalToAdd.name,
+                        dirt = animalToAdd.dirt,
+                        fitness = animalToAdd.fitness,
+                        riding = animalToAdd.riding,
+                        farmId = animalToAdd.farmId,
+                        weight = animalToAdd.weight,
+                        genetics = animalToAdd.genetics,
+                        impregnatedBy = animalToAdd.impregnatedBy,
+                        variation = animalToAdd.variation,
+                        children = animalToAdd.children,
+                        monitor = animalToAdd.monitor
+                    })
                     self:addCluster(animal)
                     isDirty = true
                 end

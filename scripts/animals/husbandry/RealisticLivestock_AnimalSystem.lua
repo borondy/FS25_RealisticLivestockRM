@@ -1082,7 +1082,19 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
     if math.random() >= 0.85 then name = g_currentMission.animalNameSystem:getRandomName(animalGender) end
 
 
-    local animal = Animal.new(age, math.clamp((math.random(650, 1000) / 10) * genetics.health, 0, 100), monthsSinceLastBirth, animalGender, subTypeIndex, 0, isParent, isPregnant, animalTypeIndex == AnimalType.COW and animalGender == "female" and isParent and monthsSinceLastBirth < 10, nil, nil, nil, nil, nil, name, nil, nil, nil, nil, nil, genetics)
+    local animal = Animal.new({
+        age = age,
+        health = math.clamp((math.random(650, 1000) / 10) * genetics.health, 0, 100),
+        monthsSinceLastBirth = monthsSinceLastBirth,
+        gender = animalGender,
+        subTypeIndex = subTypeIndex,
+        isParent = isParent,
+        isPregnant = isPregnant,
+        isLactating = animalTypeIndex == AnimalType.COW and animalGender == "female"
+            and isParent and monthsSinceLastBirth < 10,
+        name = name,
+        genetics = genetics
+    })
 
     animal.farmId = tostring(farmId)
     animal.uniqueId = uniqueId
@@ -1129,7 +1141,11 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
             local childSubTypeIndex = subTypeIndex + (gender == "male" and 1 or 0)
 
 
-            local child = Animal.new(-1, 100, 0, gender, childSubTypeIndex, 0, false, false, false, nil, nil, animal.farmId .. " " .. animal.uniqueId)
+            local child = Animal.new({
+                age = -1, health = 100, gender = gender,
+                subTypeIndex = childSubTypeIndex,
+                motherId = animal.farmId .. " " .. animal.uniqueId
+            })
                         
             local metabolism = math.random(minMetabolism * 100, maxMetabolism * 100) / 100
             local quality = math.random(minMeat * 100, maxMeat * 100) / 100
@@ -1709,7 +1725,14 @@ function AnimalSystem:createNewAIAnimal(animalTypeIndex)
     local name = g_currentMission.animalNameSystem:getRandomName("male")
 
 
-    local animal = Animal.new(age, math.clamp((math.random(650, 1000) / 10) * genetics.health, 75, 100), 0, "male", subTypeIndex, 0, false, false, false, nil, nil, nil, nil, nil, name, nil, nil, nil, nil, nil, genetics)
+    local animal = Animal.new({
+        age = age,
+        health = math.clamp((math.random(650, 1000) / 10) * genetics.health, 75, 100),
+        gender = "male",
+        subTypeIndex = subTypeIndex,
+        name = name,
+        genetics = genetics
+    })
 
     animal.farmId = tostring(farmId)
     animal.uniqueId = uniqueId

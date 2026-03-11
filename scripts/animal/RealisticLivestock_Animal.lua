@@ -32,52 +32,65 @@ function Animal.resolveSubType(subTypeIndex, subTypeName)
 end
 
 
--- computeCheckDigit moved to RLAnimalUtil.computeCheckDigit (no delegate — no legacy callers)
+-- computeCheckDigit moved to RLAnimalUtil.computeCheckDigit (no delegate - no legacy callers)
 
 
-function Animal.new(age, health, monthsSinceLastBirth, gender, subTypeIndex, reproduction, isParent, isPregnant, isLactating, clusterSystem, id, motherId, fatherId, pos, name, dirt, fitness, riding, farmId, weight, genetics, impregnatedBy, variation, children, monitor, isCastrated, diseases, recentlyBoughtByAI, marks, insemination)
+--- Create a new Animal instance.
+--- @param config table|nil Config table with named fields, or nil for empty shell.
+---   Fields: age, health, monthsSinceLastBirth, gender, subTypeIndex, reproduction,
+---   isParent, isPregnant, isLactating, clusterSystem, uniqueId, motherId, fatherId,
+---   pos, name, dirt, fitness, riding, farmId, weight, genetics, impregnatedBy,
+---   variation, children, monitor, isCastrated, diseases, recentlyBoughtByAI, marks,
+---   insemination. All fields optional; defaults applied for omitted fields.
+--- @return table animal New Animal instance
+function Animal.new(config)
 
+    local cfg = config or {}
     local self = setmetatable({}, Animal_mt)
 
     self.input, self.output = {}, {}
 
-    self.isCastrated = isCastrated or false
+    self.isCastrated = cfg.isCastrated or false
 
-    self.clusterSystem = clusterSystem
+    self.clusterSystem = cfg.clusterSystem
 
-    self.insemination = insemination
+    self.insemination = cfg.insemination
 
-    self.recentlyBoughtByAI = false or recentlyBoughtByAI
-    self.children = children or {}
-    self.age = age or 0
-    self.health = health or 0
-    self.monthsSinceLastBirth = monthsSinceLastBirth or 0
-    self.gender = gender or "female"
+    self.recentlyBoughtByAI = cfg.recentlyBoughtByAI or false
+    self.children = cfg.children or {}
+    self.age = cfg.age or 0
+    self.health = cfg.health or 0
+    self.monthsSinceLastBirth = cfg.monthsSinceLastBirth or 0
+    self.gender = cfg.gender or "female"
     local subType
-    self.subTypeIndex, subType, self.subType = Animal.resolveSubType(subTypeIndex or 1, nil)
-    self.reproduction = reproduction or 0
-    self.isParent = isParent or false
-    self.isPregnant = isPregnant or false
-    self.isLactating = isLactating or false
+    if config and not cfg.subTypeIndex then
+        Log:debug("Animal.new: subTypeIndex missing from config, using default 1")
+    end
+    self.subTypeIndex, subType, self.subType = Animal.resolveSubType(cfg.subTypeIndex or 1, nil)
+    self.reproduction = cfg.reproduction or 0
+    self.isParent = cfg.isParent or false
+    self.isPregnant = cfg.isPregnant or false
+    self.isLactating = cfg.isLactating or false
     self.isDirty = false
     self.isIndividual = true
     self.name = nil
     self.isDead = false
     self.isSold = false
-    self.weight = weight or nil
-    self.marks = marks or self:getDefaultMarks()
+    self.weight = cfg.weight or nil
+    self.marks = cfg.marks or self:getDefaultMarks()
 
-    self.variation = variation or nil
+    self.variation = cfg.variation or nil
 
+    local genetics = cfg.genetics
     self.genetics = genetics
-    self.impregnatedBy = impregnatedBy
+    self.impregnatedBy = cfg.impregnatedBy
 
     self.animalTypeIndex = g_currentMission.animalSystem:getTypeIndexBySubTypeIndex(self.subTypeIndex) or 1
     local targetWeight = subType ~= nil and subType.targetWeight or 0
     self.breed = (subType ~= nil and subType.breed) or "UNKNOWN"
 
     if genetics == nil then
-    
+
         self.genetics = {}
 
         local healthChance = math.random()
@@ -144,7 +157,7 @@ function Animal.new(age, health, monthsSinceLastBirth, gender, subTypeIndex, rep
         else
             self.genetics.quality = math.random(90, 110) / 100
         end
-        
+
 
         local metabolismChance = math.random()
 
@@ -176,13 +189,16 @@ function Animal.new(age, health, monthsSinceLastBirth, gender, subTypeIndex, rep
 
     self.targetWeight = targetWeight + (((targetWeight * self.genetics.metabolism) - targetWeight) / 2.5)
 
+    local farmId = cfg.farmId
     self.farmId = farmId or nil
+
+    local id = cfg.uniqueId
 
     if self.clusterSystem ~= nil then
 
         if id == nil then
 
-            local ownerFarmId = clusterSystem.owner.ownerFarmId
+            local ownerFarmId = self.clusterSystem.owner.ownerFarmId
             local farm = g_farmManager.farmIdToFarm[ownerFarmId]
 
 
@@ -204,7 +220,7 @@ function Animal.new(age, health, monthsSinceLastBirth, gender, subTypeIndex, rep
         end
 
         if farmId == nil then
-            local farm = g_farmManager.farmIdToFarm[clusterSystem.owner.ownerFarmId]
+            local farm = g_farmManager.farmIdToFarm[self.clusterSystem.owner.ownerFarmId]
             if farm == nil then
                 self.farmId = "1"
             else
@@ -224,8 +240,8 @@ function Animal.new(age, health, monthsSinceLastBirth, gender, subTypeIndex, rep
     self.id = "0-0"
     self.idFull = "0-0"
 
-    self.motherId = motherId or "-1"
-    self.fatherId = fatherId or "-1"
+    self.motherId = cfg.motherId or "-1"
+    self.fatherId = cfg.fatherId or "-1"
 
 
     -- for compatibility reasons with mods such as InfoDisplayExtension
@@ -245,18 +261,19 @@ function Animal.new(age, health, monthsSinceLastBirth, gender, subTypeIndex, rep
         title = g_i18n:getText("ui_horseHealth")
     }
 
+    local name = cfg.name
     self.name = name or nil
 
 
-    self.dirt = dirt or 0
-    self.fitness = fitness or 0
-    self.riding = riding or 0
+    self.dirt = cfg.dirt or 0
+    self.fitness = cfg.fitness or 0
+    self.riding = cfg.riding or 0
     if name == "" then name = nil end
     self.name = name or ((string.contains(self.subType, "HORSE", true) or string.contains(self.subType, "STALLION", true)) and g_currentMission.animalNameSystem:getRandomName(self.gender) or nil)
 
 
-    self.pos = pos or nil
-    
+    self.pos = cfg.pos or nil
+
 
     if self.age >= 0 then
 
@@ -284,12 +301,12 @@ function Animal.new(age, health, monthsSinceLastBirth, gender, subTypeIndex, rep
 
     end
 
-    self.diseases = diseases or {}
+    self.diseases = cfg.diseases or {}
 
     self:updateInput()
     self:updateOutput(g_currentMission.environment.weather.temperatureUpdater.currentMin or 20)
 
-    self.monitor = monitor or { ["active"] = false, ["removed"] = false, ["fee"] = 5 }
+    self.monitor = cfg.monitor or { ["active"] = false, ["removed"] = false, ["fee"] = 5 }
 
     local animalType = g_currentMission.animalSystem.types[self.animalTypeIndex]
 
@@ -522,7 +539,18 @@ function Animal.loadFromXMLFile(xmlFile, key, clusterSystem, isLegacy)
 
 
 
-    local animal = Animal.new(age, health, monthsSinceLastBirth, gender, subTypeIndex, reproduction, isParent, isPregnant, isLactating, clusterSystem, id, motherId, fatherId, pos, name, dirt, fitness, riding, farmId, weight, genetics, impregnatedBy, variation, children, monitor, isCastrated, diseases, recentlyBoughtByAI, marks, insemination)
+    local animal = Animal.new({
+        age = age, health = health, monthsSinceLastBirth = monthsSinceLastBirth,
+        gender = gender, subTypeIndex = subTypeIndex, reproduction = reproduction,
+        isParent = isParent, isPregnant = isPregnant, isLactating = isLactating,
+        clusterSystem = clusterSystem, uniqueId = id, motherId = motherId,
+        fatherId = fatherId, pos = pos, name = name, dirt = dirt,
+        fitness = fitness, riding = riding, farmId = farmId, weight = weight,
+        genetics = genetics, impregnatedBy = impregnatedBy, variation = variation,
+        children = children, monitor = monitor, isCastrated = isCastrated,
+        diseases = diseases, recentlyBoughtByAI = recentlyBoughtByAI,
+        marks = marks, insemination = insemination
+    })
 
     animal:setBirthday(birthday)
     
@@ -966,7 +994,12 @@ function Animal:readStream(streamId, connection)
 
             if productivity ~= nil then genetics.productivity = productivity end
 
-            local child = Animal.new(0, health, 0, gender, childSubTypeIndex, 0, false, false, false, nil, nil, motherId, fatherId, nil, nil, nil, nil, nil, nil, nil, genetics)
+            local child = Animal.new({
+                age = 0, health = health, gender = gender,
+                subTypeIndex = childSubTypeIndex,
+                motherId = motherId, fatherId = fatherId,
+                genetics = genetics
+            })
 
             table.insert(pregnancy.pregnancies, child)
 
@@ -1072,14 +1105,14 @@ function Animal:readStream(streamId, connection)
 end
 
 
--- Delegates (backward compatibility — remove in future cleanup)
+-- Delegates (backward compatibility - remove in future cleanup)
 function Animal:writeStreamIdentifiers(streamId, connection)
-    Log:trace("DELEGATE: Animal:writeStreamIdentifiers called — use RLAnimalUtil.writeStreamIdentifiers directly")
+    Log:trace("DELEGATE: Animal:writeStreamIdentifiers called - use RLAnimalUtil.writeStreamIdentifiers directly")
     return RLAnimalUtil.writeStreamIdentifiers(self, streamId, connection)
 end
 
 Animal.readStreamIdentifiers = function(streamId, connection)
-    Log:trace("DELEGATE: Animal.readStreamIdentifiers called — use RLAnimalUtil.readStreamIdentifiers directly")
+    Log:trace("DELEGATE: Animal.readStreamIdentifiers called - use RLAnimalUtil.readStreamIdentifiers directly")
     return RLAnimalUtil.readStreamIdentifiers(streamId, connection)
 end
 
@@ -1261,9 +1294,9 @@ function Animal:setUniqueId(farmId)
 end
 
 
--- Delegate (backward compatibility — remove in future cleanup)
+-- Delegate (backward compatibility - remove in future cleanup)
 function Animal:getHash()
-    Log:trace("DELEGATE: Animal:getHash called — use RLAnimalUtil.getHash directly")
+    Log:trace("DELEGATE: Animal:getHash called - use RLAnimalUtil.getHash directly")
     return RLAnimalUtil.getHash(self)
 end
 
@@ -2458,7 +2491,12 @@ function Animal:createPregnancy(childNum, month, year, father)
         end
 
 
-        local child = Animal.new(-1, 100, 0, gender, subTypeIndex, 0, false, false, false, nil, nil, self:getIdentifiers(), father.uniqueId)
+        local child = Animal.new({
+            age = -1, health = 100, gender = gender,
+            subTypeIndex = subTypeIndex,
+            motherId = self:getIdentifiers(),
+            fatherId = father.uniqueId
+        })
 
         -- Use BreedingMath for Gaussian genetic inheritance (allows offspring to exceed parent ranges)
         local metabolism = BreedingMath.breedOffspring(genetics.metabolism, father.metabolism, { sd = BreedingMath.SD_CONST })
