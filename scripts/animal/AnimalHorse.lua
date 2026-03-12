@@ -64,7 +64,7 @@ end
 --- @param animal table Animal instance
 --- @param riding number New riding value
 function AnimalHorse.setRiding(animal, riding)
-    animal.riding = riding
+    animal.riding = math.clamp(math.floor(riding), 0, 100)
 end
 
 --- Reset riding to zero.
@@ -118,7 +118,15 @@ function AnimalHorse.processRidingUpdate(animal)
     Log:trace("AnimalHorse.processRidingUpdate: riding=%.2f threshold=%.2f",
         ridingFactor, ridingThresholdFactor)
 
-    if ridingThresholdFactor < ridingFactor then
+    if ridingThresholdFactor <= 0 then
+        -- No threshold: skip fitness adjustment (avoids 0/0 division)
+        factor = 0
+        delta = 0
+    elseif ridingThresholdFactor >= 1.0 then
+        -- Threshold at/above max: use below-threshold formula (safe when denominator >= 1)
+        factor = ridingFactor / ridingThresholdFactor - 1
+        delta = 10
+    elseif ridingThresholdFactor < ridingFactor then
         factor = (ridingFactor - ridingThresholdFactor) / (1 - ridingThresholdFactor)
         delta = 25
     else
