@@ -250,8 +250,13 @@ function RealisticLivestock_AnimalClusterSystem:removeCluster(_, animalIndex)
                 removeHusbandryAnimal(husbandry, animalId)
 
                 local clusterHusbandry = spec.clusterHusbandry
-                clusterHusbandry.husbandryIdsToVisualAnimalCount[husbandry] = math.max(clusterHusbandry.husbandryIdsToVisualAnimalCount[husbandry] - 1, 0)
-                clusterHusbandry.visualAnimalCount = math.max(clusterHusbandry.visualAnimalCount - 1, 0)
+                local count = clusterHusbandry.husbandryIdsToVisualAnimalCount[husbandry]
+                if count ~= nil then
+                    clusterHusbandry.husbandryIdsToVisualAnimalCount[husbandry] = math.max(count - 1, 0)
+                    clusterHusbandry.visualAnimalCount = math.max(clusterHusbandry.visualAnimalCount - 1, 0)
+                else
+                    Log:warning("removeCluster: visual count missing for husbandryId=%s idFull=%s", tostring(husbandry), tostring(animal.idFull))
+                end
 
                 for husbandryIndex, animalIds in pairs(clusterHusbandry.animalIdToCluster) do
 
@@ -287,8 +292,20 @@ function RealisticLivestock_AnimalClusterSystem:removeCluster(_, animalIndex)
                         removeHusbandryAnimal(husbandry, animalId)
 
                         local clusterHusbandry = spec.clusterHusbandry
-                        clusterHusbandry.husbandryIdsToVisualAnimalCount[husbandry] = math.max(clusterHusbandry.husbandryIdsToVisualAnimalCount[husbandry] - 1, 0)
-                        clusterHusbandry.visualAnimalCount = math.max(clusterHusbandry.visualAnimalCount - 1, 0)
+                        local count = clusterHusbandry.husbandryIdsToVisualAnimalCount[husbandry]
+                        if count ~= nil then
+                            clusterHusbandry.husbandryIdsToVisualAnimalCount[husbandry] = math.max(count - 1, 0)
+                            clusterHusbandry.visualAnimalCount = math.max(clusterHusbandry.visualAnimalCount - 1, 0)
+                        else
+                            Log:warning("removeCluster: visual count missing for husbandryId=%s idFull=%s", tostring(husbandry), tostring(animal.idFull))
+                        end
+
+                        for husbandryIndex, animalIds in pairs(clusterHusbandry.animalIdToCluster) do
+                            if clusterHusbandry.husbandryIds[husbandryIndex] == husbandry then
+                                animalIds[animalId] = nil
+                                break
+                            end
+                        end
 
                     end
 

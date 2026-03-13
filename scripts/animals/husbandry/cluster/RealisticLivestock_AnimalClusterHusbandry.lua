@@ -102,9 +102,13 @@ function RealisticLivestock_AnimalClusterHusbandry:updateVisuals(superFunc, remo
         for animalId, animal in pairs(animalIds) do
 
             if removeAll or animal == nil or animal.isSold or animal.isDead or animal.id == nil or animal.uniqueId == "1-1" or animal.uniqueId == "0-0" or animal.numAnimals <= 0 then
-            
-                self.husbandryIdsToVisualAnimalCount[self.husbandryIds[husbandryId]] = math.max(self.husbandryIdsToVisualAnimalCount[self.husbandryIds[husbandryId]] - 1, 0)
-                self.visualAnimalCount = math.max(self.visualAnimalCount - 1, 0)
+
+                local husbandryEngineId = self.husbandryIds[husbandryId]
+                local count = husbandryEngineId ~= nil and self.husbandryIdsToVisualAnimalCount[husbandryEngineId] or nil
+                if count ~= nil then
+                    self.husbandryIdsToVisualAnimalCount[husbandryEngineId] = math.max(count - 1, 0)
+                    self.visualAnimalCount = math.max(self.visualAnimalCount - 1, 0)
+                end
                 removeHusbandryAnimal(self.husbandryIds[husbandryId], animalId)
                 
                 if animal ~= nil then
