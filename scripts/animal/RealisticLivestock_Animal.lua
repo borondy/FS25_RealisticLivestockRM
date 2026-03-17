@@ -1983,9 +1983,7 @@ end
 
 
 
-function Animal:getHealthFactor()
-    return self.health /100
-end
+function Animal:getHealthFactor() return AnimalHealth.getHealthFactor(self) end
 
 -- Fertility/reproduction delegates → AnimalReproduction module
 function Animal:getReproductionFactor() return AnimalReproduction.getReproductionFactor(self) end
@@ -1995,29 +1993,7 @@ function Animal:getReproductionDelta() return AnimalReproduction.getReproduction
 function Animal:getCanReproduce() return AnimalReproduction.getCanReproduce(self) end
 
 
-function Animal:updateHealth(foodFactor)
-
-    local subType = self:getSubType()
-    local healthThresholdFactor = subType.healthThresholdFactor
-    local healthGenetics = self.genetics.health
-
-    local factor, delta = nil
-
-    if healthThresholdFactor < foodFactor then
-        factor = (foodFactor - healthThresholdFactor) / (1 - healthThresholdFactor)
-        delta = subType.healthIncreaseHour
-    else
-        factor = foodFactor / healthThresholdFactor - 1
-        delta = subType.healthDecreaseHour
-    end
-
-    local healthDelta = delta * factor * healthGenetics
-
-    if healthDelta ~= 0 then self.health = math.clamp(math.floor(self.health + healthDelta), 0, 100) end
-
-    self:updateWeight(foodFactor)
-
-end
+function Animal:updateHealth(foodFactor) AnimalHealth.updateHealth(self, foodFactor) end
 
 
 function Animal:updateWeight(foodFactor)
@@ -2128,17 +2104,9 @@ function Animal:onDayChanged(spec, isServer, day, month, year, currentDayInPerio
     local children, deadAnimals, childrenSold, childrenSoldAmount =
         AnimalReproduction.processDaily(self, spec, day, month, year, isSaleAnimal)
 
-    local lowHealthDeath, oldDeath, randomDeath, randomDeathMoney = 0, 0, 0, 0
-
-    if self.deathEnabled and g_server ~= nil and (self.clusterSystem == nil or self.clusterSystem.owner:getOwnerFarmId() ~= FarmManager.INVALID_FARM_ID) then
-
-        lowHealthDeath = self:calculateLowHealthMonthlyAnimalDeaths()
-        if lowHealthDeath == 0 then oldDeath = self:calculateOldAgeMonthlyAnimalDeaths() end
-        if spec ~= nil and lowHealthDeath == 0 and oldDeath == 0 then randomDeath, randomMoney = self:calculateRandomMonthlyAnimalDeaths(spec) end
-
-        if lowHealthDeath > 0 or oldDeath > 0 or randomDeath > 0 then g_server:broadcastEvent(AnimalDeathEvent.new(self.clusterSystem ~= nil and self.clusterSystem.owner or nil, self)) end
-
-    end
+    -- Death evaluation: low health → old age → random accidents (with AnimalDeathEvent broadcast)
+    local lowHealthDeath, oldDeath, randomDeath, randomDeathMoney =
+        AnimalHealth.evaluateDaily(self, spec)
 
     return children, deadAnimals, childrenSold, childrenSoldAmount, lowHealthDeath, oldDeath, randomDeath, randomDeathMoney
 
@@ -2158,185 +2126,11 @@ function Animal:getAnimalTypeIndex()
 end
 
 
-function Animal:die(reason)
-
-    self.numAnimals = 0
-    self.isDead = true
-
-    if self.sale ~= nil then g_currentMission.animalSystem:removeSaleAnimal(self.animalTypeIndex, self.birthday.country, self.farmId, self.uniqueId) end
-    if self.isAIAnimal then g_currentMission.animalSystem:removeAIAnimal(self.animalTypeIndex, self.birthday.country, self.farmId, self.uniqueId) end
-
-    self:addMessage("DEATH", { reason or "rl_ui_unknownCauses" })
-
-    if self.clusterSystem ~= nil then self.clusterSystem:addPendingRemoveCluster(self) end
-
-end
-
-
-
-
---- Evaluate monthly death chance from low health. Animals below 80 health
---- face increasing death probability scaled by health genetics.
---- Called from onPeriodChanged (server-side only).
---- @return number 1 if animal died, 0 otherwise
-function Animal:calculateLowHealthMonthlyAnimalDeaths()
-
-    if self.numAnimals <= 0 or self.isDead then
-        return 0
-    end
-
-    local deathChance = 0.01
-    local health = self.health
-    local healthGenetics = self.genetics.health
-
-    if health >= 80 then
-        return 0
-    end
-
-    if self.age < 6 then health = health - 10 end
-    deathChance = (0.5 * (2 - healthGenetics)) - (health / 100)
-
-    if math.random() <= deathChance then
-        self:die("rl_death_health")
-        return 1
-    end
-
-    return 0
-
-end
-
-
-
---- Evaluate monthly death chance from old age. Each animal type has a
---- min/max age range; death probability increases once past minAge.
---- Called from onPeriodChanged (server-side only).
---- @return number 1 if animal died, 0 otherwise
-function Animal:calculateOldAgeMonthlyAnimalDeaths()
-
-    if self.numAnimals <= 0 or self.isDead then
-        return 0
-    end
-
-    local animalType = self.animalTypeIndex
-    local deathChance = 0.01
-    local age = self.age
-    local healthGenetics = self.genetics.health
-
-    local minAge = 20000
-    local maxAge = 30000
-
-    if animalType == AnimalType.COW then
-        -- cattle old age min: 15y (180m)
-        -- cattle old age max: 20y (240m)
-        minAge = 180
-        maxAge = 240
-    elseif animalType == AnimalType.SHEEP then
-        -- sheep old age min: 10y (120m)
-        -- sheep old age max: 12y (144m)
-        minAge = 120
-        maxAge = 144
-    elseif animalType == AnimalType.HORSE then
-        -- horse old age min: 25y (300m)
-        -- horse old age max: 30y (360m)
-        minAge = 300
-        maxAge = 360
-    elseif animalType == AnimalType.PIG then
-        -- pig old age min: 15y (180m)
-        -- pig old age max: 20y (240m)
-        minAge = 180
-        maxAge = 240
-    elseif animalType == AnimalType.CHICKEN then
-        -- chicken old age min: 5y (60m)
-        -- chicken old age max: 8y (96m)
-        minAge = 60
-        maxAge = 96
-    end
-
-    if age < minAge then
-        return 0
-    end
-
-    deathChance = 0.7 - ((maxAge - age) / 100)
-    if math.random() <= deathChance * (2 - healthGenetics) then
-        self:die("rl_death_age")
-        return 1
-    end
-
-    return 0
-
-end
-
-
---- Evaluate monthly random death chance (e.g., broken legs, accidents).
---- Dead animals may be sold at reduced price (lower quality meat).
---- Called from onPeriodChanged (server-side only).
---- @param spec table Husbandry animal spec (provides animalTypeIndex, minTemp)
---- @return number deaths 1 if animal died, 0 otherwise
---- @return number money Sale proceeds if animal was sold, 0 otherwise
-function Animal:calculateRandomMonthlyAnimalDeaths(spec)
-
-    if self.numAnimals <= 0 or self.isDead then
-        return 0, 0
-    end
-
-    local animalType = spec.animalTypeIndex
-    local animalsCanBeSold = true
-    local deathChance = 0.01
-    local temp = spec.minTemp
-
-    if animalType == AnimalType.COW then
-        deathChance = 0.002
-        if self.age < 6 then
-            deathChance = 0.0035
-        elseif self.age < 18 then
-            deathChance = 0.0024
-        end
-    elseif animalType == AnimalType.SHEEP then
-        deathChance = 0.003
-        if self.age < 3 then
-            deathChance = 0.0035
-        elseif self.age < 8 then
-            deathChance = 0.0032
-        end
-    elseif animalType == AnimalType.HORSE then
-        deathChance = 0.002
-    elseif animalType == AnimalType.PIG then
-        deathChance = 0.001
-        if self.age < 3 then
-            deathChance = 0.018
-        elseif self.age < 6 then
-            deathChance = 0.0075
-        end
-    elseif animalType == AnimalType.CHICKEN then
-        if self.age < 6 then
-            deathChance = 0.0012
-        else
-            deathChance = 0.0016
-        end
-        animalsCanBeSold = false
-    end
-
-    -- animals are more likely to die in cold weather, especially young animals due to ice, pneumonia etc
-
-    if temp ~= nil and temp < 10 and temp >= 0 then
-        deathChance = deathChance * (1 + (1 - (temp / 12)))
-    elseif temp ~= nil and temp < 0 then
-        deathChance = deathChance * (1 + (1 - (temp / 10)))
-    end
-
-    deathChance = deathChance * self.accidentsChance
-
-    if math.random() <= deathChance then
-        local animalPrice = 0
-        if animalsCanBeSold then animalPrice = self:getSellPrice() * 0.33 end
-
-        self:die("rl_death_accident")
-        return 1, animalPrice
-    end
-
-    return 0, 0
-
-end
+-- Health/death delegates → AnimalHealth module
+function Animal:die(reason) AnimalHealth.die(self, reason) end
+function Animal:calculateLowHealthMonthlyAnimalDeaths() return AnimalHealth.calculateLowHealthMonthlyAnimalDeaths(self) end
+function Animal:calculateOldAgeMonthlyAnimalDeaths() return AnimalHealth.calculateOldAgeMonthlyAnimalDeaths(self) end
+function Animal:calculateRandomMonthlyAnimalDeaths(spec) return AnimalHealth.calculateRandomMonthlyAnimalDeaths(self, spec) end
 
 
 
