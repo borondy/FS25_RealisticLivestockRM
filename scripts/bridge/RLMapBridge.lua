@@ -940,10 +940,12 @@ function RLMapBridge.applySubTypeOverrides(subType, animalSystem, xmlFile, key, 
         end
     end
 
-    -- Visuals (override visualAnimalIndex, image, description on existing visual stages)
+    -- Visuals: override existing visual stages or insert new ones.
+    -- Matches by minAge. If no match exists, inserts a new visual stage (sorted by minAge).
     if xmlFile:hasProperty(key .. ".visuals") then
         local animalType = animalSystem:getTypeByIndex(subType.typeIndex)
         local visualOverrides = 0
+        local visualInserts = 0
 
         for _, visualKey in xmlFile:iterator(key .. ".visuals.visual") do
             local minAge = xmlFile:getInt(visualKey .. "#minAge")
@@ -960,7 +962,41 @@ function RLMapBridge.applySubTypeOverrides(subType, animalSystem, xmlFile, key, 
                 end
 
                 if matchedVisual == nil then
-                    Log:warning("MapBridge: Visual override for '%s' minAge=%d has no matching visual, skipping", subTypeName, minAge)
+                    -- No existing stage at this minAge — insert a new visual stage
+                    local newIndex = xmlFile:getInt(visualKey .. "#visualAnimalIndex")
+                    if newIndex == nil or animalType == nil then
+                        Log:warning("MapBridge: Visual insert for '%s' minAge=%d missing visualAnimalIndex, skipping", subTypeName, minAge)
+                    else
+                        local newAnimal = animalType.animals[newIndex]
+                        if newAnimal == nil then
+                            Log:warning("MapBridge: Visual insert for '%s' minAge=%d: visualAnimalIndex %d not found", subTypeName, minAge, newIndex)
+                        else
+                            local newVisual = {
+                                minAge = minAge,
+                                visualAnimalIndex = newIndex,
+                                visualAnimal = newAnimal,
+                                store = {
+                                    imageFilename = Utils.getFilename(xmlFile:getString(visualKey .. "#image") or "", mapModDir),
+                                    canBeBought = xmlFile:getBool(visualKey .. "#canBeBought", false),
+                                    description = g_i18n:convertText(xmlFile:getString(visualKey .. "#description") or "")
+                                }
+                            }
+                            -- Insert sorted by minAge
+                            local inserted = false
+                            for i, visual in ipairs(subType.visuals) do
+                                if visual.minAge > minAge then
+                                    table.insert(subType.visuals, i, newVisual)
+                                    inserted = true
+                                    break
+                                end
+                            end
+                            if not inserted then
+                                table.insert(subType.visuals, newVisual)
+                            end
+                            visualInserts = visualInserts + 1
+                            Log:debug("MapBridge: Inserted visual stage for '%s' minAge=%d index=%d", subTypeName, minAge, newIndex)
+                        end
+                    end
                 else
                     local newIndex = xmlFile:getInt(visualKey .. "#visualAnimalIndex")
                     if newIndex ~= nil and animalType ~= nil then
@@ -993,8 +1029,11 @@ function RLMapBridge.applySubTypeOverrides(subType, animalSystem, xmlFile, key, 
             end
         end
 
-        if visualOverrides > 0 then
-            table.insert(patches, string.format("visuals(%d)", visualOverrides))
+        if visualOverrides > 0 or visualInserts > 0 then
+            local parts = {}
+            if visualOverrides > 0 then table.insert(parts, string.format("visuals(%d)", visualOverrides)) end
+            if visualInserts > 0 then table.insert(parts, string.format("visuals_inserted(%d)", visualInserts)) end
+            table.insert(patches, table.concat(parts, ", "))
         end
     end
 

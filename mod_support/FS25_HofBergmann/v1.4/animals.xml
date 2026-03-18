@@ -13,10 +13,35 @@
 -->
 <animals>
 
-    <!-- DUCK_MALE: male variant for DUCK subtype under CHICKEN type -->
-    <!-- HB 1.4 chicken config has 6 models (added chick model at index 1, shifting all others) -->
-    <!-- DUCK uses visualAnimalIndex 5 (duckling) and 6 (adult) in HB 1.4's chicken config -->
+    <!--
+        CHICKEN type: HB 1.4 reordered models from base game layout.
+        Base game: 1=hen, 2=rooster, 3=chick
+        HB 1.4:    1=chick, 2=chick2(young), 3=hen, 4=rooster, 5=duckling, 6=duck
+
+        RLRM Phase 1 defines 2 visual stages (baby, adult) with base game indices.
+        Bridge remaps indices to HB 1.4 layout and adds the young stage (minAge=3).
+    -->
     <animal type="CHICKEN">
+        <!-- Override: remap CHICKEN (hen) visual indices + add young stage -->
+        <subType subType="CHICKEN">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="1" image="character/animals/domesticated/chicken/store_chick.png" canBeBought="false"/>
+                <visual minAge="3" visualAnimalIndex="2" image="$dataS/character/animals/domesticated/chicken/store_chickenChick.png" canBeBought="true"/>
+                <visual minAge="6" visualAnimalIndex="3" image="$dataS/character/animals/domesticated/chicken/store_chickenHen.png"/>
+            </visuals>
+        </subType>
+
+        <!-- Override: remap CHICKEN_ROOSTER visual indices + add young stage -->
+        <subType subType="CHICKEN_ROOSTER">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="1" image="character/animals/domesticated/chicken/store_chick.png" canBeBought="false"/>
+                <visual minAge="3" visualAnimalIndex="2" image="$dataS/character/animals/domesticated/chicken/store_chickenChick.png" canBeBought="false"/>
+                <visual minAge="6" visualAnimalIndex="4" image="$dataS/character/animals/domesticated/chicken/store_chickenRooster.png"/>
+            </visuals>
+        </subType>
+
+        <!-- DUCK_MALE: male variant for DUCK subtype -->
+        <!-- DUCK uses visualAnimalIndex 5 (duckling) and 6 (adult) in HB 1.4's chicken config -->
         <subType subType="DUCK_MALE" fillTypeName="DUCK_MALE" gender="male" breed="DUCK"
                  minWeight="1.0" targetWeight="3.5" maxWeight="5.5">
             <visuals>
