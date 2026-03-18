@@ -18,7 +18,7 @@ function RealisticLivestock_PlaceableHusbandryPallets:onHusbandryAnimalsUpdate(s
 			local subType = animal:getSubType()
 			if subType ~= nil then
 				local pallets = subType.output.pallets
-				if pallets ~= nil then
+				if pallets ~= nil and spec.litersPerHour[pallets.fillType] ~= nil then
 					table.addElement(spec.activeFillTypes, pallets.fillType)
 				end
 			end
@@ -51,9 +51,10 @@ function PlaceableHusbandryPallets:updateInputAndOutput(superFunc, animals)
 
             if pallets ~= nil then
 
-                spec.litersPerHour[pallets.fillType] = spec.litersPerHour[pallets.fillType] + animal:getOutput("pallets")
-
-                table.addElement(spec.activeFillTypes, pallets.fillType)
+                if spec.litersPerHour[pallets.fillType] ~= nil then
+                    spec.litersPerHour[pallets.fillType] = spec.litersPerHour[pallets.fillType] + animal:getOutput("pallets")
+                    table.addElement(spec.activeFillTypes, pallets.fillType)
+                end
 
             end
 

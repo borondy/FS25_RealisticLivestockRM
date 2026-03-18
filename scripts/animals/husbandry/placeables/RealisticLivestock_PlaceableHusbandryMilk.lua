@@ -18,7 +18,7 @@ function RealisticLivestock_PlaceableHusbandryMilk:onHusbandryAnimalsUpdate(supe
 			local subType = animal:getSubType()
 			if subType ~= nil then
 				local milk = subType.output.milk
-				if milk ~= nil then
+				if milk ~= nil and spec.litersPerHour[milk.fillType] ~= nil then
 					table.addElement(spec.activeFillTypes, milk.fillType)
 				end
 			end
@@ -51,9 +51,10 @@ function PlaceableHusbandryMilk:updateInputAndOutput(superFunc, animals)
 
             if milk ~= nil then
 
-                spec.litersPerHour[milk.fillType] = spec.litersPerHour[milk.fillType] + animal:getOutput("milk")
-
-                table.addElement(spec.activeFillTypes, milk.fillType)
+                if spec.litersPerHour[milk.fillType] ~= nil then
+                    spec.litersPerHour[milk.fillType] = spec.litersPerHour[milk.fillType] + animal:getOutput("milk")
+                    table.addElement(spec.activeFillTypes, milk.fillType)
+                end
 
             end
 
