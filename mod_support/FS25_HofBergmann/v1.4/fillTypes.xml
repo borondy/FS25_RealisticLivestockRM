@@ -1,0 +1,25 @@
+<map xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="$data/shared/xml/schema/fillTypes.xsd">
+	<fillTypes>
+
+		<!-- Bridge fill types for Hof Bergmann map exotic animals (male variants) -->
+
+		<fillType name="DUCK_MALE" title="$l10n_fillType_duck_male" showOnPriceTable="false">
+			<physics massPerLiter="3.0" maxPhysicalSurfaceAngle="0"/>
+			<economy pricePerLiter="60"/>
+			<image hud="$dataS/menu/hud/fillTypes/hud_fill_chicken.png"/>
+		</fillType>
+
+		<fillType name="GOOSE_MALE" title="$l10n_fillType_goose_male" showOnPriceTable="false">
+			<physics massPerLiter="5.0" maxPhysicalSurfaceAngle="0"/>
+			<economy pricePerLiter="50"/>
+			<image hud="$dataS/menu/hud/fillTypes/hud_fill_chicken.png"/>
+		</fillType>
+
+		<fillType name="TOMCAT" title="$l10n_fillType_tomcat" showOnPriceTable="false">
+			<physics massPerLiter="4.0" maxPhysicalSurfaceAngle="0"/>
+			<economy pricePerLiter="80"/>
+			<image hud="$dataS/menu/hud/fillTypes/hud_fill_chicken.png"/>
+		</fillType>
+
+	</fillTypes>
+</map>

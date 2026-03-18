@@ -39,9 +39,12 @@ RLMapBridge.breedingGroupBySubType = {}
 RLMapBridge.maxFertilityAgeByGroup = {}
 
 
---- Parse a version string into a numeric tuple.
---- @param versionStr string|nil Version string (e.g. "1.3.0.1")
---- @return table|nil versionTuple Array of numbers (e.g. {1, 3, 0, 1}), or nil if input is nil
+--- Parse a version string into a structured version object with numeric tuple and optional suffix.
+--- Handles version strings with suffixes separated by space or dash (e.g. "1.4.0.0 Beta1", "1.4.0.0-RC1").
+--- Dot-separated suffixes (e.g. "1.4.0.0.beta1") are NOT handled — "beta1" has no leading digits and
+--- is treated as malformed.
+--- @param versionStr string|nil Version string (e.g. "1.3.0.1" or "1.4.0.0 Beta1")
+--- @return table|nil version { tuple = {numbers}, suffix = string|nil }, or nil if input is nil/malformed
 function RLMapBridge.parseVersion(versionStr)
     if versionStr == nil then
         return nil
@@ -49,34 +52,72 @@ function RLMapBridge.parseVersion(versionStr)
 
     local parts = string.split(versionStr, ".")
     local tuple = {}
+    local suffix = nil
+
     for _, part in ipairs(parts) do
         local num = tonumber(part)
-        if num == nil then
-            Log:warning("MapBridge: Non-numeric version component '%s' in '%s'", part, versionStr)
-            return nil
+        if num ~= nil then
+            table.insert(tuple, num)
+        else
+            -- Try extracting leading digits with space/dash separator: "0 Beta1" → 0, "Beta1"
+            local digits, trail = part:match("^(%d+)[%s%-](.+)$")
+            if digits ~= nil then
+                table.insert(tuple, tonumber(digits))
+                suffix = trail
+                Log:trace("MapBridge: parseVersion: extracted suffix '%s' from component '%s' in '%s'",
+                    trail, part, versionStr)
+                break  -- Suffix must be in the last component; stop processing
+            else
+                -- No leading digits or no separator — malformed
+                Log:debug("MapBridge: Non-numeric version component '%s' in '%s'", part, versionStr)
+                return nil
+            end
         end
-        table.insert(tuple, num)
     end
 
-    return tuple
+    return { tuple = tuple, suffix = suffix }
 end
 
 
---- Compare two version tuples component by component.
+--- Compare two version objects component by component.
+--- Accepts both structured format ({ tuple = {...}, suffix = "..." }) and plain arrays (backward compat).
 --- Treats missing components as 0 (e.g. {1,3} == {1,3,0,0}).
---- @param a table Version tuple (e.g. {1, 3, 0, 1})
---- @param b table Version tuple (e.g. {1, 4, 0, 0})
+--- When numeric tuples are equal, suffix determines order:
+---   nil (release) > any string (pre-release). Both strings → lexicographic comparison.
+---   This means Beta1 < Beta2 < RC1 < nil(release). Case-sensitive (ASCII order).
+--- @param a table Version object or plain tuple
+--- @param b table Version object or plain tuple
 --- @return number result Negative if a < b, 0 if equal, positive if a > b
 function RLMapBridge.compareVersions(a, b)
-    local maxLen = math.max(#a, #b)
+    -- Extract tuple and suffix, supporting both formats
+    local aTuple = a.tuple or a
+    local aSuffix = a.tuple and a.suffix or nil
+    local bTuple = b.tuple or b
+    local bSuffix = b.tuple and b.suffix or nil
+
+    local maxLen = math.max(#aTuple, #bTuple)
     for i = 1, maxLen do
-        local ai = a[i] or 0
-        local bi = b[i] or 0
+        local ai = aTuple[i] or 0
+        local bi = bTuple[i] or 0
         if ai ~= bi then
             return ai - bi
         end
     end
-    return 0
+
+    -- Tuples equal — compare suffixes
+    -- nil (release) > any suffix (pre-release)
+    if aSuffix == bSuffix then
+        return 0
+    elseif aSuffix == nil then
+        return 1   -- a is release, b has suffix → a > b
+    elseif bSuffix == nil then
+        return -1  -- a has suffix, b is release → a < b
+    else
+        -- Both have suffixes: lexicographic comparison
+        if aSuffix < bSuffix then return -1
+        elseif aSuffix > bSuffix then return 1
+        else return 0 end
+    end
 end
 
 
@@ -96,10 +137,11 @@ function RLMapBridge.resolveVersionConfig(mapVersion, configs)
         return nil, "unknown"
     end
 
-    local mapTuple = RLMapBridge.parseVersion(mapVersion)
+    local mapParsed = RLMapBridge.parseVersion(mapVersion)
     Log:trace("MapBridge: resolveVersionConfig: mapVersion=%s, %d config(s)", tostring(mapVersion), #configs)
 
-    -- Pre-parse all config version tuples and track min/max per config
+    -- Pre-parse all config version objects and track min/max per config
+    -- minVersion/maxVersion are full { tuple, suffix } objects for suffix-aware ordering
     local configData = {}
     for _, config in ipairs(configs) do
         local parsedVersions = {}
@@ -107,15 +149,15 @@ function RLMapBridge.resolveVersionConfig(mapVersion, configs)
         local maxVersion = nil
 
         for _, verStr in ipairs(config.supportedVersions) do
-            local tuple = RLMapBridge.parseVersion(verStr)
-            if tuple ~= nil then
-                table.insert(parsedVersions, { str = verStr, tuple = tuple })
+            local parsed = RLMapBridge.parseVersion(verStr)
+            if parsed ~= nil then
+                table.insert(parsedVersions, { str = verStr, parsed = parsed })
 
-                if minVersion == nil or RLMapBridge.compareVersions(tuple, minVersion) < 0 then
-                    minVersion = tuple
+                if minVersion == nil or RLMapBridge.compareVersions(parsed, minVersion) < 0 then
+                    minVersion = parsed
                 end
-                if maxVersion == nil or RLMapBridge.compareVersions(tuple, maxVersion) > 0 then
-                    maxVersion = tuple
+                if maxVersion == nil or RLMapBridge.compareVersions(parsed, maxVersion) > 0 then
+                    maxVersion = parsed
                 end
             end
         end
@@ -128,11 +170,12 @@ function RLMapBridge.resolveVersionConfig(mapVersion, configs)
         })
     end
 
-    -- Step 1: Exact match
-    if mapTuple ~= nil then
+    -- Step 1: Exact match using raw version strings (not parsed tuples)
+    -- This ensures "1.4.0.0 Beta1" only matches <version value="1.4.0.0 Beta1"/>, not "1.4.0.0"
+    if mapVersion ~= nil then
         for _, cd in ipairs(configData) do
             for _, pv in ipairs(cd.parsedVersions) do
-                if RLMapBridge.compareVersions(mapTuple, pv.tuple) == 0 then
+                if pv.str == mapVersion then
                     Log:trace("MapBridge: resolveVersionConfig: exact match -> config '%s'", cd.config.id)
                     return cd.config, "confirmed"
                 end
@@ -141,12 +184,12 @@ function RLMapBridge.resolveVersionConfig(mapVersion, configs)
     end
 
     -- Step 2: Highest config whose max confirmed version ≤ mapVersion
-    if mapTuple ~= nil then
+    if mapParsed ~= nil then
         local bestConfig = nil
         local bestMaxVersion = nil
 
         for _, cd in ipairs(configData) do
-            if cd.maxVersion ~= nil and RLMapBridge.compareVersions(cd.maxVersion, mapTuple) <= 0 then
+            if cd.maxVersion ~= nil and RLMapBridge.compareVersions(cd.maxVersion, mapParsed) <= 0 then
                 if bestMaxVersion == nil or RLMapBridge.compareVersions(cd.maxVersion, bestMaxVersion) > 0 then
                     bestConfig = cd
                     bestMaxVersion = cd.maxVersion

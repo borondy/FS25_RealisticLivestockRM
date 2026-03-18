@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<l10n>
+	<texts>
+		<!-- Fill types for bridge-added male subtypes -->
+		<text name="fillType_duck_male" text="Drake"/>
+		<text name="fillType_goose_male" text="Gander"/>
+		<text name="fillType_tomcat" text="Tomcat"/>
+
+		<!-- Animal visual names and descriptions -->
+		<text name="rl_bridge_drakeDuckling" text="Drake Duckling"/>
+		<text name="rl_bridge_drakeAdult" text="Drake"/>
+		<text name="rl_bridge_drakeDucklingDesc" text="A young male duck."/>
+		<text name="rl_bridge_drakeAdultDesc" text="An adult drake. Drakes that are healthy and older than 6 months can reproduce."/>
+
+		<text name="rl_bridge_ganderYoung" text="Young Gander"/>
+		<text name="rl_bridge_ganderAdult" text="Gander"/>
+		<text name="rl_bridge_ganderYoungDesc" text="A young male goose."/>
+		<text name="rl_bridge_ganderAdultDesc" text="An adult gander. Ganders that are healthy and older than 10 months can reproduce."/>
+
+		<text name="rl_bridge_tomcatKitten" text="Male Kitten"/>
+		<text name="rl_bridge_tomcatAdult" text="Tomcat"/>
+		<text name="rl_bridge_tomcatKittenDesc" text="A young male cat."/>
+		<text name="rl_bridge_tomcatAdultDesc" text="An adult tomcat. Tomcats that are healthy and older than 8 months can reproduce."/>
+	</texts>
+</l10n>

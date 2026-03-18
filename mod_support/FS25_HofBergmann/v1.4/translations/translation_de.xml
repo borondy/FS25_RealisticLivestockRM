@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<l10n>
+	<texts>
+		<!-- Fülltypen für durch Bridge hinzugefügte männliche Untertypen -->
+		<text name="fillType_duck_male" text="Erpel"/>
+		<text name="fillType_goose_male" text="Ganter"/>
+		<text name="fillType_tomcat" text="Kater"/>
+
+		<!-- Tiernamen und Beschreibungen -->
+		<text name="rl_bridge_drakeDuckling" text="Erpel-Küken"/>
+		<text name="rl_bridge_drakeAdult" text="Erpel"/>
+		<text name="rl_bridge_drakeDucklingDesc" text="Ein junger männlicher Ente."/>
+		<text name="rl_bridge_drakeAdultDesc" text="Ein erwachsener Erpel. Erpel, die gesund und älter als 6 Monate sind, können sich fortpflanzen."/>
+
+		<text name="rl_bridge_ganderYoung" text="Junger Ganter"/>
+		<text name="rl_bridge_ganderAdult" text="Ganter"/>
+		<text name="rl_bridge_ganderYoungDesc" text="Eine junge männliche Gans."/>
+		<text name="rl_bridge_ganderAdultDesc" text="Ein erwachsener Ganter. Ganter, die gesund und älter als 10 Monate sind, können sich fortpflanzen."/>
+
+		<text name="rl_bridge_tomcatKitten" text="Männliches Kätzchen"/>
+		<text name="rl_bridge_tomcatAdult" text="Kater"/>
+		<text name="rl_bridge_tomcatKittenDesc" text="Eine junge männliche Katze."/>
+		<text name="rl_bridge_tomcatAdultDesc" text="Ein erwachsener Kater. Kater, die gesund und älter als 8 Monate sind, können sich fortpflanzen."/>
+	</texts>
+</l10n>
