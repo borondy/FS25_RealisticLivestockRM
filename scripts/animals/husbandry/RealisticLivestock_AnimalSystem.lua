@@ -117,9 +117,12 @@ function RealisticLivestock_AnimalSystem:loadMapData(_, mapXml, mission, baseDir
     end
 
     -- Phase 3: Load bridge animal subtypes for detected maps
-    RLMapBridge.loadBridgeAnimals(self)
-
+    -- Reset customEnvironment to RLRM before bridge loading so the C++ engine's
+    -- $l10n_ resolution finds bridge translations in the global texts table
+    -- (with customEnv = MAP, the engine only checks the map's mod texts and misses them)
     self.customEnvironment = modName
+
+    RLMapBridge.loadBridgeAnimals(self)
 
     Log:info("AnimalSystem: Loaded %s animals:", #self.types)
 
@@ -172,7 +175,7 @@ function RealisticLivestock_AnimalSystem:loadAnimals(_, xmlFile, directory)
 
 			animalType = self.nameToType[name]
 
-			-- Skip base game/DLC reloads — RLRM's Phase 1 config is the superset
+			-- Skip base game/DLC reloads - RLRM's Phase 1 config is the superset
 			-- (e.g. COW bundles 21 models including DLC Highland, base game only has 18).
 			-- Only clear+reload for map mod overrides (non-dataS configs).
 			-- ASSUMES: RLRM bundles configs for ALL base game + DLC animal types.
@@ -183,7 +186,7 @@ function RealisticLivestock_AnimalSystem:loadAnimals(_, xmlFile, directory)
 				continue
 			end
 
-			Log:debug("loadAnimals: reloading existing type '%s' — clearing %d animals, config '%s' -> '%s'",
+			Log:debug("loadAnimals: reloading existing type '%s' - clearing %d animals, config '%s' -> '%s'",
 				name, #animalType.animals, tostring(animalType.configFilename), tostring(configFilename))
 			animalType.animals = {}
 			animalType.configFilename = configFilename
@@ -303,7 +306,7 @@ function RealisticLivestock_AnimalSystem:loadAnimals(_, xmlFile, directory)
 		end
 
 		if self:loadAnimalConfig(animalType, directory, configFilename) then
-			Log:trace("loadAnimals: '%s' — animals after loadAnimalConfig=%d", name, #animalType.animals)
+			Log:trace("loadAnimals: '%s' - animals after loadAnimalConfig=%d", name, #animalType.animals)
 
 		    if self:loadSubTypes(animalType, xmlFile, key, directory) then
 
