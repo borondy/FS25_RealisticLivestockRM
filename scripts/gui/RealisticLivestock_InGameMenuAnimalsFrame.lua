@@ -221,6 +221,8 @@ function RealisticLivestock_InGameMenuAnimalsFrame:onUpdateMenuButtons()
         text = g_i18n:getText("rl_ui_openAnimalScreen"),
         callback = function()
             AnimalScreen.show(selectedHusbandry, nil, false)
+            g_animalScreen.openedFromInGameMenu = true
+            g_animalScreen:onClickInfoMode()
         end
     })
 end

@@ -43,6 +43,9 @@ function RealisticLivestock_AnimalScreen.show(husbandry, vehicle, isDealer)
 	g_animalScreen:setController(husbandry, vehicle, isDealer)
 	g_gui:showGui("AnimalScreen")
 
+	-- Reset flag — callers set this after show() if Esc should reopen InGameMenu
+	g_animalScreen.openedFromInGameMenu = false
+
 end
 
 AnimalScreen.show = RealisticLivestock_AnimalScreen.show
@@ -60,7 +63,7 @@ RealisticLivestock_AnimalScreen.NAV_ACTIONS = {
 }
 
 
-function RealisticLivestock_AnimalScreen:onAnimalScreenClose()
+function RealisticLivestock_AnimalScreen:cleanupNavActions()
     for _, action in ipairs(RealisticLivestock_AnimalScreen.NAV_ACTIONS) do
         for i = #Gui.NAV_ACTIONS, 1, -1 do
             if Gui.NAV_ACTIONS[i] == action then
@@ -71,7 +74,27 @@ function RealisticLivestock_AnimalScreen:onAnimalScreenClose()
     end
 end
 
+function RealisticLivestock_AnimalScreen:onAnimalScreenClose()
+    RealisticLivestock_AnimalScreen.cleanupNavActions(self)
+end
+
 AnimalScreen.onClose = Utils.appendedFunction(AnimalScreen.onClose, RealisticLivestock_AnimalScreen.onAnimalScreenClose)
+
+
+-- When opened from InGameMenu (R key), intercept Esc to navigate directly back
+-- to InGameMenu instead of closing to gameplay. Uses showGui to atomically replace
+-- AnimalScreen with InGameMenu, avoiding the ESC event forwarding that causes blur.
+function RealisticLivestock_AnimalScreen:onClickBack(superFunc, forceBack, usedMenuButton)
+    if self.openedFromInGameMenu then
+        self.openedFromInGameMenu = false
+        RealisticLivestock_AnimalScreen.cleanupNavActions(self)
+        g_gui:showGui("InGameMenu")
+        return
+    end
+    superFunc(self, forceBack, usedMenuButton)
+end
+
+AnimalScreen.onClickBack = Utils.overwrittenFunction(AnimalScreen.onClickBack, RealisticLivestock_AnimalScreen.onClickBack)
 
 
 --- Ensures RL state is initialized on the AnimalScreen instance.
