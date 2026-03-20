@@ -12,7 +12,7 @@ local modDirectory = g_currentModDirectory
 -- SECTION 0: Logging
 source(modDirectory .. "scripts/rmlib/RmLogging.lua")
 Log = RmLogging.getLogger("RLRM")
-Log:setLevel(RmLogging.LOG_LEVEL.TRACE)
+Log:setLevel(RmLogging.LOG_LEVEL.DEBUG)
 
 -- SECTION 1: Font Library
 source(modDirectory .. "scripts/fontlib/RmFontCharacter.lua")
@@ -103,8 +103,9 @@ source(modDirectory .. "scripts/animal/AnimalReproduction.lua")
 -- SECTION 11e: Health/Death Logic (delegate module, sourced before Animal.lua)
 source(modDirectory .. "scripts/animal/AnimalHealth.lua")
 
--- SECTION 11f: XML Persistence Logic (delegate module, sourced before Animal.lua)
+-- SECTION 11f: Persistence & Serialization (delegate modules, sourced before Animal.lua)
 source(modDirectory .. "scripts/animal/AnimalPersistence.lua")
+source(modDirectory .. "scripts/animal/AnimalSerialization.lua")
 
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")
