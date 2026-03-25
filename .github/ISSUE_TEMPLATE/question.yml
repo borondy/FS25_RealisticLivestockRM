@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Have a question about Realistic Livestock RM? Ask away! The more context you provide, the better we can help.
+        Have a question about Realistic Livestock RM? Ask away! You may also find your answer in the [user documentation](https://rittermod.github.io/FS25_RealisticLivestockRM/).
 
   - type: checkboxes
     id: docs-checked
@@ -20,55 +20,6 @@ body:
     id: question
     attributes:
       label: Your Question
-      description: What would you like to know?
-      placeholder: "e.g. How does the fertility genetic trait affect breeding chances?"
+      description: What would you like to know? Include any relevant details like mod version, game mode, animal type, screenshots, or log excerpts.
     validations:
       required: true
-
-  - type: dropdown
-    id: animal-type
-    attributes:
-      label: Animal Type
-      description: Is your question about a specific animal type?
-      multiple: true
-      options:
-        - Cow
-        - Pig
-        - Sheep
-        - Horse
-        - Chicken
-        - General / all animals
-    validations:
-      required: false
-
-  - type: input
-    id: mod-version
-    attributes:
-      label: Mod Version
-      description: Which version are you using? (Helpful for version-specific features)
-      placeholder: "e.g. 1.1.0.0"
-    validations:
-      required: false
-
-  - type: dropdown
-    id: game-mode
-    attributes:
-      label: Game Mode
-      description: Is your question related to a specific game mode?
-      options:
-        - Singleplayer
-        - Multiplayer (hosting)
-        - Multiplayer (joined as client)
-        - Multiplayer (dedicated server)
-        - Not relevant
-    validations:
-      required: false
-
-  - type: textarea
-    id: context
-    attributes:
-      label: Additional Context
-      description: Any extra details, screenshots, or log excerpts that might help answer your question.
-      placeholder: "e.g. Screenshot of the animal info dialog, or a section from the log."
-    validations:
-      required: false

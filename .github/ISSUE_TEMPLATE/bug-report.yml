@@ -5,9 +5,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report a bug! Please fill in the details below so we can investigate.
+        Thanks for reporting a bug! The details you provide here help us reproduce and fix the issue faster. For a step-by-step guide on finding version numbers, log files, and more, see our [Bug Report Guide](https://rittermod.github.io/guides/bug-report/).
 
-        **Important:** The game log file (`log.txt`) is the single most useful piece of information for diagnosing issues. Please always include it if possible.
+        **Tip:** The game log file (`log.txt`) is the single most useful piece of information for diagnosing issues — please always include it if possible.
 
   - type: input
     id: mod-version
@@ -15,6 +15,15 @@ body:
       label: Mod Version
       description: Which version of Realistic Livestock RM are you using? You can find this in the mod manager or the mod description.
       placeholder: "e.g. 1.1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: game-version
+    attributes:
+      label: Game Version
+      description: Which version of Farming Simulator 25 are you running? You can find this in the top left corner of the main menu.
+      placeholder: "e.g. 1.5.1.0"
     validations:
       required: true
 
