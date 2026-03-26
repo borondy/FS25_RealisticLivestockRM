@@ -88,7 +88,10 @@ function RealisticLivestock_InGameMenuAnimalsFrame:reloadList(superFunc)
     superFunc(self)
     self.list.reloadData = origReloadData
 
-    if self.husbandrySubTypes == nil or #self.husbandrySubTypes == 0 then return end
+    if self.husbandrySubTypes == nil or #self.husbandrySubTypes == 0 then
+        self.list:reloadData()
+        return
+    end
 
     if #self.husbandrySubTypes > 1 then
         table.sort(self.husbandrySubTypes)
