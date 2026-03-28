@@ -167,19 +167,19 @@
         <text name="rl_ui_buyBulkResult" text="%s animali comprati per %s" tag="format"/>
         <text name="rl_ui_sellBulkResult" text="%s animali venduti per %s" tag="format"/>
         <text name="rl_ui_moveBulkResult" text="%s animali spostati" tag="format"/>
-		<text name="rl_ui_moveTab" text="Move"/>
-		<text name="rl_ui_moveSingle" text="Move"/>
-		<text name="rl_ui_moveSelectDestination" text="Select Destination"/>
-		<text name="rl_ui_moveNoDestinations" text="No destinations available for this animal type."/>
-		<text name="rl_ui_moveEPPAgeFormat" text="ages %d-%d mo" tag="format"/>/
-		<text name="rl_ui_moveValidSummary" text="%d animal(s) will be moved" tag="format"/>
-		<text name="rl_ui_moveRejectedAge" text="%d animal(s) skipped: does not meet age requirement (%d-%d months)" tag="format"/>
-		<text name="rl_ui_moveRejectedCapacity" text="%d animal(s) skipped: not enough space at destination" tag="format"/>
-		<text name="rl_ui_moveAllRejected" text="No animals can be moved to this destination."/>
-		<text name="rl_ui_moveBulkConfirmTitle" text="Move Animals"/>
-		<text name="rl_ui_moveErrorNoPermission" text="You don't have permission to move animals here."/>
-		<text name="rl_ui_moveErrorNotSupported" text="This destination doesn't support this animal type."/>
-		<text name="rl_ui_moveErrorNoSpace" text="Not enough space at the destination."/>/
+        <text name="rl_ui_moveTab" text="Sposta"/>
+        <text name="rl_ui_moveSingle" text="Sposta"/>
+        <text name="rl_ui_moveSelectDestination" text="Seleziona destinazione"/>
+        <text name="rl_ui_moveNoDestinations" text="Nessuna destinazione disponibile per questo tipo di animale."/>
+        <text name="rl_ui_moveEPPAgeFormat" text="età %d-%d mesi" tag="format"/>
+        <text name="rl_ui_moveValidSummary" text="%d animale/i verrà spostato" tag="format"/>
+        <text name="rl_ui_moveRejectedAge" text="%d animale/i ignorato: non soddisfa il requisito d&apos;età (%d-%d mesi)" tag="format"/>
+        <text name="rl_ui_moveRejectedCapacity" text="%d animale/i ignorato: spazio insufficiente a destinazione" tag="format"/>
+        <text name="rl_ui_moveAllRejected" text="Nessun animale può essere spostato in questa destinazione."/>
+        <text name="rl_ui_moveBulkConfirmTitle" text="Sposta animali"/>
+        <text name="rl_ui_moveErrorNoPermission" text="Non hai il permesso di spostare animali qui."/>
+        <text name="rl_ui_moveErrorNotSupported" text="Questa destinazione non supporta questo tipo di animale."/>
+        <text name="rl_ui_moveErrorNoSpace" text="Spazio insufficiente a destinazione."/>
 
         <text name="rl_ui_monitor" text="Monitor"/>
         <text name="rl_ui_monitorSubscriptions" text="Sottoscrizioni monitor"/>
@@ -507,7 +507,7 @@
         <text name="rl_settings_messageSummary_tooltip_1" text="Off: messaggi individuali per ogni evento"/>
         <text name="rl_settings_messageSummary_tooltip_2" text="On: riepiloghi giornalieri per allevamento (riduce il rumore del log)"/>
 
-        <text name="rl_settings_diseasesEnabled_label" text="Malattie abilitate"/>
+        <text name="rl_settings_diseasesEnabled_label" text="Malattie attivate"/>
         <text name="rl_settings_diseasesEnabled_tooltip_1" text="Gli animali non possono contrarre o ereditare malattie"/>
         <text name="rl_settings_diseasesEnabled_tooltip_2" text="Gli animali possono contrarre o ereditare malattie"/>
 
@@ -515,50 +515,65 @@
         <text name="rl_settings_diseasesChance_tooltip" text="Modifica la probabilità che gli animali contraggano malattie"/>
 
         <text name="rl_settings_useCustomAnimals_label" text="Usa animali personalizzati"/>
-        <text name="rl_settings_useCustomAnimals_tooltip_1" text="Usa i modelli animali di RealisticLivestock (necessario riavvio)"/>
-        <text name="rl_settings_useCustomAnimals_tooltip_2" text="Usa modelli animali personalizzati (necessario riavvio, devono essere decompressi)"/>
+        <text name="rl_settings_useCustomAnimals_tooltip_1" text="Usa i modelli animali di RealisticLivestock (richiede riavvio)"/>
+        <text name="rl_settings_useCustomAnimals_tooltip_2" text="Usa modelli animali personalizzati (richiede riavvio, deve essere decompresso)"/>
 
         <text name="rl_settings_animalsXML_label" text="Imposta percorso XML animali"/>
         <text name="rl_settings_animalsXML_tooltip" text="Imposta il percorso di un file XML animali personalizzato"/>
         <text name="rl_settings_animalsXML_text" text="Imposta percorso XML animali"/>
 
+        <text name="rl_settings_geneticsDisplay_label" text="Visualizzazione genetica"/>
+        <text name="rl_settings_geneticsDisplay_tooltip" text="Mostra valori genetici numerici nei nomi degli animali"/>
+        <text name="rl_settings_geneticsDisplay_texts_1" text="Disattivato"/>
+        <text name="rl_settings_geneticsDisplay_texts_2" text="Corto"/>
+        <text name="rl_settings_geneticsDisplay_texts_3" text="Lungo"/>
+
+        <text name="rl_settings_geneticsPosition_label" text="Posizione genetica"/>
+        <text name="rl_settings_geneticsPosition_tooltip" text="Dove mostrare la genetica nel nome"/>
+        <text name="rl_settings_geneticsPosition_texts_1" text="Prefisso"/>
+        <text name="rl_settings_geneticsPosition_texts_2" text="Suffisso"/>
+
+        <text name="rl_settings_sortByGenetics_label" text="Ordina per genetica"/>
+        <text name="rl_settings_sortByGenetics_tooltip_1" text="Gli animali sono ordinati per tipo ed età"/>
+        <text name="rl_settings_sortByGenetics_tooltip_2" text="Gli animali sono ordinati per genetica (dal più alto)"/>
+
         <!-- HELP -->
 
         <text name="rl_help_monitors_title" text="Monitor"/>
-        <text name="rl_help_monitors_1" text="Per vedere la maggior parte delle statistiche di un animale, è necessario applicare una targhetta di monitoraggio tramite il menu degli animali (dove compri e vendi animali). Le targhette di monitoraggio sono anche visibili sull’animale, sull’orecchio sinistro accanto alla targhetta ID."/>
-        <text name="rl_help_monitors_2" text="Le targhette di monitoraggio mostreranno informazioni importanti, incluse salute, peso, lattazione, produzione e requisiti di paglia, cibo e acqua."/>
-        <text name="rl_help_monitors_3" text="Applicare una targhetta a un animale costerà un piccolo abbonamento mensile basato sulla specie dell’animale. Se scegli di rimuovere la targhetta, verrà rimossa all’inizio del mese successivo."/>
+        <text name="rl_help_monitors_1" text="Per visualizzare la maggior parte delle statistiche di un animale, devi applicargli un tag di monitoraggio tramite il menu animali (dove compri e vendi gli animali). I tag di monitoraggio sono visibili anche sull&apos;animale, sull&apos;orecchio sinistro accanto al tag ID."/>
+        <text name="rl_help_monitors_2" text="I tag di monitoraggio mostrano informazioni importanti come salute, peso, lattazione, produzione e fabbisogno di paglia, cibo e acqua."/>
+        <text name="rl_help_monitors_3" text="Applicare un tag costa un piccolo abbonamento mensile basato sulla specie dell&apos;animale. Se decidi di rimuoverlo, verrà rimosso all&apos;inizio del mese successivo."/>
 
         <text name="rl_help_pregnancy_title" text="Gravidanza"/>
-        <text name="rl_help_pregnancy_1" text="Gli animali femmina necessitano di almeno 1 maschio per rimanere incinte. Entrambi gli animali devono avere l’età e la salute adeguate e devono essere della stessa specie. È consentito l’accoppiamento tra razze diverse (es.: mucca Holstein e toro Angus)."/>
-        <text name="rl_help_pregnancy_2" text="L’incrocio tra consanguinei non è consentito. Se un maschio e una femmina sono direttamente imparentati, non si accoppieranno."/>
-        <text name="rl_help_pregnancy_3" text="La probabilità che una femmina rimanga incinta dipende dalla fertilità di entrambi i partner. Una femmina con fertilità più alta ha anche una maggiore possibilità di produrre più cuccioli contemporaneamente."/>
-        <text name="rl_help_pregnancy_4" text="Quando una femmina rimane incinta, inizierà a portare i suoi cuccioli. Puoi vedere la data prevista del parto e il numero di cuccioli guardando l’animale nell’ovile o cliccandolo nel menu degli animali."/>
-        <text name="rl_help_pregnancy_5" text="Quando raggiunge la data del parto, darà alla luce i suoi cuccioli. Tuttavia, i cuccioli neonati hanno una certa probabilità di essere rimossi, così come la madre se la gravidanza va male. I neonati nati in un ovile sovraffollato verranno venduti automaticamente."/>
+        <text name="rl_help_pregnancy_1" text="Tutte le femmine necessitano di almeno 1 maschio per poter rimanere incinte. Entrambi devono avere età e salute corrette e devono appartenere alla stessa specie. L&apos;incrocio tra razze diverse (es. mucca Holstein e toro Angus) è consentito."/>
+        <text name="rl_help_pregnancy_2" text="L&apos;incrocio tra consanguinei non è consentito. Se un maschio e una femmina sono direttamente imparentati, non si riprodurranno."/>
+        <text name="rl_help_pregnancy_3" text="La probabilità di gravidanza dipende dalla fertilità di entrambi gli animali. Una femmina con fertilità più alta ha anche una probabilità significativamente maggiore di produrre più cuccioli alla volta."/>
+        <text name="rl_help_pregnancy_4" text="Una volta incinta, la femmina inizierà a portare i suoi cuccioli. Puoi vedere la data prevista del parto e il numero di cuccioli guardando l&apos;animale nel recinto o cliccando su di essa nel menu animali."/>
+        <text name="rl_help_pregnancy_5" text="Al termine della gestazione partorirà. I neonati hanno una certa probabilità di essere rimossi, così come la madre se la gravidanza va male. I neonati in recinti sovraffollati verranno venduti automaticamente."/>
 
         <text name="rl_help_production_title" text="Produzione"/>
-        <text name="rl_help_production_1" text="Le vacche iniziano a produrre latte solo dopo il parto. Per 3 mesi dopo il parto la produzione di latte aumenta esponenzialmente, poi diminuisce lentamente nei successivi 6 mesi. Dieci mesi dopo la gravidanza, la produzione di latte si fermerà fino alla gravidanza successiva."/>
-        <text name="rl_help_production_2" text="Le pecore producono lana nei mesi caldi. Nei mesi freddi (sotto i 12°C) non produrranno lana."/>
-        <text name="rl_help_production_3" text="La produzione di latte, lana e uova è influenzata anche dalla genetica dell’animale. Un animale con buona genetica di produzione produrrà di più, mentre uno con cattiva genetica produrrà poco."/>
+        <text name="rl_help_production_1" text="Le mucche di qualsiasi razza inizieranno a produrre latte solo dopo il parto. La produzione crescerà esponenzialmente per 3 mesi, poi diminuirà lentamente nei 6 successivi. Dopo 10 mesi dalla gravidanza, la mucca smetterà di produrre latte fino alla gravidanza successiva."/>
+        <text name="rl_help_production_2" text="Le pecore producono lana nei mesi caldi. Con temperature inferiori a 12°C non produrranno lana."/>
+        <text name="rl_help_production_3" text="La produzione di latte, lana e uova è influenzata dalla genetica dell&apos;animale. Una buona genetica produttiva garantisce maggiore produzione; una scarsa genetica produrrà pochissimo."/>
 
         <text name="rl_help_weight_title" text="Peso"/>
-        <text name="rl_help_weight_1" text="Gli animali hanno un peso che dipende da quanto mangiano e bevono. Ogni specie e razza ha un peso medio che influisce sul peso di ciascun animale."/>
-        <text name="rl_help_weight_2" text="Il peso aumenta il valore dell’animale, e un peso basso influisce sulla probabilità che l’animale venga rimosso ogni mese."/>
+        <text name="rl_help_weight_1" text="Il peso degli animali è influenzato da quanto mangiano e bevono. Ogni specie e razza ha il proprio peso medio che influisce sul peso di ciascun animale."/>
+        <text name="rl_help_weight_2" text="Il peso aumenta il valore dell&apos;animale; un peso basso aumenta la probabilità di rimozione mensile."/>
 
         <text name="rl_help_genetics_title" text="Genetica"/>
-        <text name="rl_help_genetics_1" text="Ogni animale ha 4 valori genetici: metabolismo, fertilità, salute e qualità. La genetica viene miscelata tra madre e padre e poi passata ai cuccioli."/>
-        <text name="rl_help_genetics_2" text="Il metabolismo influenza la capacità dell’animale di convertire il cibo in peso e la quantità di cibo che mangia."/>
-        <text name="rl_help_genetics_3" text="La fertilità influenza la probabilità di rimanere incinta (o fecondare) e il numero di cuccioli prodotti."/>
-        <text name="rl_help_genetics_4" text="La salute influenza la resistenza dell’animale e la probabilità di essere rimosso ogni mese. Un animale con genetica di salute elevata avrà anche una vita più lunga."/>
-        <text name="rl_help_genetics_5" text="La qualità influisce sul valore dell’animale stesso: un animale di qualità più alta varrà molto di più."/>
-        <text name="rl_help_genetics_6" text="Bovini, ovini e pollame hanno anche genetica di produzione, che influisce sulla quantità di latte/uova/lana che producono."/>
+        <text name="rl_help_genetics_1" text="Ogni animale ha 4 valori genetici: metabolismo, fertilità, salute e qualità. La genetica viene combinata tra madre e padre e trasmessa ai figli."/>
+        <text name="rl_help_genetics_2" text="Il metabolismo influisce sulla capacità di convertire il cibo in peso e sulla quantità mangiata."/>
+        <text name="rl_help_genetics_3" text="La fertilità influisce sulla probabilità di gravidanza e sul numero di cuccioli prodotti."/>
+        <text name="rl_help_genetics_4" text="La salute influisce sullo stato di salute e sulla probabilità di rimozione mensile. Una migliore genetica di salute garantisce anche una vita più lunga."/>
+        <text name="rl_help_genetics_5" text="La qualità influisce sul valore dell&apos;animale; un animale con qualità più alta verrà venduto a un prezzo molto più elevato."/>
+        <text name="rl_help_genetics_6" text="Bovini, pecore e galline hanno anche una genetica produttiva, che influisce sulla quantità di latte, uova e lana prodotta."/>
 
         <!-- DISEASES -->
 
-        <text name="rl_ui_immune" text="Immunizzato"/>
+        <text name="rl_ui_immune" text="Immune"/>
         <text name="rl_ui_startTreatment" text="Inizia trattamento"/>
         <text name="rl_ui_resumeTreatment" text="Riprendi trattamento"/>
-        <text name="rl_ui_stopTreatment" text="Ferma trattamento"/>
+        <text name="rl_ui_stopTreatment" text="Interrompi trattamento"/>
         <text name="rl_ui_duration" text="Durata"/>
         <text name="rl_ui_beingTreated" text="In trattamento"/>
         <text name="rl_ui_notTreated" text="Non trattato"/>
@@ -571,7 +586,7 @@
 
         <text name="rl_disease_cvm" text="CVM"/>
 
-        <text name="rl_disease_footAndMouth" text="Febbre aftosa"/>
+        <text name="rl_disease_footAndMouth" text="Afta epizootica"/>
 
         <text name="rl_disease_ped" text="Diarrea epidemica suina"/>
 
@@ -584,7 +599,7 @@
         <text name="rl_messageTitle_death_github" text="Morte"/>
         <text name="rl_messageTitle_disease" text="Malattia"/>
         <text name="rl_messageTitle_name" text="Nome"/>
-        <text name="rl_messageTitle_movement" text="Movimento"/>
+        <text name="rl_messageTitle_movement" text="Spostamento"/>
         <text name="rl_messageTitle_aiManager" text="Mandriano"/>
         <text name="rl_messageTitle_insemination" text="Inseminazione artificiale"/>
 
@@ -646,9 +661,15 @@
         <text name="rl_death_age" text="vecchiaia"/>
         <text name="rl_death_accident" text="un incidente"/>
 
+        <!-- DEPENDENCIES -->
+
         <text name="rl_ui_dependencies_missing" text="RealisticLivestock richiede le seguenti dipendenze:"/>
         <text name="rl_ui_dependency_missing_notInstalled" text="- %s (Non installato)"/>
         <text name="rl_ui_dependency_missing_installed" text="- %s (Installato: %s, Minimo richiesto: %s)"/>
+
+        <!-- BRIDGE -->
+
+        <text name="rl_bridge_version_unknown" text="Realistic Livestock: la versione %s di %s non è stata testata con la versione %s di Realistic Livestock. Utilizzo della configurazione &apos;%s&apos;. Se riscontri problemi con animali esotici, segnalali su %s."/>
 
         <!-- MIGRATION -->
 
