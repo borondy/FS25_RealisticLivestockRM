@@ -19,6 +19,7 @@ You don't need to do anything — the detection and configuration loading is ful
 | 1.3.0.1 | v1.3 | Tested |
 | 1.4.0.0 Beta1 | v1.4 | Tested |
 | 1.4.0.0 Beta2 | v1.4 | Tested |
+| 1.4.0.0 | v1.4 | Not tested yet |
 
 If your version isn't listed and you see a warning dialog, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues) so support can be added.
 

@@ -1,6 +1,6 @@
 <modDesc descVersion="106">
     <author>Ritter</author>
-    <version>1.1.2.0-dev.12</version>
+    <version>1.1.2.0-dev.13</version>
     <title>
         <en>Realistic Livestock - Ritter version</en>
         <it>Allevamento Realistico - Versione Ritter</it>
@@ -26,7 +26,7 @@ Changelog
 
 v1.1.2.0-dev:
 - Added animal pack system: third-party mods can add breeds, override animal properties, or provide custom balance
-- Added Hof Bergmann 1.4 support with alpacas, quail, corrected chicken visuals, and Beta1/Beta2 version detection
+- Added Hof Bergmann 1.4 support with alpacas, quail, corrected chicken visuals
 - Added cross-color alpaca breeding (any male color can breed with any female color)
 - Added user documentation page for Hof Bergmann map support (exotic animals, known limitations, FAQ)
 - Added: Exiting the RL animal screen returns to ingame menu animals tab when opened from there (instead of exiting to gameplay)

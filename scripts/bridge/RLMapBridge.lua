@@ -39,97 +39,17 @@ RLMapBridge.breedingGroupBySubType = {}
 RLMapBridge.maxFertilityAgeByGroup = {}
 
 
---- Parse a version string into a structured version object with numeric tuple and optional suffix.
---- Handles version strings with suffixes separated by space or dash (e.g. "1.4.0.0 Beta1", "1.4.0.0-RC1").
---- Dot-separated suffixes (e.g. "1.4.0.0.beta1") are NOT handled  - "beta1" has no leading digits and
---- is treated as malformed.
---- @param versionStr string|nil Version string (e.g. "1.3.0.1" or "1.4.0.0 Beta1")
---- @return table|nil version { tuple = {numbers}, suffix = string|nil }, or nil if input is nil/malformed
-function RLMapBridge.parseVersion(versionStr)
-    if versionStr == nil then
-        return nil
-    end
-
-    local parts = string.split(versionStr, ".")
-    local tuple = {}
-    local suffix = nil
-
-    for _, part in ipairs(parts) do
-        local num = tonumber(part)
-        if num ~= nil then
-            table.insert(tuple, num)
-        else
-            -- Try extracting leading digits with space/dash separator: "0 Beta1" → 0, "Beta1"
-            local digits, trail = part:match("^(%d+)[%s%-](.+)$")
-            if digits ~= nil then
-                table.insert(tuple, tonumber(digits))
-                suffix = trail
-                Log:trace("MapBridge: parseVersion: extracted suffix '%s' from component '%s' in '%s'",
-                    trail, part, versionStr)
-                break  -- Suffix must be in the last component; stop processing
-            else
-                -- No leading digits or no separator  - malformed
-                Log:debug("MapBridge: Non-numeric version component '%s' in '%s'", part, versionStr)
-                return nil
-            end
-        end
-    end
-
-    return { tuple = tuple, suffix = suffix }
-end
-
-
---- Compare two version objects component by component.
---- Accepts both structured format ({ tuple = {...}, suffix = "..." }) and plain arrays (backward compat).
---- Treats missing components as 0 (e.g. {1,3} == {1,3,0,0}).
---- When numeric tuples are equal, suffix determines order:
----   nil (release) > any string (pre-release). Both strings → lexicographic comparison.
----   This means Beta1 < Beta2 < RC1 < nil(release). Case-sensitive (ASCII order).
---- @param a table Version object or plain tuple
---- @param b table Version object or plain tuple
---- @return number result Negative if a < b, 0 if equal, positive if a > b
-function RLMapBridge.compareVersions(a, b)
-    -- Extract tuple and suffix, supporting both formats
-    local aTuple = a.tuple or a
-    local aSuffix = a.tuple and a.suffix or nil
-    local bTuple = b.tuple or b
-    local bSuffix = b.tuple and b.suffix or nil
-
-    local maxLen = math.max(#aTuple, #bTuple)
-    for i = 1, maxLen do
-        local ai = aTuple[i] or 0
-        local bi = bTuple[i] or 0
-        if ai ~= bi then
-            return ai - bi
-        end
-    end
-
-    -- Tuples equal  - compare suffixes
-    -- nil (release) > any suffix (pre-release)
-    if aSuffix == bSuffix then
-        return 0
-    elseif aSuffix == nil then
-        return 1   -- a is release, b has suffix → a > b
-    elseif bSuffix == nil then
-        return -1  -- a has suffix, b is release → a < b
-    else
-        -- Both have suffixes: lexicographic comparison
-        if aSuffix < bSuffix then return -1
-        elseif aSuffix > bSuffix then return 1
-        else return 0 end
-    end
-end
-
 
 --- Resolve which bridge config to use for a detected map version.
---- Three-step algorithm:
+--- Four-step algorithm:
 ---   1. Exact match: mapVersion is in a config's supportedVersions list → "confirmed"
----   2. Closest lower: highest config whose max confirmed version ≤ mapVersion → "unknown"
----   3. Lowest overall: if nothing ≤ mapVersion, use the config with the lowest min version → "unknown"
---- Nil mapVersion is treated as oldest possible (goes to step 3).
+---   2. Version spec: supportedVersions entries starting with ><=! are evaluated as specifiers → "confirmed"
+---   3. Closest lower: highest config whose max confirmed version ≤ mapVersion → "unknown"
+---   4. Lowest overall: if nothing ≤ mapVersion, use the config with the lowest min version → "unknown"
+--- Nil mapVersion is treated as oldest possible (goes to step 4).
 --- @param mapVersion string|nil Detected map version string (e.g. "1.3.0.1")
 --- @param configs table Array of config tables from loadBridgeXml, each with:
----   id (string), path (string), supportedVersions (array of version strings)
+---   id (string), path (string), supportedVersions (array of version strings or specifiers)
 --- @return table|nil config The selected config table, or nil if configs is empty
 --- @return string status "confirmed" or "unknown"
 function RLMapBridge.resolveVersionConfig(mapVersion, configs)
@@ -137,27 +57,36 @@ function RLMapBridge.resolveVersionConfig(mapVersion, configs)
         return nil, "unknown"
     end
 
-    local mapParsed = RLMapBridge.parseVersion(mapVersion)
+    local mapParsed = RLVersionSpec.parseVersion(mapVersion)
     Log:trace("MapBridge: resolveVersionConfig: mapVersion=%s, %d config(s)", tostring(mapVersion), #configs)
 
     -- Pre-parse all config version objects and track min/max per config
     -- minVersion/maxVersion are full { tuple, suffix } objects for suffix-aware ordering
+    -- Version entries starting with ><=! are treated as version specifiers (range checks),
+    -- all others are exact version strings (for string matching and min/max fallback).
     local configData = {}
     for _, config in ipairs(configs) do
         local parsedVersions = {}
+        local versionSpecs = {}
         local minVersion = nil
         local maxVersion = nil
 
         for _, verStr in ipairs(config.supportedVersions) do
-            local parsed = RLMapBridge.parseVersion(verStr)
-            if parsed ~= nil then
-                table.insert(parsedVersions, { str = verStr, parsed = parsed })
+            if verStr:match("^[><=!]") then
+                -- Version specifier (e.g. ">=1.3.0.1,<1.4.0.0")
+                table.insert(versionSpecs, verStr)
+            else
+                -- Exact version string (e.g. "1.3.0.1", "1.4.0.0 Beta1")
+                local parsed = RLVersionSpec.parseVersion(verStr)
+                if parsed ~= nil then
+                    table.insert(parsedVersions, { str = verStr, parsed = parsed })
 
-                if minVersion == nil or RLMapBridge.compareVersions(parsed, minVersion) < 0 then
-                    minVersion = parsed
-                end
-                if maxVersion == nil or RLMapBridge.compareVersions(parsed, maxVersion) > 0 then
-                    maxVersion = parsed
+                    if minVersion == nil or RLVersionSpec.compareVersions(parsed, minVersion) < 0 then
+                        minVersion = parsed
+                    end
+                    if maxVersion == nil or RLVersionSpec.compareVersions(parsed, maxVersion) > 0 then
+                        maxVersion = parsed
+                    end
                 end
             end
         end
@@ -165,13 +94,16 @@ function RLMapBridge.resolveVersionConfig(mapVersion, configs)
         table.insert(configData, {
             config = config,
             parsedVersions = parsedVersions,
+            versionSpecs = versionSpecs,
             minVersion = minVersion,
             maxVersion = maxVersion
         })
     end
 
     -- Step 1: Exact match using raw version strings (not parsed tuples)
-    -- This ensures "1.4.0.0 Beta1" only matches <version value="1.4.0.0 Beta1"/>, not "1.4.0.0"
+    -- Exact matches take priority over range specs — a pre-release version explicitly listed
+    -- in a config (e.g. "1.4.0.0 Beta1") should resolve there, not get caught by another
+    -- config's range (e.g. ">=1.3.0.1,<1.4.0.0" would match Beta1 since Beta < release).
     if mapVersion ~= nil then
         for _, cd in ipairs(configData) do
             for _, pv in ipairs(cd.parsedVersions) do
@@ -183,14 +115,26 @@ function RLMapBridge.resolveVersionConfig(mapVersion, configs)
         end
     end
 
-    -- Step 2: Highest config whose max confirmed version ≤ mapVersion
+    -- Step 2: Version spec match — check configs with range specifiers
+    if mapVersion ~= nil then
+        for _, cd in ipairs(configData) do
+            for _, spec in ipairs(cd.versionSpecs) do
+                if RLVersionSpec.matchesVersionSpec(mapVersion, spec) then
+                    Log:trace("MapBridge: resolveVersionConfig: versionSpec match -> config '%s'", cd.config.id)
+                    return cd.config, "confirmed"
+                end
+            end
+        end
+    end
+
+    -- Step 3: Highest config whose max confirmed version ≤ mapVersion
     if mapParsed ~= nil then
         local bestConfig = nil
         local bestMaxVersion = nil
 
         for _, cd in ipairs(configData) do
-            if cd.maxVersion ~= nil and RLMapBridge.compareVersions(cd.maxVersion, mapParsed) <= 0 then
-                if bestMaxVersion == nil or RLMapBridge.compareVersions(cd.maxVersion, bestMaxVersion) > 0 then
+            if cd.maxVersion ~= nil and RLVersionSpec.compareVersions(cd.maxVersion, mapParsed) <= 0 then
+                if bestMaxVersion == nil or RLVersionSpec.compareVersions(cd.maxVersion, bestMaxVersion) > 0 then
                     bestConfig = cd
                     bestMaxVersion = cd.maxVersion
                 end
@@ -203,13 +147,13 @@ function RLMapBridge.resolveVersionConfig(mapVersion, configs)
         end
     end
 
-    -- Step 3: Nothing ≤ mapVersion (or nil mapVersion) - use lowest min version config
+    -- Step 4: Nothing ≤ mapVersion (or nil mapVersion) - use lowest min version config
     local lowestConfig = nil
     local lowestMinVersion = nil
 
     for _, cd in ipairs(configData) do
         if cd.minVersion ~= nil then
-            if lowestMinVersion == nil or RLMapBridge.compareVersions(cd.minVersion, lowestMinVersion) < 0 then
+            if lowestMinVersion == nil or RLVersionSpec.compareVersions(cd.minVersion, lowestMinVersion) < 0 then
                 lowestConfig = cd
                 lowestMinVersion = cd.minVersion
             end

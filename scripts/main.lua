@@ -89,6 +89,7 @@ source(modDirectory .. "scripts/farms/RealisticLivestock_FarmStats.lua")
 source(modDirectory .. "scripts/fillTypes/RealisticLivestock_FillTypeManager.lua")
 
 -- SECTION 11a: Map Bridge System
+source(modDirectory .. "scripts/bridge/RLVersionSpec.lua")
 source(modDirectory .. "scripts/bridge/RLMapBridge.lua")
 
 -- SECTION 11b: Breeding Mathematics
