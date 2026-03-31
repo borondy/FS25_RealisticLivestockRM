@@ -1,0 +1,14 @@
+<!--
+    Version entries can use range specifiers (">=1.0,<1.1") with PEP 440 normalization.
+    Specifiers use operators: >=, <=, >, <, ==, != with comma-separated AND logic.
+    NOTE: XML requires < to be escaped as &lt; inside attribute values.
+-->
+<bridge>
+    <configs>
+        <config id="v1.0" path="v1.0/">
+            <supportedVersions>
+                <version value=">=1.0,&lt;1.1"/>
+            </supportedVersions>
+        </config>
+    </configs>
+</bridge>

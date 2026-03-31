@@ -23,6 +23,11 @@ RLMapBridge.SUPPORTED_MAPS = {
         modName = "FS25_HofBergmann",
         basePath = "mod_support/FS25_HofBergmann/",
         name = "Hof Bergmann"
+    },
+    {
+        modName = "FS25_Witcombe",
+        basePath = "mod_support/FS25_Witcombe/",
+        name = "Witcombe"
     }
 }
 

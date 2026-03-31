@@ -1,0 +1,485 @@
+<!--
+    Bridge animals for Witcombe map (FS25_Witcombe).
+
+    This file serves three purposes:
+    1. NEW SUBTYPES: Adds male subtypes (BULL_JERSEY, BOAR_GLOUCESTERSHIRE_OLD_SPOT,
+       RAM_TEXEL, RAM_SUFFOLK, RAM_BLUE_FACED_LEICESTER, RABBIT_MALE) for full RLRM
+       reproduction.
+    2. PROPERTY OVERRIDES: Patches breed, weights, pregnancy on existing types/subtypes
+       from earlier layers (base game, RLRM, map).
+    3. VISUAL OVERRIDES: Fixes visual model indices for COW_HEREFORD and COW_HIGHLAND_CATTLE
+       where Witcombe uses custom models at different indices than RLRM's base config.
+
+    Property override rules:
+    - Only explicitly defined properties are overridden (omitted = keep current value)
+    - Works for both type-level (pregnancy) and subtype-level (weights, reproduction) properties
+    - Same XML structure as animals.xml - no special tags needed
+-->
+<animals>
+
+    <!-- Breed display names for GUI -->
+    <breeds>
+        <breed name="JERSEY" displayName="$l10n_breed_jersey"/>
+        <breed name="GLOUCESTERSHIRE_OLD_SPOT" displayName="$l10n_breed_gloucestershire_old_spot"/>
+        <breed name="TEXEL" displayName="$l10n_breed_texel"/>
+        <breed name="SUFFOLK" displayName="$l10n_breed_suffolk"/>
+        <breed name="BLUE_FACED_LEICESTER" displayName="$l10n_breed_blue_faced_leicester"/>
+        <breed name="RABBIT" displayName="$l10n_breed_rabbit"/>
+    </breeds>
+
+    <!-- ======================================================================
+         COW: Visual overrides for Hereford and Highland Cattle
+         RLRM uses Limousin models (indices 16/17/18) for Hereford because the base game
+         has no dedicated Hereford models. Witcombe adds custom Hereford models at indices 8/12/4.
+         Highland Cattle indices shifted: RLRM 19/20/21 -> Witcombe 16/17/18.
+         ====================================================================== -->
+    <animal type="COW">
+        <!-- COW_HEREFORD: visual indices 18/17/16/16 -> 8/12/4/4, custom images from map -->
+        <subType subType="COW_HEREFORD">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="8" image="map/config/cows/store_cowHerefordBaby.png"/>
+                <visual minAge="6" visualAnimalIndex="12" image="map/config/cows/store_cowHerfordKid.png"/>
+                <visual minAge="12" visualAnimalIndex="4" image="map/config/cows/store_cowHereford.png"/>
+                <visual minAge="18" visualAnimalIndex="4" image="map/config/cows/store_cowHereford.png"/>
+            </visuals>
+        </subType>
+
+        <!-- BULL_HEREFORD: same visual fix as COW_HEREFORD -->
+        <subType subType="BULL_HEREFORD">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="8" image="map/config/cows/store_cowHerefordBaby.png"/>
+                <visual minAge="6" visualAnimalIndex="12" image="map/config/cows/store_cowHerfordKid.png"/>
+                <visual minAge="12" visualAnimalIndex="4" image="map/config/cows/store_cowHereford.png"/>
+                <visual minAge="18" visualAnimalIndex="4" image="map/config/cows/store_cowHereford.png"/>
+            </visuals>
+        </subType>
+
+        <!-- COW_HIGHLAND_CATTLE: visual indices 19/20/21/21 -> 16/17/18/18 -->
+        <subType subType="COW_HIGHLAND_CATTLE">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="16"/>
+                <visual minAge="6" visualAnimalIndex="17"/>
+                <visual minAge="12" visualAnimalIndex="18"/>
+                <visual minAge="18" visualAnimalIndex="18"/>
+            </visuals>
+        </subType>
+
+        <!-- BULL_HIGHLAND_CATTLE: same index fix as COW_HIGHLAND_CATTLE -->
+        <subType subType="BULL_HIGHLAND_CATTLE">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="16"/>
+                <visual minAge="6" visualAnimalIndex="17"/>
+                <visual minAge="12" visualAnimalIndex="18"/>
+                <visual minAge="18" visualAnimalIndex="18"/>
+            </visuals>
+        </subType>
+
+        <!-- COW_JERSEY: set breed on map-defined female subtype -->
+        <subType subType="COW_JERSEY" breed="JERSEY"/>
+
+        <!-- New: BULL_JERSEY - male variant using Swiss Brown models (same as COW_JERSEY) -->
+        <subType subType="BULL_JERSEY" fillTypeName="BULL_JERSEY"
+                 gender="male" breed="JERSEY"
+                 minWeight="35.0" targetWeight="700.0" maxWeight="1200.0">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="5"
+                        image="$dataS/character/animals/domesticated/cow/store_cowSwissBrownBaby.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_bullJerseyCalfDesc</description>
+                </visual>
+                <visual minAge="6" visualAnimalIndex="9"
+                        image="$dataS/character/animals/domesticated/cow/store_cowSwissBrownKid.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_bullJerseyYoungDesc</description>
+                </visual>
+                <visual minAge="12" visualAnimalIndex="1"
+                        image="$dataS/character/animals/domesticated/cow/store_cowSwissBrown.png"
+                        canBeBought="false">
+                    <description>$l10n_rl_bridge_bullJerseyAdultDesc</description>
+                </visual>
+                <visual minAge="18" visualAnimalIndex="1"
+                        image="$dataS/character/animals/domesticated/cow/store_cowSwissBrown.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_bullJerseyAdultDesc</description>
+                </visual>
+            </visuals>
+            <reproduction supported="false" minAgeMonth="12"/>
+            <buyPrice>
+                <key ageMonth="0" value="250"/>
+                <key ageMonth="24" value="2200"/>
+            </buyPrice>
+            <sellPrice>
+                <key ageMonth="0" value="220"/>
+                <key ageMonth="24" value="2000"/>
+                <key ageMonth="36" value="2500"/>
+                <key ageMonth="60" value="1500"/>
+            </sellPrice>
+            <transportPrice>
+                <key ageMonth="0" value="40"/>
+                <key ageMonth="12" value="120"/>
+                <key ageMonth="18" value="400"/>
+            </transportPrice>
+            <input>
+                <straw>
+                    <key ageMonth="0" value="10"/>
+                    <key ageMonth="18" value="80"/>
+                </straw>
+                <water>
+                    <key ageMonth="0" value="50"/>
+                    <key ageMonth="18" value="100"/>
+                </water>
+                <food>
+                    <key ageMonth="0" value="90"/>
+                    <key ageMonth="12" value="240"/>
+                    <key ageMonth="18" value="300"/>
+                </food>
+            </input>
+            <output>
+                <manure>
+                    <key ageMonth="0" value="20"/>
+                    <key ageMonth="18" value="160"/>
+                </manure>
+                <liquidManure>
+                    <key ageMonth="0" value="40"/>
+                    <key ageMonth="18" value="150"/>
+                </liquidManure>
+            </output>
+        </subType>
+    </animal>
+
+    <!-- ======================================================================
+         PIG: New male subtype + breed override
+         PIG_GLOUCESTERSHIRE_OLD_SPOT uses Black Pied visual models (indices 4/5/6)
+         ====================================================================== -->
+    <animal type="PIG">
+        <!-- Override: set breed on existing female subtype (defaults to "PIG_GLOUCESTERSHIRE_OLD_SPOT") -->
+        <subType subType="PIG_GLOUCESTERSHIRE_OLD_SPOT" breed="GLOUCESTERSHIRE_OLD_SPOT"/>
+
+        <!-- New: BOAR_GLOUCESTERSHIRE_OLD_SPOT -->
+        <subType subType="BOAR_GLOUCESTERSHIRE_OLD_SPOT" fillTypeName="BOAR_GLOUCESTERSHIRE_OLD_SPOT"
+                 gender="male" breed="GLOUCESTERSHIRE_OLD_SPOT"
+                 minWeight="1.75" targetWeight="250.0" maxWeight="1200.0">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="4"
+                        image="$dataS/character/animals/domesticated/pig/store_pigBlackPiedBaby.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_boarGOSPigletDesc</description>
+                </visual>
+                <visual minAge="3" visualAnimalIndex="5"
+                        image="$dataS/character/animals/domesticated/pig/store_pigBlackPiedKid.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_boarGOSYoungDesc</description>
+                </visual>
+                <visual minAge="6" visualAnimalIndex="6"
+                        image="$dataS/character/animals/domesticated/pig/store_pigBlackPied.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_boarGOSAdultDesc</description>
+                </visual>
+            </visuals>
+            <reproduction supported="false" minAgeMonth="8"/>
+            <buyPrice>
+                <key ageMonth="0" value="55"/>
+                <key ageMonth="12" value="1200"/>
+            </buyPrice>
+            <sellPrice>
+                <key ageMonth="0" value="45"/>
+                <key ageMonth="6" value="450"/>
+                <key ageMonth="24" value="1500"/>
+            </sellPrice>
+            <transportPrice>
+                <key ageMonth="0" value="40"/>
+                <key ageMonth="6" value="125"/>
+                <key ageMonth="12" value="250"/>
+            </transportPrice>
+            <input>
+                <straw>
+                    <key ageMonth="0" value="5"/>
+                    <key ageMonth="6" value="20"/>
+                </straw>
+                <water>
+                    <key ageMonth="0" value="8"/>
+                    <key ageMonth="6" value="34"/>
+                    <key ageMonth="24" value="72"/>
+                </water>
+                <food>
+                    <key ageMonth="0" value="15"/>
+                    <key ageMonth="6" value="55"/>
+                    <key ageMonth="24" value="96"/>
+                </food>
+            </input>
+            <output>
+                <manure>
+                    <key ageMonth="0" value="14"/>
+                    <key ageMonth="6" value="44"/>
+                </manure>
+                <liquidManure>
+                    <key ageMonth="0" value="36"/>
+                    <key ageMonth="6" value="83"/>
+                </liquidManure>
+            </output>
+        </subType>
+    </animal>
+
+    <!-- ======================================================================
+         SHEEP: New male subtypes + breed overrides for map-specific breeds
+         Texel uses Steinschaf models (4/5/6), Suffolk and BFL use Landrace models (1/2/3)
+         ====================================================================== -->
+    <animal type="SHEEP">
+        <!-- Override: set breed on existing female subtypes -->
+        <subType subType="SHEEP_TEXEL" breed="TEXEL"/>
+        <subType subType="SHEEP_SUFFOLK" breed="SUFFOLK"/>
+        <subType subType="SHEEP_BLUE_FACED_LEICESTER" breed="BLUE_FACED_LEICESTER"/>
+
+        <!-- New: RAM_TEXEL -->
+        <subType subType="RAM_TEXEL" fillTypeName="RAM_TEXEL"
+                 gender="male" breed="TEXEL"
+                 minWeight="5.5" targetWeight="75.0" maxWeight="150.0">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="4"
+                        image="$dataS/character/animals/domesticated/sheep/store_sheepSteinschafBaby.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_ramTexelLambDesc</description>
+                </visual>
+                <visual minAge="3" visualAnimalIndex="5"
+                        image="$dataS/character/animals/domesticated/sheep/store_sheepSteinschafKid.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_ramTexelYoungDesc</description>
+                </visual>
+                <visual minAge="8" visualAnimalIndex="6"
+                        image="$dataS/character/animals/domesticated/sheep/store_sheepSteinschaf.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_ramTexelAdultDesc</description>
+                </visual>
+            </visuals>
+            <reproduction supported="false" minAgeMonth="5"/>
+            <buyPrice>
+                <key ageMonth="0" value="70"/>
+                <key ageMonth="36" value="900"/>
+            </buyPrice>
+            <sellPrice>
+                <key ageMonth="0" value="55"/>
+                <key ageMonth="36" value="750"/>
+            </sellPrice>
+            <transportPrice>
+                <key ageMonth="0" value="50"/>
+                <key ageMonth="8" value="125"/>
+                <key ageMonth="18" value="200"/>
+            </transportPrice>
+            <input>
+                <straw>
+                    <key ageMonth="0" value="3"/>
+                    <key ageMonth="5" value="20"/>
+                    <key ageMonth="18" value="40"/>
+                </straw>
+                <water>
+                    <key ageMonth="0" value="3"/>
+                    <key ageMonth="5" value="42"/>
+                    <key ageMonth="18" value="70"/>
+                </water>
+                <food>
+                    <key ageMonth="0" value="5"/>
+                    <key ageMonth="5" value="50"/>
+                    <key ageMonth="18" value="120"/>
+                </food>
+            </input>
+            <output>
+                <manure>
+                    <key ageMonth="0" value="5"/>
+                    <key ageMonth="5" value="16"/>
+                    <key ageMonth="18" value="35"/>
+                </manure>
+                <pallets fillType="WOOL">
+                    <key ageMonth="0" value="0"/>
+                    <key ageMonth="6" value="15"/>
+                    <key ageMonth="18" value="85"/>
+                </pallets>
+            </output>
+        </subType>
+
+        <!-- New: RAM_SUFFOLK -->
+        <subType subType="RAM_SUFFOLK" fillTypeName="RAM_SUFFOLK"
+                 gender="male" breed="SUFFOLK"
+                 minWeight="5.0" targetWeight="70.0" maxWeight="150.0">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="1"
+                        image="$dataS/character/animals/domesticated/sheep/store_sheepLandraceBaby.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_ramSuffolkLambDesc</description>
+                </visual>
+                <visual minAge="3" visualAnimalIndex="2"
+                        image="$dataS/character/animals/domesticated/sheep/store_sheepLandraceKid.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_ramSuffolkYoungDesc</description>
+                </visual>
+                <visual minAge="8" visualAnimalIndex="3"
+                        image="$dataS/character/animals/domesticated/sheep/store_sheepLandrace.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_ramSuffolkAdultDesc</description>
+                </visual>
+            </visuals>
+            <reproduction supported="false" minAgeMonth="5"/>
+            <buyPrice>
+                <key ageMonth="0" value="65"/>
+                <key ageMonth="36" value="850"/>
+            </buyPrice>
+            <sellPrice>
+                <key ageMonth="0" value="50"/>
+                <key ageMonth="36" value="700"/>
+            </sellPrice>
+            <transportPrice>
+                <key ageMonth="0" value="50"/>
+                <key ageMonth="8" value="125"/>
+                <key ageMonth="18" value="200"/>
+            </transportPrice>
+            <input>
+                <straw>
+                    <key ageMonth="0" value="3"/>
+                    <key ageMonth="5" value="18"/>
+                    <key ageMonth="18" value="36"/>
+                </straw>
+                <water>
+                    <key ageMonth="0" value="3"/>
+                    <key ageMonth="5" value="38"/>
+                    <key ageMonth="18" value="65"/>
+                </water>
+                <food>
+                    <key ageMonth="0" value="4"/>
+                    <key ageMonth="5" value="46"/>
+                    <key ageMonth="18" value="110"/>
+                </food>
+            </input>
+            <output>
+                <manure>
+                    <key ageMonth="0" value="5"/>
+                    <key ageMonth="5" value="14"/>
+                    <key ageMonth="18" value="32"/>
+                </manure>
+                <pallets fillType="WOOL">
+                    <key ageMonth="0" value="0"/>
+                    <key ageMonth="6" value="12"/>
+                    <key ageMonth="18" value="75"/>
+                </pallets>
+            </output>
+        </subType>
+
+        <!-- New: RAM_BLUE_FACED_LEICESTER -->
+        <subType subType="RAM_BLUE_FACED_LEICESTER" fillTypeName="RAM_BLUE_FACED_LEICESTER"
+                 gender="male" breed="BLUE_FACED_LEICESTER"
+                 minWeight="4.5" targetWeight="55.0" maxWeight="150.0">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="1"
+                        image="$dataS/character/animals/domesticated/sheep/store_sheepLandraceBaby.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_ramBFLLambDesc</description>
+                </visual>
+                <visual minAge="3" visualAnimalIndex="2"
+                        image="$dataS/character/animals/domesticated/sheep/store_sheepLandraceKid.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_ramBFLYoungDesc</description>
+                </visual>
+                <visual minAge="8" visualAnimalIndex="3"
+                        image="$dataS/character/animals/domesticated/sheep/store_sheepLandrace.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_ramBFLAdultDesc</description>
+                </visual>
+            </visuals>
+            <reproduction supported="false" minAgeMonth="5"/>
+            <buyPrice>
+                <key ageMonth="0" value="75"/>
+                <key ageMonth="36" value="1000"/>
+            </buyPrice>
+            <sellPrice>
+                <key ageMonth="0" value="45"/>
+                <key ageMonth="36" value="600"/>
+            </sellPrice>
+            <transportPrice>
+                <key ageMonth="0" value="50"/>
+                <key ageMonth="8" value="125"/>
+                <key ageMonth="18" value="200"/>
+            </transportPrice>
+            <input>
+                <straw>
+                    <key ageMonth="0" value="2"/>
+                    <key ageMonth="5" value="15"/>
+                    <key ageMonth="18" value="30"/>
+                </straw>
+                <water>
+                    <key ageMonth="0" value="2"/>
+                    <key ageMonth="5" value="30"/>
+                    <key ageMonth="18" value="55"/>
+                </water>
+                <food>
+                    <key ageMonth="0" value="3"/>
+                    <key ageMonth="5" value="35"/>
+                    <key ageMonth="18" value="85"/>
+                </food>
+            </input>
+            <output>
+                <manure>
+                    <key ageMonth="0" value="4"/>
+                    <key ageMonth="5" value="12"/>
+                    <key ageMonth="18" value="28"/>
+                </manure>
+                <pallets fillType="WOOL">
+                    <key ageMonth="0" value="0"/>
+                    <key ageMonth="6" value="10"/>
+                    <key ageMonth="18" value="65"/>
+                </pallets>
+            </output>
+        </subType>
+    </animal>
+
+    <!-- ======================================================================
+         RABBIT: New male subtype + pregnancy/weight overrides
+         navMesh h=0.3, r=0.2 gives absurd derived weights: max=45, target=18
+         Real domestic rabbits: 2-5kg
+         ====================================================================== -->
+    <animal type="RABBIT">
+        <pregnancy average="4" max="8"/>
+
+        <!-- Override: fix existing RABBIT (female) weights and set breed -->
+        <subType subType="RABBIT" breed="RABBIT" minWeight="0.1" targetWeight="2.5" maxWeight="5.0"/>
+
+        <!-- New: RABBIT_MALE -->
+        <subType subType="RABBIT_MALE" fillTypeName="RABBIT_MALE"
+                 gender="male" breed="RABBIT"
+                 minWeight="0.1" targetWeight="3.0" maxWeight="5.5">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="2"
+                        image="map/config/rabbits/store_baby_rabbit.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_rabbitMaleBabyDesc</description>
+                </visual>
+                <visual minAge="4" visualAnimalIndex="1"
+                        image="map/config/rabbits/store_rabbit.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_rabbitMaleDesc</description>
+                </visual>
+            </visuals>
+            <reproduction supported="false" minAgeMonth="4"/>
+            <buyPrice>
+                <key ageMonth="0" value="18"/>
+                <key ageMonth="36" value="70"/>
+            </buyPrice>
+            <sellPrice>
+                <key ageMonth="0" value="12"/>
+                <key ageMonth="36" value="55"/>
+            </sellPrice>
+            <transportPrice>
+                <key ageMonth="0" value="5"/>
+                <key ageMonth="8" value="15"/>
+            </transportPrice>
+            <input>
+                <water>
+                    <key ageMonth="0" value="0.1"/>
+                    <key ageMonth="5" value="0.5"/>
+                </water>
+                <food>
+                    <key ageMonth="0" value="0.2"/>
+                    <key ageMonth="5" value="1.5"/>
+                </food>
+            </input>
+        </subType>
+    </animal>
+
+</animals>

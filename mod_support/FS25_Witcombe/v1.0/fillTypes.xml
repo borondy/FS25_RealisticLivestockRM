@@ -1,0 +1,43 @@
+<map xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="$data/shared/xml/schema/fillTypes.xsd">
+	<fillTypes>
+
+		<!-- Bridge fill types for Witcombe map (male variants) -->
+
+		<fillType name="BULL_JERSEY" title="$l10n_fillType_bull_jersey" showOnPriceTable="false">
+			<physics massPerLiter="450.0" maxPhysicalSurfaceAngle="0"/>
+			<economy pricePerLiter="3000"/>
+			<image hud="$dataS/menu/hud/fillTypes/hud_fill_cow.png"/>
+		</fillType>
+
+		<fillType name="BOAR_GLOUCESTERSHIRE_OLD_SPOT" title="$l10n_fillType_boar_gloucestershire_old_spot" showOnPriceTable="false">
+			<physics massPerLiter="3.0" maxPhysicalSurfaceAngle="0"/>
+			<economy pricePerLiter="60"/>
+			<image hud="$dataS/menu/hud/fillTypes/hud_fill_pig.png"/>
+		</fillType>
+
+		<fillType name="RAM_TEXEL" title="$l10n_fillType_ram_texel" showOnPriceTable="false">
+			<physics massPerLiter="1.0" maxPhysicalSurfaceAngle="0"/>
+			<economy pricePerLiter="40"/>
+			<image hud="$dataS/menu/hud/fillTypes/hud_fill_sheep.png"/>
+		</fillType>
+
+		<fillType name="RAM_SUFFOLK" title="$l10n_fillType_ram_suffolk" showOnPriceTable="false">
+			<physics massPerLiter="1.0" maxPhysicalSurfaceAngle="0"/>
+			<economy pricePerLiter="40"/>
+			<image hud="$dataS/menu/hud/fillTypes/hud_fill_sheep.png"/>
+		</fillType>
+
+		<fillType name="RAM_BLUE_FACED_LEICESTER" title="$l10n_fillType_ram_blue_faced_leicester" showOnPriceTable="false">
+			<physics massPerLiter="1.0" maxPhysicalSurfaceAngle="0"/>
+			<economy pricePerLiter="40"/>
+			<image hud="$dataS/menu/hud/fillTypes/hud_fill_sheep.png"/>
+		</fillType>
+
+		<fillType name="RABBIT_MALE" title="$l10n_fillType_rabbit_male" showOnPriceTable="false">
+			<physics massPerLiter="0.5" maxPhysicalSurfaceAngle="0"/>
+			<economy pricePerLiter="15"/>
+			<image hud="$dataS/menu/hud/fillTypes/hud_fill_chicken.png"/>
+		</fillType>
+
+	</fillTypes>
+</map>
