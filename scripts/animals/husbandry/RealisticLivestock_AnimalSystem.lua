@@ -181,8 +181,22 @@ function RealisticLivestock_AnimalSystem:loadAnimals(_, xmlFile, directory)
 			-- ASSUMES: RLRM bundles configs for ALL base game + DLC animal types.
 			-- If a new DLC adds animals, RLRM must update its bundled configs to include them.
 			if string.startsWith(configFilename, "dataS") then
-				Log:trace("loadAnimals: skipping base game reload for existing type '%s' (keeping %d animals)",
+				Log:trace("loadAnimals: skipping base game config reload for existing type '%s' (keeping %d models)",
 					name, #animalType.animals)
+
+				-- Still process map subtypes — map may define new subtypes for existing types
+				-- (e.g. COW_JERSEY on Witcombe) using RLRM's bundled model config
+				local beforeCount = #self.subTypes
+				self:loadSubTypes(animalType, xmlFile, key, directory)
+				local addedCount = #self.subTypes - beforeCount
+
+				if addedCount > 0 then
+					Log:debug("loadAnimals: added %d map subtype(s) to existing type '%s' (total now %d)",
+						addedCount, name, #animalType.subTypes)
+				else
+					Log:trace("loadAnimals: no new subtypes from map for existing type '%s'", name)
+				end
+
 				continue
 			end
 
@@ -435,7 +449,9 @@ function RealisticLivestock_AnimalSystem:loadSubTypes(_, animalType, xmlFile, ke
 
 		    if rawName == nil then
 			    Logging.xmlError(xmlFile, "Missing animal subtype. \'%s\'", subTypeKey)
-			    break
+			    Log:warning("loadSubTypes: missing subType name at '%s', skipping entry (type '%s')",
+				    subTypeKey, animalType.name)
+			    continue
 		    end
 
 		    local name = rawName:upper()
@@ -451,7 +467,9 @@ function RealisticLivestock_AnimalSystem:loadSubTypes(_, animalType, xmlFile, ke
 
 		    if fillTypeIndex == nil then
 			    Logging.xmlError(xmlFile, "FillType \'%s\' for animal subtype \'%s\' not defined!", fillTypeName, subTypeKey)
-			    break
+			    Log:warning("loadSubTypes: fillType '%s' not found for subType '%s', skipping entry (type '%s')",
+				    tostring(fillTypeName), name, animalType.name)
+			    continue
 		    end
 
 		    local subType = {
@@ -477,6 +495,12 @@ function RealisticLivestock_AnimalSystem:loadSubTypes(_, animalType, xmlFile, ke
 
                 table.insert(animalType.breeds[breed], subType)
 
+                Log:trace("loadSubTypes: registered subType '%s' (index=%d, fillType=%s, breed=%s) for type '%s'",
+                    name, subType.subTypeIndex, tostring(fillTypeName), breed, animalType.name)
+
+		    else
+                Log:warning("loadSubTypes: loadSubType returned false for '%s' (type '%s'), skipping",
+                    name, animalType.name)
 		    end
 
         end
