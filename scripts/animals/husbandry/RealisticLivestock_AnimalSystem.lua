@@ -1217,6 +1217,9 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
         local childNum = animal:generateRandomOffspring()
         local children = {}
 
+        Log:debug("createNewSaleAnimal: pregnant %s(%d) childNum=%d",
+            subType.name or "?", subTypeIndex, childNum)
+
         local minMetabolism, maxMetabolism = genetics.metabolism * 0.9, genetics.metabolism * 1.1
         local minMeat, maxMeat = genetics.quality * 0.9, genetics.quality * 1.1
         local minHealth, maxHealth = genetics.health * 0.9, genetics.health * 1.1
@@ -1230,11 +1233,43 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
             local gender = math.random() >= 0.5 and "male" or "female"
             local childSubTypeIndex = subTypeIndex + (gender == "male" and 1 or 0)
 
+            -- RLRM-116: Validate subtype index — the +1 arithmetic assumes adjacent
+            -- male/female subtypes, which fails for bridge-added exotic types.
+            local candidateSubType = self:getSubTypeByIndex(childSubTypeIndex)
+
+            if candidateSubType == nil or candidateSubType.gender ~= gender or candidateSubType.typeIndex ~= animalType.typeIndex then
+                local breedFallback = nil
+                local genderFallback = nil
+
+                for _, stIndex in pairs(animalType.subTypes) do
+                    local st = self:getSubTypeByIndex(stIndex)
+                    if st ~= nil and st.gender == gender then
+                        if genderFallback == nil then
+                            genderFallback = stIndex
+                        end
+                        if st.breed == subType.breed then
+                            breedFallback = stIndex
+                            break
+                        end
+                    end
+                end
+
+                local fallbackIndex = breedFallback or genderFallback
+
+                if fallbackIndex ~= nil then
+                    Log:debug("createNewSaleAnimal: child[%d] subtype fallback for gender '%s' breed '%s': index %d -> %d (breedMatch=%s)",
+                        i, gender, subType.breed or "?", childSubTypeIndex, fallbackIndex, tostring(breedFallback ~= nil))
+                    childSubTypeIndex = fallbackIndex
+                else
+                    Log:debug("createNewSaleAnimal: child[%d] no fallback found for gender '%s' in type %d, keeping index %d",
+                        i, gender, animalType.typeIndex, childSubTypeIndex)
+                end
+            end
 
             local child = Animal.new({
                 age = -1, health = 100, gender = gender,
                 subTypeIndex = childSubTypeIndex,
-                motherId = animal.farmId .. " " .. animal.uniqueId
+                motherId = animal:getIdentifiers()
             })
                         
             local metabolism = math.random(minMetabolism * 100, maxMetabolism * 100) / 100

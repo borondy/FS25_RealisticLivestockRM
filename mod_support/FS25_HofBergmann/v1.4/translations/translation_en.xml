@@ -49,6 +49,14 @@
 		<text name="rl_bridge_alpacaGreyMaleYoungDesc" text="A young male grey alpaca."/>
 		<text name="rl_bridge_alpacaGreyMaleAdultDesc" text="An adult grey male alpaca. Males that are healthy and older than 8 months can reproduce."/>
 
+		<!-- DUCKWILD male -->
+		<text name="fillType_duckwild_male" text="Wild Drake"/>
+
+		<text name="rl_bridge_duckwildMaleYoung" text="Wild Drake Duckling"/>
+		<text name="rl_bridge_duckwildMaleAdult" text="Wild Drake"/>
+		<text name="rl_bridge_duckwildMaleYoungDesc" text="A young male wild duck."/>
+		<text name="rl_bridge_duckwildMaleAdultDesc" text="An adult wild drake. Drakes that are healthy and older than 6 months can reproduce."/>
+
 		<!-- QUAIL male -->
 		<text name="fillType_quail_male" text="Male Quail"/>
 

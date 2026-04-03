@@ -49,6 +49,14 @@
 		<text name="rl_bridge_alpacaGreyMaleYoungDesc" text="Ein junges männliches graues Alpaka."/>
 		<text name="rl_bridge_alpacaGreyMaleAdultDesc" text="Ein erwachsener grauer Alpaka-Hengst. Hengste, die gesund und älter als 8 Monate sind, können sich fortpflanzen."/>
 
+		<!-- Wilderpel -->
+		<text name="fillType_duckwild_male" text="Wilderpel"/>
+
+		<text name="rl_bridge_duckwildMaleYoung" text="Junger Wilderpel"/>
+		<text name="rl_bridge_duckwildMaleAdult" text="Wilderpel"/>
+		<text name="rl_bridge_duckwildMaleYoungDesc" text="Eine junge männliche Wildente."/>
+		<text name="rl_bridge_duckwildMaleAdultDesc" text="Ein erwachsener Wilderpel. Erpel, die gesund und älter als 6 Monate sind, können sich fortpflanzen."/>
+
 		<!-- Wachtelhahn -->
 		<text name="fillType_quail_male" text="Wachtelhahn"/>
 

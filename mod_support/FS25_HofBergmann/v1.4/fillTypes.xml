@@ -51,5 +51,11 @@
 			<image hud="$dataS/menu/hud/fillTypes/hud_fill_chicken.png"/>
 		</fillType>
 
+		<fillType name="DUCKWILD_MALE" title="$l10n_fillType_duckwild_male" showOnPriceTable="false">
+			<physics massPerLiter="3.0" maxPhysicalSurfaceAngle="0"/>
+			<economy pricePerLiter="60"/>
+			<image hud="$dataS/menu/hud/fillTypes/hud_fill_chicken.png"/>
+		</fillType>
+
 	</fillTypes>
 </map>
