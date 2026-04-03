@@ -1149,7 +1149,12 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
         monthsSinceLastBirth = math.random(0, viableReproductionMonths)
     end
 
-    if animalGender == "female" and age - subType.reproductionMinAgeMonth >= 0 and math.random() >= 0.95 then isPregnant = true end
+    -- RLRM-117: Guard against pregnancy for non-reproductive subtypes (e.g. BULL, DOG).
+    -- Without this, gender auto-detection mismatches can create pregnant males.
+    if subType.supportsReproduction and animalGender == "female" and age - subType.reproductionMinAgeMonth >= 0 and math.random() >= 0.95 then
+        isPregnant = true
+        Log:debug("createNewSaleAnimal: pregnant %s(%d) age=%d", subType.name or "?", subTypeIndex, age)
+    end
 
 
 
@@ -1217,8 +1222,8 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
         local childNum = animal:generateRandomOffspring()
         local children = {}
 
-        Log:debug("createNewSaleAnimal: pregnant %s(%d) childNum=%d",
-            subType.name or "?", subTypeIndex, childNum)
+        Log:trace("createNewSaleAnimal: generating %d offspring for %s(%d)",
+            childNum, subType.name or "?", subTypeIndex)
 
         local minMetabolism, maxMetabolism = genetics.metabolism * 0.9, genetics.metabolism * 1.1
         local minMeat, maxMeat = genetics.quality * 0.9, genetics.quality * 1.1
