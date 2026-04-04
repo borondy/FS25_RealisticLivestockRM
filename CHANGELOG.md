@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.3.0-dev
+- HB14: Fixed bridge animals (rabbits, quail, etc.) getting duplicate IDs in multiplayer, causing animals to disappear on clients
+- HB14: Fixed bridge animal ID counter always returning 1, now tracks per-type counters with savegame persistence
+- HB14: Existing saves with duplicate IDs are automatically repaired on load
+
 ## v1.1.2.0
 - Added animal pack system: third-party mods can add breeds, override animal properties, or provide custom balance via rlrm_pack.xml
 - Added Hof Bergmann 1.4 support with alpacas, quail, corrected chicken visuals, and version detection

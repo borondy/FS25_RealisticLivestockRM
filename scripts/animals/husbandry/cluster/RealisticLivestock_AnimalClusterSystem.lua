@@ -75,6 +75,74 @@ function RealisticLivestock_AnimalClusterSystem:loadFromXMLFile(_, xmlFile, key)
     end)
 
 
+    -- Migration pass for pre-v1.1.3 saves: seed typeIds counters and repair duplicates.
+    -- Bridge animal types (RABBIT, QUAIL, etc.) got rawId=1 for every animal prior to v1.1.3,
+    -- producing identical uniqueIds. This causes MP clients to collapse N animals into 1
+    -- during readStream. Two steps:
+    --   1. Seed typeIds counters past existing animals (prevents collision on next birth)
+    --   2. Reassign all animals in any duplicate group (fixes existing collisions)
+    -- TODO: RLRM-122 - remove this migration pass once affected saves have been migrated.
+    if g_server ~= nil and #self.animals > 0 then
+
+        -- Step 1: Seed typeIds counters for non-base types so future births/purchases
+        -- start past existing IDs. Without this, a save with 1 pre-fix rabbit (no duplicate)
+        -- would generate rawId=1 on the next birth, colliding with the existing animal.
+        local ownerFarmId = self.owner ~= nil and self.owner.ownerFarmId or nil
+        local farm = ownerFarmId ~= nil and g_farmManager.farmIdToFarm[ownerFarmId] or nil
+
+        if farm ~= nil and farm.stats ~= nil then
+            local animalSystem = g_currentMission.animalSystem
+            local seededTypes = {}
+
+            for _, animal in pairs(self.animals) do
+                local typeIndex = animal.animalTypeIndex
+                if typeIndex ~= AnimalType.COW and typeIndex ~= AnimalType.PIG
+                    and typeIndex ~= AnimalType.SHEEP and typeIndex ~= AnimalType.HORSE
+                    and typeIndex ~= AnimalType.CHICKEN then
+
+                    local animalTypeObj = animalSystem:getTypeByIndex(typeIndex)
+                    local typeName = animalTypeObj ~= nil and animalTypeObj.name or tostring(typeIndex)
+
+                    if farm.stats.statistics.typeIds == nil then farm.stats.statistics.typeIds = {} end
+                    farm.stats.statistics.typeIds[typeName] = (farm.stats.statistics.typeIds[typeName] or 0) + 1
+                    seededTypes[typeName] = farm.stats.statistics.typeIds[typeName]
+                end
+            end
+
+            for typeName, count in pairs(seededTypes) do
+                Log:debug("Seeded typeIds counter: %s = %d", typeName, count)
+            end
+        end
+
+        -- Step 2: Detect and fix duplicate (farmId, uniqueId, country) tuples.
+        if #self.animals > 1 then
+            local idCounts = {}
+            for _, animal in pairs(self.animals) do
+                if animal.uniqueId ~= nil and animal.farmId ~= nil and animal.birthday ~= nil then
+                    local idKey = animal.farmId .. "_" .. animal.uniqueId .. "_" .. tostring(animal.birthday.country)
+                    idCounts[idKey] = (idCounts[idKey] or 0) + 1
+                end
+            end
+
+            local repairCount = 0
+            for _, animal in pairs(self.animals) do
+                if animal.uniqueId ~= nil and animal.farmId ~= nil and animal.birthday ~= nil then
+                    local idKey = animal.farmId .. "_" .. animal.uniqueId .. "_" .. tostring(animal.birthday.country)
+                    if idCounts[idKey] > 1 then
+                        local oldId = animal.uniqueId
+                        animal:setUniqueId()
+                        Log:debug("Duplicate ID repair: %s -> %s (farmId=%s)", oldId, animal.uniqueId, animal.farmId)
+                        repairCount = repairCount + 1
+                    end
+                end
+            end
+
+            if repairCount > 0 then
+                Log:info("Repaired %d animal(s) with duplicate unique IDs", repairCount)
+            end
+        end
+    end
+
     self:updateClusters()
     self.needsUpdate = false
 

@@ -1,6 +1,6 @@
-<modDesc descVersion="106">
+<modDesc descVersion="107">
     <author>Ritter</author>
-    <version>1.1.2.0</version>
+    <version>1.1.3.0-dev.1</version>
     <title>
         <en>Realistic Livestock - Ritter version</en>
         <it>Allevamento Realistico - Versione Ritter</it>
@@ -23,6 +23,11 @@ Documentation: https://rittermod.github.io/FS25_RealisticLivestockRM
 Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivestockRM
 
 Changelog
+
+v1.1.3.0-dev:
+- HB14: Fixed bridge animals (rabbits, quail, etc.) getting duplicate IDs in multiplayer, causing animals to disappear on clients
+- HB14: Fixed bridge animal ID counter always returning 1, now tracks per-type counters with savegame persistence
+- HB14: Existing saves with duplicate IDs are automatically repaired on load
 
 v1.1.2.0:
 - Added animal pack system: third-party mods can add breeds, override animal properties, or provide custom balance

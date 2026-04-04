@@ -1,4 +1,5 @@
 RealisticLivestock_FarmStats = {}
+local Log = RmLogging.getLogger("RLRM")
 
 function RealisticLivestock_FarmStats:loadFromXMLFile(xmlFile, rootKey)
 
@@ -9,6 +10,16 @@ function RealisticLivestock_FarmStats:loadFromXMLFile(xmlFile, rootKey)
     self.statistics.sheepId = xmlFile:getInt(key .. ".sheepId", 0)
     self.statistics.horseId = xmlFile:getInt(key .. ".horseId", 0)
     self.statistics.chickenId = xmlFile:getInt(key .. ".chickenId", 0)
+
+    self.statistics.typeIds = {}
+
+    xmlFile:iterate(key .. ".typeIds.entry", function(_, entryKey)
+        local typeName = xmlFile:getString(entryKey .. "#type", nil)
+        local nextId = xmlFile:getInt(entryKey .. "#nextId", 0)
+        if typeName ~= nil then
+            self.statistics.typeIds[typeName] = nextId
+        end
+    end)
 
 end
 
@@ -33,6 +44,16 @@ function RealisticLivestock_FarmStats:saveToXMLFile(xmlFile, rootKey)
     xmlFile:setInt(key .. ".sheepId", self.statistics.sheepId)
     xmlFile:setInt(key .. ".horseId", self.statistics.horseId)
     xmlFile:setInt(key .. ".chickenId", self.statistics.chickenId)
+
+    if self.statistics.typeIds ~= nil then
+        local i = 0
+        for typeName, nextId in pairs(self.statistics.typeIds) do
+            local entryKey = string.format("%s.typeIds.entry(%d)", key, i)
+            xmlFile:setString(entryKey .. "#type", typeName)
+            xmlFile:setInt(entryKey .. "#nextId", nextId)
+            i = i + 1
+        end
+    end
 
 end
 
@@ -71,7 +92,17 @@ function RealisticLivestock_FarmStats:getNextAnimalId(animalType)
         return self.statistics.chickenId
     end
 
-    return 1
+    local animalTypeObj = g_currentMission.animalSystem:getTypeByIndex(animalType)
+    local typeName = animalTypeObj ~= nil and animalTypeObj.name or tostring(animalType)
+
+    if self.statistics.typeIds == nil then self.statistics.typeIds = {} end
+    if self.statistics.typeIds[typeName] == nil then self.statistics.typeIds[typeName] = 0 end
+
+    self.statistics.typeIds[typeName] = self.statistics.typeIds[typeName] + 1
+
+    Log:trace("getNextAnimalId: type '%s' (index=%d) -> rawId=%d", typeName, animalType, self.statistics.typeIds[typeName])
+
+    return self.statistics.typeIds[typeName]
 
 end
 
