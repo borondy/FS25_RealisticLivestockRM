@@ -54,12 +54,13 @@ function AnimalScreenTrailerFarm:applySourceBulk(animalTypeIndex, items)
 
     local sourceItems = self.sourceItems[animalTypeIndex]
     local totalMovedAnimals = 0
+    local firstErrorCode = nil
 
     -- EPP age constraints (butchers with minimumAge/maximumAge)
     local eppTypeData = husbandry.animalsTypeData ~= nil and husbandry.animalsTypeData[animalTypeIndex] or nil
 
     if eppTypeData ~= nil then
-        Log:debug("applySourceBulk: EPP age constraints found for typeIndex=%d (minAge=%s, maxAge=%s)",
+        Log:debug("TrailerFarm.applySourceBulk: EPP age constraints for typeIndex=%d (minAge=%s, maxAge=%s)",
             animalTypeIndex, tostring(eppTypeData.minimumAge), tostring(eppTypeData.maximumAge))
     end
 
@@ -73,7 +74,8 @@ function AnimalScreenTrailerFarm:applySourceBulk(animalTypeIndex, items)
             local errorCode = AnimalMoveEvent.validate(trailer, husbandry, ownerFarmId, animal.subTypeIndex)
 
             if errorCode ~= nil then
-                Log:trace("applySourceBulk: skipping '%s' (validate error=%d)", animal.name or "?", errorCode)
+                if firstErrorCode == nil then firstErrorCode = errorCode end
+                Log:trace("TrailerFarm.applySourceBulk: skipping '%s' (errorCode=%d)", animal.name or "?", errorCode)
                 continue
             end
 
@@ -81,16 +83,18 @@ function AnimalScreenTrailerFarm:applySourceBulk(animalTypeIndex, items)
                 local age = animal.age or 0
                 local minAge = eppTypeData.minimumAge or 0
                 local maxAge = eppTypeData.maximumAge or 60
-                Log:trace("applySourceBulk: checking '%s' age=%d against allowed=%d-%d", animal.name or "?", age, minAge, maxAge)
+                Log:trace("TrailerFarm.applySourceBulk: checking '%s' age=%d against allowed=%d-%d", animal.name or "?", age, minAge, maxAge)
                 if age < minAge or age > maxAge then
-                    Log:debug("applySourceBulk: REJECTED '%s' (age=%d, allowed=%d-%d)", animal.name or "?", age, minAge, maxAge)
+                    if firstErrorCode == nil then firstErrorCode = AnimalMoveEvent.MOVE_ERROR_ANIMAL_NOT_SUPPORTED end
+                    Log:debug("TrailerFarm.applySourceBulk: REJECTED '%s' (age=%d, allowed=%d-%d)", animal.name or "?", age, minAge, maxAge)
                     continue
                 end
-                Log:trace("applySourceBulk: PASSED '%s' age check", animal.name or "?")
+                Log:trace("TrailerFarm.applySourceBulk: PASSED '%s' age check", animal.name or "?")
             end
 
             if husbandry:getNumOfFreeAnimalSlots(animal.subTypeIndex) <= totalMovedAnimals then
-                Log:trace("applySourceBulk: skipping '%s' (no free slots, already queued=%d)", animal.name or "?", totalMovedAnimals)
+                if firstErrorCode == nil then firstErrorCode = AnimalMoveEvent.MOVE_ERROR_NOT_ENOUGH_SPACE end
+                Log:trace("TrailerFarm.applySourceBulk: skipping '%s' (no free slots, already queued=%d)", animal.name or "?", totalMovedAnimals)
                 continue
             end
 
@@ -102,12 +106,26 @@ function AnimalScreenTrailerFarm:applySourceBulk(animalTypeIndex, items)
 
     end
 
+    Log:debug("TrailerFarm.applySourceBulk: %d of %d passed validation, %d skipped",
+        totalMovedAnimals, #items, #items - totalMovedAnimals)
+
     if #self.sourceAnimals == 0 then
-        Log:debug("applySourceBulk: no animals passed validation, skipping event")
+        if firstErrorCode ~= nil then
+            Log:debug("TrailerFarm.applySourceBulk: all items rejected (firstError=%d)", firstErrorCode)
+            local mapping = AnimalScreenTrailerFarm.MOVE_TO_FARM_ERROR_CODE_MAPPING[firstErrorCode]
+            if mapping ~= nil and self.errorCallback ~= nil then
+                self.errorCallback(g_i18n:getText(mapping.text))
+            end
+        else
+            Log:debug("TrailerFarm.applySourceBulk: no animals passed validation, skipping event")
+        end
         return
     end
 
-    Log:debug("applySourceBulk: sending %d of %d selected animals", totalMovedAnimals, #items)
+    if firstErrorCode ~= nil then
+        Log:warning("TrailerFarm.applySourceBulk: %d items skipped (firstError=%d)",
+            #items - totalMovedAnimals, firstErrorCode)
+    end
 
     self.actionTypeCallback(AnimalScreenBase.ACTION_TYPE_SOURCE, g_i18n:getText(AnimalScreenTrailerFarm.L10N_SYMBOL.MOVE_TO_FARM))
 	g_messageCenter:subscribe(AnimalMoveEvent, self.onAnimalMovedToFarm, self)
@@ -134,6 +152,8 @@ function AnimalScreenTrailerFarm:applyTargetBulk(animalTypeIndex, items)
 
     local targetItems = self.targetItems
     local totalMovedAnimals = 0
+    local skippedCount = 0
+    local firstErrorCode = nil
 
     for _, item in pairs(items) do
 
@@ -144,9 +164,20 @@ function AnimalScreenTrailerFarm:applyTargetBulk(animalTypeIndex, items)
 
             local errorCode = AnimalMoveEvent.validate(husbandry, trailer, ownerFarmId, animal.subTypeIndex)
 
-            if errorCode ~= nil then continue end
+            if errorCode ~= nil then
+                skippedCount = skippedCount + 1
+                if firstErrorCode == nil then firstErrorCode = errorCode end
+                Log:trace("TrailerFarm.applyTargetBulk: skipping '%s' (errorCode=%d)",
+                    animal.name or animal.uniqueId or "?", errorCode)
+                continue
+            end
 
-            if trailer:getNumOfFreeAnimalSlots(animal.subTypeIndex) <= totalMovedAnimals then continue end
+            if trailer:getNumOfFreeAnimalSlots(animal.subTypeIndex) <= totalMovedAnimals then
+                skippedCount = skippedCount + 1
+                Log:trace("TrailerFarm.applyTargetBulk: skipping '%s' (no free slots, already queued=%d)",
+                    animal.name or animal.uniqueId or "?", totalMovedAnimals)
+                continue
+            end
 
             totalMovedAnimals = totalMovedAnimals + 1
 
@@ -156,9 +187,27 @@ function AnimalScreenTrailerFarm:applyTargetBulk(animalTypeIndex, items)
 
     end
 
+    Log:debug("TrailerFarm.applyTargetBulk: %d of %d passed validation, %d skipped",
+        totalMovedAnimals, totalMovedAnimals + skippedCount, skippedCount)
+
+    if totalMovedAnimals == 0 and skippedCount > 0 then
+        Log:debug("TrailerFarm.applyTargetBulk: all %d items rejected (firstError=%s)", skippedCount, tostring(firstErrorCode))
+        if firstErrorCode ~= nil then
+            local mapping = AnimalScreenTrailerFarm.MOVE_TO_TRAILER_ERROR_CODE_MAPPING[firstErrorCode]
+            if mapping ~= nil and self.errorCallback ~= nil then
+                self.errorCallback(g_i18n:getText(mapping.text))
+            end
+        end
+        return
+    end
+
+    if skippedCount > 0 then
+        Log:warning("TrailerFarm.applyTargetBulk: %d items skipped (firstError=%s)", skippedCount, tostring(firstErrorCode))
+    end
+
     self.actionTypeCallback(AnimalScreenBase.ACTION_TYPE_TARGET, g_i18n:getText(AnimalScreenTrailerFarm.L10N_SYMBOL.MOVE_TO_TRAILER))
-	g_messageCenter:subscribe(AnimalMoveEvent, self.onAnimalMovedToTrailer, self)
-	g_client:getServerConnection():sendEvent(AnimalMoveEvent.new(husbandry, trailer, self.targetAnimals, "SOURCE"))
+    g_messageCenter:subscribe(AnimalMoveEvent, self.onAnimalMovedToTrailer, self)
+    g_client:getServerConnection():sendEvent(AnimalMoveEvent.new(husbandry, trailer, self.targetAnimals, "SOURCE"))
 
     if husbandry.addRLMessage ~= nil then
         if totalMovedAnimals == 1 then

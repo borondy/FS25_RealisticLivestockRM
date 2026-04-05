@@ -164,6 +164,9 @@
 		<text name="rl_ui_sellSelected" text="Sell selected"/>
 		<text name="rl_ui_moveSelected" text="Move selected"/>
 		<text name="rl_ui_buyConfirmation" text="Are you sure you want to buy %s animals for %s?" tag="format"/>
+		<text name="rl_ui_buyPartialConfirmation" text="Buy %d of %d selected animals for %s?" tag="format"/>
+		<text name="rl_ui_buySkippedNotSupported" text="%d animal(s) not supported by this husbandry" tag="format"/>
+		<text name="rl_ui_buyAllRejected" text="None of the selected animals can be purchased in this husbandry."/>
 		<text name="rl_ui_sellConfirmation" text="Are you sure you want to sell %s animals for %s?" tag="format"/>
 		<text name="rl_ui_moveConfirmation" text="Are you sure you want to move %s animals?" tag="format"/>
 		<text name="rl_ui_buyBulkResult" text="%s animals bought for %s" tag="format"/>

@@ -1,3 +1,5 @@
+local Log = RmLogging.getLogger("RLRM")
+
 RL_AnimalScreenDealerFarm = {}
 
 function RL_AnimalScreenDealerFarm:initTargetItems(_)
@@ -178,6 +180,24 @@ end
 AnimalScreenDealerFarm.getTargetMaxNumAnimals = Utils.overwrittenFunction(AnimalScreenDealerFarm.getTargetMaxNumAnimals, RL_AnimalScreenDealerFarm.getTargetMaxNumAnimals)
 
 
+--- Pre-validate a single buy item before the confirmation dialog.
+--- @param animalTypeIndex number The animal type index
+--- @param itemIndex number The item index in sourceItems
+--- @return number|nil errorCode from AnimalBuyEvent.validate, or nil if valid
+function AnimalScreenDealerFarm:preValidateBuyItem(animalTypeIndex, itemIndex)
+    local sourceItems = self.sourceItems[animalTypeIndex]
+    if sourceItems == nil then return nil end
+    local sourceItem = sourceItems[itemIndex]
+    if sourceItem == nil then return nil end
+
+    local animal = sourceItem.animal
+    local price = -sourceItem:getPrice()
+    local transportationFee = -sourceItem:getTranportationFee(1)
+
+    return AnimalBuyEvent.validate(self.husbandry, animal.subTypeIndex, animal.age, 1, price, transportationFee, self.husbandry:getOwnerFarmId())
+end
+
+
 function AnimalScreenDealerFarm:applySourceBulk(animalTypeIndex, items)
 
     self.sourceAnimals = {}
@@ -189,6 +209,8 @@ function AnimalScreenDealerFarm:applySourceBulk(animalTypeIndex, items)
     local totalPrice = 0
     local totalTransportPrice = 0
     local totalBoughtAnimals = 0
+    local skippedCount = 0
+    local firstErrorCode = nil
 
     for _, item in pairs(items) do
 
@@ -201,8 +223,14 @@ function AnimalScreenDealerFarm:applySourceBulk(animalTypeIndex, items)
 
             local errorCode = AnimalBuyEvent.validate(husbandry, animal.subTypeIndex, animal.age, 1, price, transportationFee, ownerFarmId)
 
-            if errorCode ~= nil then continue end
-    
+            if errorCode ~= nil then
+                skippedCount = skippedCount + 1
+                if firstErrorCode == nil then firstErrorCode = errorCode end
+                Log:trace("DealerFarm.applySourceBulk: skipping '%s' (errorCode=%d)",
+                    animal.name or animal.uniqueId or "?", errorCode)
+                continue
+            end
+
             totalBoughtAnimals = totalBoughtAnimals + 1
             totalPrice = totalPrice + price
             totalTransportPrice = totalTransportPrice + transportationFee
@@ -211,6 +239,22 @@ function AnimalScreenDealerFarm:applySourceBulk(animalTypeIndex, items)
 
         end
 
+    end
+
+    Log:debug("DealerFarm.applySourceBulk: %d of %d passed validation, %d skipped",
+        totalBoughtAnimals, totalBoughtAnimals + skippedCount, skippedCount)
+
+    if totalBoughtAnimals == 0 and skippedCount > 0 then
+        Log:debug("DealerFarm.applySourceBulk: all %d items rejected (firstError=%d)", skippedCount, firstErrorCode)
+        local mapping = AnimalScreenDealerFarm.BUY_ERROR_CODE_MAPPING[firstErrorCode]
+        if mapping ~= nil and self.errorCallback ~= nil then
+            self.errorCallback(g_i18n:getText(mapping.text))
+        end
+        return
+    end
+
+    if skippedCount > 0 then
+        Log:warning("DealerFarm.applySourceBulk: %d items skipped (firstError=%d)", skippedCount, firstErrorCode)
     end
 
     self.actionTypeCallback(AnimalScreenBase.ACTION_TYPE_SOURCE, g_i18n:getText(AnimalScreenDealerFarm.L10N_SYMBOL.BUYING))
@@ -222,7 +266,7 @@ function AnimalScreenDealerFarm:applySourceBulk(animalTypeIndex, items)
     elseif totalBoughtAnimals > 0 then
         self.husbandry:addRLMessage("BOUGHT_ANIMALS_MULTIPLE", nil, { totalBoughtAnimals, g_i18n:formatMoney(math.abs(totalPrice + totalTransportPrice), 2, true, true) })
     end
-    
+
 end
 
 
@@ -237,6 +281,8 @@ function AnimalScreenDealerFarm:applyTargetBulk(animalTypeIndex, items)
     local totalPrice = 0
     local totalTransportPrice = 0
     local totalSoldAnimals = 0
+    local skippedCount = 0
+    local firstErrorCode = nil
 
     for _, item in pairs(items) do
 
@@ -249,8 +295,14 @@ function AnimalScreenDealerFarm:applyTargetBulk(animalTypeIndex, items)
 
             local errorCode = AnimalSellEvent.validate(husbandry, targetItem:getClusterId(), 1, price, transportationFee)
 
-            if errorCode ~= nil then continue end
-    
+            if errorCode ~= nil then
+                skippedCount = skippedCount + 1
+                if firstErrorCode == nil then firstErrorCode = errorCode end
+                Log:trace("DealerFarm.applyTargetBulk: skipping '%s' (errorCode=%d)",
+                    animal.name or animal.uniqueId or "?", errorCode)
+                continue
+            end
+
             totalSoldAnimals = totalSoldAnimals + 1
             totalPrice = totalPrice + price
             totalTransportPrice = totalTransportPrice + transportationFee
@@ -261,9 +313,25 @@ function AnimalScreenDealerFarm:applyTargetBulk(animalTypeIndex, items)
 
     end
 
+    Log:debug("DealerFarm.applyTargetBulk: %d of %d passed validation, %d skipped",
+        totalSoldAnimals, totalSoldAnimals + skippedCount, skippedCount)
+
+    if totalSoldAnimals == 0 and skippedCount > 0 then
+        Log:debug("DealerFarm.applyTargetBulk: all %d items rejected (firstError=%d)", skippedCount, firstErrorCode)
+        local mapping = AnimalScreenDealerFarm.SELL_ERROR_CODE_MAPPING[firstErrorCode]
+        if mapping ~= nil and self.errorCallback ~= nil then
+            self.errorCallback(g_i18n:getText(mapping.text))
+        end
+        return
+    end
+
+    if skippedCount > 0 then
+        Log:warning("DealerFarm.applyTargetBulk: %d items skipped (firstError=%d)", skippedCount, firstErrorCode)
+    end
+
     self.actionTypeCallback(AnimalScreenBase.ACTION_TYPE_SOURCE, g_i18n:getText(AnimalScreenDealerFarm.L10N_SYMBOL.SELLING))
     g_messageCenter:subscribe(AnimalSellEvent, self.onAnimalSold, self)
-	g_client:getServerConnection():sendEvent(AnimalSellEvent.new(husbandry, self.targetAnimals, totalPrice, totalTransportPrice))
+    g_client:getServerConnection():sendEvent(AnimalSellEvent.new(husbandry, self.targetAnimals, totalPrice, totalTransportPrice))
 
     if totalSoldAnimals == 1 then
         self.husbandry:addRLMessage("SOLD_ANIMALS_SINGLE", nil, { g_i18n:formatMoney(totalPrice + totalTransportPrice, 2, true, true) })

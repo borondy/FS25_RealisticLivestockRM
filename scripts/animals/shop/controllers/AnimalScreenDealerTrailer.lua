@@ -1,3 +1,5 @@
+local Log = RmLogging.getLogger("RLRM")
+
 RL_AnimalScreenDealerTrailer = {}
 
 function RL_AnimalScreenDealerTrailer:initTargetItems(_)
@@ -195,6 +197,23 @@ end
 AnimalScreenDealerTrailer.getSourcePrice = Utils.overwrittenFunction(AnimalScreenDealerTrailer.getSourcePrice, RL_AnimalScreenDealerTrailer.getSourcePrice)
 
 
+--- Pre-validate a single buy item before the confirmation dialog.
+--- @param animalTypeIndex number The animal type index
+--- @param itemIndex number The item index in sourceItems
+--- @return number|nil errorCode from AnimalBuyEvent.validate, or nil if valid
+function AnimalScreenDealerTrailer:preValidateBuyItem(animalTypeIndex, itemIndex)
+    local sourceItems = self.sourceItems[animalTypeIndex]
+    if sourceItems == nil then return nil end
+    local sourceItem = sourceItems[itemIndex]
+    if sourceItem == nil then return nil end
+
+    local animal = sourceItem.animal
+    local price = -sourceItem:getPrice()
+
+    return AnimalBuyEvent.validate(self.trailer, animal.subTypeIndex, animal.age, 1, price, 0, self.trailer:getOwnerFarmId())
+end
+
+
 function AnimalScreenDealerTrailer:applySourceBulk(animalTypeIndex, items)
 
     self.sourceAnimals = {}
@@ -205,6 +224,8 @@ function AnimalScreenDealerTrailer:applySourceBulk(animalTypeIndex, items)
     local sourceItems = self.sourceItems[animalTypeIndex]
     local totalPrice = 0
     local totalBoughtAnimals = 0
+    local skippedCount = 0
+    local firstErrorCode = nil
 
     for _, item in pairs(items) do
 
@@ -216,8 +237,14 @@ function AnimalScreenDealerTrailer:applySourceBulk(animalTypeIndex, items)
 
             local errorCode = AnimalBuyEvent.validate(trailer, animal.subTypeIndex, animal.age, 1, price, 0, ownerFarmId)
 
-            if errorCode ~= nil then continue end
-    
+            if errorCode ~= nil then
+                skippedCount = skippedCount + 1
+                if firstErrorCode == nil then firstErrorCode = errorCode end
+                Log:trace("DealerTrailer.applySourceBulk: skipping '%s' (errorCode=%d)",
+                    animal.name or animal.uniqueId or "?", errorCode)
+                continue
+            end
+
             totalBoughtAnimals = totalBoughtAnimals + 1
             totalPrice = totalPrice + price
 
@@ -225,6 +252,22 @@ function AnimalScreenDealerTrailer:applySourceBulk(animalTypeIndex, items)
 
         end
 
+    end
+
+    Log:debug("DealerTrailer.applySourceBulk: %d of %d passed validation, %d skipped",
+        totalBoughtAnimals, totalBoughtAnimals + skippedCount, skippedCount)
+
+    if totalBoughtAnimals == 0 and skippedCount > 0 then
+        Log:debug("DealerTrailer.applySourceBulk: all %d items rejected (firstError=%d)", skippedCount, firstErrorCode)
+        local mapping = AnimalScreenDealerFarm.BUY_ERROR_CODE_MAPPING[firstErrorCode]
+        if mapping ~= nil and self.errorCallback ~= nil then
+            self.errorCallback(g_i18n:getText(mapping.text))
+        end
+        return
+    end
+
+    if skippedCount > 0 then
+        Log:warning("DealerTrailer.applySourceBulk: %d items skipped (firstError=%d)", skippedCount, firstErrorCode)
     end
 
     self.actionTypeCallback(AnimalScreenBase.ACTION_TYPE_SOURCE, g_i18n:getText(AnimalScreenDealerFarm.L10N_SYMBOL.BUYING))
@@ -244,6 +287,8 @@ function AnimalScreenDealerTrailer:applyTargetBulk(animalTypeIndex, items)
     local targetItems = self.targetItems
     local totalPrice = 0
     local totalSoldAnimals = 0
+    local skippedCount = 0
+    local firstErrorCode = nil
 
     for _, item in pairs(items) do
 
@@ -255,8 +300,14 @@ function AnimalScreenDealerTrailer:applyTargetBulk(animalTypeIndex, items)
 
             local errorCode = AnimalSellEvent.validate(trailer, targetItem:getClusterId(), 1, price, 0)
 
-            if errorCode ~= nil then continue end
-    
+            if errorCode ~= nil then
+                skippedCount = skippedCount + 1
+                if firstErrorCode == nil then firstErrorCode = errorCode end
+                Log:trace("DealerTrailer.applyTargetBulk: skipping '%s' (errorCode=%d)",
+                    animal.name or animal.uniqueId or "?", errorCode)
+                continue
+            end
+
             totalSoldAnimals = totalSoldAnimals + 1
             totalPrice = totalPrice + price
 
@@ -266,8 +317,24 @@ function AnimalScreenDealerTrailer:applyTargetBulk(animalTypeIndex, items)
 
     end
 
+    Log:debug("DealerTrailer.applyTargetBulk: %d of %d passed validation, %d skipped",
+        totalSoldAnimals, totalSoldAnimals + skippedCount, skippedCount)
+
+    if totalSoldAnimals == 0 and skippedCount > 0 then
+        Log:debug("DealerTrailer.applyTargetBulk: all %d items rejected (firstError=%d)", skippedCount, firstErrorCode)
+        local mapping = AnimalScreenDealerFarm.SELL_ERROR_CODE_MAPPING[firstErrorCode]
+        if mapping ~= nil and self.errorCallback ~= nil then
+            self.errorCallback(g_i18n:getText(mapping.text))
+        end
+        return
+    end
+
+    if skippedCount > 0 then
+        Log:warning("DealerTrailer.applyTargetBulk: %d items skipped (firstError=%d)", skippedCount, firstErrorCode)
+    end
+
     self.actionTypeCallback(AnimalScreenBase.ACTION_TYPE_SOURCE, g_i18n:getText(AnimalScreenDealerFarm.L10N_SYMBOL.SELLING))
     g_messageCenter:subscribe(AnimalSellEvent, self.onAnimalSold, self)
-	g_client:getServerConnection():sendEvent(AnimalSellEvent.new(trailer, self.targetAnimals, totalPrice, 0))
+    g_client:getServerConnection():sendEvent(AnimalSellEvent.new(trailer, self.targetAnimals, totalPrice, 0))
 
 end

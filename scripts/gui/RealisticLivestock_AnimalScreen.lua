@@ -2523,6 +2523,9 @@ function AnimalScreen:onClickBuySelected()
 
     local itemsToProcess = {}
     local money = 0
+    local skippedCount = 0
+    local totalSelected = 0
+    local firstErrorCode = nil
 
     for animalIndex, isSelected in pairs(self.selectedItems) do
         if isSelected then
@@ -2534,8 +2537,23 @@ function AnimalScreen:onClickBuySelected()
                 elseif self.isBuyMode then
                     local animalFound, _, _, totalPrice = self.controller:getSourcePrice(animalTypeIndex, animalIndex, 1)
                     if animalFound then
-                        table.insert(itemsToProcess, animalIndex)
-                        money = money + totalPrice
+                        totalSelected = totalSelected + 1
+                        -- Pre-validate before adding to buy list
+                        if self.controller.preValidateBuyItem ~= nil then
+                            local errorCode = self.controller:preValidateBuyItem(animalTypeIndex, animalIndex)
+                            if errorCode ~= nil then
+                                skippedCount = skippedCount + 1
+                                if firstErrorCode == nil then firstErrorCode = errorCode end
+                                Log:trace("onClickBuySelected: pre-validate skipped item %d (errorCode=%d)", animalIndex, errorCode)
+                                -- Don't add to itemsToProcess or money
+                            else
+                                table.insert(itemsToProcess, animalIndex)
+                                money = money + totalPrice
+                            end
+                        else
+                            table.insert(itemsToProcess, animalIndex)
+                            money = money + totalPrice
+                        end
                     end
                 else
                     local animalFound, _, _, totalPrice = self.controller:getTargetPrice(animalTypeIndex, animalIndex, 1)
@@ -2550,21 +2568,51 @@ function AnimalScreen:onClickBuySelected()
         end
     end
 
+    -- Buy mode: handle pre-validation results
+    if self.isBuyMode and not self.isTrailerFarm and skippedCount > 0 then
+        Log:debug("onClickBuySelected: pre-validation %d valid, %d skipped (firstError=%d)",
+            #itemsToProcess, skippedCount, firstErrorCode)
+
+        -- All rejected: show error and abort
+        if #itemsToProcess == 0 then
+            Log:debug("onClickBuySelected: all %d items rejected, showing error", skippedCount)
+            InfoDialog.show(g_i18n:getText("rl_ui_buyAllRejected"), nil, nil, DialogElement.TYPE_WARNING)
+            return
+        end
+    end
+
     self.pendingBulkTransaction = { ["items"] = itemsToProcess, ["animalTypeIndex"] = animalTypeIndex }
 
     local callback, confirmationText, text
 
     if self.isBuyMode then
 
-        confirmationText = self.isTrailerFarm and g_i18n:getText("rl_ui_moveConfirmation") or g_i18n:getText("rl_ui_buyConfirmation")
         callback = self.buySelected
-	    text = self.controller:getSourceActionText()
+        text = self.controller:getSourceActionText()
+
+        if self.isTrailerFarm then
+            confirmationText = g_i18n:getText("rl_ui_moveConfirmation")
+        elseif skippedCount > 0 then
+            -- Partial rejection: show how many valid + why others skipped
+            local lines = {}
+            table.insert(lines, string.format(g_i18n:getText("rl_ui_buyPartialConfirmation"),
+                #itemsToProcess, totalSelected, g_i18n:formatMoney(money, 2, true, true)))
+            if firstErrorCode == AnimalBuyEvent.BUY_ERROR_ANIMAL_NOT_SUPPORTED then
+                table.insert(lines, string.format(g_i18n:getText("rl_ui_buySkippedNotSupported"), skippedCount))
+            end
+            confirmationText = table.concat(lines, "\n")
+            Log:trace("onClickBuySelected: showing partial confirmation - %d valid, %d skipped", #itemsToProcess, skippedCount)
+            YesNoDialog.show(callback, self, confirmationText, g_i18n:getText("ui_attention"), text, g_i18n:getText("button_back"))
+            return
+        else
+            confirmationText = g_i18n:getText("rl_ui_buyConfirmation")
+        end
 
     else
 
         confirmationText = self.isTrailerFarm and g_i18n:getText("rl_ui_moveConfirmation") or g_i18n:getText("rl_ui_sellConfirmation")
         callback = self.sellSelected
-	    text = self.controller:getTargetActionText()
+        text = self.controller:getTargetActionText()
 
     end
 
