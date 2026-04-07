@@ -1157,25 +1157,39 @@ function RLMapBridge.applySubTypeOverrides(subType, animalSystem, xmlFile, key, 
 
     if xmlFile:hasProperty(key .. ".output.milk") then
         local milkFillTypeName = xmlFile:getString(key .. ".output.milk#fillType")
-        local milkCurve = AnimalSystem.loadAnimCurve(animalSystem, xmlFile, key .. ".output.milk")
+        local milkFillTypeIndex = milkFillTypeName and g_fillTypeManager:getFillTypeIndexByName(milkFillTypeName)
+        -- loadAnimCurve returns empty AnimCurve (not nil) when no <key> elements exist;
+        -- only use it if the XML actually defines keyframes
+        local milkHasKeys = xmlFile:hasProperty(key .. ".output.milk.key(0)")
+        local milkCurve = milkHasKeys and AnimalSystem.loadAnimCurve(animalSystem, xmlFile, key .. ".output.milk") or nil
         if milkCurve ~= nil then
             subType.output.milk = {
-                fillType = milkFillTypeName and g_fillTypeManager:getFillTypeIndexByName(milkFillTypeName) or (subType.output.milk and subType.output.milk.fillType),
+                fillType = milkFillTypeIndex or (subType.output.milk and subType.output.milk.fillType),
                 curve = milkCurve
             }
             table.insert(patches, "output.milk")
+        elseif milkFillTypeIndex ~= nil and subType.output.milk ~= nil then
+            -- FillType-only remap (no curve override)
+            subType.output.milk.fillType = milkFillTypeIndex
+            table.insert(patches, "output.milk.fillType")
         end
     end
 
     if xmlFile:hasProperty(key .. ".output.pallets") then
         local palletsFillTypeName = xmlFile:getString(key .. ".output.pallets#fillType")
-        local palletsCurve = AnimalSystem.loadAnimCurve(animalSystem, xmlFile, key .. ".output.pallets")
+        local palletsFillTypeIndex = palletsFillTypeName and g_fillTypeManager:getFillTypeIndexByName(palletsFillTypeName)
+        local palletsHasKeys = xmlFile:hasProperty(key .. ".output.pallets.key(0)")
+        local palletsCurve = palletsHasKeys and AnimalSystem.loadAnimCurve(animalSystem, xmlFile, key .. ".output.pallets") or nil
         if palletsCurve ~= nil then
             subType.output.pallets = {
-                fillType = palletsFillTypeName and g_fillTypeManager:getFillTypeIndexByName(palletsFillTypeName) or (subType.output.pallets and subType.output.pallets.fillType),
+                fillType = palletsFillTypeIndex or (subType.output.pallets and subType.output.pallets.fillType),
                 curve = palletsCurve
             }
             table.insert(patches, "output.pallets")
+        elseif palletsFillTypeIndex ~= nil and subType.output.pallets ~= nil then
+            -- FillType-only remap (no curve override)
+            subType.output.pallets.fillType = palletsFillTypeIndex
+            table.insert(patches, "output.pallets.fillType")
         end
     end
 

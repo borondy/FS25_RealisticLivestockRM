@@ -911,7 +911,7 @@ function RealisticLivestock.hasMaleAnimalInPen(spec, subT, female)
         elseif s.name ~= "RAM_GOAT" and s.name ~= "BULL_WATERBUFFALO" then
             -- Bridge breeding compatibility check (nil = no opinion, true = compatible, false = incompatible)
             if RLMapBridge.isBreedingCompatible(s.name, subT) == false then
-                Log:debug("hasMaleAnimalInPen: Bridge says '%s' incompatible with '%s', skipping", s.name, subT)
+                Log:trace("hasMaleAnimalInPen: Bridge says '%s' incompatible with '%s', skipping", s.name, subT)
             elseif animal.gender == "male" then
                 local bridgeMaxAge = RLMapBridge.getMaxFertilityAge(s.name)
                 local eligible = false
@@ -939,7 +939,7 @@ function RealisticLivestock.hasMaleAnimalInPen(spec, subT, female)
         end
     end
 
-    Log:debug("hasMaleAnimalInPen: No eligible male found for female subType '%s' (type=%s)", subT, tostring(animalType))
+    Log:trace("hasMaleAnimalInPen: No eligible male found for female subType '%s' (type=%s)", subT, tostring(animalType))
     return false
 end
 

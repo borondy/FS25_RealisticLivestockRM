@@ -1362,7 +1362,11 @@ function Animal:updateOutput(temp)
             litersPerDay = output:get(self.age)
         end
 
-
+        if litersPerDay == nil then
+            Log:warning("updateOutput: nil litersPerDay for '%s' output '%s' (age=%d, hasCurve=%s, subType='%s')",
+                tostring(self.uniqueId), fillType, self.age, tostring(output.curve ~= nil), tostring(subType.name))
+            litersPerDay = 0
+        end
 
         if fillType == "pallets" then
             local fillTypeIndex = output.fillType
@@ -1388,7 +1392,6 @@ function Animal:updateOutput(temp)
             litersPerDay = litersPerDay * productivity
         end
 
-
         if fillType == "milk" then
             local monthsSinceLastBirth = self.monthsSinceLastBirth or 12
             local factor = 0.8
@@ -1404,7 +1407,6 @@ function Animal:updateOutput(temp)
 
             litersPerDay = litersPerDay * factor * productivity
         end
-
         for _, disease in pairs(self.diseases) do litersPerDay = disease:modifyOutput(fillType, litersPerDay) end
 
         self.output[fillType] = litersPerDay / 24

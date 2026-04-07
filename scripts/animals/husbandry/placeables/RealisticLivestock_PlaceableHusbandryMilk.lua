@@ -54,6 +54,11 @@ function PlaceableHusbandryMilk:updateInputAndOutput(superFunc, animals)
                 if spec.litersPerHour[milk.fillType] ~= nil then
                     spec.litersPerHour[milk.fillType] = spec.litersPerHour[milk.fillType] + animal:getOutput("milk")
                     table.addElement(spec.activeFillTypes, milk.fillType)
+                else
+                    Log:debug("Milk: fillType %s (index=%s) for subType '%s' not in building's litersPerHour - output dropped",
+                        tostring(g_fillTypeManager:getFillTypeNameByIndex(milk.fillType)),
+                        tostring(milk.fillType),
+                        tostring(subType.name))
                 end
 
             end

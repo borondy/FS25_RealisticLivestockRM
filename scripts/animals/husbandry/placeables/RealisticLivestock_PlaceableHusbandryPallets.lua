@@ -54,6 +54,14 @@ function PlaceableHusbandryPallets:updateInputAndOutput(superFunc, animals)
                 if spec.litersPerHour[pallets.fillType] ~= nil then
                     spec.litersPerHour[pallets.fillType] = spec.litersPerHour[pallets.fillType] + animal:getOutput("pallets")
                     table.addElement(spec.activeFillTypes, pallets.fillType)
+                else
+                    Log:debug("Pallets: fillType %s (index=%s) for subType '%s' not in building's litersPerHour - output dropped. Registered: %s",
+                        tostring(g_fillTypeManager:getFillTypeNameByIndex(pallets.fillType)),
+                        tostring(pallets.fillType),
+                        tostring(subType.name),
+                        tostring(table.concat(
+                            (function() local keys = {} for k, _ in pairs(spec.litersPerHour) do table.insert(keys, tostring(g_fillTypeManager:getFillTypeNameByIndex(k) or k)) end return keys end)(),
+                            ", ")))
                 end
 
             end

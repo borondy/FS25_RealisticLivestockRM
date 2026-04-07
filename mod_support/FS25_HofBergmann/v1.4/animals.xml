@@ -547,6 +547,38 @@
     </breedingGroups>
 
     <!--
+        SHEEP type: HB 1.4 uses SHEEPWOOL_SHEARED instead of the base game's WOOL fillType.
+        RLRM's bundled sheep subtypes produce WOOL. Remap output to match HB's building config
+        so pallets actually spawn at the sheep stable/pasture.
+    -->
+    <animal type="SHEEP">
+        <subType subType="SHEEP_LANDRACE">
+            <output><pallets fillType="SHEEPWOOL_SHEARED"/></output>
+        </subType>
+        <subType subType="RAM_LANDRACE">
+            <output><pallets fillType="SHEEPWOOL_SHEARED"/></output>
+        </subType>
+        <subType subType="SHEEP_STEINSCHAF">
+            <output><pallets fillType="SHEEPWOOL_SHEARED"/></output>
+        </subType>
+        <subType subType="RAM_STEINSCHAF">
+            <output><pallets fillType="SHEEPWOOL_SHEARED"/></output>
+        </subType>
+        <subType subType="SHEEP_SWISS_MOUNTAIN">
+            <output><pallets fillType="SHEEPWOOL_SHEARED"/></output>
+        </subType>
+        <subType subType="RAM_SWISS_MOUNTAIN">
+            <output><pallets fillType="SHEEPWOOL_SHEARED"/></output>
+        </subType>
+        <subType subType="SHEEP_BLACK_WELSH">
+            <output><pallets fillType="SHEEPWOOL_SHEARED"/></output>
+        </subType>
+        <subType subType="RAM_BLACK_WELSH">
+            <output><pallets fillType="SHEEPWOOL_SHEARED"/></output>
+        </subType>
+    </animal>
+
+    <!--
         HORSE type: HB uses interleaved foal/adult entries (4 breeds x 2 stages = 8 entries).
         Base game: 8 flat entries (1 per breed, adult model only, 4x2 texture atlas).
         HB:        [1]=Gray foal, [2]=Gray adult, [3]=Palomino foal, [4]=Palomino adult,
