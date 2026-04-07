@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.1.4.0-dev.1
+- Fixed horse breed visuals on Hof Bergmann: adult horses no longer display as foals, breed colors now match correctly, foal-to-adult model transition now works
+- Fixed horse riding and equipment on Hof Bergmann v1.4: saddles, carriages, and tools from the Horse Addon Pack now attach correctly
+- Disabled four horse breeds not natively supported by Hof Bergmann (Pinto, Chestnut, Bay, Dun) from the dealer - existing savegame horses of those breeds are unaffected
+- Fixed dealer generating sale animals for breeds marked as not purchasable on the current map
+- Fixed wool not spawning on Hof Bergmann v1.4: bridge now remaps WOOL to SHEEPWOOL_SHEARED to match HB's husbandry buildings
+- Fixed crash when animal output curve returns nil, which could silently stop all production in a building
+- Fixed bridge output overrides replacing valid production curves with empty ones when only the fillType needed remapping
+
 ## v1.1.3.0
 - Fixed bridge animals (rabbits, quail, etc.) getting duplicate IDs in multiplayer, causing animals to disappear on clients
 - Fixed bridge animal ID counter, now tracks per-type counters with savegame persistence

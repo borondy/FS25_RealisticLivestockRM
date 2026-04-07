@@ -99,7 +99,7 @@ function RealisticLivestock_AnimalClusterSystem:loadFromXMLFile(_, xmlFile, key)
     -- during readStream. Two steps:
     --   1. Seed typeIds counters past existing animals (prevents collision on next birth)
     --   2. Reassign all animals in any duplicate group (fixes existing collisions)
-    -- TODO: RLRM-122 - remove this migration pass once affected saves have been migrated.
+    -- TODO: remove this migration pass once affected saves have been migrated.
     if g_server ~= nil and #self.animals > 0 then
 
         -- Step 1: Seed typeIds counters for non-base types so future births/purchases

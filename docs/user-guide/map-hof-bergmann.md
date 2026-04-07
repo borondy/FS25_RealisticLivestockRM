@@ -19,7 +19,7 @@ You don't need to do anything — the detection and configuration loading is ful
 | 1.3.0.1 | v1.3 | Tested |
 | 1.4.0.0 Beta1 | v1.4 | Tested |
 | 1.4.0.0 Beta2 | v1.4 | Tested |
-| 1.4.0.0 | v1.4 | Not tested yet |
+| 1.4.0.0 | v1.4 | Tested |
 
 If your version isn't listed and you see a warning dialog, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues) so support can be added.
 
@@ -44,6 +44,8 @@ For each exotic animal type, the mod adds **male subtypes** so that natural bree
 
 All exotic animals can be bought, sold, bred, monitored, and managed through the livestock menu just like base game animals.
 
+> **Wild Ducks:** You may notice wild ducks in the livestock dealer. These are decorative pond animals with no husbandry building on the map. The [map developer notes](https://www.lsfarming-mods.com/filebase/entry/112-hof-bergmann/) that they appear in the dealer due to a technical fix, but are not playable animals. They cannot be placed or managed.
+
 ### Corrections Applied
 
 The map's default animal data is derived from 3D model dimensions, which sometimes produces unrealistic values. The bridge corrects these:
@@ -56,6 +58,33 @@ The map's default animal data is derived from 3D model dimensions, which sometim
 | **Cats** | Litter size increased to 3-6 kittens | Map default was 1-3; real cats have 3-5 per litter |
 | **Geese** | Clutch size set to 3-6 eggs | Map default was 1-3 |
 | **Rabbits** | Litter size increased to 4-8 kits | Map default was 1-3; real rabbits have 4-8 per litter |
+
+---
+
+## Horses
+
+Hof Bergmann uses its own horse 3D models with separate foal and adult stages, which differs from the base game's single-model layout. The bridge remaps RLRM's horse breeds to HB's model system so that breed colours display correctly and foals properly transition to adult models at 12 months.
+
+### Available Breeds
+
+HB has native 3D models for 4 of RLRM's 8 horse breeds. The other 4 are disabled at the dealer since they don't have matching models on this map.
+
+| Breed | Available at Dealer | Notes |
+|-------|:---:|-------|
+| **Gray** | Yes | Native HB breed |
+| **Palomino** | Yes | Native HB breed |
+| **Black** | Yes | Native HB breed |
+| **Seal Brown** | Yes | Native HB breed |
+| **Pinto** | No | Uses Gray model in-game |
+| **Chestnut** | No | Uses Seal Brown model in-game |
+| **Bay** | No | Uses Seal Brown model in-game |
+| **Dun** | No | Uses Palomino model in-game |
+
+If you already have Pinto, Chestnut, Bay, or Dun horses in a savegame, they continue to load and function normally -- they just use a visually similar breed's 3D model.
+
+### Riding and Equipment (v1.4)
+
+On HB v1.4, horses are fully rideable and compatible with the Horse Addon Pack. Saddles, carriages, and tools attach correctly to all breeds.
 
 ---
 
