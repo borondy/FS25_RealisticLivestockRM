@@ -1096,7 +1096,23 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
 
     if animalType == nil then return nil end
 
-    local subTypeIndex = animalType.subTypes[math.random(1, #animalType.subTypes)]
+    -- Filter to subtypes with at least one buyable visual (respects bridge canBeBought overrides)
+    local buyableSubTypes = {}
+    for _, stIdx in ipairs(animalType.subTypes) do
+        local st = self:getSubTypeByIndex(stIdx)
+        if st ~= nil and st.visuals ~= nil then
+            for _, visual in ipairs(st.visuals) do
+                if visual.store ~= nil and visual.store.canBeBought then
+                    table.insert(buyableSubTypes, stIdx)
+                    break
+                end
+            end
+        end
+    end
+
+    if #buyableSubTypes == 0 then return nil end
+
+    local subTypeIndex = buyableSubTypes[math.random(1, #buyableSubTypes)]
     local subType = self:getSubTypeByIndex(subTypeIndex)
     
     local farmId, farmQuality, farmCountryIndex, lastAnimalId

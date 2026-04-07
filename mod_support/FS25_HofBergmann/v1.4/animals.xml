@@ -547,6 +547,134 @@
     </breedingGroups>
 
     <!--
+        HORSE type: HB uses interleaved foal/adult entries (4 breeds x 2 stages = 8 entries).
+        Base game: 8 flat entries (1 per breed, adult model only, 4x2 texture atlas).
+        HB:        [1]=Gray foal, [2]=Gray adult, [3]=Palomino foal, [4]=Palomino adult,
+                   [5]=Black foal, [6]=Black adult, [7]=Seal Brown foal, [8]=Seal Brown adult
+
+        RLRM Phase 1 defines 8 breeds (16 subtypes with gender) using flat indices 1-8.
+        Bridge remaps to HB's interleaved layout with 2-stage foal/adult visuals.
+        HB only has models for 4 breeds; the other 4 map to visually similar breeds:
+        Pinto->Gray, Chestnut->Seal Brown, Bay->Seal Brown, Dun->Palomino.
+    -->
+    <animal type="HORSE">
+        <!-- Native HB breeds: Gray (foal=1, adult=2) -->
+        <subType subType="HORSE_GRAY">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="1" image="character/animals/domesticated/horse/store_foalGray.png" canBeBought="true"/>
+                <visual minAge="12" visualAnimalIndex="2" image="$dataS/character/animals/domesticated/horse/store_horseGray.png" canBeBought="true"/>
+            </visuals>
+        </subType>
+        <subType subType="STALLION_GRAY">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="1" image="character/animals/domesticated/horse/store_foalGray.png" canBeBought="true"/>
+                <visual minAge="12" visualAnimalIndex="2" image="$dataS/character/animals/domesticated/horse/store_horseGray.png" canBeBought="true"/>
+            </visuals>
+        </subType>
+
+        <!-- Native HB breeds: Palomino (foal=3, adult=4) -->
+        <subType subType="HORSE_PALOMINO">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="3" image="character/animals/domesticated/horse/store_foalPalomino.png" canBeBought="true"/>
+                <visual minAge="12" visualAnimalIndex="4" image="$dataS/character/animals/domesticated/horse/store_horsePalomino.png" canBeBought="true"/>
+            </visuals>
+        </subType>
+        <subType subType="STALLION_PALOMINO">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="3" image="character/animals/domesticated/horse/store_foalPalomino.png" canBeBought="true"/>
+                <visual minAge="12" visualAnimalIndex="4" image="$dataS/character/animals/domesticated/horse/store_horsePalomino.png" canBeBought="true"/>
+            </visuals>
+        </subType>
+
+        <!-- Native HB breeds: Black (foal=5, adult=6) -->
+        <subType subType="HORSE_BLACK">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="5" image="character/animals/domesticated/horse/store_foalBlack.png" canBeBought="true"/>
+                <visual minAge="12" visualAnimalIndex="6" image="$dataS/character/animals/domesticated/horse/store_horseBlack.png" canBeBought="true"/>
+            </visuals>
+        </subType>
+        <subType subType="STALLION_BLACK">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="5" image="character/animals/domesticated/horse/store_foalBlack.png" canBeBought="true"/>
+                <visual minAge="12" visualAnimalIndex="6" image="$dataS/character/animals/domesticated/horse/store_horseBlack.png" canBeBought="true"/>
+            </visuals>
+        </subType>
+
+        <!-- Native HB breeds: Seal Brown (foal=7, adult=8) -->
+        <subType subType="HORSE_SEAL_BROWN">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="7" image="character/animals/domesticated/horse/store_foalSealBrown.png" canBeBought="true"/>
+                <visual minAge="12" visualAnimalIndex="8" image="$dataS/character/animals/domesticated/horse/store_horseSealBrown.png" canBeBought="true"/>
+            </visuals>
+        </subType>
+        <subType subType="STALLION_SEAL_BROWN">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="7" image="character/animals/domesticated/horse/store_foalSealBrown.png" canBeBought="true"/>
+                <visual minAge="12" visualAnimalIndex="8" image="$dataS/character/animals/domesticated/horse/store_horseSealBrown.png" canBeBought="true"/>
+            </visuals>
+        </subType>
+
+        <!-- Unsupported breeds: not purchasable on HB (no native 3D models).
+             Visual indices map to closest HB breed for existing savegame animals. -->
+
+        <!-- Pinto -> Gray visual (not purchasable) -->
+        <subType subType="HORSE_PINTO">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="1" image="character/animals/domesticated/horse/store_foalGray.png" canBeBought="false"/>
+                <visual minAge="12" visualAnimalIndex="2" image="$dataS/character/animals/domesticated/horse/store_horsePinto.png" canBeBought="false"/>
+            </visuals>
+        </subType>
+        <subType subType="STALLION_PINTO">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="1" image="character/animals/domesticated/horse/store_foalGray.png" canBeBought="false"/>
+                <visual minAge="12" visualAnimalIndex="2" image="$dataS/character/animals/domesticated/horse/store_horsePinto.png" canBeBought="false"/>
+            </visuals>
+        </subType>
+
+        <!-- Chestnut -> Seal Brown visual (not purchasable) -->
+        <subType subType="HORSE_CHESTNUT">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="7" image="character/animals/domesticated/horse/store_foalSealBrown.png" canBeBought="false"/>
+                <visual minAge="12" visualAnimalIndex="8" image="$dataS/character/animals/domesticated/horse/store_horseChestnut.png" canBeBought="false"/>
+            </visuals>
+        </subType>
+        <subType subType="STALLION_CHESTNUT">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="7" image="character/animals/domesticated/horse/store_foalSealBrown.png" canBeBought="false"/>
+                <visual minAge="12" visualAnimalIndex="8" image="$dataS/character/animals/domesticated/horse/store_horseChestnut.png" canBeBought="false"/>
+            </visuals>
+        </subType>
+
+        <!-- Bay -> Seal Brown visual (not purchasable) -->
+        <subType subType="HORSE_BAY">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="7" image="character/animals/domesticated/horse/store_foalSealBrown.png" canBeBought="false"/>
+                <visual minAge="12" visualAnimalIndex="8" image="$dataS/character/animals/domesticated/horse/store_horseBay.png" canBeBought="false"/>
+            </visuals>
+        </subType>
+        <subType subType="STALLION_BAY">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="7" image="character/animals/domesticated/horse/store_foalSealBrown.png" canBeBought="false"/>
+                <visual minAge="12" visualAnimalIndex="8" image="$dataS/character/animals/domesticated/horse/store_horseBay.png" canBeBought="false"/>
+            </visuals>
+        </subType>
+
+        <!-- Dun -> Palomino visual (not purchasable) -->
+        <subType subType="HORSE_DUN">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="3" image="character/animals/domesticated/horse/store_foalPalomino.png" canBeBought="false"/>
+                <visual minAge="12" visualAnimalIndex="4" image="$dataS/character/animals/domesticated/horse/store_horseDun.png" canBeBought="false"/>
+            </visuals>
+        </subType>
+        <subType subType="STALLION_DUN">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="3" image="character/animals/domesticated/horse/store_foalPalomino.png" canBeBought="false"/>
+                <visual minAge="12" visualAnimalIndex="4" image="$dataS/character/animals/domesticated/horse/store_horseDun.png" canBeBought="false"/>
+            </visuals>
+        </subType>
+    </animal>
+
+    <!--
         Config overrides: update animalType.configFilename for types where the map's
         3D model config has additional models beyond the base game config.
         Without this, the C++ engine only loads base game models and map-specific
@@ -554,6 +682,7 @@
     -->
     <configOverrides>
         <override type="CHICKEN" configFilename="character/animals/domesticated/chicken/husbandryAnimalsChicken.xml"/>
+        <override type="HORSE" configFilename="character/animals/domesticated/horse/husbandryAnimalsHorse.xml"/>
     </configOverrides>
 
 </animals>
