@@ -560,12 +560,14 @@
     <animal type="HORSE">
         <!-- Native HB breeds: Gray (foal=1, adult=2) -->
         <subType subType="HORSE_GRAY">
+            <rideable filename="character/animals/domesticated/horse/horse.xml"/>
             <visuals>
                 <visual minAge="0" visualAnimalIndex="1" image="character/animals/domesticated/horse/store_foalGray.png" canBeBought="true"/>
                 <visual minAge="12" visualAnimalIndex="2" image="$dataS/character/animals/domesticated/horse/store_horseGray.png" canBeBought="true"/>
             </visuals>
         </subType>
         <subType subType="STALLION_GRAY">
+            <rideable filename="character/animals/domesticated/horse/horse.xml"/>
             <visuals>
                 <visual minAge="0" visualAnimalIndex="1" image="character/animals/domesticated/horse/store_foalGray.png" canBeBought="true"/>
                 <visual minAge="12" visualAnimalIndex="2" image="$dataS/character/animals/domesticated/horse/store_horseGray.png" canBeBought="true"/>
@@ -574,12 +576,14 @@
 
         <!-- Native HB breeds: Palomino (foal=3, adult=4) -->
         <subType subType="HORSE_PALOMINO">
+            <rideable filename="character/animals/domesticated/horse/horse.xml"/>
             <visuals>
                 <visual minAge="0" visualAnimalIndex="3" image="character/animals/domesticated/horse/store_foalPalomino.png" canBeBought="true"/>
                 <visual minAge="12" visualAnimalIndex="4" image="$dataS/character/animals/domesticated/horse/store_horsePalomino.png" canBeBought="true"/>
             </visuals>
         </subType>
         <subType subType="STALLION_PALOMINO">
+            <rideable filename="character/animals/domesticated/horse/horse.xml"/>
             <visuals>
                 <visual minAge="0" visualAnimalIndex="3" image="character/animals/domesticated/horse/store_foalPalomino.png" canBeBought="true"/>
                 <visual minAge="12" visualAnimalIndex="4" image="$dataS/character/animals/domesticated/horse/store_horsePalomino.png" canBeBought="true"/>
@@ -588,12 +592,14 @@
 
         <!-- Native HB breeds: Black (foal=5, adult=6) -->
         <subType subType="HORSE_BLACK">
+            <rideable filename="character/animals/domesticated/horse/horse.xml"/>
             <visuals>
                 <visual minAge="0" visualAnimalIndex="5" image="character/animals/domesticated/horse/store_foalBlack.png" canBeBought="true"/>
                 <visual minAge="12" visualAnimalIndex="6" image="$dataS/character/animals/domesticated/horse/store_horseBlack.png" canBeBought="true"/>
             </visuals>
         </subType>
         <subType subType="STALLION_BLACK">
+            <rideable filename="character/animals/domesticated/horse/horse.xml"/>
             <visuals>
                 <visual minAge="0" visualAnimalIndex="5" image="character/animals/domesticated/horse/store_foalBlack.png" canBeBought="true"/>
                 <visual minAge="12" visualAnimalIndex="6" image="$dataS/character/animals/domesticated/horse/store_horseBlack.png" canBeBought="true"/>
@@ -602,12 +608,14 @@
 
         <!-- Native HB breeds: Seal Brown (foal=7, adult=8) -->
         <subType subType="HORSE_SEAL_BROWN">
+            <rideable filename="character/animals/domesticated/horse/horse.xml"/>
             <visuals>
                 <visual minAge="0" visualAnimalIndex="7" image="character/animals/domesticated/horse/store_foalSealBrown.png" canBeBought="true"/>
                 <visual minAge="12" visualAnimalIndex="8" image="$dataS/character/animals/domesticated/horse/store_horseSealBrown.png" canBeBought="true"/>
             </visuals>
         </subType>
         <subType subType="STALLION_SEAL_BROWN">
+            <rideable filename="character/animals/domesticated/horse/horse.xml"/>
             <visuals>
                 <visual minAge="0" visualAnimalIndex="7" image="character/animals/domesticated/horse/store_foalSealBrown.png" canBeBought="true"/>
                 <visual minAge="12" visualAnimalIndex="8" image="$dataS/character/animals/domesticated/horse/store_horseSealBrown.png" canBeBought="true"/>
@@ -619,12 +627,14 @@
 
         <!-- Pinto -> Gray visual (not purchasable) -->
         <subType subType="HORSE_PINTO">
+            <rideable filename="character/animals/domesticated/horse/horse.xml"/>
             <visuals>
                 <visual minAge="0" visualAnimalIndex="1" image="character/animals/domesticated/horse/store_foalGray.png" canBeBought="false"/>
                 <visual minAge="12" visualAnimalIndex="2" image="$dataS/character/animals/domesticated/horse/store_horsePinto.png" canBeBought="false"/>
             </visuals>
         </subType>
         <subType subType="STALLION_PINTO">
+            <rideable filename="character/animals/domesticated/horse/horse.xml"/>
             <visuals>
                 <visual minAge="0" visualAnimalIndex="1" image="character/animals/domesticated/horse/store_foalGray.png" canBeBought="false"/>
                 <visual minAge="12" visualAnimalIndex="2" image="$dataS/character/animals/domesticated/horse/store_horsePinto.png" canBeBought="false"/>
@@ -633,12 +643,14 @@
 
         <!-- Chestnut -> Seal Brown visual (not purchasable) -->
         <subType subType="HORSE_CHESTNUT">
+            <rideable filename="character/animals/domesticated/horse/horse.xml"/>
             <visuals>
                 <visual minAge="0" visualAnimalIndex="7" image="character/animals/domesticated/horse/store_foalSealBrown.png" canBeBought="false"/>
                 <visual minAge="12" visualAnimalIndex="8" image="$dataS/character/animals/domesticated/horse/store_horseChestnut.png" canBeBought="false"/>
             </visuals>
         </subType>
         <subType subType="STALLION_CHESTNUT">
+            <rideable filename="character/animals/domesticated/horse/horse.xml"/>
             <visuals>
                 <visual minAge="0" visualAnimalIndex="7" image="character/animals/domesticated/horse/store_foalSealBrown.png" canBeBought="false"/>
                 <visual minAge="12" visualAnimalIndex="8" image="$dataS/character/animals/domesticated/horse/store_horseChestnut.png" canBeBought="false"/>
@@ -647,12 +659,14 @@
 
         <!-- Bay -> Seal Brown visual (not purchasable) -->
         <subType subType="HORSE_BAY">
+            <rideable filename="character/animals/domesticated/horse/horse.xml"/>
             <visuals>
                 <visual minAge="0" visualAnimalIndex="7" image="character/animals/domesticated/horse/store_foalSealBrown.png" canBeBought="false"/>
                 <visual minAge="12" visualAnimalIndex="8" image="$dataS/character/animals/domesticated/horse/store_horseBay.png" canBeBought="false"/>
             </visuals>
         </subType>
         <subType subType="STALLION_BAY">
+            <rideable filename="character/animals/domesticated/horse/horse.xml"/>
             <visuals>
                 <visual minAge="0" visualAnimalIndex="7" image="character/animals/domesticated/horse/store_foalSealBrown.png" canBeBought="false"/>
                 <visual minAge="12" visualAnimalIndex="8" image="$dataS/character/animals/domesticated/horse/store_horseBay.png" canBeBought="false"/>
@@ -661,12 +675,14 @@
 
         <!-- Dun -> Palomino visual (not purchasable) -->
         <subType subType="HORSE_DUN">
+            <rideable filename="character/animals/domesticated/horse/horse.xml"/>
             <visuals>
                 <visual minAge="0" visualAnimalIndex="3" image="character/animals/domesticated/horse/store_foalPalomino.png" canBeBought="false"/>
                 <visual minAge="12" visualAnimalIndex="4" image="$dataS/character/animals/domesticated/horse/store_horseDun.png" canBeBought="false"/>
             </visuals>
         </subType>
         <subType subType="STALLION_DUN">
+            <rideable filename="character/animals/domesticated/horse/horse.xml"/>
             <visuals>
                 <visual minAge="0" visualAnimalIndex="3" image="character/animals/domesticated/horse/store_foalPalomino.png" canBeBought="false"/>
                 <visual minAge="12" visualAnimalIndex="4" image="$dataS/character/animals/domesticated/horse/store_horseDun.png" canBeBought="false"/>

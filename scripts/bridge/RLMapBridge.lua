@@ -1097,6 +1097,13 @@ function RLMapBridge.applySubTypeOverrides(subType, animalSystem, xmlFile, key, 
         table.insert(patches, "healthDecreaseHour=" .. healthDec)
     end
 
+    -- Rideable (horse vehicle config)
+    local rideable = xmlFile:getString(key .. ".rideable#filename")
+    if rideable ~= nil then
+        subType.rideableFilename = Utils.getFilename(rideable, mapModDir)
+        table.insert(patches, "rideableFilename")
+    end
+
     -- Prices (AnimCurves)
     local buyPrice = AnimalSystem.loadAnimCurve(animalSystem, xmlFile, key .. ".buyPrice")
     if buyPrice ~= nil then
