@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!--
+    placeholderFrame.xml
+    Phase 0 placeholder tab for the RL Tabbed Menu shell.
+    Intentionally minimal: one header with the buy_animal icon and one centered
+    text element showing the l10n key rl_menu_phase0_placeholder.
+    Deleted in Phase 1 when the Messages tab lands and becomes the first real tab.
+-->
+<GUI name="RLMenuPlaceholderFrame">
+    <GuiElement profile="fs25_menuContainer">
+
+        <!-- Header with placeholder icon -->
+        <GuiElement profile="fs25_menuHeaderPanel">
+            <Bitmap profile="fs25_menuHeaderIconBg">
+                <Bitmap profile="fs25_menuHeaderIcon" imageSliceId="rlExtra.buy_animal"/>
+            </Bitmap>
+            <Text profile="fs25_menuHeaderTitle" text="$l10n_rl_menu_phase0_placeholder"/>
+        </GuiElement>
+
+        <!-- Centered placeholder body text -->
+        <Text profile="fs25_settingsMultiTextOptionTitle"
+              id="placeholderBody"
+              position="0px -300px"
+              size="1920px 40px"
+              text="$l10n_rl_menu_phase0_placeholder"
+              textAlignment="center"/>
+
+    </GuiElement>
+</GUI>

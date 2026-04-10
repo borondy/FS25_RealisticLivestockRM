@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!--
+    rlMenuProfiles.xml
+    GUI profiles for the RL Tabbed Menu (new standalone menu system).
+    Separate from gui/guiProfiles.xml to keep the migration boundary clean.
+    Phase 0: no custom profiles required beyond what base game provides;
+    placeholder element below documents the extension point for Phase 1+.
+-->
+<GUIProfiles>
+    <!-- Phase 0: intentionally empty. Frames use base-game FS25 profiles directly. -->
+    <!-- Phase 1+ will add rl_* profiles here as real tabs need custom styling. -->
+</GUIProfiles>

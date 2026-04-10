@@ -129,6 +129,12 @@ source(modDirectory .. "scripts/gui/ProfileDialog.lua")
 source(modDirectory .. "scripts/gui/RL_InfoDisplayKeyValueBox.lua")
 source(modDirectory .. "scripts/gui/RealisticLivestock_InGameMenuAnimalsFrame.lua")
 
+-- SECTION 13b: RL Tabbed Menu (new standalone TabbedMenu - migration in progress)
+-- Phase 0: shell + placeholder tab. See docs/tasks/rl-tabbed-menu-migration.md
+-- Frames MUST be sourced before the menu so FrameReference refs resolve.
+source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuPlaceholderFrame.lua")
+source(modDirectory .. "scripts/gui/rlmenu/RLMenu.lua")
+
 -- SECTION 14: Migration System
 source(modDirectory .. "scripts/migration/RmMigrationManager.lua")
 source(modDirectory .. "scripts/migration/RmMigrationDialog.lua")
@@ -199,6 +205,14 @@ source(modDirectory .. "scripts/messaging/RLMessageAggregator.lua")
 
 -- SECTION 20k: Core (settings)
 source(modDirectory .. "scripts/core/RLSettings.lua")
+
+-- =============================================================================
+-- RL Tabbed Menu: install hooks (end-of-file, after all sources are loaded).
+-- RLMenu.install() appends hooks onto PlayerInputComponent and RealisticLivestock.loadMap.
+-- setupGui runs AFTER loadMap so rlExtra texture config is available; see RLMenu.install() docs.
+-- =============================================================================
+
+RLMenu.install()
 
 -- =============================================================================
 -- TESTING (conditional - delete tests/ folder for production)

@@ -715,5 +715,9 @@
 
 		<text name="rl_bridge_version_unknown" text="Realistic Livestock: %s version %s has not been tested with version %s of Realistic Livestock. Using config '%s'. If you experience issues with exotic animals, please report them at %s."/>
 
+		<!-- RL Tabbed Menu (Phase 0 shell - placeholder tab) -->
+		<text name="rl_menu_phase0_placeholder" text="RL Menu (Phase 0 - migration in progress)"/>
+		<text name="input_RL_MENU" text="Open RL Menu (new)"/>
+
 	</texts>
 </l10n>
