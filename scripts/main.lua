@@ -140,8 +140,9 @@ source(modDirectory .. "scripts/handTools/HandTool.lua")
 source(modDirectory .. "scripts/handTools/HandToolSystem.lua")
 source(modDirectory .. "scripts/handTools/RLHandTools.lua")
 
--- SECTION 16: Insemination - Dewar (DewarData specialization registered via modDesc.xml)
+-- SECTION 16: Insemination - Dewar (DewarData specialization and rlDewar vehicle type registered in Lua)
 source(modDirectory .. "scripts/insemination/DewarMigration.lua")
+source(modDirectory .. "scripts/insemination/DewarTypeRegistration.lua")
 
 -- SECTION 17: Placeables
 source(modDirectory .. "scripts/placeables/RealisticLivestock_PlaceableSystem.lua")

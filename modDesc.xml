@@ -202,14 +202,6 @@ Codice sorgente e tracciamento issue: https://github.com/rittermod/FS25_Realisti
         </category>
 
     </helpLines>
-    <specializations>
-        <specialization name="dewarData" className="DewarData" filename="scripts/insemination/DewarData.lua" />
-    </specializations>
-    <vehicleTypes>
-        <type name="rlDewar" parent="pallet">
-            <specialization name="dewarData" />
-        </type>
-    </vehicleTypes>
     <storeItems>
         <storeItem xmlFilename="objects/dewar/dewar.xml" />
     </storeItems>
