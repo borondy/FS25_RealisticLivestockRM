@@ -143,6 +143,7 @@ source(modDirectory .. "scripts/handTools/RLHandTools.lua")
 -- SECTION 16: Insemination - Dewar (DewarData specialization and rlDewar vehicle type registered in Lua)
 source(modDirectory .. "scripts/insemination/DewarMigration.lua")
 source(modDirectory .. "scripts/insemination/DewarTypeRegistration.lua")
+source(modDirectory .. "scripts/insemination/DewarObjectStorageHook.lua")
 
 -- SECTION 17: Placeables
 source(modDirectory .. "scripts/placeables/RealisticLivestock_PlaceableSystem.lua")
