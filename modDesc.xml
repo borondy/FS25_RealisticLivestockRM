@@ -1,6 +1,6 @@
 <modDesc descVersion="107">
     <author>Ritter</author>
-    <version>1.1.4.0-dev.2</version>
+    <version>1.1.4.0</version>
     <title>
         <en>Realistic Livestock - Ritter version</en>
         <it>Allevamento Realistico - Versione Ritter</it>
@@ -24,15 +24,16 @@ Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivest
 
 Changelog
 
-v1.1.4.0-dev.2:
+v1.1.4.0:
 Hof Bergmann 1.4 support and bug fixes:
 - Fixed horse breed visuals on Hof Bergmann: adult horses no longer display as foals, breed colors now match correctly, foal-to-adult model transition now works
 - Fixed horse riding and equipment on Hof Bergmann v1.4: saddles, carriages, and tools from the Horse Addon Pack now attach correctly
 - Disabled four horse breeds not natively supported by Hof Bergmann (Pinto, Chestnut, Bay, Dun) from the dealer - existing savegame horses of those breeds are unaffected
 - Fixed dealer generating sale animals for breeds marked as not purchasable on the current map
 - Fixed wool and chicken eggs not spawning on Hof Bergmann v1.4: bridge now remaps fillTypes to match HB's husbandry buildings
+- Fixed Hof Bergmann egg incubator failing to add hatched chicks to husbandry when RLRM is active
 - Fixed crash when animal output curve returns nil, which could silently stop all production in a building
-- Fixed HB egg incubator failing to add hatched chicks to husbandry when RLRM is active
+- Added diagnostic logging for fillType mismatches in pallet and milk output
 
 v1.1.3.0:
 - Fixed bridge animals (rabbits, quail, etc.) getting duplicate IDs in multiplayer, causing animals to disappear on clients
@@ -42,53 +43,6 @@ v1.1.3.0:
 - Added pre-validation for bulk buy: shows which animals can't be purchased and why before confirming
 - Added diagnostic logging for animal loading, breeding, and pack compatibility troubleshooting
 - Added warnings when animals are lost due to removed packs or breed mismatches
-
-v1.1.2.0:
-- Added animal pack system: third-party mods can add breeds, override animal properties, or provide custom balance
-- Added Hof Bergmann 1.4 support with alpacas, quail, corrected chicken visuals, and version detection
-- Added cross-color alpaca breeding (any male color can breed with any female color)
-- Added user documentation for Hof Bergmann map support
-- Added: Exiting the RL animal screen returns to ingame menu animals tab when opened from there
-- Added: RL animal screen opens on the Info tab by default when entered from ingame menu animals tab
-- Fixed: Animal list scroll position jumping every 5 seconds in the ESC menu animals tab
-- Fixed: Click sound playing every 5 seconds while viewing animal list
-- Fixed: Crash when husbandry doesn't register a pallet or milk fillType that its animals produce
-- Fixed: Animal model accumulation when maps redefine existing animal types
-- Fixed: Base game reloads no longer clobber RLRM's superset animal configs
-- Fixed: Random death money compensation (33% sell price) now correctly reaches farm balance
-- Fixed: Bridge animal descriptions showing "Missing" in animal info dialog
-- Fixed: Pig ear tag errors on Hof Bergmann maps
-- Fixed: Sale animals of non-reproductive subtypes could incorrectly become pregnant
-- Fixed: Bridge animals' offspring could receive wrong breed
-- Fixed: Map-defined subtypes for existing animal types not loading alongside base game configs
-- Improved Italian and German translations (community contributions)
-
-v1.1.1.0:
-- Added version-aware map support: detects installed map version and loads the matching configuration
-- Added warning dialog when an untested map version is detected (with link to report issues)
-- Added breed and visual override support for map-based animal subtypes
-- Fixed division-by-zero risk in horse riding fitness calculation at boundary threshold values
-- Fixed horse riding value not being clamped (could accept values outside 0-100 range)
-- Fixed male animals could theoretically become pregnant (missing gender guard in reproduction check)
-- Fixed AI herdsman castrate notifications showing "marked for castrating" instead of "castrated" when in execute mode
-- Fixed AI herdsman state tracking error after auto-buying animals
-- Fixed BUM ID branding on cows showing all zeros and overlapping text
-
-v1.1.0.3:
-- Fixed selected animal jumping to a different animal in the in-game animal menu
-
-v1.1.0.2:
-- Fixed crash on Messages tab caused by unrecognized message IDs from older dev versions
-- Invalid messages are now discarded on savegame load and handled gracefully in the UI
-
-v1.1.0.1:
-- Fixed crash when moving animals between pens (nil subtraction on visual animal count)
-
-v1.1.0.0:
-- Added Move tab for transferring animals between husbandries with destination picker and bulk move
-- Added custom icons for all Animal Screen tabs
-- Hidden castration tab in herdsman screen for chickens (not applicable)
-- Fixed visual glitch in herdsman screen when enabling castration
 
 ]]>
         </en>
