@@ -3,10 +3,79 @@
     rlMenuProfiles.xml
     GUI profiles for the RL Tabbed Menu (new standalone menu system).
     Separate from gui/guiProfiles.xml to keep the migration boundary clean.
-    Phase 0: no custom profiles required beyond what base game provides;
-    placeholder element below documents the extension point for Phase 1+.
+
+    Profiles are namespaced rlMenu_* table profile family.
 -->
 <GUIProfiles>
-    <!-- Phase 0: intentionally empty. Frames use base-game FS25 profiles directly. -->
-    <!-- Phase 1+ will add rl_* profiles here as real tabs need custom styling. -->
+
+    <!-- =========================================================== -->
+    <!-- Table/list profiles for RL Menu frames                      -->
+    <!-- =========================================================== -->
+
+    <!-- Table container background -->
+    <Profile name="rlMenu_tableList" extends="emptyPanel" with="anchorTopLeft pivotTopLeft">
+        <imageColor value="$preset_fs25_colorGreyDark_50"/>
+    </Profile>
+
+    <!-- Alternating row template -->
+    <Profile name="rlMenu_tableListItem" extends="baseReference" with="anchorTopStretchingX alternating">
+        <height value="48px"/>
+        <imageColor value="$preset_fs25_colorGrey"/>
+        <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
+        <alternateBackgroundColor value="$preset_fs25_colorGreyDark_50"/>
+    </Profile>
+
+    <!-- Table header cells -->
+    <Profile name="rlMenu_tableHeaderLeftAligned" extends="baseReference">
+        <imageColor value="0 0 0 0"/>
+        <textFocusedColor value="$preset_fs25_colorMainHighlight"/>
+        <textHighlightedColor value="$preset_fs25_colorMainHighlight"/>
+        <textSize value="16px"/>
+        <textBold value="true"/>
+        <textUpperCase value="true"/>
+        <textColor value="$preset_colorWhite_50"/>
+        <textAlignment value="left"/>
+        <textDisabledColor value="$preset_colorDisabled"/>
+    </Profile>
+
+    <Profile name="rlMenu_tableHeaderRightAligned" extends="rlMenu_tableHeaderLeftAligned">
+        <textAlignment value="right"/>
+    </Profile>
+
+    <Profile name="rlMenu_tableHeaderCentered" extends="rlMenu_tableHeaderLeftAligned">
+        <textAlignment value="center"/>
+    </Profile>
+
+    <!-- Table row cells -->
+    <Profile name="rlMenu_tableRowCellLeftAligned" extends="baseReference" with="anchorStretchingYLeft">
+        <textBold value="false"/>
+        <textSize value="15px"/>
+        <textAlignment value="left"/>
+        <textColor value="$preset_fs25_colorMainLight"/>
+        <textSelectedColor value="$preset_fs25_colorMainDark"/>
+        <textDisabledColor value="$preset_colorDisabled"/>
+    </Profile>
+
+    <Profile name="rlMenu_tableRowCellRightAligned" extends="rlMenu_tableRowCellLeftAligned">
+        <textAlignment value="right"/>
+    </Profile>
+
+    <Profile name="rlMenu_tableRowCellCentered" extends="rlMenu_tableRowCellLeftAligned">
+        <textAlignment value="center"/>
+    </Profile>
+
+    <!-- Summary row at the bottom of a table -->
+    <Profile name="rlMenu_tableSummary" extends="emptyPanel" with="anchorStretchingYLeft pivotTopLeft">
+    </Profile>
+
+    <!-- Generic container for grouping (used by SmoothList + scrollbar wrapper) -->
+    <Profile name="rlMenu_container" extends="baseReference" with="anchorTopLeft">
+    </Profile>
+
+    <!-- Importance indicator icon (full-color, no select tinting) -->
+    <Profile name="rlMenu_importanceIcon" extends="emptyPanel" with="anchorTopLeft">
+        <imageColor value="1 1 1 1"/>
+        <imageSelectedColor value="1 1 1 1"/>
+    </Profile>
+
 </GUIProfiles>

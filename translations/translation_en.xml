@@ -715,9 +715,23 @@
 
 		<text name="rl_bridge_version_unknown" text="Realistic Livestock: %s version %s has not been tested with version %s of Realistic Livestock. Using config '%s'. If you experience issues with exotic animals, please report them at %s."/>
 
-		<!-- RL Tabbed Menu (Phase 0 shell - placeholder tab) -->
-		<text name="rl_menu_phase0_placeholder" text="RL Menu (Phase 0 - migration in progress)"/>
+		<!-- RL Tabbed Menu -->
 		<text name="input_RL_MENU" text="Open RL Menu (new)"/>
+		<!-- Phase 1: Messages tab -->
+		<text name="rl_menu_messages_title" text="Messages"/>
+		<text name="rl_menu_messages_empty" text="No messages yet"/>
+		<text name="rl_menu_messages_no_farm" text="You need to own a farm to view messages"/>
+		<text name="rl_menu_messages_summary" text="%s messages"/>
+		<text name="rl_menu_messages_col_type" text="Type"/>
+		<text name="rl_menu_messages_col_animal" text="Animal"/>
+		<text name="rl_menu_messages_col_message" text="Message"/>
+		<text name="rl_menu_messages_col_husbandry" text="Husbandry"/>
+		<text name="rl_menu_messages_col_date" text="Date"/>
+		<text name="rl_menu_messages_unknown" text="Unknown: %s"/>
+		<!-- Phase 1.1: Messages delete -->
+		<text name="rl_menu_messages_delete_button" text="Delete"/>
+		<text name="rl_menu_messages_delete_all_button" text="Delete all"/>
+		<text name="rl_menu_messages_confirm_delete_all" text="Delete all %s messages? This cannot be undone."/>
 
 	</texts>
 </l10n>

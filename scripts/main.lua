@@ -77,6 +77,7 @@ source(modDirectory .. "scripts/animals/shop/RealisticLivestock_AnimalItemStock.
 
 -- SECTION 9: Events (General)
 source(modDirectory .. "scripts/events/HusbandryMessageStateEvent.lua")
+source(modDirectory .. "scripts/events/HusbandryMessageDeleteEvent.lua")
 source(modDirectory .. "scripts/events/ReturnStrawEvent.lua")
 source(modDirectory .. "scripts/events/DiseaseTreatmentToggleEvent.lua")
 
@@ -130,9 +131,10 @@ source(modDirectory .. "scripts/gui/RL_InfoDisplayKeyValueBox.lua")
 source(modDirectory .. "scripts/gui/RealisticLivestock_InGameMenuAnimalsFrame.lua")
 
 -- SECTION 13b: RL Tabbed Menu (new standalone TabbedMenu - migration in progress)
--- Phase 0: shell + placeholder tab. See docs/tasks/rl-tabbed-menu-migration.md
--- Frames MUST be sourced before the menu so FrameReference refs resolve.
-source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuPlaceholderFrame.lua")
+-- Services must be sourced before frames that call them; frames must be
+-- sourced before the menu so FrameReference refs resolve.
+source(modDirectory .. "scripts/gui/rlmenu/services/RLMessageService.lua")
+source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuMessagesFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/RLMenu.lua")
 
 -- SECTION 14: Migration System

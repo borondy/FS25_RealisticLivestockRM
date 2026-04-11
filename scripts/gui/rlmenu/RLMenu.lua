@@ -2,17 +2,14 @@
     RLMenu.lua
     Root controller for the RL Tabbed Menu (standalone TabbedMenu subclass).
 
-    Phase 0: ships the empty shell with a single placeholder tab. Opened via the
-    new unbound RL_MENU input action (user assigns a key in Settings -> Controls).
+    Phase 1: ships the Messages tab as the first real tab. Opened via the
+    unbound RL_MENU input action (user assigns a key in Settings -> Controls).
     ESC closes via the standard FS25 back-button pattern; the menu does NOT
     implement toggle-to-close (Fresh's quick-view pattern is unsuitable for a
     destination menu).
 
-    Phase 1+ adds real tabs (Messages, Herdsman, Info, Move, Buy, Sell, AI) with
+    Phase 2+ adds the remaining tabs (Herdsman, Info, Move, Buy, Sell, AI) with
     dedicated frame files under frames/ and service files under services/.
-
-    See: docs/tasks/rl-tabbed-menu-migration.md (master migration plan)
-    Reference: ../Fresh/FS25_Fresh/scripts/gui/RmFreshMenu.lua
 ]]
 
 RLMenu = RLMenu or {}
@@ -46,8 +43,8 @@ function RLMenu.setupGui()
     -- 1. Load RL menu profiles (separate file from gui/guiProfiles.xml)
     g_gui:loadProfiles(Utils.getFilename("gui/rlmenu/rlMenuProfiles.xml", modDirectory))
 
-    -- 2. Register frames (Phase 0: just the placeholder)
-    RLMenuPlaceholderFrame.setupGui()
+    -- 2. Register frames (Phase 1: Messages tab)
+    RLMenuMessagesFrame.setupGui()
 
     -- 3. Create the menu instance and load its XML
     g_rlMenu = RLMenu.new()
@@ -70,16 +67,16 @@ function RLMenu:onGuiSetupFinished()
 end
 
 --- Register each tab with the TabbedMenu Paging system.
---- Phase 0: single placeholder tab. Phase 1+ adds tabs by appending registerPage
+--- Phase 1: Messages tab. Phase 2+ adds tabs by appending registerPage
 --- and addPageTab calls here (and matching FrameReference entries in rlMenu.xml).
 function RLMenu:setupMenuPages()
     local basePredicate = function() return g_currentMission ~= nil end
 
-    -- Phase 0 placeholder tab (uses the Buy icon temporarily; replaced in Phase 1)
-    self:registerPage(self.placeholderFrame, 1, basePredicate)
-    self:addPageTab(self.placeholderFrame, nil, nil, "rlExtra.buy_animal")
+    -- Phase 1 Messages tab
+    self:registerPage(self.messagesFrame, 1, basePredicate)
+    self:addPageTab(self.messagesFrame, nil, nil, "rlExtra.notify_animal")
 
-    Log:debug("RLMenu:setupMenuPages: 1 page registered (placeholder)")
+    Log:debug("RLMenu:setupMenuPages: 1 page registered (messages)")
 end
 
 --- Configure the bottom button bar.
@@ -162,8 +159,9 @@ function RLMenu.addPlayerActionEvents(playerInputComponent, controlling)
     )
 
     if not success then
-        -- VEHICLE context returns false even on success (known FS25 quirk).
-        -- A non-empty actionEventId on failure usually means a duplicate registration (benign).
+        -- registerActionEvent has been observed to return false even when
+        -- registration succeeded for the VEHICLE context. A non-empty
+        -- actionEventId on failure usually means a duplicate registration (benign).
         if controlling == "VEHICLE" or (actionEventId ~= nil and actionEventId ~= "") then
             Log:trace("RLMenu.addPlayerActionEvents: registration returned false (controlling=%s, eventId=%s)",
                 tostring(controlling), tostring(actionEventId))
@@ -191,8 +189,8 @@ end
 ---      (see RealisticLivestock.lua:121-124). Without this hook ordering, setupGui
 ---      parses rlMenu.xml's `imageSliceId="rlExtra.buy_animal"` before the texture
 ---      namespace exists, emitting `Warning: No texture config with prefix 'rlExtra' found`
----      at mod load. The warning was harmless (icons render lazily at draw time)
----      but noisy. Hooking into loadMap resolves the ordering cleanly.
+---      at mod load. The warning was harmless in practice but noisy. Hooking
+---      into loadMap resolves the ordering cleanly.
 ---
 --- Idempotency: main.lua sources this file exactly once, so install() runs exactly once;
 --- re-entry is not a supported scenario and would double-append both hooks.

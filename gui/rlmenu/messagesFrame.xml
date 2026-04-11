@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!--
+    messagesFrame.xml
+    RL Tabbed Menu Phase 1 - Messages tab.
+
+    Single full-width SmoothList showing all messages from all husbandries on
+    the player's farm, sorted newest-first. Read-only - no row interaction,
+    no delete, no mark-read.
+
+    Content width is 1540px to match Fresh's statsFrame convention. The
+    fs25_menuContainer content area is ~1560px wide on the standard menu
+    layout; wider elements would render outside the visible area.
+-->
+<GUI name="RLMenuMessagesFrame">
+    <GuiElement profile="fs25_menuContainer">
+
+        <!-- Header with messages icon -->
+        <GuiElement profile="fs25_menuHeaderPanel">
+            <Bitmap profile="fs25_menuHeaderIconBg">
+                <Bitmap profile="fs25_menuHeaderIcon" imageSliceId="rlExtra.notify_animal"/>
+            </Bitmap>
+            <Text profile="fs25_menuHeaderTitle" text="$l10n_rl_menu_messages_title"/>
+        </GuiElement>
+
+        <!-- Table header row -->
+        <Bitmap profile="rlMenu_tableList" id="tableHeader" position="20px -120px" size="1540px 40px">
+            <Text profile="rlMenu_tableHeaderCentered"    position="0px 0px"    size="48px 40px"  text=""/>
+            <Text profile="rlMenu_tableHeaderLeftAligned" position="60px 0px"   size="140px 40px" text="$l10n_rl_menu_messages_col_date"/>
+            <Text profile="rlMenu_tableHeaderLeftAligned" position="210px 0px"  size="150px 40px" text="$l10n_rl_menu_messages_col_type"/>
+            <Text profile="rlMenu_tableHeaderLeftAligned" position="370px 0px"  size="170px 40px" text="$l10n_rl_menu_messages_col_animal"/>
+            <Text profile="rlMenu_tableHeaderLeftAligned" position="550px 0px"  size="600px 40px" text="$l10n_rl_menu_messages_col_message"/>
+            <Text profile="rlMenu_tableHeaderLeftAligned" position="1160px 0px" size="380px 40px" text="$l10n_rl_menu_messages_col_husbandry"/>
+            <ThreePartBitmap profile="fs25_lineSeparatorBottom" position="0px 2px"/>
+        </Bitmap>
+
+        <!-- Messages list with scrollbar wrapper -->
+        <GuiElement profile="rlMenu_container" position="20px -165px" size="1560px 700px">
+            <SmoothList profile="rlMenu_tableList" id="messagesList" position="0px 0px" size="1540px 700px">
+                <ListItem profile="rlMenu_tableListItem" name="messagesRowTemplate" size="1540px 48px">
+                    <Bitmap profile="rlMenu_importanceIcon"          position="9px -9px"   size="30px 30px"  name="importance"/>
+                    <Text   profile="rlMenu_tableRowCellLeftAligned" position="60px 0px"   size="140px 48px" name="date"/>
+                    <Text   profile="rlMenu_tableRowCellLeftAligned" position="210px 0px"  size="150px 48px" name="type"/>
+                    <Text   profile="rlMenu_tableRowCellLeftAligned" position="370px 0px"  size="170px 48px" name="animal" textLayoutMode="scrolling"/>
+                    <Text   profile="rlMenu_tableRowCellLeftAligned" position="550px 0px"  size="600px 48px" name="text" textLayoutMode="scrolling"/>
+                    <Text   profile="rlMenu_tableRowCellLeftAligned" position="1160px 0px" size="380px 48px" name="husbandry" textLayoutMode="scrolling"/>
+                </ListItem>
+            </SmoothList>
+            <ThreePartBitmap profile="fs25_listSliderBox" id="messagesSliderBox" position="-5px 0px" size="12px 700px" with="anchorTopRight">
+                <Slider profile="fs25_listSlider" size="6px 692px" dataElementId="messagesList" id="messagesSlider"/>
+            </ThreePartBitmap>
+        </GuiElement>
+
+        <!-- Empty state (shown when farm has no messages or player has no farm) -->
+        <Text profile="fs25_settingsMultiTextOptionTitle" id="emptyState"
+              position="20px -450px" size="1540px 40px"
+              text="$l10n_rl_menu_messages_empty"
+              textAlignment="center" visible="false"/>
+
+        <!-- Summary row -->
+        <Bitmap profile="rlMenu_tableSummary" id="summaryRow" position="20px -880px" size="1540px 40px">
+            <Text profile="rlMenu_tableRowCellLeftAligned" position="0px 0px" size="600px 40px" id="summaryText"/>
+        </Bitmap>
+
+    </GuiElement>
+</GUI>
