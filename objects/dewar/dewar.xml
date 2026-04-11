@@ -39,6 +39,28 @@
         </meshNodes>
     </tensionBeltObject>
 
+    <!--
+        Placeholder zero-capacity fillUnit.
+
+        The dewar carries its payload via DewarData (straws + stored animal),
+        not via a fillable content. This placeholder block exists purely so
+        the dewar presents the same surface as an ordinary pallet: some
+        third-party mods that inspect stored pallets assume a fillUnit is
+        always present and crash otherwise (observed with Time Saving
+        Stock Check). Capacity 0 with fillType UNKNOWN makes the block inert.
+    -->
+    <fillUnit>
+        <fillUnitConfigurations>
+            <fillUnitConfiguration name="$l10n_configuration_valueDefault" price="0">
+                <fillUnits>
+                    <fillUnit fillTypes="UNKNOWN" capacity="0" unit="$l10n_unit_literShort"
+                              showInShop="false" showCapacityInShop="false"
+                              updateMass="false" canBeUnloaded="false" />
+                </fillUnits>
+            </fillUnitConfiguration>
+        </fillUnitConfigurations>
+    </fillUnit>
+
     <i3dMappings>
         <i3dMapping id="dewar_main_component1" node="0>" />
         <i3dMapping id="dewarMesh" node="0>0" />

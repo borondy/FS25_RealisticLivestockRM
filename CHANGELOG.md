@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.2.0.0-dev.4
+- Fixed crash in third-party mods that inspect stored pallets (e.g. Time Saving Stock Check) when a semen dewar is placed in an object storage - dewars now expose the standard pallet fill attributes expected by other mods
+
+## v1.2.0.0-dev.3
+- Added new "Open RL Menu (new)" action - assign a key in Settings -> Controls to open the new tabbed menu. The legacy animal screen (R key) and the ESC menu page still work unchanged; the new menu will gain features over the coming releases as the migration progresses
+- Added Messages tab as the first real tab in the new RL Menu: shows all husbandry messages from the local player's farm in a single chronological feed sorted newest-first, with columns for date, type, animal, message, and husbandry
+- Added single and bulk delete support in the Messages tab: press Backspace (or click Delete) to remove the focused message, press X (or click Delete all) to remove all visible messages after a confirmation dialog. Delete buttons are only shown when the local player has the Update Farm permission
+- Multiplayer: message delete works across client, server, and other connected clients via a new network event that follows the client-to-server-to-all-clients sync pattern
+- The legacy R-key animal screen Messages tab is unchanged and still has its own (pre-existing) delete button
+
 ## v1.2.0.0-dev.2
 - Rewrote semen dewar as a vehicle/pallet - should fix game freeze when looking at dewar, multiplayer pickup failures, and invisible dewars after mid-game purchase
 - Dewar state (straws, bull genetics) now persists through save/load cycles via the vehicle system

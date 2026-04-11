@@ -43,6 +43,26 @@ DewarObjectStorageHook.SAVEGAME_KEY = "dewarData"
 DewarObjectStorageHook.GENETICS_FIELDS = { "metabolism", "fertility", "health", "quality", "productivity" }
 
 -- -----------------------------------------------------------------------------
+-- ensurePalletAttributesShape: backfill nil fillLevel/fillType
+-- -----------------------------------------------------------------------------
+--- Ensures a stored-pallet attribute table exposes non-nil fillLevel and
+--- fillType. Some third-party mods that read palletAttributes for stored
+--- pallets assume both fields are always populated and crash on nil
+--- comparisons (observed with Time Saving Stock Check). This is a backstop
+--- for dewar.xml's placeholder fillUnit block: if that block is ever removed
+--- or misconfigured, this guard still prevents the crash.
+---@param palletAttributes table|nil Attribute table to normalise
+function DewarObjectStorageHook.ensurePalletAttributesShape(palletAttributes)
+    if palletAttributes == nil then return end
+    if palletAttributes.fillLevel == nil then
+        palletAttributes.fillLevel = 0
+    end
+    if palletAttributes.fillType == nil then
+        palletAttributes.fillType = FillType.UNKNOWN
+    end
+end
+
+-- -----------------------------------------------------------------------------
 -- snapshot: capture DewarData state from a live vehicle
 -- -----------------------------------------------------------------------------
 --- Returns a plain-table snapshot of the vehicle's DewarData spec state,
@@ -238,7 +258,9 @@ local function installHooks()
         function(self, superFunc, storage, object, loadedFromSavegame)
             local state = DewarObjectStorageHook.snapshot(object)
             superFunc(self, storage, object, loadedFromSavegame)
+
             if state ~= nil then
+                DewarObjectStorageHook.ensurePalletAttributesShape(self.palletAttributes)
                 self.rlDewarData = state
                 Log:debug("DewarStorage ENTRY: captured uniqueId=%s straws=%d hasAnimal=%s",
                     tostring(state.uniqueId), state.straws, tostring(state.animal ~= nil))
