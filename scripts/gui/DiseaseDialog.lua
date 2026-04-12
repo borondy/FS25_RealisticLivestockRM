@@ -29,7 +29,7 @@ function DiseaseDialog.createFromExistingGui(gui)
 end
 
 
-function DiseaseDialog.show(animal)
+function DiseaseDialog.show(animal, onCloseCallback, onCloseTarget)
 
     if DiseaseDialog.INSTANCE == nil then DiseaseDialog.register() end
 
@@ -37,6 +37,8 @@ function DiseaseDialog.show(animal)
 
     dialog.animal = animal
     dialog.diseases = table.clone(animal.diseases)
+    dialog.onCloseCallback = onCloseCallback
+    dialog.onCloseTarget = onCloseTarget
 
     g_gui:showDialog("DiseaseDialog")
 
@@ -51,6 +53,17 @@ function DiseaseDialog:onOpen()
 
     self:onClickListItem(1)
 
+end
+
+
+--- Fire optional close callback so the parent screen can refresh.
+function DiseaseDialog:onClose()
+    DiseaseDialog:superClass().onClose(self)
+
+    if self.onCloseCallback ~= nil then
+        Log:trace("DiseaseDialog:onClose: firing close callback")
+        self.onCloseCallback(self.onCloseTarget)
+    end
 end
 
 

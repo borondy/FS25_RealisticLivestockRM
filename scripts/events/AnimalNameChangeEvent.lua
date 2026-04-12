@@ -51,19 +51,23 @@ end
 
 
 function AnimalNameChangeEvent:run(connection)
+    if not connection:getIsServer() then
+        g_server:broadcastEvent(
+            AnimalNameChangeEvent.new(self.object, self.animal, self.name),
+            nil, connection, nil)
+        Log:debug("AnimalNameChangeEvent:run: rebroadcasting name change to other clients")
+    end
 
     local identifiers = self.animal
     local clusterSystem = self.object:getClusterSystem()
-
     local animal = RLAnimalUtil.find(clusterSystem.animals, identifiers.farmId, identifiers.uniqueId, identifiers.country or identifiers.birthday.country)
 
     if animal ~= nil then
         animal.name = self.name
-        Log:trace("NameChangeEvent:run renamed %s to '%s'", tostring(identifiers.uniqueId), tostring(self.name))
+        Log:trace("AnimalNameChangeEvent:run: renamed uniqueId=%s to '%s'", tostring(identifiers.uniqueId), tostring(self.name))
     else
-        Log:trace("NameChangeEvent:run animal not found uniqueId=%s", tostring(identifiers.uniqueId))
+        Log:warning("AnimalNameChangeEvent:run: animal not found uniqueId=%s", tostring(identifiers.uniqueId))
     end
-
 end
 
 

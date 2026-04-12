@@ -1256,7 +1256,7 @@ function AnimalScreen:onClickDiseases()
 
     local animal = item.animal or item.cluster
 
-    DiseaseDialog.show(animal)
+    DiseaseDialog.show(animal, function(screen) screen.sourceList:reloadData() end, self)
 
 end
 
@@ -1480,6 +1480,15 @@ function AnimalScreen:onClickMark()
         animal:setMarked(nil, false)
     end
 
+    local owner = animal.clusterSystem and animal.clusterSystem.owner
+    if owner ~= nil then
+        local key = isMarked and "PLAYER" or nil
+        AnimalMarkEvent.sendEvent(owner, animal, key, isMarked)
+        Log:debug("AnimalScreen:onClickMark: sendEvent key=%s active=%s", tostring(key), tostring(isMarked))
+    else
+        Log:trace("AnimalScreen:onClickMark: no clusterSystem.owner, event skipped")
+    end
+
     self.buttonMark:setText(isMarked and g_i18n:getText("rl_ui_unmark") or g_i18n:getText("rl_ui_mark"))
     self.sourceList:reloadData()
 
@@ -1650,7 +1659,7 @@ function AnimalScreen:onClickArtificialInsemination()
 
     if animal == nil then return end
 
-    AnimalAIDialog.show(self.husbandry, g_localPlayer.farmId, animal.animalTypeIndex, animal)
+    AnimalAIDialog.show(self.husbandry, g_localPlayer.farmId, animal.animalTypeIndex, animal, function(screen) screen.sourceList:reloadData() end, self)
 
 end
 
@@ -1696,6 +1705,14 @@ function AnimalScreen:onClickCastrate()
 
     animal.isCastrated = true
     animal.genetics.fertility = 0
+
+    local owner = animal.clusterSystem and animal.clusterSystem.owner
+    if owner ~= nil then
+        AnimalCastrateEvent.sendEvent(owner, animal)
+        Log:debug("AnimalScreen:onClickCastrate: sendEvent uniqueId=%s", tostring(animal.uniqueId))
+    else
+        Log:trace("AnimalScreen:onClickCastrate: no clusterSystem.owner, event skipped")
+    end
 
 end
 

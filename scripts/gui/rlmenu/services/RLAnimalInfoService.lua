@@ -457,3 +457,49 @@ function RLAnimalInfoService.renameAnimal(animal, newName)
     Log:debug("RLAnimalInfoService.renameAnimal: farmId=%s uniqueId=%s name=%s",
         tostring(animal.farmId), tostring(animal.uniqueId), tostring(text))
 end
+
+--- Mark or unmark an animal. Same code path as AnimalScreen:onClickMark.
+--- Pass key=nil, active=false to clear all marks (including Herdsman) -- by design.
+--- @param animal table
+--- @param key string|nil  Mark key ("PLAYER") or nil for clear-all
+--- @param active boolean
+function RLAnimalInfoService.markAnimal(animal, key, active)
+    if animal == nil then
+        Log:trace("RLAnimalInfoService.markAnimal: nil animal, skipping")
+        return
+    end
+
+    animal:setMarked(key, active)
+
+    local owner = animal.clusterSystem and animal.clusterSystem.owner
+    if owner ~= nil then
+        AnimalMarkEvent.sendEvent(owner, animal, key, active)
+    else
+        Log:trace("RLAnimalInfoService.markAnimal: no clusterSystem.owner, event skipped")
+    end
+
+    Log:debug("RLAnimalInfoService.markAnimal: farmId=%s uniqueId=%s key=%s active=%s",
+        tostring(animal.farmId), tostring(animal.uniqueId), tostring(key), tostring(active))
+end
+
+--- Castrate an animal. Same code path as AnimalScreen:onClickCastrate.
+--- @param animal table
+function RLAnimalInfoService.castrateAnimal(animal)
+    if animal == nil then
+        Log:trace("RLAnimalInfoService.castrateAnimal: nil animal, skipping")
+        return
+    end
+
+    animal.isCastrated = true
+    animal.genetics.fertility = 0
+
+    local owner = animal.clusterSystem and animal.clusterSystem.owner
+    if owner ~= nil then
+        AnimalCastrateEvent.sendEvent(owner, animal)
+    else
+        Log:trace("RLAnimalInfoService.castrateAnimal: no clusterSystem.owner, event skipped")
+    end
+
+    Log:debug("RLAnimalInfoService.castrateAnimal: farmId=%s uniqueId=%s",
+        tostring(animal.farmId), tostring(animal.uniqueId))
+end

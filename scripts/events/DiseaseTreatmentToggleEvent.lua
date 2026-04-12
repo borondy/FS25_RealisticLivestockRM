@@ -32,23 +32,29 @@ function DiseaseTreatmentToggleEvent:writeStream(streamId, connection)
 end
 
 function DiseaseTreatmentToggleEvent:run(connection)
+    if not connection:getIsServer() then
+        g_server:broadcastEvent(
+            DiseaseTreatmentToggleEvent.new(self.object, self.animal, self.diseaseTitle, self.beingTreated),
+            nil, connection, nil)
+        Log:debug("DiseaseTreatmentToggleEvent:run: rebroadcasting treatment toggle to other clients")
+    end
+
     local identifiers = self.animal
     local clusterSystem = self.object:getClusterSystem()
-
     local animal = RLAnimalUtil.find(clusterSystem.animals, identifiers.farmId, identifiers.uniqueId, identifiers.country or identifiers.birthday.country)
 
     if animal ~= nil then
         for _, disease in pairs(animal.diseases) do
             if disease.type.title == self.diseaseTitle then
                 disease.beingTreated = self.beingTreated
-                Log:trace("DiseaseTreatmentToggleEvent:run %s treatment=%s",
-                    self.diseaseTitle, tostring(self.beingTreated))
+                Log:trace("DiseaseTreatmentToggleEvent:run: %s treatment=%s uniqueId=%s",
+                    self.diseaseTitle, tostring(self.beingTreated), tostring(identifiers.uniqueId))
                 return
             end
         end
-        Log:trace("DiseaseTreatmentToggleEvent:run disease '%s' not found on %s", self.diseaseTitle, tostring(identifiers.uniqueId))
+        Log:warning("DiseaseTreatmentToggleEvent:run: disease '%s' not found on uniqueId=%s", self.diseaseTitle, tostring(identifiers.uniqueId))
     else
-        Log:trace("DiseaseTreatmentToggleEvent:run animal not found uniqueId=%s", tostring(identifiers.uniqueId))
+        Log:warning("DiseaseTreatmentToggleEvent:run: animal not found uniqueId=%s", tostring(identifiers.uniqueId))
     end
 end
 

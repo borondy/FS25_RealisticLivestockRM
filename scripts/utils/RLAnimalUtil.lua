@@ -217,6 +217,7 @@ function RLAnimalUtil.readStreamIdentifiers(streamId, connection)
         ["uniqueId"] = uniqueId,
         ["farmId"] = farmId,
         ["country"] = country,
+        ["birthday"] = { country = country },
         ["animalTypeIndex"] = animalTypeIndex
     }
 end

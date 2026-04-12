@@ -25,13 +25,15 @@ function AnimalAIDialog.createFromExistingGui(gui)
 end
 
 
-function AnimalAIDialog.show(object, farmId, animalTypeIndex, animal)
+function AnimalAIDialog.show(object, farmId, animalTypeIndex, animal, onCloseCallback, onCloseTarget)
 
     if AnimalAIDialog.INSTANCE == nil then AnimalAIDialog.register() end
 
     local dialog = AnimalAIDialog.INSTANCE
 
     dialog.object, dialog.farmId, dialog.animalTypeIndex, dialog.animal = object, farmId, animalTypeIndex, animal
+    dialog.onCloseCallback = onCloseCallback
+    dialog.onCloseTarget = onCloseTarget
 
     dialog:updateDewars()
 
@@ -43,6 +45,17 @@ end
 function AnimalAIDialog:onCreate()
     AnimalAIDialog:superClass().onCreate(self)
     self:setDialogType(DialogElement.Type_INFO)
+end
+
+
+--- Fire optional close callback so the parent screen can refresh.
+function AnimalAIDialog:onClose()
+    AnimalAIDialog:superClass().onClose(self)
+
+    if self.onCloseCallback ~= nil then
+        Log:trace("AnimalAIDialog:onClose: firing close callback")
+        self.onCloseCallback(self.onCloseTarget)
+    end
 end
 
 

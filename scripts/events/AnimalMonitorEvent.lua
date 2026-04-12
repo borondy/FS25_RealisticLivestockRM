@@ -50,21 +50,25 @@ end
 
 
 function AnimalMonitorEvent:run(connection)
+    if not connection:getIsServer() then
+        g_server:broadcastEvent(
+            AnimalMonitorEvent.new(self.object, self.animal, self.active, self.removed),
+            nil, connection, nil)
+        Log:debug("AnimalMonitorEvent:run: rebroadcasting monitor toggle to other clients")
+    end
 
     local identifiers = self.animal
     local clusterSystem = self.object:getClusterSystem()
-
     local animal = RLAnimalUtil.find(clusterSystem.animals, identifiers.farmId, identifiers.uniqueId, identifiers.country or identifiers.birthday.country)
 
     if animal ~= nil then
         animal.monitor.active = self.active
         animal.monitor.removed = self.removed
-        Log:trace("MonitorEvent:run updated %s active=%s removed=%s",
+        Log:trace("AnimalMonitorEvent:run: updated uniqueId=%s active=%s removed=%s",
             tostring(identifiers.uniqueId), tostring(self.active), tostring(self.removed))
     else
-        Log:trace("MonitorEvent:run animal not found uniqueId=%s", tostring(identifiers.uniqueId))
+        Log:warning("AnimalMonitorEvent:run: animal not found uniqueId=%s", tostring(identifiers.uniqueId))
     end
-
 end
 
 
