@@ -1070,7 +1070,7 @@ end
 -- Mutation handlers
 -- =============================================================================
 
----Toggle player mark. Local-only (RLRM-145 tracks MP fix).
+---Toggle player mark. Local-only (MP fix tracked separately).
 function RLMenuInfoFrame:onClickMark()
     local animal = self:getSelectedAnimal()
     if animal == nil then
@@ -1087,7 +1087,7 @@ function RLMenuInfoFrame:onClickMark()
         Log:trace("  branch: setMarked('PLAYER', true)")
         animal:setMarked("PLAYER", true)
     else
-        -- Clears ALL marks including AI Manager (RLRM-146 tracks fix)
+        -- Clears ALL marks including AI Manager
         Log:trace("  branch: setMarked(nil, false)")
         animal:setMarked(nil, false)
     end
@@ -1194,7 +1194,7 @@ function RLMenuInfoFrame:onClickInseminate()
         animal.animalTypeIndex, animal)
 end
 
----Castrate the selected animal. Local-only (RLRM-145 tracks MP fix).
+---Castrate the selected animal. Local-only (MP fix tracked separately).
 function RLMenuInfoFrame:onClickCastrate()
     local animal = self:getSelectedAnimal()
     if animal == nil then

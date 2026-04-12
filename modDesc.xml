@@ -1,6 +1,6 @@
 <modDesc descVersion="107">
     <author>Ritter</author>
-    <version>1.2.0.0-dev.4</version>
+    <version>1.2.0.0-dev.5</version>
     <title>
         <en>Realistic Livestock - Ritter version</en>
         <it>Allevamento Realistico - Versione Ritter</it>
@@ -23,6 +23,11 @@ Documentation: https://rittermod.github.io/FS25_RealisticLivestockRM
 Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivestockRM
 
 Changelog
+
+v1.2.0.0-dev.5:
+- Added Info tab to the new RL Menu with husbandry selector, animal list, and read-only detail pane (pedigree, genetics, diseases, inputs/outputs, children)
+- Added action buttons to the RL Menu Info tab: Mark (X), Monitor (M), Rename (N), Diseases (D), Inseminate (I), and Castrate (C) - all work via keyboard shortcut and mouse click
+- Added new RL_RENAME key binding (N) for the rename action in Settings -> Controls
 
 v1.2.0.0-dev.4:
 - Fixed crash in third-party mods that inspect stored pallets (e.g. Time Saving Stock Check) when a semen dewar is placed in an object storage - dewars now expose the standard pallet fill attributes expected by other mods
