@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <!--
     infoFrame.xml
-    RL Tabbed Menu Phase 2a - Info tab (husbandry selector + animal list).
+    RL Tabbed Menu Info tab (Phase 2a selector + Phase 2b1 detail pane).
 
     Structure: fs25_subCategoryContainerBg (ThreePartBitmap background)
     and fs25_subCategoryContainer (Bitmap content) are SIBLINGS at the GUI
@@ -81,14 +81,364 @@
 
     </Bitmap>
 
-    <!-- Right side: header only in Phase 2a. Detail pane added in Phase 2b. -->
+    <!--
+        Right side: detail pane (Phase 2b1).
+
+        Structural layout mirrors base-game InGameMenuAnimalsFrame.xml:
+          fs25_animalInfoContainer (narrow, stretching-Y-left)
+          fs25_animalInfoSeparatorLeft (vertical separator)
+          fs25_animalPenInfoContainer (wide, stretching-Y-right)
+
+        RL flips the CONTENT: pen info lives in the narrow container,
+        animal info in the wide container (the mod treats each animal
+        as an individual, so animal gets the most space).
+
+        All row/label/value/statusbar elements mirror base-game
+        updateHusbandryDisplay / displayCluster patterns.
+    -->
     <GuiElement profile="fs25_menuContentContainer" id="detailsBox">
+
+        <!--
+            Header panel (icon + "Info" title + balance box).
+            Money box lives INSIDE the header panel, mirroring base-game
+            InGameMenuStatisticsFrame.xml lines 4-14 - the canonical
+            "frame chrome with balance" pattern. Putting it as a top-level
+            child of detailsBox left it floating without anchors.
+        -->
         <GuiElement profile="fs25_menuHeaderPanel" position="0px 74px">
             <Bitmap profile="fs25_menuHeaderIconBg">
                 <Bitmap profile="fs25_menuHeaderIcon" imageSliceId="rlExtra.info_animal"/>
             </Bitmap>
             <Text profile="fs25_menuHeaderTitle" text="$l10n_rl_menu_info_title"/>
+            <RoundCorner profile="fs25_shopMoneyBoxBg" id="moneyBoxBg"/>
+            <BoxLayout profile="fs25_shopMoneyBox" id="moneyBox">
+                <Text profile="fs25_shopBalance" text="$l10n_ui_balance:"/>
+                <Text profile="fs25_shopMoney" id="balanceText"/>
+            </BoxLayout>
         </GuiElement>
+
+        <!--
+            Narrow column = PEN info.
+            Uses base-game fs25_animalInfoContainer as-is.
+        -->
+        <GuiElement profile="fs25_animalInfoContainer" id="penBox">
+            <Text profile="rlMenu_penInfoHeader" id="penInformationHeader" text="$l10n_rl_menu_info_pen_information" position="0px -10px"/>
+            <Text profile="rlMenu_penNameText" id="penNameText" position="0px -45px"/>
+            <Text profile="rlMenu_penCountText" id="penCountText" position="0px -80px"/>
+            <Bitmap profile="rlMenu_penIcon" id="penIcon"/>
+            <BoxLayout profile="fs25_animalRequirementsLayout" id="penRequirementsLayout" position="0px -350px">
+
+                <Text profile="fs25_animalRequirementsHeaderLong" id="penConditionsHeader" text="$l10n_ui_animalConditions"/>
+
+                <GuiElement profile="fs25_animalRequirementsRow" id="conditionRow[1]">
+                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
+                        <Text profile="fs25_animalRequirementsLabel" id="conditionLabel[1]"/>
+                        <Text profile="fs25_animalRequirementsValue" id="conditionValue[1]"/>
+                    </GuiElement>
+                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
+                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="conditionStatusBar[1]"/>
+                    </ThreePartBitmap>
+                </GuiElement>
+                <GuiElement profile="fs25_animalRequirementsRow" id="conditionRow[2]">
+                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
+                        <Text profile="fs25_animalRequirementsLabel" id="conditionLabel[2]"/>
+                        <Text profile="fs25_animalRequirementsValue" id="conditionValue[2]"/>
+                    </GuiElement>
+                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
+                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="conditionStatusBar[2]"/>
+                    </ThreePartBitmap>
+                </GuiElement>
+                <GuiElement profile="fs25_animalRequirementsRow" id="conditionRow[3]">
+                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
+                        <Text profile="fs25_animalRequirementsLabel" id="conditionLabel[3]"/>
+                        <Text profile="fs25_animalRequirementsValue" id="conditionValue[3]"/>
+                    </GuiElement>
+                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
+                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="conditionStatusBar[3]"/>
+                    </ThreePartBitmap>
+                </GuiElement>
+                <GuiElement profile="fs25_animalRequirementsRow" id="conditionRow[4]">
+                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
+                        <Text profile="fs25_animalRequirementsLabel" id="conditionLabel[4]"/>
+                        <Text profile="fs25_animalRequirementsValue" id="conditionValue[4]"/>
+                    </GuiElement>
+                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
+                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="conditionStatusBar[4]"/>
+                    </ThreePartBitmap>
+                </GuiElement>
+                <GuiElement profile="fs25_animalRequirementsRow" id="conditionRow[5]">
+                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
+                        <Text profile="fs25_animalRequirementsLabel" id="conditionLabel[5]"/>
+                        <Text profile="fs25_animalRequirementsValue" id="conditionValue[5]"/>
+                    </GuiElement>
+                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
+                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="conditionStatusBar[5]"/>
+                    </ThreePartBitmap>
+                </GuiElement>
+
+                <Text profile="fs25_animalRequirementsHeaderLong" id="penFoodHeader" text="$l10n_ui_animalFood" margin="0px 10px 0px 14px"/>
+
+                <GuiElement profile="fs25_animalRequirementsRow" id="foodRowTotal">
+                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
+                        <Text profile="fs25_animalRequirementsLabel" id="foodHeader" text="$l10n_ui_total"/>
+                        <Text profile="fs25_animalRequirementsValue" id="foodRowTotalValue"/>
+                    </GuiElement>
+                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
+                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="foodRowTotalStatusBar"/>
+                    </ThreePartBitmap>
+                </GuiElement>
+                <GuiElement profile="fs25_animalRequirementsRow" id="foodRow[1]">
+                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
+                        <Text profile="fs25_animalRequirementsLabel" id="foodLabel[1]"/>
+                        <Text profile="fs25_animalRequirementsValue" id="foodValue[1]"/>
+                    </GuiElement>
+                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
+                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="foodStatusBar[1]"/>
+                    </ThreePartBitmap>
+                </GuiElement>
+                <GuiElement profile="fs25_animalRequirementsRow" id="foodRow[2]">
+                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
+                        <Text profile="fs25_animalRequirementsLabel" id="foodLabel[2]"/>
+                        <Text profile="fs25_animalRequirementsValue" id="foodValue[2]"/>
+                    </GuiElement>
+                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
+                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="foodStatusBar[2]"/>
+                    </ThreePartBitmap>
+                </GuiElement>
+                <GuiElement profile="fs25_animalRequirementsRow" id="foodRow[3]">
+                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
+                        <Text profile="fs25_animalRequirementsLabel" id="foodLabel[3]"/>
+                        <Text profile="fs25_animalRequirementsValue" id="foodValue[3]"/>
+                    </GuiElement>
+                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
+                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="foodStatusBar[3]"/>
+                    </ThreePartBitmap>
+                </GuiElement>
+                <GuiElement profile="fs25_animalRequirementsRow" id="foodRow[4]">
+                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
+                        <Text profile="fs25_animalRequirementsLabel" id="foodLabel[4]"/>
+                        <Text profile="fs25_animalRequirementsValue" id="foodValue[4]"/>
+                    </GuiElement>
+                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
+                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="foodStatusBar[4]"/>
+                    </ThreePartBitmap>
+                </GuiElement>
+                <GuiElement profile="fs25_animalRequirementsRow" id="foodRow[5]">
+                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
+                        <Text profile="fs25_animalRequirementsLabel" id="foodLabel[5]"/>
+                        <Text profile="fs25_animalRequirementsValue" id="foodValue[5]"/>
+                    </GuiElement>
+                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
+                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="foodStatusBar[5]"/>
+                    </ThreePartBitmap>
+                </GuiElement>
+            </BoxLayout>
+        </GuiElement>
+
+        <ThreePartBitmap profile="fs25_animalInfoSeparatorLeft"/>
+
+        <!--
+            Wide column = ANIMAL info.
+            STEP-BY-STEP DEBUG MODE:
+            All previous content is commented out below. animalBox now uses
+            rlMenu_animalContainer (full-height wide container) and contains
+            ONE visible debug backdrop wrapping an empty ScrollingLayout.
+            Once we confirm the box renders in the right position with the
+            right size, content is added back incrementally.
+        -->
+        <GuiElement profile="rlMenu_animalContainer" id="animalBox">
+
+            <!-- Debug backdrop: semi-transparent teal to see scroll container
+                 bounds. Replace imageColor with $preset_colorTransparent once
+                 content is verified in-game. -->
+            <Bitmap profile="rlMenu_animalScrollDebugBg">
+                <ScrollingLayout profile="rlMenu_animalScrollLayout" id="animalScrollLayout">
+
+                    <!-- ===== Image section (flow child, 235px) ===== -->
+                    <GuiElement profile="rlMenu_animalImageSection">
+                        <Bitmap profile="rlMenu_animalImageGradient"/>
+                        <Bitmap profile="rlMenu_animalImage" id="animalDetailTypeImage"/>
+                        <Text profile="rlMenu_animalTypeName" id="animalDetailTypeNameText"/>
+                    </GuiElement>
+
+                    <!-- ===== Stats grid (flow child, 185px) ===== -->
+                    <!-- 2x5 grid: odd indices left col (X=0), even right (X=324).
+                         Rows at Y=-10/-45/-80/-115/-150, 35px spacing.
+                         Label at 0px, value at 170px within each cell. -->
+                    <GuiElement profile="rlMenu_animalStatsSection">
+                        <GuiElement profile="rlMenu_statCell" id="statRow[1]" position="0px -10px">
+                            <Text profile="rlMenu_animalStatLabel" id="statLabel[1]"/>
+                            <Text profile="rlMenu_animalStatValue" id="statValue[1]" position="155px 0px"/>
+                        </GuiElement>
+                        <GuiElement profile="rlMenu_statCell" id="statRow[2]" position="370px -10px">
+                            <Text profile="rlMenu_animalStatLabel" id="statLabel[2]"/>
+                            <Text profile="rlMenu_animalStatValue" id="statValue[2]" position="155px 0px"/>
+                        </GuiElement>
+                        <GuiElement profile="rlMenu_statCell" id="statRow[3]" position="0px -45px">
+                            <Text profile="rlMenu_animalStatLabel" id="statLabel[3]"/>
+                            <Text profile="rlMenu_animalStatValue" id="statValue[3]" position="155px 0px"/>
+                        </GuiElement>
+                        <GuiElement profile="rlMenu_statCell" id="statRow[4]" position="370px -45px">
+                            <Text profile="rlMenu_animalStatLabel" id="statLabel[4]"/>
+                            <Text profile="rlMenu_animalStatValue" id="statValue[4]" position="155px 0px"/>
+                        </GuiElement>
+                        <GuiElement profile="rlMenu_statCell" id="statRow[5]" position="0px -80px">
+                            <Text profile="rlMenu_animalStatLabel" id="statLabel[5]"/>
+                            <Text profile="rlMenu_animalStatValue" id="statValue[5]" position="155px 0px"/>
+                        </GuiElement>
+                        <GuiElement profile="rlMenu_statCell" id="statRow[6]" position="370px -80px">
+                            <Text profile="rlMenu_animalStatLabel" id="statLabel[6]"/>
+                            <Text profile="rlMenu_animalStatValue" id="statValue[6]" position="155px 0px"/>
+                        </GuiElement>
+                        <GuiElement profile="rlMenu_statCell" id="statRow[7]" position="0px -115px">
+                            <Text profile="rlMenu_animalStatLabel" id="statLabel[7]"/>
+                            <Text profile="rlMenu_animalStatValue" id="statValue[7]" position="155px 0px"/>
+                        </GuiElement>
+                        <GuiElement profile="rlMenu_statCell" id="statRow[8]" position="370px -115px">
+                            <Text profile="rlMenu_animalStatLabel" id="statLabel[8]"/>
+                            <Text profile="rlMenu_animalStatValue" id="statValue[8]" position="155px 0px"/>
+                        </GuiElement>
+                        <GuiElement profile="rlMenu_statCell" id="statRow[9]" position="0px -150px">
+                            <Text profile="rlMenu_animalStatLabel" id="statLabel[9]"/>
+                            <Text profile="rlMenu_animalStatValue" id="statValue[9]" position="155px 0px"/>
+                        </GuiElement>
+                        <GuiElement profile="rlMenu_statCell" id="statRow[10]" position="370px -150px">
+                            <Text profile="rlMenu_animalStatLabel" id="statLabel[10]"/>
+                            <Text profile="rlMenu_animalStatValue" id="statValue[10]" position="155px 0px"/>
+                        </GuiElement>
+                    </GuiElement>
+
+                    <!-- ===== Description (BoxLayout wrapper for tight spacing) ===== -->
+                    <BoxLayout profile="rlMenu_fullWidthSection" id="descriptionSection">
+                        <Text profile="rlMenu_animalSectionHeader" text="$l10n_ui_information"/>
+                        <Text profile="rlMenu_animalDescription" id="animalDescriptionText"/>
+                    </BoxLayout>
+
+                    <!-- ===== Pedigree + Genetics columns (side-by-side) ===== -->
+                    <BoxLayout profile="rlMenu_animalColumnsRow" id="animalColumnsRow">
+
+                        <!-- Pedigree column (left, 320px) -->
+                        <BoxLayout profile="rlMenu_animalColumnLayout" id="pedigreeColumn">
+                            <Text profile="rlMenu_animalSectionHeader" text="$l10n_rl_menu_info_pedigree_header"/>
+                            <Text profile="rlMenu_pedigreeText" id="pedigreeMotherText"/>
+                            <Text profile="rlMenu_pedigreeText" id="pedigreeFatherText"/>
+                            <Text profile="rlMenu_pedigreeText" id="pedigreeChildrenText"/>
+                        </BoxLayout>
+
+                        <!-- Genetics column (right, 320px) -->
+                        <BoxLayout profile="rlMenu_animalColumnLayout" id="geneticsColumn">
+                            <Text profile="rlMenu_animalSectionHeader" text="$l10n_rl_menu_info_genetics_header"/>
+                            <GuiElement profile="rlMenu_infoRow" id="geneticsRow[1]">
+                                <Text profile="rlMenu_animalStatLabel" id="geneticsLabel[1]"/>
+                                <Text profile="rlMenu_animalStatValue" id="geneticsValue[1]" position="155px 0px"/>
+                            </GuiElement>
+                            <GuiElement profile="rlMenu_infoRow" id="geneticsRow[2]">
+                                <Text profile="rlMenu_animalStatLabel" id="geneticsLabel[2]"/>
+                                <Text profile="rlMenu_animalStatValue" id="geneticsValue[2]" position="155px 0px"/>
+                            </GuiElement>
+                            <GuiElement profile="rlMenu_infoRow" id="geneticsRow[3]">
+                                <Text profile="rlMenu_animalStatLabel" id="geneticsLabel[3]"/>
+                                <Text profile="rlMenu_animalStatValue" id="geneticsValue[3]" position="155px 0px"/>
+                            </GuiElement>
+                            <GuiElement profile="rlMenu_infoRow" id="geneticsRow[4]">
+                                <Text profile="rlMenu_animalStatLabel" id="geneticsLabel[4]"/>
+                                <Text profile="rlMenu_animalStatValue" id="geneticsValue[4]" position="155px 0px"/>
+                            </GuiElement>
+                            <GuiElement profile="rlMenu_infoRow" id="geneticsRow[5]">
+                                <Text profile="rlMenu_animalStatLabel" id="geneticsLabel[5]"/>
+                                <Text profile="rlMenu_animalStatValue" id="geneticsValue[5]" position="155px 0px"/>
+                            </GuiElement>
+                            <GuiElement profile="rlMenu_infoRow" id="geneticsRow[6]">
+                                <Text profile="rlMenu_animalStatLabel" id="geneticsLabel[6]"/>
+                                <Text profile="rlMenu_animalStatValue" id="geneticsValue[6]" position="155px 0px"/>
+                            </GuiElement>
+                        </BoxLayout>
+
+                    </BoxLayout>
+
+                    <!-- ===== Disease section (hidden when no diseases) ===== -->
+                    <BoxLayout profile="rlMenu_animalColumnLayout" id="diseaseColumn">
+                        <Text profile="rlMenu_animalSectionHeader" text="$l10n_rl_menu_info_diseases_header"/>
+                        <GuiElement profile="rlMenu_infoRow" id="diseaseRow[1]">
+                            <Text profile="rlMenu_animalStatLabel" id="diseaseName[1]"/>
+                            <Text profile="rlMenu_animalStatValue" id="diseaseStatus[1]" position="155px 0px"/>
+                        </GuiElement>
+                        <GuiElement profile="rlMenu_infoRow" id="diseaseRow[2]">
+                            <Text profile="rlMenu_animalStatLabel" id="diseaseName[2]"/>
+                            <Text profile="rlMenu_animalStatValue" id="diseaseStatus[2]" position="155px 0px"/>
+                        </GuiElement>
+                        <GuiElement profile="rlMenu_infoRow" id="diseaseRow[3]">
+                            <Text profile="rlMenu_animalStatLabel" id="diseaseName[3]"/>
+                            <Text profile="rlMenu_animalStatValue" id="diseaseStatus[3]" position="155px 0px"/>
+                        </GuiElement>
+                        <GuiElement profile="rlMenu_infoRow" id="diseaseRow[4]">
+                            <Text profile="rlMenu_animalStatLabel" id="diseaseName[4]"/>
+                            <Text profile="rlMenu_animalStatValue" id="diseaseStatus[4]" position="155px 0px"/>
+                        </GuiElement>
+                        <GuiElement profile="rlMenu_infoRow" id="diseaseRow[5]">
+                            <Text profile="rlMenu_animalStatLabel" id="diseaseName[5]"/>
+                            <Text profile="rlMenu_animalStatValue" id="diseaseStatus[5]" position="155px 0px"/>
+                        </GuiElement>
+                    </BoxLayout>
+
+                    <!-- ===== Input + Output columns (monitor data, side-by-side) ===== -->
+                    <!-- Visible only for monitored animals -->
+                    <BoxLayout profile="rlMenu_animalColumnsRow" id="monitorColumnsRow">
+
+                        <!-- Input column (left) -->
+                        <BoxLayout profile="rlMenu_animalColumnLayout" id="inputColumn">
+                            <Text profile="rlMenu_animalSectionHeader" text="$l10n_rl_menu_info_input_header"/>
+                            <GuiElement profile="rlMenu_infoRow" id="inputRow[1]">
+                                <Text profile="rlMenu_animalStatLabel" id="inputLabel[1]"/>
+                                <Text profile="rlMenu_animalStatValue" id="inputValue[1]" position="155px 0px"/>
+                            </GuiElement>
+                            <GuiElement profile="rlMenu_infoRow" id="inputRow[2]">
+                                <Text profile="rlMenu_animalStatLabel" id="inputLabel[2]"/>
+                                <Text profile="rlMenu_animalStatValue" id="inputValue[2]" position="155px 0px"/>
+                            </GuiElement>
+                            <GuiElement profile="rlMenu_infoRow" id="inputRow[3]">
+                                <Text profile="rlMenu_animalStatLabel" id="inputLabel[3]"/>
+                                <Text profile="rlMenu_animalStatValue" id="inputValue[3]" position="155px 0px"/>
+                            </GuiElement>
+                        </BoxLayout>
+
+                        <!-- Output column (right) -->
+                        <BoxLayout profile="rlMenu_animalColumnLayout" id="outputColumn">
+                            <Text profile="rlMenu_animalSectionHeader" text="$l10n_rl_menu_info_output_header"/>
+                            <GuiElement profile="rlMenu_infoRow" id="outputRow[1]">
+                                <Text profile="rlMenu_animalStatLabel" id="outputLabel[1]"/>
+                                <Text profile="rlMenu_animalStatValue" id="outputValue[1]" position="155px 0px"/>
+                            </GuiElement>
+                            <GuiElement profile="rlMenu_infoRow" id="outputRow[2]">
+                                <Text profile="rlMenu_animalStatLabel" id="outputLabel[2]"/>
+                                <Text profile="rlMenu_animalStatValue" id="outputValue[2]" position="155px 0px"/>
+                            </GuiElement>
+                            <GuiElement profile="rlMenu_infoRow" id="outputRow[3]">
+                                <Text profile="rlMenu_animalStatLabel" id="outputLabel[3]"/>
+                                <Text profile="rlMenu_animalStatValue" id="outputValue[3]" position="155px 0px"/>
+                            </GuiElement>
+                            <GuiElement profile="rlMenu_infoRow" id="outputRow[4]">
+                                <Text profile="rlMenu_animalStatLabel" id="outputLabel[4]"/>
+                                <Text profile="rlMenu_animalStatValue" id="outputValue[4]" position="155px 0px"/>
+                            </GuiElement>
+                            <GuiElement profile="rlMenu_infoRow" id="outputRow[5]">
+                                <Text profile="rlMenu_animalStatLabel" id="outputLabel[5]"/>
+                                <Text profile="rlMenu_animalStatValue" id="outputValue[5]" position="155px 0px"/>
+                            </GuiElement>
+                        </BoxLayout>
+
+                    </BoxLayout>
+
+                </ScrollingLayout>
+            </Bitmap>
+
+            <!-- Scroll bar -->
+            <ThreePartBitmap profile="fs25_listSliderBox" position="46px -15px" absoluteSizeOffset="0px -30px" pivot="1 1">
+                <Slider profile="fs25_listSlider" dataElementId="animalScrollLayout"/>
+            </ThreePartBitmap>
+
+        </GuiElement>
+
     </GuiElement>
 
     <!-- Empty state when the farm owns zero husbandries. -->

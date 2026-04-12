@@ -738,5 +738,14 @@
 		<text name="rl_menu_info_empty_no_animals" text="No animals in this husbandry"/>
 		<text name="rl_menu_info_filter_button" text="Filter"/>
 
+		<!-- Info tab detail pane -->
+		<text name="rl_menu_info_pen_information" text="Pen Information"/>
+		<text name="rl_menu_info_pedigree_header" text="Pedigree"/>
+		<text name="rl_menu_info_genetics_header" text="Genetics"/>
+		<text name="rl_menu_info_diseases_header" text="Diseases"/>
+		<text name="rl_menu_info_input_header" text="Input (monitored)"/>
+		<text name="rl_menu_info_output_header" text="Output (monitored)"/>
+		<text name="rl_menu_info_children" text="Children"/>
+
 	</texts>
 </l10n>

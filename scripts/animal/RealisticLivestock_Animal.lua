@@ -540,24 +540,25 @@ function Animal:addInfos(infos)
         self.infoReproduction.title = self.infoReproduction.titleOrg
 
         if self.infoReproduction.disabled then
-            local attributeText, valueText = nil
+            local reasonText, thresholdText = nil, nil
 
             if self.age < subType.reproductionMinAgeMonth then
-                attributeText = g_i18n:getText("rl_ui_tooYoung")
-                valueText = g_i18n:formatNumMonth(subType.reproductionMinAgeMonth)
+                reasonText = g_i18n:getText("rl_ui_tooYoung")
+                thresholdText = g_i18n:formatNumMonth(subType.reproductionMinAgeMonth)
             elseif self.isParent and self.monthsSinceLastBirth <= 2 then
-                attributeText = g_i18n:getText("rl_ui_recoveringLastBirth")
-                valueText = g_i18n:formatNumMonth(3 - self.monthsSinceLastBirth)
+                reasonText = g_i18n:getText("rl_ui_recoveringLastBirth")
+                thresholdText = g_i18n:formatNumMonth(3 - self.monthsSinceLastBirth)
             elseif not RealisticLivestock.hasMaleAnimalInPen(self.clusterSystem, subType.name, self) and self.reproduction == 0 then
-                attributeText = g_i18n:getText("rl_ui_noMaleAnimal")
-                valueText = "0"
+                reasonText = g_i18n:getText("rl_ui_noMaleAnimal")
+                thresholdText = "0"
             elseif healthFactor < subType.reproductionMinHealth then
-                attributeText = g_i18n:getText("rl_ui_unhealthy")
-                valueText = string.format("%d %%", subType.reproductionMinHealth)
+                reasonText = g_i18n:getText("rl_ui_unhealthy")
+                thresholdText = string.format("%d %%", subType.reproductionMinHealth)
             end
 
-            self.infoReproduction.title = self.infoReproduction.title ..
-            string.format(" (%s < %s)", attributeText, valueText)
+            if reasonText ~= nil then
+                self.infoReproduction.valueText = string.format("%s (< %s)", reasonText, thresholdText)
+            end
         end
 
         table.insert(infos, self.infoReproduction)

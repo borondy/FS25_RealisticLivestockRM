@@ -135,6 +135,8 @@ source(modDirectory .. "scripts/gui/RealisticLivestock_InGameMenuAnimalsFrame.lu
 -- sourced before the menu so FrameReference refs resolve.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLMessageService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalQuery.lua")
+source(modDirectory .. "scripts/gui/rlmenu/services/RLGeneticsFormatter.lua")
+source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalInfoService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuMessagesFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuInfoFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/RLMenu.lua")

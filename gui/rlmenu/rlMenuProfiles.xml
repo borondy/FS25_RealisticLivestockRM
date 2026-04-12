@@ -85,4 +85,273 @@
         <textSize value="13px"/>
     </Profile>
 
+    <!--
+        Phase 2b1: pen icon profile for the Info tab.
+
+        Base-game fs25_animalPenIcon is tuned for the WIDE 700px container
+        (fs25_animalPenInfoContainer) and uses position 0px 460px which
+        renders the icon high above the container's top. We host the pen
+        column in the NARROW 390px container, so we need a smaller icon
+        positioned inside the column rather than floating above the frame.
+    -->
+    <!--
+        Pen icon for the Info tab. Mirrors legacy fs25_animalHusbandryIcon
+        (AnimalScreen.xml line 286): square 280x280, anchored top-center,
+        positioned 160px below the column top so it sits below the pen
+        name + count text rows.
+    -->
+    <Profile name="rlMenu_penIcon" extends="baseReference" with="anchorTopCenter">
+        <size value="220px 220px"/>
+        <position value="0px -110px"/>
+        <imageSliceId value="noSlice"/>
+    </Profile>
+
+    <!--
+        "PEN INFORMATION" header. Mirrors legacy fs25_animalTextTransportTo
+        (AnimalScreen.xml line 270): fs25_textDefault (15px) + uppercase
+        + centered. The earlier rlMenu_penInfoHeader extended
+        fs25_animalRequirementsHeaderLong (22px bold) which was too large
+        and left-aligned for the narrow column.
+    -->
+    <Profile name="rlMenu_penInfoHeader" extends="fs25_textDefault" with="anchorTopCenter">
+        <width value="350px"/>
+        <textMaxWidth value="350px"/>
+        <textAlignment value="center"/>
+        <textUpperCase value="true"/>
+    </Profile>
+
+    <!--
+        Pen name text (e.g. "COW BARN WITH FEEDING ROBOT (GEA)"). Slightly
+        larger than the header so it reads as the dominant identifier in
+        the column, but well below the 32px species-title size that
+        fs25_animalIconTitle would inflict.
+    -->
+    <Profile name="rlMenu_penNameText" extends="fs25_textDefault" with="anchorTopCenter">
+        <width value="350px"/>
+        <textMaxWidth value="270px"/>
+        <textMaxNumLines value="2"/>
+        <textSize value="20px"/>
+        <textAlignment value="center"/>
+        <textUpperCase value="true"/>
+        <textBold value="true"/>
+    </Profile>
+
+    <!--
+        Pen "current/max" count line. Default 15px, single-line, centered.
+    -->
+    <Profile name="rlMenu_penCountText" extends="fs25_textDefault" with="anchorTopCenter">
+        <width value="350px"/>
+        <textMaxWidth value="270px"/>
+        <textMaxNumLines value="1"/>
+        <textAlignment value="center"/>
+    </Profile>
+
+    <!--
+        Animal info column layout. Two of these sit side-by-side inside
+        the wide animal box: pedigree on the left, genetics on the right.
+        Vertical BoxLayout flow, fixed 320px wide, anchored top-left so
+        explicit `position` in the XML places each column at its own X.
+    -->
+    <Profile name="rlMenu_animalColumnLayout" extends="emptyPanel" with="anchorTopLeft">
+        <size value="360px 400px"/>
+        <flowDirection value="vertical"/>
+        <autoValidateLayout value="true"/>
+    </Profile>
+
+    <!--
+        Inline animal description paragraph (the "INFORMATION" text).
+        Top-anchored so it sits between the can-reproduce row and the
+        two-column pedigree/genetics area. base-game's
+        fs25_animalInfoDescription is bottom-anchored which causes overlap
+        when the BoxLayout above extends down into the bottom region.
+    -->
+    <Profile name="rlMenu_animalDescription" extends="fs25_textGrey" with="anchorTopCenter pivotTopCenter">
+        <size value="640px 100px"/>
+        <textMaxWidth value="640px"/>
+        <textMaxNumLines value="4"/>
+        <textLayoutMode value="resize"/>
+        <textVerticalAlignment value="top"/>
+    </Profile>
+
+    <!--
+        Animal info section header (PEDIGREE / GENETICS / DISEASES).
+        Centered + smaller than fs25_animalRequirementsHeaderLong (which
+        is left-aligned 22px) so it sits cleanly above each column.
+    -->
+    <Profile name="rlMenu_animalSectionHeader" extends="fs25_textDefault" with="anchorTopStretchingX">
+        <textBold value="true"/>
+        <textSize value="16px"/>
+        <textUpperCase value="true"/>
+        <textAlignment value="left"/>
+        <margin value="0px 0px 0px 6px"/>
+    </Profile>
+
+    <!--
+        Smaller animal image profile for the Info tab. Base-game
+        fs25_animalIcon is 340x340 at position 0px 10px, tuned for the
+        narrow fs25_animalInfoContainer where it dominates the column.
+        We host the animal in the WIDE container with much more lower-area
+        content (description + 2 columns + disease), so we need a smaller
+        image positioned higher to free vertical space.
+    -->
+    <Profile name="rlMenu_animalImage" extends="fs25_animalIcon">
+        <size value="200px 200px"/>
+        <position value="0px -10px"/>
+    </Profile>
+
+    <Profile name="rlMenu_animalImageGradient" extends="fs25_animalIconGradient">
+        <size value="320px 200px"/>
+        <position value="0px -10px"/>
+    </Profile>
+
+    <!-- Smaller animal type name, positioned just below the smaller image. -->
+    <Profile name="rlMenu_animalTypeName" extends="fs25_animalIconTitle">
+        <position value="0px -200px"/>
+        <textSize value="22px"/>
+    </Profile>
+
+    <!--
+        Stats grid label/value text profiles. Mirrors legacy
+        AnimalScreen.xml infoTitle[1..10] / infoValue[1..10] which use
+        base-game fs25_animalInfoTitle / fs25_animalInfoValue text profiles.
+        NO status bars - legacy renders stats as plain label/value text in
+        a 2x5 grid, not as rows-with-bars (which is the conditions/food
+        pattern, a different idiom).
+    -->
+    <Profile name="rlMenu_animalStatLabel" extends="fs25_animalInfoTitle">
+        <textSize value="14px"/>
+        <textMaxWidth value="145px"/>
+    </Profile>
+    <Profile name="rlMenu_animalStatValue" extends="fs25_animalInfoValue">
+        <textSize value="14px"/>
+        <textMaxWidth value="200px"/>
+    </Profile>
+
+    <!--
+        Flow-child wrapper for the animal image + type name inside the
+        ScrollingLayout. Height covers: 10px top pad + 200px image +
+        25px type name text = 235px.
+    -->
+    <Profile name="rlMenu_animalImageSection" extends="emptyPanel" with="anchorTopStretchingX">
+        <height value="235px"/>
+    </Profile>
+
+    <!--
+        Flow-child wrapper for the 2x5 stat grid inside the
+        ScrollingLayout. 5 rows x 35px spacing starting at -10px,
+        each row ~20px text height = 10+140+20 = 170px + 15px pad = 185px.
+    -->
+    <Profile name="rlMenu_animalStatsSection" extends="emptyPanel" with="anchorTopStretchingX">
+        <height value="185px"/>
+    </Profile>
+
+    <!--
+        Wide animal column container. Extends base-game
+        fs25_animalPenInfoContainer (700px wide, anchored stretching-Y-right,
+        position -80px 0px from the right edge of detailsBox) but REMOVES
+        the absoluteSizeOffset 0px 430px that shrinks the container by 430px.
+        The base-game profile is intentionally short to leave 430px at the
+        bottom for a sibling description text - we don't want that, we want
+        full-height so our scrollable area has room.
+    -->
+    <Profile name="rlMenu_animalContainer" extends="fs25_animalPenInfoContainer">
+        <!--
+            Base-game uses 0px 430px which over-shrinks for our needs
+            (430 = ~145 description + ~80 footer + ~205 padding for the
+            husbandry use case). We only need to clear the footer/action
+            bar at the bottom; 90 was not enough (bottom still overlapped
+            the footer), bumping to 140 to give a clean margin above the
+            footer buttons.
+
+            Position shifted 25px left (-105 vs base-game's -80) so the
+            column moves slightly toward the pen column without overlapping it.
+        -->
+        <absoluteSizeOffset value="0px 140px"/>
+        <position value="-105px 0px"/>
+    </Profile>
+
+    <!--
+        Visible debug backdrop for the animal scroll area. Semi-transparent
+        teal so we can see exactly where the scroll container lives without
+        any content inside. Step-by-step layout debugging - replace the
+        color with $preset_colorTransparent once positioning is confirmed.
+
+        Uses imageSliceId="gui.colorPreset" - a solid 1x1 color slice that
+        responds to imageColor. Without this, a Bitmap/GuiElement renders
+        nothing visible (or the entire texture atlas when imageSliceId is
+        the literal string "noSlice" without an imageFilename).
+    -->
+    <Profile name="rlMenu_animalScrollDebugBg" extends="baseReference" with="anchorStretchingYStretchingX pivotTopLeft">
+        <size value="100% 100%"/>
+        <absoluteSizeOffset value="-30px -30px"/>
+        <position value="15px -15px"/>
+        <imageSliceId value="gui.colorPreset"/>
+        <imageColor value="$preset_colorTransparent"/>
+    </Profile>
+
+    <!--
+        Scrollable layout for animal info content. Mirrors base-game
+        InGameMenuSettingsFrame's fs25_settingsLayout: vertical ScrollingLayout
+        with fitFlowToElements + clipping. Empty for now; content added
+        incrementally after position is verified.
+    -->
+    <Profile name="rlMenu_animalScrollLayout" extends="baseReference" with="anchorStretchingYStretchingX pivotTopLeft">
+        <size value="100% 100%"/>
+        <wrapAround value="false"/>
+        <fitFlowToElements value="true"/>
+        <flowDirection value="vertical"/>
+        <clipping value="true"/>
+        <imageColor value="$preset_colorTransparent"/>
+    </Profile>
+
+    <!--
+        Horizontal wrapper for the two pedigree/genetics columns. Lives
+        inside the vertical ScrollingLayout so its children flow side-by-side
+        as one block in the scrollable column.
+    -->
+    <Profile name="rlMenu_animalColumnsRow" extends="emptyPanel" with="anchorTopStretchingX">
+        <height value="240px"/>
+        <flowDirection value="horizontal"/>
+        <autoValidateLayout value="true"/>
+    </Profile>
+
+    <!--
+        Stat row cell in the 2x5 grid. Invisible container with explicit
+        size; absolute position set per-cell in the XML.
+    -->
+    <Profile name="rlMenu_statCell" extends="emptyPanel" with="anchorTopLeft">
+        <size value="360px 30px"/>
+    </Profile>
+
+    <!--
+        Generic row wrapper for genetics/disease inside columns.
+        Flow child in a vertical BoxLayout; 28px gives room for
+        14px text + padding.
+    -->
+    <Profile name="rlMenu_infoRow" extends="emptyPanel" with="anchorTopStretchingX">
+        <height value="28px"/>
+    </Profile>
+
+    <!--
+        Pedigree text line (flow child in column BoxLayout).
+        Single-line, 14px, stretches to column width.
+    -->
+    <Profile name="rlMenu_pedigreeText" extends="fs25_textDefault" with="anchorTopStretchingX">
+        <height value="25px"/>
+        <textSize value="14px"/>
+        <textMaxNumLines value="1"/>
+        <textMaxWidth value="310px"/>
+    </Profile>
+
+    <!--
+        Full-width vertical section wrapper. Used by the INFORMATION
+        section to group header + description in a BoxLayout (matching
+        how PEDIGREE/GENETICS group their header + content rows).
+    -->
+    <Profile name="rlMenu_fullWidthSection" extends="emptyPanel" with="anchorTopStretchingX">
+        <height value="120px"/>
+        <flowDirection value="vertical"/>
+        <autoValidateLayout value="true"/>
+    </Profile>
+
 </GUIProfiles>
