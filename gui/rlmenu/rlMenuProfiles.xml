@@ -354,6 +354,20 @@
         <autoValidateLayout value="true"/>
     </Profile>
 
+    <!--
+        Status indicator icon on animal list cards.
+        16x16 bitmap, anchorTopLeft. Each icon instance sets its own
+        position in the XML. Color is set per-cell via setImageColor
+        in the populate callback (white base lets tinting work).
+    -->
+    <Profile name="rlMenu_statusIcon" extends="emptyPanel" with="anchorBottomRight">
+        <size value="18px 18px"/>
+        <imageColor value="1 1 1 1"/>
+        <imageSelectedColor value="$preset_fs25_colorMainDark"/>
+        <imageHighlightedColor value="$preset_fs25_colorMainDark"/>
+        <imageFocusedColor value="1 1 1 1"/>
+    </Profile>
+
     <!-- =========================================================== -->
     <!-- Checkbox profiles for Move tab animal list cards             -->
     <!-- Mirrors legacy rl_checkbox* from AnimalScreen.xml:928-955   -->

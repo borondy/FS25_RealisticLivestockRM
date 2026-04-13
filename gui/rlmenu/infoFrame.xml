@@ -67,6 +67,13 @@
                     <Text profile="fs25_subCategoryListItemName" name="name" position="100px -30px"/>
                     <Text profile="fs25_animalSourceListItemPrice" name="price" position="100px -50px"/>
                     <Text profile="rlMenu_animalCardBadge" name="herdsmanPurchase"/>
+                    <!-- Status icons: 4 slots, anchorBottomRight, right-justified.
+                         Y=26px: price bottom = 50+24 = 74px from top = 26px from bottom.
+                         X: rightmost at -30px (no checkbox on Info tab), 20px spacing. -->
+                    <Bitmap profile="rlMenu_statusIcon" name="statusIcon1" position="-90px 26px"/>
+                    <Bitmap profile="rlMenu_statusIcon" name="statusIcon2" position="-70px 26px"/>
+                    <Bitmap profile="rlMenu_statusIcon" name="statusIcon3" position="-50px 26px"/>
+                    <Bitmap profile="rlMenu_statusIcon" name="statusIcon4" position="-30px 26px"/>
                 </ListItem>
             </SmoothList>
 

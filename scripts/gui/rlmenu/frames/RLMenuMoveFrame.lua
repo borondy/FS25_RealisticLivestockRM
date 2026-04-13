@@ -670,6 +670,32 @@ function RLMenuMoveFrame:populateCellForItemInSection(list, section, index, cell
         end
     end
 
+    -- Status icons: resolve from row state, right-justify into slots 4..1.
+    local icons = RLAnimalQuery.resolveStatusIcons(row)
+    local SLOT_NAMES = { "statusIcon1", "statusIcon2", "statusIcon3", "statusIcon4" }
+    local slotCount = #SLOT_NAMES
+    for i = 1, slotCount do
+        local slot = cell:getAttribute(SLOT_NAMES[i])
+        if slot ~= nil then
+            -- Right-justify: icon N fills slot (slotCount - #icons + N).
+            local iconIndex = i - (slotCount - #icons)
+            local def = icons[iconIndex]
+            if def ~= nil then
+                slot:setImageSlice(GuiOverlay.STATE_NORMAL, def.slice)
+                slot:setImageSlice(GuiOverlay.STATE_SELECTED, def.slice)
+                slot:setImageSlice(GuiOverlay.STATE_HIGHLIGHTED, def.slice)
+                slot:setImageColor(GuiOverlay.STATE_NORMAL, def.r, def.g, def.b)
+                -- Bitmap gamma workaround: 0.015/0.017/0.015 produces #212321
+                -- matching card text (preset_fs25_colorMainDark renders #0E0E0D via bitmaps).
+                slot:setImageColor(GuiOverlay.STATE_SELECTED, 0.015, 0.017, 0.015)
+                slot:setImageColor(GuiOverlay.STATE_HIGHLIGHTED, 0.015, 0.017, 0.015)
+                slot:setVisible(true)
+            else
+                slot:setVisible(false)
+            end
+        end
+    end
+
     -- Checkbox: show check mark + wire onClick callback for direct clicking.
     -- Mirrors legacy AnimalScreen.lua:2421 onClickCallback pattern.
     local checkbox = cell:getAttribute("checkbox")

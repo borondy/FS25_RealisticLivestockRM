@@ -235,7 +235,78 @@ function RLAnimalQuery.formatAnimalRow(item)
         row.tint = RLAnimalQuery.TINT_MARKED
     end
 
+    -- Status icon fields (Category 1: pregnancy/fertility).
+    local isFemale = cluster.gender == "female"
+    row.isPregnant = isFemale and (cluster.isPregnant == true)
+    row.isRecoveringFromBirth = isFemale
+        and (cluster.isParent == true)
+        and (cluster.monthsSinceLastBirth ~= nil and cluster.monthsSinceLastBirth <= 2)
+    row.isInfertile = cluster.genetics ~= nil
+        and cluster.genetics.fertility ~= nil
+        and cluster.genetics.fertility <= 0
+
+    -- Status icon fields (Category 2: production, monitor-gated).
+    -- Follows buildOutputRows pattern from RLAnimalInfoService.lua:115-128.
+    local hasMonitor = cluster.monitor ~= nil
+        and (cluster.monitor.active == true or cluster.monitor.removed == true)
+    row.hasMonitor = hasMonitor
+    row.productionIcon = nil
+    if hasMonitor and type(cluster.output) == "table" then
+        if (cluster.output["milk"] or 0) > 0 then
+            row.productionIcon = "milk"
+        elseif (cluster.output["pallets"] or 0) > 0 then
+            if cluster.animalTypeIndex == AnimalType.SHEEP then
+                row.productionIcon = (cluster.subType == "GOAT") and "milk" or "scissors"
+            elseif cluster.animalTypeIndex == AnimalType.CHICKEN then
+                row.productionIcon = "egg"
+            elseif cluster.animalTypeIndex == AnimalType.COW then
+                row.productionIcon = "milk"
+            end
+        end
+    end
+
     return row
+end
+
+-- =============================================================================
+-- Status icon resolution
+-- =============================================================================
+
+--- Resolve 0-2 status icons for an animal row.
+--- Returns an array of {slice, r, g, b} entries, ordered for right-justified
+--- rendering: first entry = leftmost icon, last entry = rightmost icon.
+---
+--- Category 1 (pregnancy/fertility): mutually exclusive, priority order.
+--- Category 2 (production): from productionIcon, already monitor-gated.
+--- @param row table  Row from formatAnimalRow
+--- @return table icons  Array of {slice=string, r=number, g=number, b=number}
+function RLAnimalQuery.resolveStatusIcons(row)
+    local icons = {}
+
+    -- Category 1: Pregnancy / Fertility (mutually exclusive)
+    if row.isPregnant then
+        icons[#icons + 1] = { slice = "rlStatus.baby", r = 0.85, g = 0.47, b = 0.75 }
+    elseif row.isRecoveringFromBirth then
+        icons[#icons + 1] = { slice = "rlStatus.timer_reset", r = 0.95, g = 0.65, b = 0.30 }
+    elseif row.isInfertile then
+        icons[#icons + 1] = { slice = "rlStatus.circle_off", r = 0.65, g = 0.65, b = 0.65 }
+    end
+
+    -- Category 2: Production (from productionIcon, already monitor-gated in formatAnimalRow)
+    if row.productionIcon == "milk" then
+        icons[#icons + 1] = { slice = "rlStatus.milk", r = 0.47, g = 0.71, b = 0.91 }
+    elseif row.productionIcon == "scissors" then
+        icons[#icons + 1] = { slice = "rlStatus.scissors", r = 0.47, g = 0.71, b = 0.91 }
+    elseif row.productionIcon == "egg" then
+        icons[#icons + 1] = { slice = "rlStatus.egg", r = 0.47, g = 0.71, b = 0.91 }
+    end
+
+    Log:trace("RLAnimalQuery.resolveStatusIcons: uniqueId=%s count=%d pregnant=%s recovering=%s infertile=%s production=%s",
+        tostring(row.uniqueId), #icons, tostring(row.isPregnant),
+        tostring(row.isRecoveringFromBirth), tostring(row.isInfertile),
+        tostring(row.productionIcon))
+
+    return icons
 end
 
 -- =============================================================================

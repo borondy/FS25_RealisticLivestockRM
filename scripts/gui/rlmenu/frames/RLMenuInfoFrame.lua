@@ -647,6 +647,29 @@ function RLMenuInfoFrame:populateCellForItemInSection(list, section, index, cell
             descriptor:setText(row.descriptorText)
         end
     end
+
+    -- Status icons: resolve from row state, right-justify into slots 4..1.
+    local icons = RLAnimalQuery.resolveStatusIcons(row)
+    local SLOT_NAMES = { "statusIcon1", "statusIcon2", "statusIcon3", "statusIcon4" }
+    local slotCount = #SLOT_NAMES
+    for i = 1, slotCount do
+        local slot = cell:getAttribute(SLOT_NAMES[i])
+        if slot ~= nil then
+            local iconIndex = i - (slotCount - #icons)
+            local def = icons[iconIndex]
+            if def ~= nil then
+                slot:setImageSlice(GuiOverlay.STATE_NORMAL, def.slice)
+                slot:setImageSlice(GuiOverlay.STATE_SELECTED, def.slice)
+                slot:setImageSlice(GuiOverlay.STATE_HIGHLIGHTED, def.slice)
+                slot:setImageColor(GuiOverlay.STATE_NORMAL, def.r, def.g, def.b)
+                slot:setImageColor(GuiOverlay.STATE_SELECTED, 0.015, 0.017, 0.015)
+                slot:setImageColor(GuiOverlay.STATE_HIGHLIGHTED, 0.015, 0.017, 0.015)
+                slot:setVisible(true)
+            else
+                slot:setVisible(false)
+            end
+        end
+    end
 end
 
 -- =============================================================================
