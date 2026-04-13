@@ -18,6 +18,7 @@
             id="pagingElement">
         <FrameReference ref="RLMenuMessagesFrame" name="messagesFrame" id="messagesFrame"/>
         <FrameReference ref="RLMenuInfoFrame" name="infoFrame" id="infoFrame"/>
+        <FrameReference ref="RLMenuMoveFrame" name="moveFrame" id="moveFrame"/>
     </Paging>
 
     <!-- Tab header bar -->

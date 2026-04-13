@@ -89,6 +89,13 @@ function RLMenuMessagesFrame:onFrameOpen()
     self.isFrameOpen = true
     Log:debug("RLMenuMessagesFrame:onFrameOpen")
     self:refreshData()
+
+    -- Explicit focus required for multi-tab TabbedMenu navigation (Fresh
+    -- mod pattern). Without this, FocusManager auto-layout can resolve
+    -- arrow keys to elements in other tabs' frames.
+    if self.messagesList ~= nil then
+        FocusManager:setFocus(self.messagesList)
+    end
 end
 
 --- Called by the Paging element when this tab is deactivated.

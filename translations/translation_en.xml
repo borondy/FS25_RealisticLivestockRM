@@ -747,5 +747,9 @@
 		<text name="rl_menu_info_output_header" text="Output (monitored)"/>
 		<text name="rl_menu_info_children" text="Children"/>
 
+		<!-- Phase 3: Move tab -->
+		<text name="rl_menu_move_title" text="Move"/>
+		<text name="rl_menu_move_summary" text="%d animals" tag="format"/>
+
 	</texts>
 </l10n>

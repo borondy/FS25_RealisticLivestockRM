@@ -137,8 +137,11 @@ source(modDirectory .. "scripts/gui/rlmenu/services/RLMessageService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalQuery.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLGeneticsFormatter.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalInfoService.lua")
+source(modDirectory .. "scripts/gui/rlmenu/services/RLDetailPaneHelper.lua")
+source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalMoveService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuMessagesFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuInfoFrame.lua")
+source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuMoveFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/RLMenu.lua")
 
 -- SECTION 14: Migration System

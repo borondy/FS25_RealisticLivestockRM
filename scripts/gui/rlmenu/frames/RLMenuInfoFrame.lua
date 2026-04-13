@@ -13,35 +13,9 @@ local Log = RmLogging.getLogger("RLRM")
 
 local modDirectory = g_currentModDirectory
 
--- Status bar coloring deferred: see setStatusBarValue. Bars rely on the
--- fs25_animalSmallStatusBar profile default (green) until we work out the
--- correct color rules.
-
--- Genetics tier color map. Colors applied via setTextColor at runtime
--- against a neutral text profile.
-RLMenuInfoFrame.GENETICS_COLOR = {
-    infertile      = { 1.00, 0.00, 0.00, 1 },
-    extremelyLow   = { 1.00, 0.00, 0.00, 1 },
-    veryLow        = { 1.00, 0.20, 0.00, 1 },
-    low            = { 1.00, 0.52, 0.00, 1 },
-    average        = { 1.00, 1.00, 0.00, 1 },
-    high           = { 0.52, 1.00, 0.00, 1 },
-    veryHigh       = { 0.20, 1.00, 0.00, 1 },
-    extremelyHigh  = { 0.00, 1.00, 0.00, 1 },
-}
-
--- Reset color when a row's colorKey is unknown, so stale tier colors from
--- the previous selection can't bleed onto the new row.
-RLMenuInfoFrame.GENETICS_COLOR_NEUTRAL = { 1.00, 1.00, 1.00, 1 }
-
--- Number of pre-allocated XML row slots per stack
-RLMenuInfoFrame.NUM_CONDITION_ROWS = 5
-RLMenuInfoFrame.NUM_FOOD_ROWS      = 5
-RLMenuInfoFrame.NUM_STAT_ROWS      = 10
-RLMenuInfoFrame.NUM_GENETICS_ROWS  = 6
-RLMenuInfoFrame.NUM_DISEASE_ROWS   = 5
-RLMenuInfoFrame.NUM_INPUT_ROWS     = 3
-RLMenuInfoFrame.NUM_OUTPUT_ROWS    = 5
+-- Detail pane constants + rendering logic live in RLDetailPaneHelper (shared
+-- with RLMenuMoveFrame and future Buy/Sell frames). This frame delegates
+-- pen/animal column rendering to that helper.
 
 -- Mark uses MENU_EXTRA_1 (X), Castrate uses MENU_EXTRA_2 (C) to avoid
 -- key conflicts with the TabbedMenu defaults on those same keys.
@@ -167,6 +141,18 @@ function RLMenuInfoFrame:onFrameOpen()
     -- selects state 1, which fires onHusbandryChanged -> updatePenDisplay,
     -- and a trailing clearDetail would wipe the pen we just rendered.
     self:refreshHusbandries()
+
+    -- Explicit focus links for keyboard navigation (Fresh RmSettingsFrame
+    -- pattern). Required because multiple frames share the same sidebar +
+    -- SmoothList structure, and FocusManager auto-layout resolves to
+    -- elements in other frames when element positions/IDs overlap.
+    if self.subCategorySelector ~= nil and self.animalList ~= nil then
+        FocusManager:linkElements(self.subCategorySelector, FocusManager.BOTTOM, self.animalList)
+        FocusManager:linkElements(self.animalList, FocusManager.TOP, self.subCategorySelector)
+    end
+    if self.animalList ~= nil then
+        FocusManager:setFocus(self.animalList)
+    end
 end
 
 ---Called by the Paging element when this tab is deactivated.
@@ -667,403 +653,30 @@ end
 -- Detail pane
 -- =============================================================================
 
---- Apply a value/ratio + invertedBar/disabled to a single status bar element,
---- mirroring base-game InGameMenuAnimalsFrame:setStatusBarValue.
---- @param statusBarElement table|nil
---- @param value number|nil ratio in [0..1]
---- @param invertedBar boolean|nil
---- @param disabled boolean|nil
-function RLMenuInfoFrame:setStatusBarValue(statusBarElement, value, invertedBar, disabled)
-    if statusBarElement == nil then return end
-    -- Clamp so a malformed ratio cannot compute a negative width.
-    value = math.max(0, math.min(1, value or 0))
-    -- Color logic intentionally skipped: the fs25_animalSmallStatusBar
-    -- profile default is green, and base-game's setStatusBarValue color
-    -- branches produce counterintuitive results (full water trough renders
-    -- red). Until we work out the actual color rules, leave bars green and
-    -- communicate state through bar width only.
-
-    if statusBarElement.parent ~= nil and statusBarElement.parent.size ~= nil then
-        local fullWidth = statusBarElement.parent.size[1] - (statusBarElement.margin and statusBarElement.margin[1] * 2 or 0)
-        local minSize = 0
-        if statusBarElement.startSize ~= nil then
-            minSize = statusBarElement.startSize[1] + statusBarElement.endSize[1]
-        end
-        statusBarElement:setSize(math.max(minSize, fullWidth * math.min(1, value)), nil)
-    end
-
-    -- Always coalesce + call setDisabled, never skip on nil. Status bar
-    -- elements are reused across husbandry switches (5 fixed condition
-    -- slots, 5 fixed food slots), so a stale disabled=true from a
-    -- previous husbandry would leak forward and render the bar grey on
-    -- the next husbandry where the row should be enabled. Mirrors base-
-    -- game setStatusBarValue pattern.
-    if statusBarElement.setDisabled ~= nil then
-        statusBarElement:setDisabled(disabled or false)
-    end
-end
-
---- Refresh the money box from the current farm balance. Hides the box when
---- the farm is missing or no farm context is available.
+--- Delegate to RLDetailPaneHelper.updateMoneyDisplay.
 function RLMenuInfoFrame:updateMoneyDisplay()
-    if self.moneyBox == nil and self.balanceText == nil then return end
-
-    local balance
-    if self.farmId ~= nil then
-        balance = RLAnimalInfoService.getFarmBalance(self.farmId)
-    end
-
-    Log:debug("RLMenuInfoFrame:updateMoneyDisplay: farmId=%s balance=%s",
-        tostring(self.farmId), tostring(balance))
-
-    local visible = balance ~= nil
-    if self.moneyBox ~= nil and self.moneyBox.setVisible ~= nil then
-        self.moneyBox:setVisible(visible)
-    end
-    if self.moneyBoxBg ~= nil and self.moneyBoxBg.setVisible ~= nil then
-        self.moneyBoxBg:setVisible(visible)
-    end
-
-    if not visible then return end
-
-    if self.balanceText ~= nil then
-        self.balanceText:setText(g_i18n:formatMoney(balance, 0, true, false))
-        if balance < 0 and ShopMenu ~= nil and ShopMenu.GUI_PROFILE ~= nil then
-            self.balanceText:applyProfile(ShopMenu.GUI_PROFILE.SHOP_MONEY_NEGATIVE, nil, true)
-        elseif ShopMenu ~= nil and ShopMenu.GUI_PROFILE ~= nil then
-            self.balanceText:applyProfile(ShopMenu.GUI_PROFILE.SHOP_MONEY, nil, true)
-        end
-    end
-
-    if self.moneyBox ~= nil and self.moneyBox.invalidateLayout ~= nil then
-        self.moneyBox:invalidateLayout()
-    end
+    RLDetailPaneHelper.updateMoneyDisplay(self)
 end
 
---- Refresh the pen column from the currently selected husbandry. Hides
---- the pen box when no husbandry is selected.
+--- Delegate to RLDetailPaneHelper.updatePenDisplay.
 function RLMenuInfoFrame:updatePenDisplay()
-    if self.penBox == nil then return end
-
-    local display
-    if self.selectedHusbandry ~= nil then
-        display = RLAnimalInfoService.getHusbandryDisplay(self.selectedHusbandry, self.farmId)
-    end
-
-    if display == nil then
-        self.penBox:setVisible(false)
-        Log:trace("RLMenuInfoFrame:updatePenDisplay: no husbandry, pen hidden")
-        return
-    end
-
-    Log:debug("RLMenuInfoFrame:updatePenDisplay: husbandry='%s' count=%s",
-        display.name, display.countText)
-    self.penBox:setVisible(true)
-
-    if self.penNameText ~= nil then self.penNameText:setText(display.name) end
-    if self.penCountText ~= nil then self.penCountText:setText(display.countText) end
-    if self.penIcon ~= nil then
-        if display.penImageFilename ~= nil then
-            self.penIcon:setImageFilename(display.penImageFilename)
-            self.penIcon:setVisible(true)
-        else
-            self.penIcon:setVisible(false)
-        end
-    end
-
-    -- Conditions: show up to NUM_CONDITION_ROWS, hide unused
-    if self.conditionRow ~= nil then
-        for index = 1, RLMenuInfoFrame.NUM_CONDITION_ROWS do
-            local row = self.conditionRow[index]
-            local info = display.conditionInfos[index]
-            if row ~= nil then row:setVisible(info ~= nil) end
-            if info ~= nil and row ~= nil then
-                local valueText = info.valueText
-                if valueText == nil then
-                    valueText = g_i18n:formatVolume(info.value or 0, 0, info.customUnitText)
-                end
-                if self.conditionLabel and self.conditionLabel[index] then
-                    self.conditionLabel[index]:setText(info.title or "")
-                end
-                if self.conditionValue and self.conditionValue[index] then
-                    self.conditionValue[index]:setText(valueText)
-                end
-                if self.conditionStatusBar and self.conditionStatusBar[index] then
-                    self:setStatusBarValue(self.conditionStatusBar[index], info.ratio, info.invertedBar, info.disabled)
-                end
-            end
-        end
-    end
-
-    -- Food rows: each food row + the foodRowTotal summary at the top
-    if self.foodRow ~= nil then
-        for index = 1, RLMenuInfoFrame.NUM_FOOD_ROWS do
-            local row = self.foodRow[index]
-            local info = display.foodInfos[index]
-            if row ~= nil then row:setVisible(info ~= nil) end
-            if info ~= nil and row ~= nil then
-                local valueText = g_i18n:formatVolume(info.value or 0, 0)
-                if self.foodLabel and self.foodLabel[index] then
-                    self.foodLabel[index]:setText(info.title or "")
-                end
-                if self.foodValue and self.foodValue[index] then
-                    self.foodValue[index]:setText(valueText)
-                end
-                if self.foodStatusBar and self.foodStatusBar[index] then
-                    self:setStatusBarValue(self.foodStatusBar[index], info.ratio, info.invertedBar, info.disabled)
-                end
-            end
-        end
-    end
-
-    -- Hide the entire food chrome (header, total row) when this husbandry
-    -- has no food mixes (e.g. chicken coops). Otherwise the user sees a
-    -- dangling "Total: 0 l" green bar.
-    local hasFood = #display.foodInfos > 0
-    if self.foodRowTotal ~= nil then self.foodRowTotal:setVisible(hasFood) end
-    if self.penFoodHeader ~= nil then self.penFoodHeader:setVisible(hasFood) end
-
-    if hasFood then
-        if self.foodRowTotalValue ~= nil then
-            self.foodRowTotalValue:setText(g_i18n:formatVolume(display.foodTotalValue, 0))
-        end
-        if self.foodRowTotalStatusBar ~= nil then
-            self:setStatusBarValue(self.foodRowTotalStatusBar, display.foodTotalRatio, false)
-        end
-        if self.foodHeader ~= nil then
-            self.foodHeader:setText(string.format("%s (%s)",
-                g_i18n:getText("ui_silos_totalCapacity"),
-                g_i18n:getText("animals_foodMixEffectiveness")))
-        end
-    end
-
-    if self.penRequirementsLayout ~= nil and self.penRequirementsLayout.invalidateLayout ~= nil then
-        self.penRequirementsLayout:invalidateLayout()
-    end
+    RLDetailPaneHelper.updatePenDisplay(self, self.selectedHusbandry, self.farmId)
 end
 
---- Render the per-animal stat rows from husbandry:getAnimalInfos as a
---- 2x5 grid of plain label/value text pairs (NO status bars - that's the
---- conditions/food idiom). Variable count handled by hide-unused.
---- @param statRows table list of {title, valueText, ...} from getAnimalInfos
-function RLMenuInfoFrame:updateAnimalStats(statRows)
-    if self.statRow == nil then return end
-    for index = 1, RLMenuInfoFrame.NUM_STAT_ROWS do
-        local row = self.statRow[index]
-        local info = statRows[index]
-        if row ~= nil then row:setVisible(info ~= nil) end
-        if info ~= nil then
-            local valueText = info.valueText
-            if valueText == nil and info.value ~= nil then
-                valueText = g_i18n:formatVolume(info.value, 0, info.customUnitText)
-            end
-            if self.statLabel and self.statLabel[index] then
-                self.statLabel[index]:setText(info.title or "")
-            end
-            if self.statValue and self.statValue[index] then
-                self.statValue[index]:setText(valueText or "")
-            end
-        end
-    end
-end
-
---- Refresh the animal column from a cluster/animal. Hides the animal box
---- when no animal is supplied.
+--- Delegate to RLDetailPaneHelper.updateAnimalDisplay.
 --- @param animal table|nil
 function RLMenuInfoFrame:updateAnimalDisplay(animal)
-    if self.animalBox == nil then return end
-
-    local display
-    if animal ~= nil then
-        display = RLAnimalInfoService.getAnimalDisplay(animal, self.selectedHusbandry)
-    end
-
-    if display == nil then
-        self.animalBox:setVisible(false)
-        Log:trace("RLMenuInfoFrame:updateAnimalDisplay: no animal, animal box hidden")
-        return
-    end
-
-    Log:debug("RLMenuInfoFrame:updateAnimalDisplay: farmId=%s uniqueId=%s",
-        tostring(animal.farmId), tostring(animal.uniqueId))
-    self.animalBox:setVisible(true)
-
-    if self.animalDetailTypeNameText ~= nil then
-        self.animalDetailTypeNameText:setText(display.typeName)
-    end
-    if self.animalDetailTypeImage ~= nil then
-        if display.animalImageFilename ~= nil then
-            self.animalDetailTypeImage:setImageFilename(display.animalImageFilename)
-            self.animalDetailTypeImage:setVisible(true)
-        else
-            self.animalDetailTypeImage:setVisible(false)
-        end
-    end
-
-    -- Stat rows from husbandry:getAnimalInfos. Variable count (3 rows for
-    -- a pig, 8+ for a monitored pregnant cow). Hide unused slots.
-    self:updateAnimalStats(display.statRows or {})
-
-    if self.animalDescriptionText ~= nil then
-        self.animalDescriptionText:setText(display.description or "")
-    end
-
-    -- Pedigree
-    self:_renderPedigreeRow(self.pedigreeMotherText, display.pedigreeMother)
-    self:_renderPedigreeRow(self.pedigreeFatherText, display.pedigreeFather)
-    if self.pedigreeChildrenText ~= nil and display.pedigreeChildren ~= nil then
-        self.pedigreeChildrenText:setText(string.format("%s: %d",
-            g_i18n:getText(display.pedigreeChildren.labelKey), display.pedigreeChildren.count))
-    end
-
-    -- Genetics rows
-    if self.geneticsRow ~= nil then
-        for index = 1, RLMenuInfoFrame.NUM_GENETICS_ROWS do
-            local row = self.geneticsRow[index]
-            local data = display.geneticsRows[index]
-            if row ~= nil then row:setVisible(data ~= nil) end
-            if data ~= nil and row ~= nil then
-                if self.geneticsLabel and self.geneticsLabel[index] then
-                    self.geneticsLabel[index]:setText(g_i18n:getText(data.labelKey))
-                end
-                if self.geneticsValue and self.geneticsValue[index] then
-                    self.geneticsValue[index]:setText(g_i18n:getText(data.valueKey))
-                end
-                -- Always reset color so the previous selection's tier color
-                -- can't bleed onto a new row. Unknown colorKey -> neutral white.
-                local color = RLMenuInfoFrame.GENETICS_COLOR[data.colorKey]
-                    or RLMenuInfoFrame.GENETICS_COLOR_NEUTRAL
-                if self.geneticsLabel and self.geneticsLabel[index] and self.geneticsLabel[index].setTextColor then
-                    self.geneticsLabel[index]:setTextColor(unpack(color))
-                end
-                if self.geneticsValue and self.geneticsValue[index] and self.geneticsValue[index].setTextColor then
-                    self.geneticsValue[index]:setTextColor(unpack(color))
-                end
-            end
-        end
-    end
-
-    -- Disease rows (read-only, no Treat button). Hide the entire diseaseColumn
-    -- BoxLayout when the animal has no diseases so the section header doesn't
-    -- linger above an empty area.
-    local hasDiseases = #display.diseaseRows > 0
-    if self.diseaseColumn ~= nil then
-        self.diseaseColumn:setVisible(hasDiseases)
-    end
-    if hasDiseases and self.diseaseRow ~= nil then
-        for index = 1, RLMenuInfoFrame.NUM_DISEASE_ROWS do
-            local row = self.diseaseRow[index]
-            local data = display.diseaseRows[index]
-            if row ~= nil then row:setVisible(data ~= nil) end
-            if data ~= nil and row ~= nil then
-                if self.diseaseName and self.diseaseName[index] then
-                    self.diseaseName[index]:setText(data.name or "")
-                end
-                if self.diseaseStatus and self.diseaseStatus[index] then
-                    self.diseaseStatus[index]:setText(data.status or "")
-                end
-            end
-        end
-    end
-
-    -- Monitor input/output rows. Hide the entire monitorColumnsRow when
-    -- the animal is not monitored.
-    local hasMonitor = display.hasMonitor or false
-    if self.monitorColumnsRow ~= nil then
-        self.monitorColumnsRow:setVisible(hasMonitor)
-    end
-    if hasMonitor then
-        if self.inputRow ~= nil then
-            for index = 1, RLMenuInfoFrame.NUM_INPUT_ROWS do
-                local row = self.inputRow[index]
-                local data = display.inputRows[index]
-                if row ~= nil then row:setVisible(data ~= nil) end
-                if data ~= nil and row ~= nil then
-                    if self.inputLabel and self.inputLabel[index] then
-                        self.inputLabel[index]:setText(data.title or "")
-                    end
-                    if self.inputValue and self.inputValue[index] then
-                        self.inputValue[index]:setText(data.valueText or "")
-                    end
-                end
-            end
-        end
-        if self.outputRow ~= nil then
-            for index = 1, RLMenuInfoFrame.NUM_OUTPUT_ROWS do
-                local row = self.outputRow[index]
-                local data = display.outputRows[index]
-                if row ~= nil then row:setVisible(data ~= nil) end
-                if data ~= nil and row ~= nil then
-                    if self.outputLabel and self.outputLabel[index] then
-                        self.outputLabel[index]:setText(data.title or "")
-                    end
-                    if self.outputValue and self.outputValue[index] then
-                        self.outputValue[index]:setText(data.valueText or "")
-                    end
-                end
-            end
-        end
-        if self.inputColumn ~= nil and self.inputColumn.invalidateLayout ~= nil then
-            self.inputColumn:invalidateLayout()
-        end
-        if self.outputColumn ~= nil and self.outputColumn.invalidateLayout ~= nil then
-            self.outputColumn:invalidateLayout()
-        end
-    end
-
-    -- Invalidate every BoxLayout in the scrollable area so genetics,
-    -- pedigree, the horizontal columns wrapper, and the outer
-    -- ScrollingLayout all recompute their stack heights and total content
-    -- size when row visibility changes (5 vs 6 genetics rows by species,
-    -- variable stat row count, disease section show/hide, etc.).
-    if self.pedigreeColumn ~= nil and self.pedigreeColumn.invalidateLayout ~= nil then
-        self.pedigreeColumn:invalidateLayout()
-    end
-    if self.geneticsColumn ~= nil and self.geneticsColumn.invalidateLayout ~= nil then
-        self.geneticsColumn:invalidateLayout()
-    end
-    if hasDiseases and self.diseaseColumn ~= nil and self.diseaseColumn.invalidateLayout ~= nil then
-        self.diseaseColumn:invalidateLayout()
-    end
-    if self.animalColumnsRow ~= nil and self.animalColumnsRow.invalidateLayout ~= nil then
-        self.animalColumnsRow:invalidateLayout()
-    end
-    if hasMonitor and self.monitorColumnsRow ~= nil and self.monitorColumnsRow.invalidateLayout ~= nil then
-        self.monitorColumnsRow:invalidateLayout()
-    end
-    if self.animalScrollLayout ~= nil and self.animalScrollLayout.invalidateLayout ~= nil then
-        self.animalScrollLayout:invalidateLayout()
-    end
+    RLDetailPaneHelper.updateAnimalDisplay(self, animal, self.selectedHusbandry)
 end
 
---- Render one parent pedigree row (mother or father). Hides the id and
---- substitutes "(unknown)" when motherId/fatherId is nil or "-1".
---- @param textElement table|nil
---- @param row table {labelKey, idText|nil, unknownKey|nil}
-function RLMenuInfoFrame:_renderPedigreeRow(textElement, row)
-    if textElement == nil or row == nil then return end
-    local label = g_i18n:getText(row.labelKey)
-    local valueText
-    if row.idText ~= nil then
-        valueText = string.format("%s (%s)", label, row.idText)
-    else
-        valueText = string.format("%s (%s)", label, g_i18n:getText(row.unknownKey or "rl_ui_unknown"))
-    end
-    textElement:setText(valueText)
-end
-
---- Hide the pen and animal boxes (header + money stay visible). Used on
---- onFrameOpen and when no husbandry is selected.
+--- Delegate to RLDetailPaneHelper.clearDetail.
 function RLMenuInfoFrame:clearDetail()
-    Log:trace("RLMenuInfoFrame:clearDetail")
-    if self.penBox ~= nil then self.penBox:setVisible(false) end
-    self:clearAnimalDetail()
+    RLDetailPaneHelper.clearDetail(self)
 end
 
---- Hide just the animal box. Used on husbandry change before a row is picked.
+--- Delegate to RLDetailPaneHelper.clearAnimalDetail.
 function RLMenuInfoFrame:clearAnimalDetail()
-    Log:trace("RLMenuInfoFrame:clearAnimalDetail")
-    if self.animalBox ~= nil then self.animalBox:setVisible(false) end
+    RLDetailPaneHelper.clearAnimalDetail(self)
 end
 
 -- =============================================================================

@@ -44,9 +44,10 @@ function RLMenu.setupGui()
     -- 1. Load RL menu profiles (separate file from gui/guiProfiles.xml)
     g_gui:loadProfiles(Utils.getFilename("gui/rlmenu/rlMenuProfiles.xml", modDirectory))
 
-    -- 2. Register frames (Phase 1: Messages tab; Phase 2a: Info tab)
+    -- 2. Register frames (Phase 1: Messages; Phase 2a: Info; Phase 3: Move)
     RLMenuMessagesFrame.setupGui()
     RLMenuInfoFrame.setupGui()
+    RLMenuMoveFrame.setupGui()
 
     -- 3. Create the menu instance and load its XML
     g_rlMenu = RLMenu.new()
@@ -90,7 +91,14 @@ function RLMenu:setupMenuPages()
         self.infoFrame:initialize()
     end
 
-    Log:debug("RLMenu:setupMenuPages: 2 pages registered (messages, info)")
+    -- Phase 3 Move tab
+    self:registerPage(self.moveFrame, 3, basePredicate)
+    self:addPageTab(self.moveFrame, nil, nil, "rlExtra.move_animal")
+    if self.moveFrame ~= nil and self.moveFrame.initialize ~= nil then
+        self.moveFrame:initialize()
+    end
+
+    Log:debug("RLMenu:setupMenuPages: 3 pages registered (messages, info, move)")
 end
 
 --- Configure the bottom button bar.

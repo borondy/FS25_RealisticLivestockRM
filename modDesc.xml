@@ -25,7 +25,7 @@ Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivest
 Changelog
 
 v1.2.0.0-dev.5:
-- Added Info tab to the new RL Menu with husbandry selector, animal list, and read-only detail pane (pedigree, genetics, diseases, inputs/outputs, children)
+- Added Info tab to the new RL Menu with husbandry selector, animal list, and read-only detail pane (pedigree, genetics, diseases, inputs/outputs,i children)
 - Added action buttons to the RL Menu Info tab: Mark (X), Monitor (M), Rename (N), Diseases (D), Inseminate (I), and Castrate (C) - all work via keyboard shortcut and mouse click
 - Added new RL_RENAME key binding (N) for the rename action in Settings -> Controls
 
