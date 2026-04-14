@@ -420,7 +420,10 @@ end
 
 function Animal:setUniqueId(farmId)
     if self.clusterSystem == nil then
-        if farmId == nil then return end
+        if farmId == nil then
+            Log:trace("setUniqueId: no clusterSystem and no farmId arg, returning unchanged")
+            return
+        end
 
         if type(farmId) == "string" then farmId = tonumber(farmId) end
 
@@ -434,16 +437,19 @@ function Animal:setUniqueId(farmId)
     end
 
     local ownerFarmId = self.clusterSystem.owner.ownerFarmId
+    Log:trace("setUniqueId: ownerFarmId=%s, type=%s", tostring(ownerFarmId), type(ownerFarmId))
 
     if ownerFarmId == nil then
+        Log:trace("setUniqueId: ownerFarmId is nil, fallback to 1/1")
         self.uniqueId, self.farmId = "1", "1"
         return
     end
 
     local farm = g_farmManager.farmIdToFarm[ownerFarmId]
-
+    Log:trace("setUniqueId: farm lookup for ownerFarmId=%s -> %s", tostring(ownerFarmId), tostring(farm))
 
     if farm == nil then
+        Log:trace("setUniqueId: farm is nil, fallback to 1/1")
         self.uniqueId, self.farmId = "1", "1"
     else
         id = farm.stats:getNextAnimalId(g_currentMission.animalSystem:getSubTypeByIndex(self.subTypeIndex).typeIndex)

@@ -114,19 +114,35 @@ function RealisticLivestock_FSBaseMission:onStartMission()
     RLMessageAggregator.initialize()
 
     local temp = self.environment.weather.temperatureUpdater.currentMin or 20
-	local isServer = self:getIsServer() 
+	local isServer = self:getIsServer()
+    local fallbackRepairCount = 0
 
     for _, placeable in pairs(self.husbandrySystem.placeables) do
 
         local animals = placeable:getClusters()
 
         for _, animal in pairs(animals) do
+            -- Repair animals that got fallback IDs due to load-order race:
+            -- Placeables load before FarmManager:loadFromXMLFile, so farm lookup
+            -- in Animal.new returns nil for first-time RL installs on existing saves.
+            -- By onStartMission everything is initialized, so setUniqueId works.
+            if isServer and animal.uniqueId == "1" and animal.farmId == "1" then
+                animal:setUniqueId()
+                Log:debug("Fallback ID repair: 1/1 -> %s/%s (subType=%s)",
+                    animal.farmId, animal.uniqueId, animal.subType or "?")
+                fallbackRepairCount = fallbackRepairCount + 1
+            end
+
             animal:updateInput()
             animal:updateOutput(temp)
         end
 
         if isServer then placeable:updateInputAndOutput(animals) end
 
+    end
+
+    if fallbackRepairCount > 0 then
+        Log:info("onStartMission: repaired %d animal(s) with fallback IDs (load-order race)", fallbackRepairCount)
     end
 
     local guiOk, guiErr = pcall(function()
