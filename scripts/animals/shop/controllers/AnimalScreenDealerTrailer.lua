@@ -135,14 +135,14 @@ function RL_AnimalScreenDealerTrailer:applyTarget(_, _, animalIndex)
 
     local item = self.targetItems[animalIndex]
     local trailer = self.trailer
-    local ownerFarmId = trailer:getOwnerFarmId()
 
     local price = item:getPrice()
 
-    local errorCode = AnimalSellEvent.validate(trailer, item:getSubTypeIndex(), item:getAge(), 1, price, 0, ownerFarmId)
+    local errorCode = AnimalSellEvent.validate(trailer, item:getClusterId(), 1, price, 0)
 
     if errorCode ~= nil then
 		local error = AnimalScreenDealerFarm.SELL_ERROR_CODE_MAPPING[errorCode]
+		Log:debug("DealerTrailer.applyTarget: validation failed (errorCode=%d)", errorCode)
 		self.errorCallback(g_i18n:getText(error.text))
 		return false
 	end
@@ -151,6 +151,7 @@ function RL_AnimalScreenDealerTrailer:applyTarget(_, _, animalIndex)
 
     self.targetAnimals = { animal }
 
+    Log:debug("DealerTrailer.applyTarget: selling '%s' for %d", animal.name or animal.uniqueId or "?", price)
     self.actionTypeCallback(AnimalScreenBase.ACTION_TYPE_TARGET, g_i18n:getText(AnimalScreenDealerFarm.L10N_SYMBOL.SELLING))
     g_messageCenter:subscribe(AnimalSellEvent, self.onAnimalSold, self)
 	g_client:getServerConnection():sendEvent(AnimalSellEvent.new(trailer, self.targetAnimals, price, 0))
