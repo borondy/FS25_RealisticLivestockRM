@@ -19,7 +19,7 @@ function RealisticLivestock_AnimalItemStock.new(animal)
 
 	self.cachedSellPrice = animal:getSellPrice()
 
-	local genetics = animal:getGenetics()
+	local genetics = animal.getGenetics and animal:getGenetics() or nil
 	if genetics ~= nil then
 		local total = 0
 		local count = 0
@@ -34,7 +34,7 @@ function RealisticLivestock_AnimalItemStock.new(animal)
 		self.cachedAvgGenetics = 0
 	end
 
-	local hasMonitor = animal.monitor.active or animal.monitor.removed
+	local hasMonitor = animal.monitor ~= nil and (animal.monitor.active or animal.monitor.removed)
 	
 	self.infos = {
 		{
@@ -164,6 +164,6 @@ end
 
 function AnimalItemStock:getHasAnyDisease()
 
-	return self.cluster:getHasAnyDisease()
+	return self.cluster.getHasAnyDisease and self.cluster:getHasAnyDisease() or false
 
 end

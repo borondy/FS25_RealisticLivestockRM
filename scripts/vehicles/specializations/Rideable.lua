@@ -7,7 +7,12 @@ function RL_Rideable:onLoad(save)
 
 	local animal = Animal.loadFromXMLFile(save.xmlFile, save.key .. ".rideable.animal")
 
-	self:setCluster(animal)
+	if animal ~= nil and animal.uniqueId ~= nil then
+		Log:debug("Rideable:onLoad: loaded RLRM animal (uniqueId=%s)", animal.uniqueId)
+		self:setCluster(animal)
+	else
+		Log:debug("Rideable:onLoad: no RLRM data found, keeping base-game cluster")
+	end
 
 end
 
