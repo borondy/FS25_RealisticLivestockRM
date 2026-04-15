@@ -1,6 +1,6 @@
 <modDesc descVersion="107">
     <author>Ritter</author>
-    <version>1.2.0.1</version>
+    <version>1.2.1.0-dev.1</version>
     <title>
         <en>Realistic Livestock - Ritter version</en>
         <it>Allevamento Realistico - Versione Ritter</it>
@@ -23,6 +23,15 @@ Documentation: https://rittermod.github.io/FS25_RealisticLivestockRM
 Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivestockRM
 
 Changelog
+
+1.2.1.0-dev.1:
+- Fixed animal age not showing in the RL Menu stats area
+- RL Menu husbandry selector now sorted alphabetically by name
+- RL Menu now remembers selected husbandry and animal when switching between Info and Move tabs
+- Fixed crash when selling an animal from a livestock trailer at the animal dealer
+- Fixed crash when opening the animal trailer screen near a rideable horse created by third-party mods
+- Fixed prop horses from third-party mods being incorrectly converted to real animals when loaded onto trailers or into pens
+- Fixed animals marked as non-sellable being sellable after loading onto a trailer
 
 1.2.0.1:
 - Fixed deprecated fillUnit warning in game log for semen dewar
