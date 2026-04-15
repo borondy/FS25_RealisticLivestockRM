@@ -317,6 +317,17 @@ function RLAnimalInfoService.getAnimalDisplay(animal, husbandry)
         if ok and type(result) == "table" then statRows = result end
     end
 
+    -- Age is always first, ungated (mirrors legacy AnimalItemStock pattern).
+    -- Animal:addInfos never includes age; the base-game frame renders it as
+    -- a dedicated element. The new menu uses statRows, so inject it here.
+    table.insert(statRows, 1, {
+        title     = g_i18n:getText("ui_age"),
+        valueText = g_i18n:formatNumMonth(age),
+        value     = 1,
+        ratio     = 1,
+    })
+    Log:trace("RLAnimalInfoService.getAnimalDisplay: injected age row, age=%d", age)
+
     local description = ""
     if husbandry ~= nil and husbandry.getAnimalDescription ~= nil then
         local ok, result = pcall(function() return husbandry:getAnimalDescription(animal) end)
