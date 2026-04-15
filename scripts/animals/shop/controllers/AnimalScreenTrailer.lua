@@ -37,6 +37,10 @@ function RL_AnimalScreenTrailer:initSourceItems(_)
             local rawId = farm and farm.stats and farm.stats:getNextAnimalId(animalTypeIndex) or math.random(1, 99999)
             local uniqueId = RLAnimalUtil.generateUniqueId(farmHerdId, rawId)
 
+            -- Capture sell-protection from vanilla cluster before conversion.
+            -- NOTE: Use explicit if - Lua and/or ternary fails when the true-branch is false.
+            local canBeSoldFlag = nil
+            if cluster:getCanBeSold() == false then canBeSoldFlag = false end
             local animal = Animal.new({
                 age = cluster.age,
                 health = cluster.health,
@@ -48,10 +52,11 @@ function RL_AnimalScreenTrailer:initSourceItems(_)
                 riding = cluster.riding,
                 farmId = tostring(farmHerdId),
                 uniqueId = uniqueId,
+                canBeSold = canBeSoldFlag,
             })
 
-            Log:debug("initSourceItems: converted vanilla cluster to RLRM Animal (subType=%s, uniqueId=%s, name=%s)",
-                subType.name, uniqueId, animal.name or "nil")
+            Log:debug("initSourceItems: converted vanilla cluster to RLRM Animal (subType=%s, uniqueId=%s, name=%s, canBeSold=%s)",
+                subType.name, uniqueId, animal.name or "nil", tostring(canBeSoldFlag))
 
             rideable:setCluster(animal)
             cluster = animal

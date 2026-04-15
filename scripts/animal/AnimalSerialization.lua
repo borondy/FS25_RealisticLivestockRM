@@ -169,6 +169,8 @@ function AnimalSerialization.writeStream(animal, streamId, connection)
         streamWriteFloat32(streamId, animal.insemination.genetics.productivity or 0)
     end
 
+    streamWriteBool(streamId, animal.canBeSold == false)
+
     return true
 end
 
@@ -376,6 +378,10 @@ function AnimalSerialization.readStream(animal, streamId, connection)
     end
 
     animal.insemination = insemination
+
+    -- NOTE: Use explicit if - Lua and/or ternary fails when the true-branch is false.
+    local cannotBeSold = streamReadBool(streamId)
+    if cannotBeSold then animal.canBeSold = false end
 
     return true
 end

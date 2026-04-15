@@ -431,6 +431,11 @@ function AIAnimalManager:onDayChanged()
 
 			if animal:getMarked("AI_MANAGER_SELL") then animal:setMarked("AI_MANAGER_SELL", false) end
 
+			if not animal:getCanBeSold() then
+				Log:debug("AIAnimalManager: skipping non-sellable animal (name=%s, uniqueId=%s)", animal.name or "?", animal.uniqueId or "?")
+				continue
+			end
+
 			if sell.gender ~= "any" and animal.gender ~= sell.gender then continue end
 
 			if animal.age < sell.age.min or animal.age > sell.age.max then continue end

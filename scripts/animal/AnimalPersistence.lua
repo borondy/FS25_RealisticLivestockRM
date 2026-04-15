@@ -193,6 +193,9 @@ function AnimalPersistence.loadFromXMLFile(xmlFile, key, clusterSystem, isLegacy
 
     local isCastrated = xmlFile:getBool(key .. "#isCastrated", false)
 
+    -- nil when absent (backward compatible, treated as sellable); false when explicitly saved
+    local canBeSold = xmlFile:getBool(key .. "#canBeSold")
+
     local diseases = {}
 
     xmlFile:iterate(key .. ".diseases.disease", function (_, diseaseKey)
@@ -246,7 +249,8 @@ function AnimalPersistence.loadFromXMLFile(xmlFile, key, clusterSystem, isLegacy
         genetics = genetics, impregnatedBy = impregnatedBy, variation = variation,
         children = children, monitor = monitor, isCastrated = isCastrated,
         diseases = diseases, recentlyBoughtByAI = recentlyBoughtByAI,
-        marks = marks, insemination = insemination
+        marks = marks, insemination = insemination,
+        canBeSold = canBeSold
     })
 
     animal:setBirthday(birthday)
@@ -427,6 +431,7 @@ function AnimalPersistence.saveToXMLFile(animal, xmlFile, key)
     xmlFile:setBool(key .. ".monitor#removed", animal.monitor.removed)
 
     if animal.isCastrated then xmlFile:setBool(key .. "#isCastrated", true) end
+    if animal.canBeSold == false then xmlFile:setBool(key .. "#canBeSold", false) end
 
     for i, disease in pairs(animal.diseases) do
 

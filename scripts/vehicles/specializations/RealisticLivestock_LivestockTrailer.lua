@@ -19,6 +19,11 @@ function RealisticLivestock_LivestockTrailer:addCluster(superFunc, cluster)
 
     local clusterSystem = self.spec_livestockTrailer.clusterSystem
 
+    Log:trace("Trailer addCluster: isIndividual=%s numAnimals=%s name=%s canBeSold=%s id=%s",
+        tostring(cluster.isIndividual), tostring(cluster.numAnimals),
+        tostring(cluster.name or cluster:getName()), tostring(cluster.canBeSold),
+        tostring(cluster.id))
+
     if cluster.numAnimals > 1 or cluster.isIndividual == nil then
 
         -- Third-party mods may create rideables with vanilla clusters that have numAnimals=0 (props).
@@ -26,6 +31,14 @@ function RealisticLivestock_LivestockTrailer:addCluster(superFunc, cluster)
         if cluster.numAnimals == nil or cluster.numAnimals < 1 then
             Log:warning("Trailer addCluster: skipping cluster with numAnimals=%s subTypeIndex=%s", tostring(cluster.numAnimals), tostring(cluster.subTypeIndex))
             return
+        end
+
+        -- Capture sell-protection from vanilla cluster before conversion (e.g. AdditionalContracts mission horses).
+        -- NOTE: Use explicit if - Lua and/or ternary fails when the true-branch is false.
+        local canBeSoldFlag = nil
+        if cluster:getCanBeSold() == false then
+            canBeSoldFlag = false
+            Log:debug("Trailer addCluster: cluster canBeSold=false (subTypeIndex=%s), preserving on converted animals", tostring(cluster.subTypeIndex))
         end
 
         for i=1, cluster.numAnimals do
@@ -41,7 +54,8 @@ function RealisticLivestock_LivestockTrailer:addCluster(superFunc, cluster)
                 gender = subType.gender,
                 subTypeIndex = cluster.subTypeIndex,
                 reproduction = cluster.reproduction,
-                clusterSystem = clusterSystem
+                clusterSystem = clusterSystem,
+                canBeSold = canBeSoldFlag
             })
             clusterSystem:addCluster(animal)
         end
@@ -50,6 +64,8 @@ function RealisticLivestock_LivestockTrailer:addCluster(superFunc, cluster)
 
     end
 
+    Log:trace("Trailer addCluster: pass-through RLRM animal (uniqueId=%s canBeSold=%s)",
+        tostring(cluster.uniqueId), tostring(cluster.canBeSold))
     clusterSystem:addCluster(cluster)
     clusterSystem:updateNow()
 end

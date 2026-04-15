@@ -71,6 +71,7 @@ function Animal.new(config)
     self.name = nil
     self.isDead = false
     self.isSold = false
+    self.canBeSold = cfg.canBeSold  -- nil = sellable (default); false = blocked by third-party mod at conversion
     self.weight = cfg.weight or nil
     self.marks = cfg.marks or self:getDefaultMarks()
 
@@ -393,6 +394,7 @@ function Animal:clone()
         recentlyBoughtByAI = self.recentlyBoughtByAI,
         marks = self.marks,
         insemination = self.insemination,
+        canBeSold = self.canBeSold,
     })
 
     newAnimal:setBirthday(self.birthday)
@@ -519,8 +521,12 @@ function Animal:getTranportationFee(factor)
     return g_currentMission.animalSystem:getAnimalTransportFee(self.subTypeIndex, self.age) * factor
 end
 
+--- Whether this animal can be sold.
+--- Checks both death state and the canBeSold flag captured from vanilla cluster
+--- at conversion time. nil and true are treated as sellable; only explicit false blocks.
+--- @return boolean
 function Animal:getCanBeSold()
-    return self.isDead == false
+    return self.isDead == false and self.canBeSold ~= false
 end
 
 function Animal:addInfos(infos)

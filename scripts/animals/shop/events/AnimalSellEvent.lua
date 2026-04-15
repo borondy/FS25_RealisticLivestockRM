@@ -86,10 +86,30 @@ function AnimalSellEvent:run(connection)
 
 	Log:trace("SellEvent:run selling %d animals", #self.animals)
 
+	-- Pass 1: pre-validate all animals before removing any (prevents partial removal on blocked batch)
 	for i, identifier in pairs(self.animals) do
+		local key = RLAnimalUtil.toKeyFromIdentifiers(identifier)
+		Log:trace("SellEvent:run pass1 [%d] key=%s", i, tostring(key))
+		if key ~= nil then
+			local animal = self.object:getClusterById(key)
+			Log:trace("SellEvent:run pass1 [%d] found=%s name=%s canBeSold=%s getCanBeSold=%s",
+				i, tostring(animal ~= nil), animal and (animal.name or "?") or "nil",
+				tostring(animal and animal.canBeSold), tostring(animal and animal:getCanBeSold()))
+			if animal ~= nil and not animal:getCanBeSold() then
+				Log:warning("SellEvent:run blocked sell of non-sellable animal (name=%s, uniqueId=%s, farmId=%s)",
+					animal.name or "?", animal.uniqueId or "?", animal.farmId or "?")
+				connection:sendEvent(AnimalSellEvent.newServerToClient(AnimalSellEvent.SELL_ERROR_CANNOT_BE_SOLD))
+				return
+			end
+		end
+	end
 
-		clusterSystem:removeCluster(RLAnimalUtil.toKeyFromIdentifiers(identifier))
-
+	-- Pass 2: all animals validated, now remove
+	for i, identifier in pairs(self.animals) do
+		local key = RLAnimalUtil.toKeyFromIdentifiers(identifier)
+		if key ~= nil then
+			clusterSystem:removeCluster(key)
+		end
 	end
 
 	g_currentMission:addMoney(self.price + self.transportPrice, farmId, MoneyType.SOLD_ANIMALS, true, true)

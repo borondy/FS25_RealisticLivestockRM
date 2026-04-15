@@ -438,6 +438,13 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
                 Log:debug("addAnimals: subTypeIndex=%d -> subType=%s gender=%s breed=%s",
                     animalsToAdd.subTypeIndex, subType.name, subType.gender or "?", subType.breed or "?")
             end
+            -- Capture sell-protection from vanilla cluster before conversion.
+            -- NOTE: Use explicit if - Lua and/or ternary fails when the true-branch is false.
+            local canBeSoldFlag = nil
+            if type(animalsToAdd.getCanBeSold) == "function" and animalsToAdd:getCanBeSold() == false then
+                canBeSoldFlag = false
+                Log:debug("updateClusters single: cluster canBeSold=false (subTypeIndex=%s)", tostring(animalsToAdd.subTypeIndex))
+            end
             for i=1, animalsToAdd.numAnimals do
                 local animal = Animal.new({
                     age = animalsToAdd.age,
@@ -463,7 +470,8 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
                     impregnatedBy = animalsToAdd.impregnatedBy,
                     variation = animalsToAdd.variation,
                     children = animalsToAdd.children,
-                    monitor = animalsToAdd.monitor
+                    monitor = animalsToAdd.monitor,
+                    canBeSold = canBeSoldFlag
                 })
                 self:addCluster(animal)
                 isDirty = true
@@ -491,6 +499,13 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
                     Log:debug("addAnimals: subTypeIndex=%d -> subType=%s gender=%s breed=%s",
                         animalToAdd.subTypeIndex, subType.name, subType.gender or "?", subType.breed or "?")
                 end
+                -- Capture sell-protection from vanilla cluster before conversion.
+                -- NOTE: Use explicit if - Lua and/or ternary fails when the true-branch is false.
+                local canBeSoldFlag = nil
+                if type(animalToAdd.getCanBeSold) == "function" and animalToAdd:getCanBeSold() == false then
+                    canBeSoldFlag = false
+                    Log:debug("updateClusters table: cluster canBeSold=false (subTypeIndex=%s)", tostring(animalToAdd.subTypeIndex))
+                end
                 for i=1, animalToAdd.numAnimals do
                     local animal = Animal.new({
                         age = animalToAdd.age,
@@ -516,7 +531,8 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
                         impregnatedBy = animalToAdd.impregnatedBy,
                         variation = animalToAdd.variation,
                         children = animalToAdd.children,
-                        monitor = animalToAdd.monitor
+                        monitor = animalToAdd.monitor,
+                        canBeSold = canBeSoldFlag
                     })
                     self:addCluster(animal)
                     isDirty = true

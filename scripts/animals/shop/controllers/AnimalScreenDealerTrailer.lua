@@ -138,7 +138,13 @@ function RL_AnimalScreenDealerTrailer:applyTarget(_, _, animalIndex)
 
     local price = item:getPrice()
 
-    local errorCode = AnimalSellEvent.validate(trailer, item:getClusterId(), 1, price, 0)
+    local clusterId = item:getClusterId()
+    local animal = item.animal or item.cluster
+    Log:trace("DealerTrailer.applyTarget: clusterId=%s uniqueId=%s canBeSold=%s getCanBeSold=%s",
+        tostring(clusterId), tostring(animal and animal.uniqueId),
+        tostring(animal and animal.canBeSold), tostring(animal and animal:getCanBeSold()))
+
+    local errorCode = AnimalSellEvent.validate(trailer, clusterId, 1, price, 0)
 
     if errorCode ~= nil then
 		local error = AnimalScreenDealerFarm.SELL_ERROR_CODE_MAPPING[errorCode]
