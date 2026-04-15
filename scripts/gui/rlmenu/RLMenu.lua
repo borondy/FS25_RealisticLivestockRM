@@ -28,6 +28,13 @@ RLMenu.ACTION_NAME = "RL_MENU"
 function RLMenu.new(target, custom_mt)
     local self = TabbedMenu.new(target, custom_mt or RLMenu_mt)
     self.isOpen = false
+
+    -- Shared selection state across husbandry-based tabs (Info, Move, Sell).
+    -- Exported on frame close, imported on frame open. Frames that share the
+    -- same husbandry selector pattern can participate by reading/writing this.
+    -- { husbandry = placeable ref, animalIdentity = { farmId, uniqueId, country } }
+    self.sharedSelection = nil
+
     Log:trace("RLMenu.new: instance created")
     return self
 end

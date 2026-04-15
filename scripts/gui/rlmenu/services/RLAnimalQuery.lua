@@ -30,11 +30,17 @@ function RLAnimalQuery.listHusbandriesForFarm(farmId)
     if placeables == nil then return {} end
 
     local result = {}
-    for _, placeable in pairs(placeables) do
+    for _, placeable in ipairs(placeables) do
         table.insert(result, placeable)
     end
 
-    Log:debug("RLAnimalQuery.listHusbandriesForFarm: farmId=%s -> %d husbandries",
+    table.sort(result, function(a, b)
+        local nameA = (a.getName ~= nil and a:getName()) or ""
+        local nameB = (b.getName ~= nil and b:getName()) or ""
+        return nameA < nameB
+    end)
+
+    Log:debug("RLAnimalQuery.listHusbandriesForFarm: farmId=%s -> %d husbandries (sorted by name)",
         tostring(farmId), #result)
     return result
 end

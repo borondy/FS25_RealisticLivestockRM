@@ -136,6 +136,18 @@ function RLMenuInfoFrame:onFrameOpen()
     RLMenuInfoFrame:superClass().onFrameOpen(self)
     self.isFrameOpen = true
 
+    -- Import shared selection from sibling frame (Info <-> Move <-> Sell)
+    if g_rlMenu ~= nil and g_rlMenu.sharedSelection ~= nil then
+        local shared = g_rlMenu.sharedSelection
+        if shared.animalIdentity ~= nil then
+            self.selectedIdentity = shared.animalIdentity
+        end
+        Log:debug("RLMenuInfoFrame:onFrameOpen: imported shared selection (husbandry=%s animal=%s/%s)",
+            tostring(shared.husbandry ~= nil and shared.husbandry:getName() or "nil"),
+            tostring(shared.animalIdentity and shared.animalIdentity.farmId),
+            tostring(shared.animalIdentity and shared.animalIdentity.uniqueId))
+    end
+
     -- refreshHusbandries owns chrome state for both populated and empty
     -- husbandry cases. Do NOT clearDetail here: refreshHusbandries auto-
     -- selects state 1, which fires onHusbandryChanged -> updatePenDisplay,
@@ -157,6 +169,19 @@ end
 
 ---Called by the Paging element when this tab is deactivated.
 function RLMenuInfoFrame:onFrameClose()
+    -- Export selection to shared state for sibling frames
+    self:captureCurrentSelection()
+    if g_rlMenu ~= nil then
+        g_rlMenu.sharedSelection = {
+            husbandry      = self.selectedHusbandry,
+            animalIdentity = self.selectedIdentity,
+        }
+        Log:debug("RLMenuInfoFrame:onFrameClose: exported shared selection (husbandry=%s animal=%s/%s)",
+            tostring(self.selectedHusbandry ~= nil and self.selectedHusbandry:getName() or "nil"),
+            tostring(self.selectedIdentity and self.selectedIdentity.farmId),
+            tostring(self.selectedIdentity and self.selectedIdentity.uniqueId))
+    end
+
     RLMenuInfoFrame:superClass().onFrameClose(self)
     self.isFrameOpen = false
 end
@@ -218,11 +243,25 @@ function RLMenuInfoFrame:refreshHusbandries()
         self.subCategoryDotBox:setVisible(1 < #names)
     end
 
+    -- Resolve initial husbandry: match shared selection by placeable reference,
+    -- fall back to state 1 if not found or no shared state.
+    local initialState = 1
+    if g_rlMenu ~= nil and g_rlMenu.sharedSelection ~= nil
+        and g_rlMenu.sharedSelection.husbandry ~= nil then
+        for i, h in ipairs(self.sortedHusbandries) do
+            if h == g_rlMenu.sharedSelection.husbandry then
+                initialState = i
+                break
+            end
+        end
+        Log:trace("RLMenuInfoFrame:refreshHusbandries: shared husbandry resolved to state=%d", initialState)
+    end
+
     if self.subCategorySelector ~= nil then
         self.subCategorySelector:setTexts(names)
-        self.subCategorySelector:setState(1, true)
+        self.subCategorySelector:setState(initialState, true)
     else
-        self:onHusbandryChanged(1)
+        self:onHusbandryChanged(initialState)
     end
 end
 
