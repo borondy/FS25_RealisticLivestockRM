@@ -21,6 +21,13 @@ function RealisticLivestock_LivestockTrailer:addCluster(superFunc, cluster)
 
     if cluster.numAnimals > 1 or cluster.isIndividual == nil then
 
+        -- Third-party mods may create rideables with vanilla clusters that have numAnimals=0 (props).
+        -- Skip these to prevent phantom animals after conversion sets numAnimals=1.
+        if cluster.numAnimals == nil or cluster.numAnimals < 1 then
+            Log:warning("Trailer addCluster: skipping cluster with numAnimals=%s subTypeIndex=%s", tostring(cluster.numAnimals), tostring(cluster.subTypeIndex))
+            return
+        end
+
         for i=1, cluster.numAnimals do
             local subType = g_currentMission.animalSystem:getSubTypeByIndex(cluster.subTypeIndex)
             if subType == nil then

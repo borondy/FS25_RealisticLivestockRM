@@ -426,6 +426,11 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
         end
 
         if animalsToAdd.numAnimals ~= nil then
+            -- Skip vanilla clusters with numAnimals < 1 (props/mission animals from third-party mods)
+            if animalsToAdd.numAnimals < 1 then
+                Log:warning("updateClusters single: skipping cluster with numAnimals=%d subTypeIndex=%s", animalsToAdd.numAnimals, tostring(animalsToAdd.subTypeIndex))
+                continue
+            end
             local subType = g_currentMission.animalSystem:getSubTypeByIndex(animalsToAdd.subTypeIndex)
             if subType == nil then
                 Log:warning("addAnimals: subTypeIndex=%d has no matching subtype - will crash", animalsToAdd.subTypeIndex)
@@ -474,6 +479,11 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
                 isDirty = true
 
             else
+                -- Skip vanilla clusters with numAnimals < 1 (props/mission animals from third-party mods)
+                if animalToAdd.numAnimals == nil or animalToAdd.numAnimals < 1 then
+                    Log:warning("updateClusters table: skipping cluster with numAnimals=%s subTypeIndex=%s", tostring(animalToAdd.numAnimals), tostring(animalToAdd.subTypeIndex))
+                    continue
+                end
                 local subType = g_currentMission.animalSystem:getSubTypeByIndex(animalToAdd.subTypeIndex)
                 if subType == nil then
                     Log:warning("addAnimals: subTypeIndex=%d has no matching subtype - will crash", animalToAdd.subTypeIndex)
