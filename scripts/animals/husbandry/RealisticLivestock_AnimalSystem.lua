@@ -1765,52 +1765,12 @@ end
 
 
 function AnimalSystem.onClickResetDealer()
-
-    local animalSystem = g_currentMission.animalSystem
-    
-    if not animalSystem.isServer then return end
-
-    animalSystem:removeAllSaleAnimals()
-
-    for animalTypeIndex, animals in pairs(animalSystem.animals) do
-
-        for i = 1, animalSystem.maxDealerAnimals do
-
-            local animal = animalSystem:createNewSaleAnimal(animalTypeIndex)
-
-            if animal ~= nil then table.insert(animals, animal) end
-
-        end
-
-        animalSystem.animals[animalTypeIndex] = animals
-
-    end
-
+    RL_ResetDealerEvent.sendEvent(RL_ResetDealerEvent.TYPE_DEALER)
 end
 
 
 function AnimalSystem.onClickResetAIAnimals()
-
-    local animalSystem = g_currentMission.animalSystem
-
-    if not animalSystem.isServer then return end
-
-    for index in pairs(animalSystem.aiAnimals) do
-        animalSystem.aiAnimals[index] = {}
-    end
-
-    for animalTypeIndex, animals in pairs(animalSystem.aiAnimals) do
-
-        for i = 1, 15 do
-
-            local animal = animalSystem:createNewAIAnimal(animalTypeIndex)
-
-            if animal ~= nil then table.insert(animals, animal) end
-
-        end
-
-    end
-
+    RL_ResetDealerEvent.sendEvent(RL_ResetDealerEvent.TYPE_AI_ANIMALS)
 end
 
 

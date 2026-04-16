@@ -155,6 +155,7 @@ RLSettings.SETTINGS = {
 		["index"] = 5,
 		["type"] = "Button",
 		["ignore"] = true,
+		["adminOnly"] = true,
 		["callback"] = AnimalSystem.onClickResetDealer
 	},
 
@@ -162,6 +163,7 @@ RLSettings.SETTINGS = {
 		["index"] = 6,
 		["type"] = "Button",
 		["ignore"] = true,
+		["adminOnly"] = true,
 		["callback"] = AnimalSystem.onClickResetAIAnimals
 	},
 

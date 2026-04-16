@@ -3,7 +3,13 @@ RL_InGameMenuSettingsFrame = {}
 
 function RL_InGameMenuSettingsFrame:onFrameOpen(_)
 
+	local isAdmin = g_currentMission.isMasterUser or g_server ~= nil
+
 	for name, setting in pairs(RLSettings.SETTINGS) do
+
+		if setting.adminOnly and setting.element ~= nil then
+			setting.element:setDisabled(not isAdmin)
+		end
 
 		if setting.dependancy then
 			local dependancy = RLSettings.SETTINGS[setting.dependancy.name]

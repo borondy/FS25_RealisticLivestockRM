@@ -32,8 +32,8 @@ All Realistic Livestock RM settings are accessible from the mod settings menu in
 | Setting | Default | Options | Description |
 |---------|---------|---------|-------------|
 | **Max Dealer Animals** | 50 | 20 – 200 (10 steps) | Maximum number of animals per species available in the animal dealer. Higher values give more choice when buying. |
-| **Reset Dealer** | - | Button | Restocks the dealer with a fresh set of randomised animals. Use this if you want different genetics or breeds available. |
-| **Reset AI Animals** | - | Button | Refreshes the artificial insemination animal pool. Use this if the current AI pool has poor genetics. |
+| **Reset Dealer** | - | Button | Restocks the dealer with a fresh set of randomised animals. Use this if you want different genetics or breeds available. Admin only in multiplayer. |
+| **Reset AI Animals** | - | Button | Refreshes the artificial insemination animal pool. Use this if the current AI pool has poor genetics. Admin only in multiplayer. |
 
 ---
 
