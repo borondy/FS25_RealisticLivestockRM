@@ -1496,14 +1496,18 @@ function Animal:getMarked(key)
     return (self.marks[key].active) or false
 end
 
+--- Set or clear marks on this animal. key=nil targets all marks (clears herdsman marks too).
+--- @param key string|nil Mark key ("PLAYER", "AI_MANAGER_SELL", etc.) or nil for all
+--- @param active boolean
 function Animal:setMarked(key, active)
     if key == nil then
         for markKey, mark in pairs(self.marks) do self.marks[markKey].active = active end
-
-        return
+        Log:trace("setMarked: all marks set to %s for %s", tostring(active), tostring(self.uniqueId))
+    else
+        self.marks[key].active = active
+        Log:trace("setMarked: key=%s active=%s for %s", key, tostring(active), tostring(self.uniqueId))
     end
 
-    self.marks[key].active = active
     self:updateVisualMarker()
 end
 

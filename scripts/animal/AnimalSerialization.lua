@@ -205,7 +205,11 @@ function AnimalSerialization.readStream(animal, streamId, connection)
         local key = streamReadString(streamId)
         local active = streamReadBool(streamId)
 
-        animal.marks[key].active = active
+        if animal.marks[key] ~= nil then
+            animal.marks[key].active = active
+        else
+            Log:warning("readStream: unknown mark key '%s' for animal %s, skipping", key, tostring(animal.uniqueId))
+        end
     end
 
     animal.uniqueId = streamReadString(streamId)
