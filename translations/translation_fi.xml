@@ -722,6 +722,7 @@
         <text name="rl_menu_messages_unknown" text="Unknown: %s"/>
         <text name="rl_menu_move_summary" text="%d animals" tag="format"/>
         <text name="rl_menu_move_title" text="Move"/>
+        <text name="rl_menu_sell_title" text="Sell"/>
         <text name="rl_settings_geneticsDisplay_label" text="Genetics Display"/>
         <text name="rl_settings_geneticsDisplay_texts_1" text="Off"/>
         <text name="rl_settings_geneticsDisplay_texts_2" text="Short"/>

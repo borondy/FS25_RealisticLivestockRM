@@ -751,6 +751,9 @@
 		<text name="rl_menu_move_title" text="Move"/>
 		<text name="rl_menu_move_summary" text="%d animals" tag="format"/>
 
+		<!-- Phase 4: Sell tab -->
+		<text name="rl_menu_sell_title" text="Sell"/>
+
 
 		<!-- Missing keys (English fallback) -->
 		<text name="input_RL_RENAME" text="Rename"/>

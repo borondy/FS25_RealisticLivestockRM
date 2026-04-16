@@ -142,6 +142,7 @@ source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalMoveService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuMessagesFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuInfoFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuMoveFrame.lua")
+source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuSellFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/RLMenu.lua")
 
 -- SECTION 14: Migration System

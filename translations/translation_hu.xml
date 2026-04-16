@@ -745,5 +745,6 @@
 		<text name="rl_menu_messages_unknown" text="Unknown: %s"/>
 		<text name="rl_menu_move_summary" text="%d animals" tag="format"/>
 		<text name="rl_menu_move_title" text="Move"/>
+		<text name="rl_menu_sell_title" text="Sell"/>
 	</texts>
 </l10n>
