@@ -403,7 +403,7 @@
     -->
     <Profile name="rlMenu_checkboxButton" extends="buttonBase" with="anchorTopRight">
         <width value="25px"/>
-        <position value="-45px -30px"/>
+        <position value="-45px -25px"/>
         <imageColor value="$preset_colorTransparent"/>
     </Profile>
 
