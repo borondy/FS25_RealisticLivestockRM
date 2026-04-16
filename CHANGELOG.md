@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.2.1.0-dev.2
+- Fixed multiplayer: straw pickup from dewar now syncs to server (dewar no longer "refills" on reconnect)
+- Fixed multiplayer: empty straw hand tool now deleted from client inventory after insemination or return
+- Fixed animal mark/unmark: 3D visual marker now updates immediately when unmarking (previously required relog)
+- Fixed potential multiplayer crash when receiving unknown mark keys from newer mod versions
+- Fixed straw hand tool crash when no player is carrying it
+- Fixed multiplayer: "Reset Animal Dealer" and "Reset AI Animals" buttons now work for admin clients and sync to all players
+- Reset Dealer/AI Animals buttons are now admin-only in multiplayer (greyed out for non-admin players)
+- Added Sell tab to the RL Menu with shopping cart summary (selected count, price, fee, total)
+- Animals marked as non-sellable are automatically filtered from the Sell tab
+- RL Menu now remembers selected husbandry and animal when switching between Info, Move, and Sell tabs
+- Single sell/move no longer clears other checkbox selections in the RL Menu
+- Fixed status icons jumping position when switching between tabs
+- Renamed RL Menu "Info" tab to "Manage" to better reflect its actions (mark, inseminate, monitor, etc.)
+- Reordered RL Menu tabs: Sell, Move, Manage, Messages
+
 ## v1.2.1.0-dev.1
 - Fixed animal age not showing in the RL Menu stats area
 - RL Menu husbandry selector now sorted alphabetically by name
