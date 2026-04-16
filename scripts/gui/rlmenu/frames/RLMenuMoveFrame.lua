@@ -954,8 +954,16 @@ function RLMenuMoveFrame:onMoveConfirmed(clickYes)
         self.selectedHusbandry, destination, animals, "SOURCE",
         self.onMoveComplete, self)
 
-    -- Reset pending state
-    self.selectedAnimals = {}
+    -- Clear selections before dispatching: bulk clears all, single removes only the moved animal
+    if #animals > 1 then
+        self.selectedAnimals = {}
+    else
+        for _, animal in ipairs(animals) do
+            local key = RLAnimalUtil.toKey(animal.farmId, animal.uniqueId,
+                animal.birthday and animal.birthday.country or "")
+            self.selectedAnimals[key] = nil
+        end
+    end
     self.pendingMoveAnimals = nil
     self.pendingMoveDestination = nil
 end

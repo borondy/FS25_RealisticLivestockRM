@@ -53,18 +53,15 @@ function RLMenuSellFrame.new()
         text = g_i18n:getText("rl_menu_info_filter_button"),
         callback = function() self:onClickFilter() end,
     }
-    -- Phase 1: sell buttons are disabled placeholders. Phase 3 replaces these.
     self.sellButtonInfo = {
         inputAction = InputAction.MENU_EXTRA_1,
         text = g_i18n:getText("button_sell"),
-        callback = function() end,
-        disabled = true,
+        callback = function() self:onClickSell() end,
     }
     self.sellSelectedButtonInfo = {
         inputAction = InputAction.MENU_EXTRA_2,
         text = g_i18n:getText("rl_ui_sellSelected"),
-        callback = function() end,
-        disabled = true,
+        callback = function() self:onClickSellSelected() end,
     }
     self.selectButtonInfo = {
         inputAction = InputAction.RL_SELECT,
@@ -502,18 +499,20 @@ function RLMenuSellFrame:updateButtonVisibility()
         table.insert(self.menuButtonInfo, self.selectAllButtonInfo)
     end
 
-    -- Sell Selected (N) - disabled placeholder in Phase 1
+    -- Sell Selected (N) - enabled when checked animals exist
     if hasItems then
         local sellSelText = g_i18n:getText("rl_ui_sellSelected")
         if selectedCount > 0 then
             sellSelText = sellSelText .. " (" .. selectedCount .. ")"
         end
         self.sellSelectedButtonInfo.text = sellSelText
+        self.sellSelectedButtonInfo.disabled = selectedCount == 0
         table.insert(self.menuButtonInfo, self.sellSelectedButtonInfo)
     end
 
-    -- Sell (single focused animal) - disabled placeholder in Phase 1
+    -- Sell (single focused animal) - enabled when an animal is focused
     if hasItems then
+        self.sellButtonInfo.disabled = animal == nil
         table.insert(self.menuButtonInfo, self.sellButtonInfo)
     end
 
@@ -868,4 +867,135 @@ function RLMenuSellFrame:populateCellForItemInSection(list, section, index, cell
             end
         end
     end
+end
+
+
+-- =============================================================================
+-- Sell operations
+-- =============================================================================
+
+--- Sell the currently focused (highlighted) animal.
+function RLMenuSellFrame:onClickSell()
+    local animal = self:getSelectedAnimal()
+    if animal == nil then
+        Log:trace("RLMenuSellFrame:onClickSell: no animal focused")
+        return
+    end
+
+    local price, fee, _ = RLAnimalSellService.computeSellPrice(animal)
+    local confirmText = RLAnimalSellService.buildSingleConfirmationText(animal, price, fee)
+
+    Log:debug("RLMenuSellFrame:onClickSell: single sell for farmId=%s uniqueId=%s price=%.0f fee=%.0f",
+        tostring(animal.farmId), tostring(animal.uniqueId), price, fee)
+
+    -- Store pending state for confirmation callback
+    self.pendingSellAnimals = { animal }
+    self.pendingSellPrice = price
+    self.pendingSellFee = fee
+
+    YesNoDialog.show(self.onSellConfirmed, self, confirmText, g_i18n:getText("ui_attention"))
+end
+
+
+--- Sell all checked animals.
+function RLMenuSellFrame:onClickSellSelected()
+    local animals = {}
+    for _, sectionKey in ipairs(self.sectionOrder) do
+        local items = self.itemsBySection[sectionKey]
+        if items ~= nil then
+            for _, item in ipairs(items) do
+                if item.cluster ~= nil then
+                    local cluster = item.cluster
+                    local identityKey = RLAnimalUtil.toKey(cluster.farmId, cluster.uniqueId,
+                        cluster.birthday and cluster.birthday.country or "")
+                    if self.selectedAnimals[identityKey] then
+                        table.insert(animals, cluster)
+                    end
+                end
+            end
+        end
+    end
+
+    if #animals == 0 then
+        Log:trace("RLMenuSellFrame:onClickSellSelected: no animals checked")
+        return
+    end
+
+    local totalPrice, totalFee, _, count = RLAnimalSellService.computeBulkTotal(animals)
+    local confirmText = RLAnimalSellService.buildBulkConfirmationText(count, totalPrice, totalFee)
+
+    Log:debug("RLMenuSellFrame:onClickSellSelected: bulk sell %d animals, price=%.0f fee=%.0f",
+        count, totalPrice, totalFee)
+
+    -- Store pending state for confirmation callback
+    self.pendingSellAnimals = animals
+    self.pendingSellPrice = totalPrice
+    self.pendingSellFee = totalFee
+
+    YesNoDialog.show(self.onSellConfirmed, self, confirmText, g_i18n:getText("ui_attention"))
+end
+
+
+--- Callback from YesNoDialog confirmation.
+--- @param clickYes boolean
+function RLMenuSellFrame:onSellConfirmed(clickYes)
+    Log:debug("RLMenuSellFrame:onSellConfirmed: clickYes=%s", tostring(clickYes))
+
+    if not clickYes then
+        self.pendingSellAnimals = nil
+        self.pendingSellPrice = nil
+        self.pendingSellFee = nil
+        return
+    end
+
+    if self.pendingSellAnimals == nil or self.selectedHusbandry == nil then
+        Log:debug("RLMenuSellFrame:onSellConfirmed: nil pending state")
+        return
+    end
+
+    local animals = self.pendingSellAnimals
+    local price = self.pendingSellPrice
+    local fee = self.pendingSellFee
+
+    -- Clear selections BEFORE dispatching: bulk clears all, single removes only the sold animal
+    if #animals > 1 then
+        self.selectedAnimals = {}
+    else
+        for _, animal in ipairs(animals) do
+            local key = RLAnimalUtil.toKey(animal.farmId, animal.uniqueId,
+                animal.birthday and animal.birthday.country or "")
+            self.selectedAnimals[key] = nil
+        end
+    end
+    self.pendingSellAnimals = nil
+    self.pendingSellPrice = nil
+    self.pendingSellFee = nil
+
+    RLAnimalSellService.sellAnimals(
+        self.selectedHusbandry, animals, price, fee,
+        self.onSellComplete, self)
+end
+
+
+--- Callback from RLAnimalSellService after server responds.
+--- @param errorCode number
+function RLMenuSellFrame:onSellComplete(errorCode)
+    -- Stale-frame guard: if husbandry gone during sell event flight
+    if self.selectedHusbandry == nil then
+        Log:trace("RLMenuSellFrame:onSellComplete: stale frame, ignoring")
+        return
+    end
+
+    if errorCode ~= AnimalSellEvent.SELL_SUCCESS then
+        InfoDialog.show(RLAnimalSellService.getErrorText(errorCode))
+        Log:debug("RLMenuSellFrame:onSellComplete: sell failed, errorCode=%d", errorCode)
+    else
+        Log:info("RLMenuSellFrame:onSellComplete: sell succeeded")
+    end
+
+    -- Refresh list + cart + pen header + money display (post-sell)
+    self:reloadAnimalList()
+    self:updatePenHeader()
+    self:updateCartDisplay()
+    RLDetailPaneHelper.updateMoneyDisplay(self)
 end
