@@ -152,6 +152,30 @@
         Vertical BoxLayout flow, fixed 320px wide, anchored top-left so
         explicit `position` in the XML places each column at its own X.
     -->
+    <!--
+        Cart total value: right-aligned green text at header size (22px bold).
+        Extends fs25_animalRequirementsValue (right-aligned, green highlight)
+        with the font sizing from fs25_animalRequirementsHeader (22px bold)
+        to make the total row visually prominent.
+    -->
+    <Profile name="rlMenu_cartTotalValue" extends="fs25_animalRequirementsValue">
+        <textSize value="22px"/>
+        <textBold value="true"/>
+    </Profile>
+
+    <!--
+        Cart fee info text: multiline grey text sized for the pen column.
+        Mirrors rlMenu_animalDescription pattern (resize layout mode) but
+        narrower (350px vs 640px) to fit the pen column.
+    -->
+    <Profile name="rlMenu_cartFeeInfo" extends="fs25_textGrey" with="anchorTopLeft">
+        <size value="350px 80px"/>
+        <textMaxWidth value="350px"/>
+        <textMaxNumLines value="3"/>
+        <textLayoutMode value="resize"/>
+        <textVerticalAlignment value="top"/>
+    </Profile>
+
     <Profile name="rlMenu_animalColumnLayout" extends="emptyPanel" with="anchorTopLeft">
         <size value="360px 400px"/>
         <flowDirection value="vertical"/>

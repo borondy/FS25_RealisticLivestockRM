@@ -742,5 +742,8 @@
 		<text name="rl_menu_move_summary" text="%d animals" tag="format"/>
 		<text name="rl_menu_move_title" text="Move"/>
 		<text name="rl_menu_sell_title" text="Sell"/>
+		<text name="rl_menu_sell_cart_header" text="Sale Summary"/>
+		<text name="rl_menu_sell_cart_selected" text="Selected"/>
+		<text name="rl_menu_sell_cart_empty" text="Select animals to sell"/>
 	</texts>
 </l10n>

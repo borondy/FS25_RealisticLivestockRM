@@ -210,6 +210,7 @@ function RLMenuSellFrame:refreshHusbandries()
         if self.animalList ~= nil then self.animalList:reloadData() end
         self:updateEmptyState()
         self:updateButtonVisibility()
+        self:updateCartDisplay()
         RLDetailPaneHelper.updateMoneyDisplay(self)
         RLDetailPaneHelper.clearDetail(self)
         return
@@ -288,7 +289,8 @@ function RLMenuSellFrame:onHusbandryChanged(state)
             and self.selectedHusbandry:getName()) or "?")
 
     self:reloadAnimalList()
-    RLDetailPaneHelper.updatePenDisplay(self, self.selectedHusbandry, self.farmId)
+    self:updatePenHeader()
+    self:updateCartDisplay()
     RLDetailPaneHelper.updateMoneyDisplay(self)
 end
 
@@ -362,6 +364,7 @@ function RLMenuSellFrame:reloadAnimalList()
     self:restoreSelection()
     self:updateEmptyState()
     self:updateButtonVisibility()
+    self:updateCartDisplay()
 end
 
 
@@ -521,6 +524,106 @@ end
 
 
 -- =============================================================================
+-- Pen header + cart display
+-- =============================================================================
+
+--- Populate the pen header (name, count, icon) directly from husbandry display
+--- data. Replaces RLDetailPaneHelper.updatePenDisplay for the sell frame since
+--- the conditions/food XML was replaced with cart elements.
+function RLMenuSellFrame:updatePenHeader()
+    if self.penBox == nil then return end
+
+    local display
+    if self.selectedHusbandry ~= nil then
+        display = RLAnimalInfoService.getHusbandryDisplay(self.selectedHusbandry, self.farmId)
+    end
+
+    if display == nil then
+        self.penBox:setVisible(false)
+        Log:trace("RLMenuSellFrame:updatePenHeader: no husbandry, pen hidden")
+        return
+    end
+
+    self.penBox:setVisible(true)
+    if self.penNameText ~= nil then self.penNameText:setText(display.name) end
+    if self.penCountText ~= nil then self.penCountText:setText(display.countText) end
+    if self.penIcon ~= nil then
+        if display.penImageFilename ~= nil then
+            self.penIcon:setImageFilename(display.penImageFilename)
+            self.penIcon:setVisible(true)
+        else
+            self.penIcon:setVisible(false)
+        end
+    end
+
+    Log:trace("RLMenuSellFrame:updatePenHeader: '%s' %s", display.name, display.countText)
+end
+
+
+--- Compute cart totals from checked animals.
+--- Fee sign convention: getTranportationFee(1) returns positive; negate before summing.
+--- @return number totalPrice Sum of getSellPrice() for checked animals
+--- @return number totalFee Sum of getTranportationFee(1) for checked animals (positive)
+--- @return number count Number of checked animals
+function RLMenuSellFrame:computeCartTotals()
+    local totalPrice = 0
+    local totalFee = 0
+    local count = 0
+
+    for _, sectionKey in ipairs(self.sectionOrder) do
+        local items = self.itemsBySection[sectionKey]
+        if items ~= nil then
+            for _, item in ipairs(items) do
+                if item.cluster ~= nil then
+                    local cluster = item.cluster
+                    local identityKey = RLAnimalUtil.toKey(cluster.farmId, cluster.uniqueId,
+                        cluster.birthday and cluster.birthday.country or "")
+                    if self.selectedAnimals[identityKey] then
+                        totalPrice = totalPrice + (cluster:getSellPrice() or 0)
+                        totalFee = totalFee + (cluster:getTranportationFee(1) or 0)
+                        count = count + 1
+                    end
+                end
+            end
+        end
+    end
+
+    Log:trace("RLMenuSellFrame:computeCartTotals: count=%d price=%.0f fee=%.0f total=%.0f",
+        count, totalPrice, totalFee, totalPrice - totalFee)
+    return totalPrice, totalFee, count
+end
+
+
+--- Update the cart display elements with current totals.
+function RLMenuSellFrame:updateCartDisplay()
+    local totalPrice, totalFee, count = self:computeCartTotals()
+
+    if self.cartCountValue ~= nil then
+        self.cartCountValue:setText(tostring(count))
+    end
+    if self.cartPriceValue ~= nil then
+        self.cartPriceValue:setText(g_i18n:formatMoney(totalPrice, 0, true, true))
+    end
+    if self.cartFeeValue ~= nil then
+        self.cartFeeValue:setText(g_i18n:formatMoney(-totalFee, 0, true, true))
+    end
+    if self.cartTotalValue ~= nil then
+        self.cartTotalValue:setText(g_i18n:formatMoney(totalPrice - totalFee, 0, true, true))
+    end
+
+    if self.cartLayout ~= nil and self.cartLayout.invalidateLayout ~= nil then
+        self.cartLayout:invalidateLayout()
+    end
+
+    Log:trace("RLMenuSellFrame:updateCartDisplay: %d selected, price=%s fee=%s total=%s",
+        count,
+        g_i18n:formatMoney(totalPrice, 0, true, true),
+        g_i18n:formatMoney(-totalFee, 0, true, true),
+        g_i18n:formatMoney(totalPrice - totalFee, 0, true, true))
+end
+
+
+-- =============================================================================
 -- Checkbox / multi-select
 -- =============================================================================
 
@@ -544,6 +647,7 @@ function RLMenuSellFrame:onClickSelect()
         self.animalList:reloadData()
     end
     self:updateButtonVisibility()
+    self:updateCartDisplay()
 end
 
 
@@ -578,6 +682,7 @@ function RLMenuSellFrame:onClickSelectAll()
         self.animalList:reloadData()
     end
     self:updateButtonVisibility()
+    self:updateCartDisplay()
 end
 
 
@@ -757,6 +862,7 @@ function RLMenuSellFrame:populateCellForItemInSection(list, section, index, cell
                 self.selectedAnimals[identityKey] = not self.selectedAnimals[identityKey]
                 check:setVisible(self.selectedAnimals[identityKey] == true)
                 self:updateButtonVisibility()
+                self:updateCartDisplay()
                 Log:trace("RLMenuSellFrame checkbox click: key=%s -> %s",
                     identityKey, tostring(self.selectedAnimals[identityKey]))
             end

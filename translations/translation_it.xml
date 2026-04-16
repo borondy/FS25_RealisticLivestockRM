@@ -712,6 +712,9 @@
         <text name="rl_menu_move_summary" text="%d animals" tag="format"/>
         <text name="rl_menu_move_title" text="Move"/>
         <text name="rl_menu_sell_title" text="Sell"/>
+        <text name="rl_menu_sell_cart_header" text="Sale Summary"/>
+        <text name="rl_menu_sell_cart_selected" text="Selected"/>
+        <text name="rl_menu_sell_cart_empty" text="Select animals to sell"/>
         <text name="rl_ui_buyAllRejected" text="None of the selected animals can be purchased in this husbandry."/>
         <text name="rl_ui_buyPartialConfirmation" text="Buy %d of %d selected animals for %s?" tag="format"/>
         <text name="rl_ui_buySkippedNotSupported" text="%d animal(s) not supported by this husbandry" tag="format"/>

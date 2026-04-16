@@ -113,112 +113,49 @@
             <Text profile="rlMenu_penNameText" id="penNameText" position="0px -45px"/>
             <Text profile="rlMenu_penCountText" id="penCountText" position="0px -80px"/>
             <Bitmap profile="rlMenu_penIcon" id="penIcon"/>
-            <BoxLayout profile="fs25_animalRequirementsLayout" id="penRequirementsLayout" position="0px -350px">
+            <!--
+                Cart section replaces conditions/food for the sell tab.
+                Reuses existing pen column profiles for consistent sizing.
+            -->
+            <BoxLayout profile="fs25_animalRequirementsLayout" id="cartLayout" position="0px -350px">
 
-                <Text profile="fs25_animalRequirementsHeaderLong" id="penConditionsHeader" text="$l10n_ui_animalConditions"/>
+                <Text profile="fs25_animalRequirementsHeaderLong" id="cartHeader" text="$l10n_rl_menu_sell_cart_header"/>
 
-                <GuiElement profile="fs25_animalRequirementsRow" id="conditionRow[1]">
+                <GuiElement profile="fs25_animalRequirementsRow" id="cartCountRow">
                     <GuiElement profile="fs25_animalRequirementsRowTextPanel">
-                        <Text profile="fs25_animalRequirementsLabel" id="conditionLabel[1]"/>
-                        <Text profile="fs25_animalRequirementsValue" id="conditionValue[1]"/>
+                        <Text profile="fs25_animalRequirementsLabel" id="cartCountLabel" text="$l10n_rl_menu_sell_cart_selected"/>
+                        <Text profile="fs25_animalRequirementsValue" id="cartCountValue"/>
                     </GuiElement>
-                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
-                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="conditionStatusBar[1]"/>
-                    </ThreePartBitmap>
-                </GuiElement>
-                <GuiElement profile="fs25_animalRequirementsRow" id="conditionRow[2]">
-                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
-                        <Text profile="fs25_animalRequirementsLabel" id="conditionLabel[2]"/>
-                        <Text profile="fs25_animalRequirementsValue" id="conditionValue[2]"/>
-                    </GuiElement>
-                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
-                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="conditionStatusBar[2]"/>
-                    </ThreePartBitmap>
-                </GuiElement>
-                <GuiElement profile="fs25_animalRequirementsRow" id="conditionRow[3]">
-                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
-                        <Text profile="fs25_animalRequirementsLabel" id="conditionLabel[3]"/>
-                        <Text profile="fs25_animalRequirementsValue" id="conditionValue[3]"/>
-                    </GuiElement>
-                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
-                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="conditionStatusBar[3]"/>
-                    </ThreePartBitmap>
-                </GuiElement>
-                <GuiElement profile="fs25_animalRequirementsRow" id="conditionRow[4]">
-                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
-                        <Text profile="fs25_animalRequirementsLabel" id="conditionLabel[4]"/>
-                        <Text profile="fs25_animalRequirementsValue" id="conditionValue[4]"/>
-                    </GuiElement>
-                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
-                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="conditionStatusBar[4]"/>
-                    </ThreePartBitmap>
-                </GuiElement>
-                <GuiElement profile="fs25_animalRequirementsRow" id="conditionRow[5]">
-                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
-                        <Text profile="fs25_animalRequirementsLabel" id="conditionLabel[5]"/>
-                        <Text profile="fs25_animalRequirementsValue" id="conditionValue[5]"/>
-                    </GuiElement>
-                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
-                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="conditionStatusBar[5]"/>
-                    </ThreePartBitmap>
                 </GuiElement>
 
-                <Text profile="fs25_animalRequirementsHeaderLong" id="penFoodHeader" text="$l10n_ui_animalFood" margin="0px 10px 0px 14px"/>
+                <!-- Price + Fee grouped tight (related subtotal components) -->
+                <GuiElement profile="fs25_animalRequirementsRow" id="cartPriceRow" margin="0px 8px 0px 0px">
+                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
+                        <Text profile="fs25_animalRequirementsLabel" id="cartPriceLabel" text="$l10n_ui_prices"/>
+                        <Text profile="fs25_animalRequirementsValue" id="cartPriceValue"/>
+                    </GuiElement>
+                </GuiElement>
 
-                <GuiElement profile="fs25_animalRequirementsRow" id="foodRowTotal">
+                <GuiElement profile="fs25_animalRequirementsRow" id="cartFeeRow" margin="0px 0px 0px 0px">
                     <GuiElement profile="fs25_animalRequirementsRowTextPanel">
-                        <Text profile="fs25_animalRequirementsLabel" id="foodHeader" text="$l10n_ui_total"/>
-                        <Text profile="fs25_animalRequirementsValue" id="foodRowTotalValue"/>
+                        <Text profile="fs25_animalRequirementsLabel" id="cartFeeLabel" text="$l10n_shop_fee"/>
+                        <Text profile="fs25_animalRequirementsValue" id="cartFeeValue"/>
                     </GuiElement>
-                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
-                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="foodRowTotalStatusBar"/>
-                    </ThreePartBitmap>
                 </GuiElement>
-                <GuiElement profile="fs25_animalRequirementsRow" id="foodRow[1]">
+
+                <!-- Total row: header-style label + enlarged value for visual prominence -->
+                <GuiElement profile="fs25_animalRequirementsRow" id="cartTotalRow" margin="0px 14px 0px 0px">
                     <GuiElement profile="fs25_animalRequirementsRowTextPanel">
-                        <Text profile="fs25_animalRequirementsLabel" id="foodLabel[1]"/>
-                        <Text profile="fs25_animalRequirementsValue" id="foodValue[1]"/>
+                        <Text profile="fs25_animalRequirementsHeaderLong" id="cartTotalLabel" text="$l10n_ui_total"/>
+                        <Text profile="rlMenu_cartTotalValue" id="cartTotalValue"/>
                     </GuiElement>
-                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
-                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="foodStatusBar[1]"/>
-                    </ThreePartBitmap>
                 </GuiElement>
-                <GuiElement profile="fs25_animalRequirementsRow" id="foodRow[2]">
-                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
-                        <Text profile="fs25_animalRequirementsLabel" id="foodLabel[2]"/>
-                        <Text profile="fs25_animalRequirementsValue" id="foodValue[2]"/>
-                    </GuiElement>
-                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
-                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="foodStatusBar[2]"/>
-                    </ThreePartBitmap>
-                </GuiElement>
-                <GuiElement profile="fs25_animalRequirementsRow" id="foodRow[3]">
-                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
-                        <Text profile="fs25_animalRequirementsLabel" id="foodLabel[3]"/>
-                        <Text profile="fs25_animalRequirementsValue" id="foodValue[3]"/>
-                    </GuiElement>
-                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
-                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="foodStatusBar[3]"/>
-                    </ThreePartBitmap>
-                </GuiElement>
-                <GuiElement profile="fs25_animalRequirementsRow" id="foodRow[4]">
-                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
-                        <Text profile="fs25_animalRequirementsLabel" id="foodLabel[4]"/>
-                        <Text profile="fs25_animalRequirementsValue" id="foodValue[4]"/>
-                    </GuiElement>
-                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
-                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="foodStatusBar[4]"/>
-                    </ThreePartBitmap>
-                </GuiElement>
-                <GuiElement profile="fs25_animalRequirementsRow" id="foodRow[5]">
-                    <GuiElement profile="fs25_animalRequirementsRowTextPanel">
-                        <Text profile="fs25_animalRequirementsLabel" id="foodLabel[5]"/>
-                        <Text profile="fs25_animalRequirementsValue" id="foodValue[5]"/>
-                    </GuiElement>
-                    <ThreePartBitmap profile="fs25_animalSmallStatusBarBackground">
-                        <ThreePartBitmap profile="fs25_animalSmallStatusBar" id="foodStatusBar[5]"/>
-                    </ThreePartBitmap>
-                </GuiElement>
+
+                <!-- Transport fee explanation: multiline grey text for pen column -->
+                <Text profile="rlMenu_cartFeeInfo" id="cartFeeInfo"
+                      text="$l10n_shop_transportationFee"
+                      margin="0px 14px 0px 0px"/>
+
             </BoxLayout>
         </GuiElement>
 
