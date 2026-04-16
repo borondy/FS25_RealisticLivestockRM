@@ -12,7 +12,7 @@ local modDirectory = g_currentModDirectory
 -- SECTION 0: Logging
 source(modDirectory .. "scripts/rmlib/RmLogging.lua")
 Log = RmLogging.getLogger("RLRM")
-Log:setLevel(RmLogging.LOG_LEVEL.INFO)
+Log:setLevel(RmLogging.LOG_LEVEL.DEBUG)
 
 -- SECTION 1: Font Library
 source(modDirectory .. "scripts/fontlib/RmFontCharacter.lua")
@@ -79,6 +79,7 @@ source(modDirectory .. "scripts/animals/shop/RealisticLivestock_AnimalItemStock.
 source(modDirectory .. "scripts/events/HusbandryMessageStateEvent.lua")
 source(modDirectory .. "scripts/events/HusbandryMessageDeleteEvent.lua")
 source(modDirectory .. "scripts/events/ReturnStrawEvent.lua")
+source(modDirectory .. "scripts/events/TakeStrawEvent.lua")
 source(modDirectory .. "scripts/events/DiseaseTreatmentToggleEvent.lua")
 
 -- SECTION 10: Farms
@@ -190,6 +191,7 @@ source(modDirectory .. "scripts/events/AnimalNameChangeEvent.lua")
 source(modDirectory .. "scripts/events/AnimalPregnancyEvent.lua")
 source(modDirectory .. "scripts/events/AnimalUpdateEvent.lua")
 source(modDirectory .. "scripts/events/RL_BroadcastSettingsEvent.lua")
+source(modDirectory .. "scripts/events/RL_ResetDealerEvent.lua")
 
 -- SECTION 20d: Insemination (dewar manager)
 source(modDirectory .. "scripts/insemination/DewarManager.lua")

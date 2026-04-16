@@ -153,6 +153,9 @@ function HandToolAIStraw:saveToXMLFile(xmlFile, key)
 end
 
 
+--- Deserialize straw state from the network stream (client join sync).
+--- @param streamId number Network stream id
+--- @param connection table Network connection
 function HandToolAIStraw:onReadStream(streamId, connection)
 
 	local spec = self[specName]
@@ -165,7 +168,7 @@ function HandToolAIStraw:onReadStream(streamId, connection)
 
 	if hasAnimal then
 
-		local animal = { ["genetics"] = {} }
+		animal = { ["genetics"] = {} }
 
 		animal.country = streamReadUInt8(streamId)
 		animal.farmId = streamReadString(streamId)
@@ -232,8 +235,11 @@ function HandToolAIStraw:onWriteStream(streamId, connection)
 end
 
 
+--- Update straw targeting each frame: find insemination target or dewar for return.
+--- @param dT number Delta time in ms
 function HandToolAIStraw:updateStraw(dT)
 
+	local spec = self[specName]
 	local player = self:getCarryingPlayer()
 
 	if player == nil then
@@ -241,8 +247,6 @@ function HandToolAIStraw:updateStraw(dT)
 		g_inputBinding:setActionEventActive(spec.activateActionEventId, false)
 		return
 	end
-
-	local spec = self[specName]
 
 	spec.targetedPlaceable, spec.targetedAnimal, spec.targetedDewar = nil, nil, nil
 
@@ -460,11 +464,13 @@ function HandToolAIStraw:onActionFired()
 end
 
 
+--- Apply insemination from this straw to the targeted animal, sync via event, and delete the straw.
 function HandToolAIStraw:onInseminate()
 
 	local spec = self[specName]
 
 	local husbandry, animal = spec.targetedPlaceable, spec.targetedAnimal
+	Log:trace("onInseminate: animal=%s husbandry=%s isServer=%s", tostring(animal), tostring(husbandry), tostring(self.isServer))
 
 	animal:setInsemination(spec.animal)
 
@@ -477,16 +483,19 @@ function HandToolAIStraw:onInseminate()
 	spec.isEmpty = true
 	g_inputBinding:setActionEventActive(spec.activateActionEventId, false)
 
-	if self.isServer then g_currentMission.handToolSystem:markHandToolForDeletion(self) end
+	g_currentMission.handToolSystem:markHandToolForDeletion(self)
+	Log:debug("onInseminate: straw emptied and marked for deletion (isServer=%s)", tostring(self.isServer))
 
 end
 
 
+--- Return this straw to its parent dewar, sync via event, and delete the straw.
 function HandToolAIStraw:onReturnToDewar()
 
 	local spec = self[specName]
 
 	local dewar = spec.targetedDewar
+	Log:trace("onReturnToDewar: dewar=%s isServer=%s", tostring(dewar), tostring(self.isServer))
 
 	if g_server ~= nil then
 		g_server:broadcastEvent(ReturnStrawEvent.new(dewar))
@@ -498,7 +507,8 @@ function HandToolAIStraw:onReturnToDewar()
 	spec.isEmpty = true
 	g_inputBinding:setActionEventActive(spec.activateActionEventId, false)
 
-	if self.isServer then g_currentMission.handToolSystem:markHandToolForDeletion(self) end
+	g_currentMission.handToolSystem:markHandToolForDeletion(self)
+	Log:debug("onReturnToDewar: straw returned and marked for deletion (isServer=%s)", tostring(self.isServer))
 
 end
 

@@ -75,6 +75,7 @@ end
 PlayerInputComponent.update = Utils.appendedFunction(PlayerInputComponent.update, RealisticLivestock_PlayerInputComponent.update)
 
 
+--- Take a straw from the targeted dewar: spawn hand tool, decrement count, sync to server.
 function RealisticLivestock_PlayerInputComponent:onInputEnter()
 
     if g_time <= g_currentMission.lastInteractionTime + 200 or g_currentMission.interactiveVehicleInRange ~= nil or self.rideablePlaceable ~= nil or self.dewar == nil or HandToolAIStraw.numHeldStraws > 10 then return end
@@ -87,6 +88,14 @@ function RealisticLivestock_PlayerInputComponent:onInputEnter()
     handTool:loadNonStoreItem({ ["ownerFarmId"] = g_localPlayer.farmId, ["isRegistered"] = false, ["holder"] = g_localPlayer }, RLHandTools.xmlPaths.aiStraw)
 
     self.dewar:changeStraws(-1)
+
+    if g_server ~= nil then
+        g_server:broadcastEvent(TakeStrawEvent.new(self.dewar))
+    elseif g_client ~= nil then
+        g_client:getServerConnection():sendEvent(TakeStrawEvent.new(self.dewar))
+    end
+
+    Log:debug("onInputEnter: took straw from dewar=%s straws=%d", tostring(self.dewar:getUniqueId()), self.dewar.straws or -1)
 
 end
 
