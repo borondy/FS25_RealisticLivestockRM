@@ -1,29 +1,26 @@
 # Changelog
 
-## v1.2.1.0-dev.2
+## v1.2.1.0
+- Added multiplayer support for "Reset Animal Dealer" and "Reset AI Animals" buttons (admin-only in MP, syncs to all players)
 - Fixed multiplayer: straw pickup from dewar now syncs to server (dewar no longer "refills" on reconnect)
 - Fixed multiplayer: empty straw hand tool now deleted from client inventory after insemination or return
 - Fixed animal mark/unmark: 3D visual marker now updates immediately when unmarking (previously required relog)
 - Fixed potential multiplayer crash when receiving unknown mark keys from newer mod versions
 - Fixed straw hand tool crash when no player is carrying it
-- Fixed multiplayer: "Reset Animal Dealer" and "Reset AI Animals" buttons now work for admin clients and sync to all players
-- Reset Dealer/AI Animals buttons are now admin-only in multiplayer (greyed out for non-admin players)
-- Added Sell tab to the RL Menu with shopping cart summary (selected count, price, fee, total)
-- Animals marked as non-sellable are automatically filtered from the Sell tab
-- RL Menu now remembers selected husbandry and animal when switching between Info, Move, and Sell tabs
-- Single sell/move no longer clears other checkbox selections in the RL Menu
-- Fixed status icons jumping position when switching between tabs
-- Renamed RL Menu "Info" tab to "Manage" to better reflect its actions (mark, inseminate, monitor, etc.)
-- Reordered RL Menu tabs: Sell, Move, Manage, Messages
-
-## v1.2.1.0-dev.1
-- Fixed animal age not showing in the RL Menu stats area
-- RL Menu husbandry selector now sorted alphabetically by name
-- RL Menu now remembers selected husbandry and animal when switching between Info and Move tabs
 - Fixed crash when selling an animal from a livestock trailer at the animal dealer
-- Fixed crash when opening the animal trailer screen near a rideable horse created by third-party mods
+- Fixed crash when opening the animal trailer screen near a rideable horse created by third-party mods (e.g. AdditionalContracts animal missions)
 - Fixed prop horses from third-party mods being incorrectly converted to real animals when loaded onto trailers or into pens
 - Fixed animals marked as non-sellable being sellable after loading onto a trailer
+
+### RL Menu (preview - work in progress):
+- Added Sell tab with shopping cart summary (selected count, price, fee, total); animals marked as non-sellable are filtered out
+- Husbandry selector now sorted alphabetically by name
+- RL Menu now remembers selected husbandry and animal when switching between Manage, Move, and Sell tabs
+- Single sell/move no longer clears other checkbox selections
+- Renamed "Info" tab to "Manage" to better reflect its actions (mark, inseminate, monitor, etc.)
+- Reordered tabs: Sell, Move, Manage, Messages
+- Fixed status icons jumping position when switching between tabs
+- Fixed animal age not showing in the RL Menu stats area
 
 ## v1.2.0.1
 - Fixed deprecated fillUnit warning in game log for semen dewar

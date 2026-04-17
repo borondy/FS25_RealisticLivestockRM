@@ -1,6 +1,6 @@
 <modDesc descVersion="107">
     <author>Ritter</author>
-    <version>1.2.1.0-dev.2</version>
+    <version>1.2.1.0</version>
     <title>
         <en>Realistic Livestock - Ritter version</en>
         <it>Allevamento Realistico - Versione Ritter</it>
@@ -24,30 +24,27 @@ Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivest
 
 Changelog
 
-1.2.1.0-dev.2:
+1.2.1.0:
+- Added multiplayer support for "Reset Animal Dealer" and "Reset AI Animals" buttons (admin-only in MP, syncs to all players)
 - Fixed multiplayer: straw pickup from dewar now syncs to server (dewar no longer "refills" on reconnect)
 - Fixed multiplayer: empty straw hand tool now deleted from client inventory after insemination or return
 - Fixed animal mark/unmark: 3D visual marker now updates immediately when unmarking (previously required relog)
 - Fixed potential multiplayer crash when receiving unknown mark keys from newer mod versions
 - Fixed straw hand tool crash when no player is carrying it
-- Fixed multiplayer: "Reset Animal Dealer" and "Reset AI Animals" buttons now work for admin clients and sync to all players
-- Reset Dealer/AI Animals buttons are now admin-only in multiplayer (greyed out for non-admin players)
-- Added Sell tab to the RL Menu with shopping cart summary (selected count, price, fee, total)
-- Animals marked as non-sellable are automatically filtered from the Sell tab
-- RL Menu now remembers selected husbandry and animal when switching between Info, Move, and Sell tabs
-- Single sell/move no longer clears other checkbox selections in the RL Menu
-- Fixed status icons jumping position when switching between tabs
-- Renamed RL Menu "Info" tab to "Manage" to better reflect its actions (mark, inseminate, monitor, etc.)
-- Reordered RL Menu tabs: Sell, Move, Manage, Messages
-
-1.2.1.0-dev.1:
-- Fixed animal age not showing in the RL Menu stats area
-- RL Menu husbandry selector now sorted alphabetically by name
-- RL Menu now remembers selected husbandry and animal when switching between Info and Move tabs
 - Fixed crash when selling an animal from a livestock trailer at the animal dealer
-- Fixed crash when opening the animal trailer screen near a rideable horse created by third-party mods
+- Fixed crash when opening the animal trailer screen near a rideable horse created by third-party mods (e.g. AdditionalContracts animal missions)
 - Fixed prop horses from third-party mods being incorrectly converted to real animals when loaded onto trailers or into pens
 - Fixed animals marked as non-sellable being sellable after loading onto a trailer
+
+RL Menu (preview - work in progress):
+- Added Sell tab with shopping cart summary (selected count, price, fee, total); animals marked as non-sellable are filtered out
+- Husbandry selector now sorted alphabetically by name
+- RL Menu now remembers selected husbandry and animal when switching between Manage, Move, and Sell tabs
+- Single sell/move no longer clears other checkbox selections
+- Renamed "Info" tab to "Manage" to better reflect its actions (mark, inseminate, monitor, etc.)
+- Reordered tabs: Sell, Move, Manage, Messages
+- Fixed status icons jumping position when switching between tabs
+- Fixed animal age not showing in the RL Menu stats area
 
 1.2.0.1:
 - Fixed deprecated fillUnit warning in game log for semen dewar
@@ -70,16 +67,6 @@ New RL Menu (preview - work in progress):
 - Move tab: move animals between husbandries or to butchers with single-move and bulk-move using checkbox multi-select
 - Status icons on animal list cards showing pregnancy, recovering, infertile/castrated, lactating, producing wool, and laying eggs at a glance
 
-v1.1.4.0:
-Hof Bergmann 1.4 support and bug fixes:
-- Fixed horse breed visuals on Hof Bergmann: adult horses no longer display as foals, breed colors now match correctly, foal-to-adult model transition now works
-- Fixed horse riding and equipment on Hof Bergmann v1.4: saddles, carriages, and tools from the Horse Addon Pack now attach correctly
-- Disabled four horse breeds not natively supported by Hof Bergmann (Pinto, Chestnut, Bay, Dun) from the dealer - existing savegame horses of those breeds are unaffected
-- Fixed dealer generating sale animals for breeds marked as not purchasable on the current map
-- Fixed wool and chicken eggs not spawning on Hof Bergmann v1.4: bridge now remaps fillTypes to match HB's husbandry buildings
-- Fixed Hof Bergmann egg incubator failing to add hatched chicks to husbandry when RLRM is active
-- Fixed crash when animal output curve returns nil, which could silently stop all production in a building
-- Added diagnostic logging for fillType mismatches in pallet and milk output
 
 ]]>
         </en>
