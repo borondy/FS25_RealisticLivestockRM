@@ -637,7 +637,7 @@ end
 --- `self.object:addAnimals(self.animals)` (AnimalBuyEvent.lua:101) and RLRM
 --- has no `addAnimals(animals)` override for ExtendedProductionPoint - only
 --- for PlaceableHusbandryAnimals and LivestockTrailer. Dispatching Buy to an
---- EPP would crash the server. RLRM-160 tracks the future enhancement.
+--- EPP would crash the server. Future enhancement may add EPP support.
 --- @param animals table Array of cluster objects (same subType)
 --- @param price number Positive total buy price (pre-sign-flip)
 --- @param fee number Positive total transport fee (pre-sign-flip)
@@ -671,7 +671,7 @@ function RLMenuBuyFrame:startBuyFlow(animals, price, fee)
     local entries = {}
     for _, entry in ipairs(rawEntries) do
         if entry.isEPP == true then
-            Log:trace("RLMenuBuyFrame:startBuyFlow: filtering EPP '%s' (RLRM-160)",
+            Log:trace("RLMenuBuyFrame:startBuyFlow: filtering EPP '%s'",
                 tostring(entry.name))
         else
             table.insert(entries, entry)

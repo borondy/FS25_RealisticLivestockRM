@@ -153,7 +153,7 @@ function RLMenuInfoFrame:onFrameOpen()
     -- refreshHusbandries -> reloadAnimalList short-circuits via its
     -- sectionOrder guard instead of overwriting the just-imported
     -- selectedIdentity. Must be 0, not nil - SmoothList expects numeric
-    -- indices and crashes on nil. Fixes RLRM-162.
+    -- indices and crashes on nil.
     if self.animalList ~= nil then
         self.animalList.selectedSectionIndex = 0
         self.animalList.selectedIndex = 0

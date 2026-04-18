@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.2.2.0-dev.1
+- Fixed singleplayer: RL Messages tab now shows "Bought/Sold N animal(s) for €X" entries after buying or selling (previously these entries only appeared in multiplayer)
+- Fixed potential multiplayer crash when changing monitor, name, or disease treatment on an animal while the husbandry is being sold or demolished
+- Fixed multiplayer: insemination result notification to clients no longer reports success when the insemination actually failed
+
+### RL Menu (preview - work in progress):
+- Added Buy tab: browse dealer animals, see per-row prices and a running cart total, then buy one or many at a time via a destination-picker flow
+- Fixed multiplayer: Sell and Info tabs now refresh the farm balance display immediately instead of showing a stale value until the next action
+
 ## v1.2.1.0
 - Added multiplayer support for "Reset Animal Dealer" and "Reset AI Animals" buttons (admin-only in MP, syncs to all players)
 - Fixed multiplayer: straw pickup from dewar now syncs to server (dewar no longer "refills" on reconnect)

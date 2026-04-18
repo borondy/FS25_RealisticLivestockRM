@@ -113,7 +113,7 @@ end
 --- validCount + totalCount + total-price only (existing key
 --- `rl_ui_buyPartialConfirmation`). The `rejected` array (full {animal, reason}
 --- tuples from AnimalScreenMoveFarm.buildMoveValidationResult) is accepted for
---- future UX enhancement (RLRM-159); today it is iterated for grouped TRACE
+--- future UX enhancement; today it is iterated for grouped TRACE
 --- logging only.
 --- @param validCount number Number of animals that passed validation
 --- @param totalCount number Number of animals originally selected
@@ -127,7 +127,7 @@ function RLAnimalBuyService.buildPartialConfirmationText(validCount, totalCount,
     totalPrice = totalPrice or 0
     totalFee = totalFee or 0
 
-    -- Group rejection reasons for TRACE-level diagnostics (RLRM-159 future).
+    -- Group rejection reasons for TRACE-level diagnostics (future UX enhancement).
     if rejected ~= nil and #rejected > 0 then
         local counts = {}
         for _, entry in ipairs(rejected) do
