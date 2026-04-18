@@ -124,11 +124,11 @@
             -->
             <BoxLayout profile="fs25_animalRequirementsLayout" id="cartLayout" position="0px -350px">
 
-                <Text profile="fs25_animalRequirementsHeaderLong" id="cartHeader" text="$l10n_rl_menu_sell_cart_header"/>
+                <Text profile="fs25_animalRequirementsHeaderLong" id="cartHeader" text="$l10n_rl_menu_buy_cart_header"/>
 
                 <GuiElement profile="fs25_animalRequirementsRow" id="cartCountRow">
                     <GuiElement profile="fs25_animalRequirementsRowTextPanel">
-                        <Text profile="fs25_animalRequirementsLabel" id="cartCountLabel" text="$l10n_rl_menu_sell_cart_selected"/>
+                        <Text profile="fs25_animalRequirementsLabel" id="cartCountLabel" text="$l10n_rl_menu_buy_cart_selected"/>
                         <Text profile="fs25_animalRequirementsValue" id="cartCountValue"/>
                     </GuiElement>
                 </GuiElement>

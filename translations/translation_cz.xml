@@ -750,5 +750,7 @@
 		<text name="rl_menu_buy_title" text="Buy"/>
 		<text name="rl_menu_buy_empty_no_types" text="The dealer has no animal types available"/>
 		<text name="rl_menu_buy_empty_no_animals" text="No animals available at the dealer for this type"/>
+		<text name="rl_menu_buy_cart_header" text="Purchase Summary"/>
+		<text name="rl_menu_buy_cart_selected" text="Selected"/>
 	</texts>
 </l10n>

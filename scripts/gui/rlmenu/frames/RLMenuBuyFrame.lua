@@ -1,18 +1,17 @@
 --[[
     RLMenuBuyFrame.lua
-    RL Tabbed Menu - Buy tab (Phase 1, shell).
+    RL Tabbed Menu - Buy tab.
 
     Left-sidebar dealer animal-type picker with dot indicators, multi-section
     SmoothList of sale-animal cards with checkboxes for multi-select, and
     right-hand detail pane (pen column + animal column via RLDetailPaneHelper).
 
-    Phase 1 (shell): browsable frame with isolated selection (no shared state
-    with Info/Move/Sell), Diseased-first + per-subtype sectioning, and disabled
-    Buy / Buy Selected placeholder buttons. Cart XML + per-row price cell are
-    inherited from sellFrame.xml but Phase 1 Lua does NOT populate them - cart
-    will render with Sell-cart l10n labels and blank values until Phase 2.
-    Phase 2 rebinds cart labels + wires populate code.
-    Phase 3 wires actual buy logic via RLAnimalBuyService + destination picker.
+    Browsable dealer frame with isolated selection (no shared state with
+    Info/Move/Sell), Diseased-first + per-subtype sectioning, per-row
+    dealer-marked-up prices, and a running cart summary (count + price +
+    transport fee + total). Buy / Buy Selected action buttons are disabled
+    placeholders pending buy-logic integration with RLAnimalBuyService and a
+    destination picker.
 ]]
 
 RLMenuBuyFrame = {}
@@ -56,7 +55,7 @@ function RLMenuBuyFrame.new()
         text = g_i18n:getText("rl_menu_info_filter_button"),
         callback = function() self:onClickFilter() end,
     }
-    -- Phase 1: Buy / Buy Selected disabled placeholders. Phase 3 wires real handlers.
+    -- Buy / Buy Selected are disabled placeholders until buy logic lands.
     self.buyButtonInfo = {
         inputAction = InputAction.MENU_EXTRA_1,
         text = g_i18n:getText("button_buy"),
@@ -141,7 +140,7 @@ end
 -- =============================================================================
 
 --- Called by the Paging element when this tab becomes active.
---- Phase 1: isolated selection - does NOT import or export g_rlMenu.sharedSelection.
+--- Isolated selection - does NOT import or export g_rlMenu.sharedSelection.
 function RLMenuBuyFrame:onFrameOpen()
     RLMenuBuyFrame:superClass().onFrameOpen(self)
     self.isFrameOpen = true
@@ -164,7 +163,7 @@ end
 
 
 --- Called by the Paging element when this tab is deactivated.
---- Phase 1: isolated selection - does NOT export to g_rlMenu.sharedSelection.
+--- Isolated selection - does NOT export to g_rlMenu.sharedSelection.
 function RLMenuBuyFrame:onFrameClose()
     Log:debug("RLMenuBuyFrame:onFrameClose")
     RLMenuBuyFrame:superClass().onFrameClose(self)
@@ -177,7 +176,9 @@ end
 -- =============================================================================
 
 --- Repopulate the type selector + dot indicators from RLDealerQuery.
---- Phase 1 rule: show every registered type, not only types with stock.
+--- Shows every registered type, not only types with stock (types with zero
+--- stock render the empty-animals text, matching how Sell handles husbandries
+--- with zero animals - keeps the sidebar layout stable across restocks).
 function RLMenuBuyFrame:refreshTypes()
     local farmId = RLAnimalInfoService.getCurrentFarmId()
     self.farmId = farmId
@@ -209,6 +210,7 @@ function RLMenuBuyFrame:refreshTypes()
         if self.animalList ~= nil then self.animalList:reloadData() end
         self:updateEmptyState()
         self:updateButtonVisibility()
+        self:updateCartDisplay()
         RLDetailPaneHelper.updateMoneyDisplay(self)
         RLDetailPaneHelper.clearDetail(self)
         return
@@ -293,6 +295,7 @@ function RLMenuBuyFrame:onTypeChanged(state)
     Log:debug("RLMenuBuyFrame:onTypeChanged: state=%d typeIndex=%s", state, tostring(newTypeIndex))
 
     self:reloadAnimalList()
+    self:updateCartDisplay()
     RLDetailPaneHelper.updateMoneyDisplay(self)
 end
 
@@ -334,8 +337,8 @@ end
 
 --- Requery dealer stock for the active type, group into sections, refresh
 --- the SmoothList, restore selection by identity.
---- Phase 1: NO canBeSold filter (dealer animals are freshly generated and
---- always saleable by the dealer; the buy-side filter is server-validated).
+--- No canBeSold filter: dealer animals are freshly generated and always
+--- saleable by the dealer; the buy-side filter is server-validated.
 function RLMenuBuyFrame:reloadAnimalList()
     Log:trace("RLMenuBuyFrame:reloadAnimalList: begin")
     self:captureCurrentSelection()
@@ -361,6 +364,7 @@ function RLMenuBuyFrame:reloadAnimalList()
     self:restoreSelection()
     self:updateEmptyState()
     self:updateButtonVisibility()
+    self:updateCartDisplay()
 end
 
 
@@ -475,9 +479,8 @@ end
 
 
 --- Rebuild the footer button info. Back + Filter always; Buy/BuySelected/Select/SelectAll
---- conditional on state.
---- Phase 1: Buy + Buy Selected are permanent-disabled placeholders. Phase 3
---- enables them based on focus + selection + permissions.
+--- conditional on state. Buy + Buy Selected are disabled placeholders until
+--- buy logic lands (enable based on focus + selection + permissions then).
 function RLMenuBuyFrame:updateButtonVisibility()
     self.menuButtonInfo = { self.backButtonInfo }
 
@@ -499,23 +502,94 @@ function RLMenuBuyFrame:updateButtonVisibility()
         table.insert(self.menuButtonInfo, self.selectAllButtonInfo)
     end
 
-    -- Phase 1: Buy Selected + Buy always visible but always disabled.
+    -- Buy Selected + Buy always visible but always disabled pending buy logic.
     if hasItems then
         local buySelText = g_i18n:getText("rl_ui_buySelected")
         if selectedCount > 0 then
             buySelText = buySelText .. " (" .. selectedCount .. ")"
         end
         self.buySelectedButtonInfo.text = buySelText
-        self.buySelectedButtonInfo.disabled = true  -- Phase 1 placeholder
+        self.buySelectedButtonInfo.disabled = true
         table.insert(self.menuButtonInfo, self.buySelectedButtonInfo)
 
-        self.buyButtonInfo.disabled = true  -- Phase 1 placeholder
+        self.buyButtonInfo.disabled = true
         table.insert(self.menuButtonInfo, self.buyButtonInfo)
     end
 
     Log:trace("RLMenuBuyFrame:updateButtonVisibility: %d buttons, selectedCount=%d",
         #self.menuButtonInfo, selectedCount)
     self:setMenuButtonInfoDirty()
+end
+
+
+-- =============================================================================
+-- Cart
+-- =============================================================================
+
+--- Compute cart totals from checked animals.
+--- Iterates visible items (O(V)) and skips orphan keys silently after restock.
+--- Sign convention: getTranportationFee(1) returns positive; for Buy the fee is
+--- additive (player pays it on top of price), opposite of Sell which negates it.
+--- @return number totalPrice Sum of getSellPrice() * 1.075 for checked animals
+--- @return number totalFee Sum of getTranportationFee(1) for checked animals (positive cost)
+--- @return number count Number of checked animals
+function RLMenuBuyFrame:computeCartTotals()
+    local totalPrice = 0
+    local totalFee = 0
+    local count = 0
+
+    for _, sectionKey in ipairs(self.sectionOrder) do
+        local items = self.itemsBySection[sectionKey]
+        if items ~= nil then
+            for _, item in ipairs(items) do
+                if item.cluster ~= nil then
+                    local cluster = item.cluster
+                    local identityKey = RLAnimalUtil.toKey(cluster.farmId, cluster.uniqueId,
+                        cluster.birthday and cluster.birthday.country or "")
+                    if self.selectedAnimals[identityKey] then
+                        -- 1.075 dealer markup: scripts/animals/shop/AnimalItemNew.lua:158-160
+                        totalPrice = totalPrice + (cluster:getSellPrice() or 0) * 1.075
+                        totalFee = totalFee + (cluster:getTranportationFee(1) or 0)
+                        count = count + 1
+                    end
+                end
+            end
+        end
+    end
+
+    Log:trace("RLMenuBuyFrame:computeCartTotals: count=%d price=%.0f fee=%.0f total=%.0f",
+        count, totalPrice, totalFee, totalPrice + totalFee)
+    return totalPrice, totalFee, count
+end
+
+
+--- Update the cart display elements with current totals. Buy adds fee to
+--- price (player pays both), opposite of Sell which subtracts.
+function RLMenuBuyFrame:updateCartDisplay()
+    local totalPrice, totalFee, count = self:computeCartTotals()
+
+    if self.cartCountValue ~= nil then
+        self.cartCountValue:setText(tostring(count))
+    end
+    if self.cartPriceValue ~= nil then
+        self.cartPriceValue:setText(g_i18n:formatMoney(totalPrice, 0, true, true))
+    end
+    if self.cartFeeValue ~= nil then
+        self.cartFeeValue:setText(g_i18n:formatMoney(totalFee, 0, true, true))
+    end
+    if self.cartTotalValue ~= nil then
+        self.cartTotalValue:setText(g_i18n:formatMoney(totalPrice + totalFee, 0, true, true))
+    end
+
+    if self.cartLayout ~= nil and self.cartLayout.invalidateLayout ~= nil then
+        self.cartLayout:invalidateLayout()
+    end
+
+    Log:trace("RLMenuBuyFrame:updateCartDisplay: %d selected, price=%s fee=%s total=%s",
+        count,
+        g_i18n:formatMoney(totalPrice, 0, true, true),
+        g_i18n:formatMoney(totalFee, 0, true, true),
+        g_i18n:formatMoney(totalPrice + totalFee, 0, true, true))
 end
 
 
@@ -543,6 +617,7 @@ function RLMenuBuyFrame:onClickSelect()
         self.animalList:reloadData()
     end
     self:updateButtonVisibility()
+    self:updateCartDisplay()
 end
 
 
@@ -577,6 +652,7 @@ function RLMenuBuyFrame:onClickSelectAll()
         self.animalList:reloadData()
     end
     self:updateButtonVisibility()
+    self:updateCartDisplay()
 end
 
 
@@ -639,10 +715,11 @@ function RLMenuBuyFrame:getNumberOfItemsInSection(list, section)
     return items ~= nil and #items or 0
 end
 
---- Populate one data cell. Mirrors Sell's populateCellForItemInSection with
---- two Phase 1 omissions:
----   * price cell NOT populated (Phase 2 owns dealer-price display)
----   * cart NOT updated on checkbox click (Phase 2 owns cart)
+--- Populate one data cell. Mirrors Sell's populateCellForItemInSection.
+--- The inherited `price` cell shows the dealer-marked-up buy price; the
+--- inline checkbox callback toggles selectedAnimals and updates the cart
+--- totals. The markup math will move to RLAnimalBuyService.computeBuyPrice
+--- when buy logic lands.
 --- @param list table
 --- @param section number
 --- @param index number
@@ -699,11 +776,7 @@ function RLMenuBuyFrame:populateCellForItemInSection(list, section, index, cell)
     end
 
     -- Populate inherited `price` cell with the dealer-marked-up buy price.
-    -- Dealer markup: 1.075 from legacy AnimalItemNew:getPrice at
-    -- scripts/animals/shop/AnimalItemNew.lua:158-160. Pulled into Phase 1
-    -- from Phase 2 because users reasonably expect prices visible on a Buy
-    -- screen and it is a one-line populate. Phase 3 will refactor to call
-    -- RLAnimalBuyService.computeBuyPrice once that service exists.
+    -- 1.075 dealer markup: scripts/animals/shop/AnimalItemNew.lua:158-160.
     local priceCell = cell:getAttribute("price")
     if priceCell ~= nil and item.cluster ~= nil then
         local buyPrice = (item.cluster:getSellPrice() or 0) * 1.075
@@ -746,7 +819,9 @@ function RLMenuBuyFrame:populateCellForItemInSection(list, section, index, cell)
     end
 
     -- Checkbox: show check mark + wire onClick callback for direct clicking.
-    -- Phase 1: toggle local selectedAnimals state only; no cart update.
+    -- Toggles local selectedAnimals state and recalculates cart totals so a
+    -- direct mouse click updates the cart on the same click (no need to
+    -- also fire onClickSelect).
     local checkbox = cell:getAttribute("checkbox")
     local check = cell:getAttribute("check")
     if checkbox ~= nil then
@@ -759,6 +834,7 @@ function RLMenuBuyFrame:populateCellForItemInSection(list, section, index, cell)
                 self.selectedAnimals[identityKey] = not self.selectedAnimals[identityKey]
                 check:setVisible(self.selectedAnimals[identityKey] == true)
                 self:updateButtonVisibility()
+                self:updateCartDisplay()
                 Log:trace("RLMenuBuyFrame checkbox click: key=%s -> %s",
                     identityKey, tostring(self.selectedAnimals[identityKey]))
             end
