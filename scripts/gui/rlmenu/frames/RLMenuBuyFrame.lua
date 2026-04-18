@@ -55,18 +55,17 @@ function RLMenuBuyFrame.new()
         text = g_i18n:getText("rl_menu_info_filter_button"),
         callback = function() self:onClickFilter() end,
     }
-    -- Buy / Buy Selected are disabled placeholders until buy logic lands.
     self.buyButtonInfo = {
         inputAction = InputAction.MENU_EXTRA_1,
         text = g_i18n:getText("button_buy"),
         disabled = true,
-        callback = function() end,
+        callback = function() self:onClickBuy() end,
     }
     self.buySelectedButtonInfo = {
         inputAction = InputAction.MENU_EXTRA_2,
         text = g_i18n:getText("rl_ui_buySelected"),
         disabled = true,
-        callback = function() end,
+        callback = function() self:onClickBuySelected() end,
     }
     self.selectButtonInfo = {
         inputAction = InputAction.RL_SELECT,
@@ -148,6 +147,12 @@ function RLMenuBuyFrame:onFrameOpen()
 
     self:refreshTypes()
 
+    -- Subscribe to MONEY_CHANGED so the header balance refreshes when a
+    -- post-buy balance update arrives asynchronously (MP) or when any other
+    -- code path credits/debits the farm while this frame is open. SP is
+    -- unaffected because the change is synchronous there.
+    g_messageCenter:subscribe(MessageType.MONEY_CHANGED, self.onMoneyChanged, self)
+
     -- Explicit focus links for keyboard navigation. Required because multiple
     -- frames share the same sidebar + SmoothList structure, and FocusManager
     -- auto-layout resolves to elements in other frames when element
@@ -166,8 +171,22 @@ end
 --- Isolated selection - does NOT export to g_rlMenu.sharedSelection.
 function RLMenuBuyFrame:onFrameClose()
     Log:debug("RLMenuBuyFrame:onFrameClose")
+    g_messageCenter:unsubscribe(MessageType.MONEY_CHANGED, self)
     RLMenuBuyFrame:superClass().onFrameClose(self)
     self.isFrameOpen = false
+end
+
+
+--- MessageType.MONEY_CHANGED handler. Fires on both server and client
+--- contexts: on clients, the message is published locally after the farm
+--- balance is updated from a server stream, so subscribing lets the Buy
+--- frame refresh its header balance in MP without polling. No farmId
+--- gating here because updateMoneyDisplay reads the current player's farm
+--- internally.
+function RLMenuBuyFrame:onMoneyChanged()
+    if not self.isFrameOpen then return end
+    Log:trace("RLMenuBuyFrame:onMoneyChanged: refreshing money display")
+    RLDetailPaneHelper.updateMoneyDisplay(self)
 end
 
 
@@ -479,14 +498,20 @@ end
 
 
 --- Rebuild the footer button info. Back + Filter always; Buy/BuySelected/Select/SelectAll
---- conditional on state. Buy + Buy Selected are disabled placeholders until
---- buy logic lands (enable based on focus + selection + permissions then).
+--- conditional on state. Buy requires a focused animal; Buy Selected requires at
+--- least one checked animal; both require `tradeAnimals` farm permission
+--- (client-side gate - server has matching defense-in-depth at
+--- AnimalBuyEvent.lua:74).
 function RLMenuBuyFrame:updateButtonVisibility()
     self.menuButtonInfo = { self.backButtonInfo }
 
     local hasTypes = #self.sortedTypes > 0
     local hasItems = #self.items > 0
     local selectedCount = self:getSelectedCount()
+    local focusedAnimal = self:getSelectedAnimal()
+    local canTrade = g_currentMission ~= nil
+        and g_currentMission.getHasPlayerPermission ~= nil
+        and g_currentMission:getHasPlayerPermission("tradeAnimals")
 
     if hasTypes then
         table.insert(self.menuButtonInfo, self.filterButtonInfo)
@@ -502,23 +527,323 @@ function RLMenuBuyFrame:updateButtonVisibility()
         table.insert(self.menuButtonInfo, self.selectAllButtonInfo)
     end
 
-    -- Buy Selected + Buy always visible but always disabled pending buy logic.
     if hasItems then
         local buySelText = g_i18n:getText("rl_ui_buySelected")
         if selectedCount > 0 then
             buySelText = buySelText .. " (" .. selectedCount .. ")"
         end
         self.buySelectedButtonInfo.text = buySelText
-        self.buySelectedButtonInfo.disabled = true
+        self.buySelectedButtonInfo.disabled = (selectedCount == 0) or (not canTrade)
         table.insert(self.menuButtonInfo, self.buySelectedButtonInfo)
 
-        self.buyButtonInfo.disabled = true
+        self.buyButtonInfo.disabled = (focusedAnimal == nil) or (not canTrade)
         table.insert(self.menuButtonInfo, self.buyButtonInfo)
     end
 
-    Log:trace("RLMenuBuyFrame:updateButtonVisibility: %d buttons, selectedCount=%d",
-        #self.menuButtonInfo, selectedCount)
+    Log:trace("RLMenuBuyFrame:updateButtonVisibility: %d buttons, selectedCount=%d focused=%s canTrade=%s",
+        #self.menuButtonInfo, selectedCount, tostring(focusedAnimal ~= nil), tostring(canTrade))
     self:setMenuButtonInfoDirty()
+end
+
+
+-- =============================================================================
+-- Buy operations
+-- =============================================================================
+
+--- Buy the currently focused (highlighted) dealer animal.
+--- Flow: price confirm -> destination picker -> validation -> AnimalBuyEvent.
+function RLMenuBuyFrame:onClickBuy()
+    local animal = self:getSelectedAnimal()
+    if animal == nil then
+        Log:trace("RLMenuBuyFrame:onClickBuy: no animal focused")
+        return
+    end
+
+    local price = RLAnimalBuyService.computeBuyPrice(animal)
+    local fee = (animal.getTranportationFee and animal:getTranportationFee(1)) or 0
+    local confirmText = RLAnimalBuyService.buildSingleConfirmationText(animal, price, fee)
+
+    Log:debug("RLMenuBuyFrame:onClickBuy: single buy for farmId=%s uniqueId=%s price=%.0f fee=%.0f",
+        tostring(animal.farmId), tostring(animal.uniqueId), price, fee)
+
+    self.pendingBuyAnimals = { animal }
+    self.pendingBuyPrice = price
+    self.pendingBuyFee = fee
+
+    YesNoDialog.show(self.onBuyConfirmed, self, confirmText, g_i18n:getText("ui_attention"))
+end
+
+
+--- Buy all checked dealer animals (same type, enforced by sidebar filtering).
+function RLMenuBuyFrame:onClickBuySelected()
+    local animals = {}
+    for _, sectionKey in ipairs(self.sectionOrder) do
+        local items = self.itemsBySection[sectionKey]
+        if items ~= nil then
+            for _, item in ipairs(items) do
+                if item.cluster ~= nil then
+                    local cluster = item.cluster
+                    local identityKey = RLAnimalUtil.toKey(cluster.farmId, cluster.uniqueId,
+                        cluster.birthday and cluster.birthday.country or "")
+                    if self.selectedAnimals[identityKey] then
+                        table.insert(animals, cluster)
+                    end
+                end
+            end
+        end
+    end
+
+    if #animals == 0 then
+        Log:trace("RLMenuBuyFrame:onClickBuySelected: no animals checked")
+        return
+    end
+
+    local totalPrice, totalFee, _, count = RLAnimalBuyService.computeBulkTotal(animals)
+    local confirmText = RLAnimalBuyService.buildBulkConfirmationText(count, totalPrice, totalFee)
+
+    Log:debug("RLMenuBuyFrame:onClickBuySelected: bulk buy %d animals, price=%.0f fee=%.0f",
+        count, totalPrice, totalFee)
+
+    self.pendingBuyAnimals = animals
+    self.pendingBuyPrice = totalPrice
+    self.pendingBuyFee = totalFee
+
+    YesNoDialog.show(self.onBuyConfirmed, self, confirmText, g_i18n:getText("ui_attention"))
+end
+
+
+--- YesNoDialog callback for the initial price confirmation.
+--- @param clickYes boolean
+function RLMenuBuyFrame:onBuyConfirmed(clickYes)
+    Log:debug("RLMenuBuyFrame:onBuyConfirmed: clickYes=%s", tostring(clickYes))
+
+    if not clickYes then
+        self:clearPendingBuyState()
+        return
+    end
+
+    if self.pendingBuyAnimals == nil or #self.pendingBuyAnimals == 0 then
+        Log:debug("RLMenuBuyFrame:onBuyConfirmed: nil pending animals, aborting")
+        self:clearPendingBuyState()
+        return
+    end
+
+    self:startBuyFlow(self.pendingBuyAnimals, self.pendingBuyPrice or 0, self.pendingBuyFee or 0)
+end
+
+
+--- Open the destination picker for the confirmed purchase.
+--- EPPs are filtered: AnimalBuyEvent:run dispatches via
+--- `self.object:addAnimals(self.animals)` (AnimalBuyEvent.lua:101) and RLRM
+--- has no `addAnimals(animals)` override for ExtendedProductionPoint - only
+--- for PlaceableHusbandryAnimals and LivestockTrailer. Dispatching Buy to an
+--- EPP would crash the server. RLRM-160 tracks the future enhancement.
+--- @param animals table Array of cluster objects (same subType)
+--- @param price number Positive total buy price (pre-sign-flip)
+--- @param fee number Positive total transport fee (pre-sign-flip)
+function RLMenuBuyFrame:startBuyFlow(animals, price, fee)
+    if animals == nil or #animals == 0 then
+        Log:debug("RLMenuBuyFrame:startBuyFlow: no animals")
+        return
+    end
+
+    local firstAnimal = animals[1]
+    local subTypeIndex = firstAnimal.subTypeIndex
+    if subTypeIndex == nil then
+        Log:warning("RLMenuBuyFrame:startBuyFlow: first animal has nil subTypeIndex")
+        self:clearPendingBuyState()
+        return
+    end
+
+    local farmId = self.farmId or RLAnimalInfoService.getCurrentFarmId()
+    if farmId == nil or farmId == 0 then
+        Log:warning("RLMenuBuyFrame:startBuyFlow: invalid farmId=%s", tostring(farmId))
+        self:clearPendingBuyState()
+        return
+    end
+
+    -- Dealer-buy path: nil source. RLAnimalMoveService passes nil through to
+    -- the delegate; the `placeable ~= sourceHusbandry` exclusion becomes a
+    -- no-op so every farm-owned placeable supporting the subtype is returned.
+    local rawEntries = RLAnimalMoveService.getValidDestinations(nil, farmId, subTypeIndex)
+
+    -- EPP filter (see function doc comment for rationale)
+    local entries = {}
+    for _, entry in ipairs(rawEntries) do
+        if entry.isEPP == true then
+            Log:trace("RLMenuBuyFrame:startBuyFlow: filtering EPP '%s' (RLRM-160)",
+                tostring(entry.name))
+        else
+            table.insert(entries, entry)
+        end
+    end
+
+    if #entries == 0 then
+        Log:debug("RLMenuBuyFrame:startBuyFlow: no valid destinations after EPP filter")
+        InfoDialog.show(g_i18n:getText("rl_ui_moveNoDestinations"))
+        self:clearPendingBuyState()
+        return
+    end
+
+    Log:debug("RLMenuBuyFrame:startBuyFlow: %d animals, %d destinations (raw=%d), price=%.0f fee=%.0f",
+        #animals, #entries, #rawEntries, price, fee)
+
+    self.pendingBuyAnimals = animals
+    self.pendingBuyPrice = price
+    self.pendingBuyFee = fee
+
+    AnimalMoveDestinationDialog.show(self.onBuyDestinationSelected, self, entries)
+end
+
+
+--- AnimalMoveDestinationDialog callback.
+--- @param entry table|nil Selected destination entry, or nil on cancel
+function RLMenuBuyFrame:onBuyDestinationSelected(entry)
+    if entry == nil then
+        Log:trace("RLMenuBuyFrame:onBuyDestinationSelected: cancelled")
+        self:clearPendingBuyState()
+        return
+    end
+
+    if self.pendingBuyAnimals == nil or #self.pendingBuyAnimals == 0 then
+        Log:debug("RLMenuBuyFrame:onBuyDestinationSelected: no pending animals")
+        self:clearPendingBuyState()
+        return
+    end
+
+    Log:trace("RLMenuBuyFrame:onBuyDestinationSelected: dest='%s' (%s/%s)",
+        tostring(entry.name), tostring(entry.currentCount), tostring(entry.maxCount))
+
+    local firstAnimal = self.pendingBuyAnimals[1]
+    local subType = g_currentMission.animalSystem:getSubTypeByIndex(firstAnimal.subTypeIndex)
+    local animalTypeIndex = subType ~= nil and subType.typeIndex or 0
+
+    local result = RLAnimalMoveService.buildMoveValidationResult(
+        self.pendingBuyAnimals, entry, animalTypeIndex)
+
+    local validCount    = #result.valid
+    local rejectedCount = #result.rejected
+    local totalCount    = validCount + rejectedCount
+
+    Log:debug("RLMenuBuyFrame:onBuyDestinationSelected: %d valid, %d rejected (of %d)",
+        validCount, rejectedCount, totalCount)
+
+    if validCount == 0 then
+        InfoDialog.show(g_i18n:getText("rl_ui_moveAllRejected"))
+        self:clearPendingBuyState()
+        return
+    end
+
+    -- Recompute price + fee for the VALID subset via the service helper
+    -- (single source of truth for the 1.075 dealer markup).
+    local validPrice, validFee = RLAnimalBuyService.computeBulkTotal(result.valid)
+
+    self.pendingBuyDestination = entry.placeable
+    self.pendingBuyAnimals = result.valid
+    self.pendingBuyPrice = validPrice
+    self.pendingBuyFee = validFee
+
+    if rejectedCount > 0 then
+        local text = RLAnimalBuyService.buildPartialConfirmationText(
+            validCount, totalCount, result.rejected, validPrice, validFee)
+        YesNoDialog.show(self.onBuyPartialConfirmed, self, text, g_i18n:getText("ui_attention"))
+        return
+    end
+
+    -- Full acceptance: dispatch immediately.
+    self:dispatchPendingBuy()
+end
+
+
+--- YesNoDialog callback for the partial-rejection confirmation.
+--- @param clickYes boolean
+function RLMenuBuyFrame:onBuyPartialConfirmed(clickYes)
+    Log:debug("RLMenuBuyFrame:onBuyPartialConfirmed: clickYes=%s", tostring(clickYes))
+    if not clickYes then
+        self:clearPendingBuyState()
+        return
+    end
+    self:dispatchPendingBuy()
+end
+
+
+--- Common dispatch path for both full-acceptance and post-partial-confirm buys.
+--- Clears selectedAnimals before dispatching (matches Sell post-dispatch pattern
+--- at RLMenuSellFrame:onSellConfirmed).
+function RLMenuBuyFrame:dispatchPendingBuy()
+    local destination = self.pendingBuyDestination
+    local animals     = self.pendingBuyAnimals
+    local price       = self.pendingBuyPrice or 0
+    local fee         = self.pendingBuyFee or 0
+
+    if destination == nil or animals == nil or #animals == 0 then
+        Log:debug("RLMenuBuyFrame:dispatchPendingBuy: nil destination or animals, aborting")
+        self:clearPendingBuyState()
+        return
+    end
+
+    -- Clear selections BEFORE dispatching (bulk clears all; single removes only
+    -- the bought animal).
+    if #animals > 1 then
+        self.selectedAnimals = {}
+    else
+        for _, animal in ipairs(animals) do
+            local key = RLAnimalUtil.toKey(animal.farmId, animal.uniqueId,
+                animal.birthday and animal.birthday.country or "")
+            self.selectedAnimals[key] = nil
+        end
+    end
+
+    Log:debug("RLMenuBuyFrame:dispatchPendingBuy: %d animals to '%s', price=%.0f fee=%.0f",
+        #animals, tostring(destination.getName and destination:getName()), price, fee)
+
+    self.pendingBuyDestination = nil
+    self.pendingBuyAnimals = nil
+    self.pendingBuyPrice = nil
+    self.pendingBuyFee = nil
+
+    RLAnimalBuyService.buyAnimals(destination, animals, price, fee,
+        self.onBuyComplete, self)
+end
+
+
+--- Callback from RLAnimalBuyService after the server responds.
+--- Stale-frame guard: skips refresh if the frame has closed (tab-switch /
+--- menu-close mid-dispatch) OR if the type context was cleared. `isFrameOpen`
+--- is set in onFrameOpen and cleared in onFrameClose; `activeAnimalTypeIndex`
+--- guards against a type-less state. Either condition means the response
+--- arrived too late to safely drive dialogs / list refreshes.
+--- Post-buy refresh: reloadAnimalList + updateCartDisplay +
+--- RLDetailPaneHelper.updateMoneyDisplay. The pen-info row is permanently hidden
+--- by initialize(), so no updateTypeHeader. Sidebar types do NOT change -
+--- empty types render the empty-animals text.
+--- @param errorCode number
+function RLMenuBuyFrame:onBuyComplete(errorCode)
+    if not self.isFrameOpen or self.activeAnimalTypeIndex == nil then
+        Log:trace("RLMenuBuyFrame:onBuyComplete: stale frame (isFrameOpen=%s typeIndex=%s), ignoring",
+            tostring(self.isFrameOpen), tostring(self.activeAnimalTypeIndex))
+        return
+    end
+
+    if errorCode ~= AnimalBuyEvent.BUY_SUCCESS then
+        InfoDialog.show(RLAnimalBuyService.getErrorText(errorCode))
+        Log:debug("RLMenuBuyFrame:onBuyComplete: buy failed, errorCode=%d", errorCode)
+    else
+        Log:info("RLMenuBuyFrame:onBuyComplete: buy succeeded")
+    end
+
+    self:reloadAnimalList()
+    self:updateCartDisplay()
+    RLDetailPaneHelper.updateMoneyDisplay(self)
+end
+
+
+--- Clear all pending buy-flow state (cancel, error, or after dispatch).
+function RLMenuBuyFrame:clearPendingBuyState()
+    self.pendingBuyAnimals = nil
+    self.pendingBuyPrice = nil
+    self.pendingBuyFee = nil
+    self.pendingBuyDestination = nil
 end
 
 
