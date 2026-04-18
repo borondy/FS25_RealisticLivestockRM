@@ -148,6 +148,17 @@ function RLMenuInfoFrame:onFrameOpen()
             tostring(shared.animalIdentity and shared.animalIdentity.uniqueId))
     end
 
+    -- Reset SmoothList's selection sentinels to 0 (the "no selection"
+    -- sentinel value) so the chained captureCurrentSelection during
+    -- refreshHusbandries -> reloadAnimalList short-circuits via its
+    -- sectionOrder guard instead of overwriting the just-imported
+    -- selectedIdentity. Must be 0, not nil - SmoothList expects numeric
+    -- indices and crashes on nil. Fixes RLRM-162.
+    if self.animalList ~= nil then
+        self.animalList.selectedSectionIndex = 0
+        self.animalList.selectedIndex = 0
+    end
+
     -- refreshHusbandries owns chrome state for both populated and empty
     -- husbandry cases. Do NOT clearDetail here: refreshHusbandries auto-
     -- selects state 1, which fires onHusbandryChanged -> updatePenDisplay,

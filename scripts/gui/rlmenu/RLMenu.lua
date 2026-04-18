@@ -51,11 +51,12 @@ function RLMenu.setupGui()
     -- 1. Load RL menu profiles (separate file from gui/guiProfiles.xml)
     g_gui:loadProfiles(Utils.getFilename("gui/rlmenu/rlMenuProfiles.xml", modDirectory))
 
-    -- 2. Register frames (Phase 1: Messages; Phase 2a: Info; Phase 3: Move; Phase 4: Sell)
+    -- 2. Register frames (Phase 1: Messages; Phase 2a: Info; Phase 3: Move; Phase 4: Sell; Phase 5: Buy)
     RLMenuMessagesFrame.setupGui()
     RLMenuInfoFrame.setupGui()
     RLMenuMoveFrame.setupGui()
     RLMenuSellFrame.setupGui()
+    RLMenuBuyFrame.setupGui()
 
     -- 3. Create the menu instance and load its XML
     g_rlMenu = RLMenu.new()
@@ -85,35 +86,42 @@ end
 function RLMenu:setupMenuPages()
     local basePredicate = function() return g_currentMission ~= nil end
 
+    -- Buy tab (leftmost - most frequent commerce entry point)
+    self:registerPage(self.buyFrame, 1, basePredicate)
+    self:addPageTab(self.buyFrame, nil, nil, "rlExtra.buy_animal")
+    if self.buyFrame ~= nil and self.buyFrame.initialize ~= nil then
+        self.buyFrame:initialize()
+    end
+
     -- Sell tab
-    self:registerPage(self.sellFrame, 1, basePredicate)
+    self:registerPage(self.sellFrame, 2, basePredicate)
     self:addPageTab(self.sellFrame, nil, nil, "rlExtra.sell_animal")
     if self.sellFrame ~= nil and self.sellFrame.initialize ~= nil then
         self.sellFrame:initialize()
     end
 
     -- Move tab
-    self:registerPage(self.moveFrame, 2, basePredicate)
+    self:registerPage(self.moveFrame, 3, basePredicate)
     self:addPageTab(self.moveFrame, nil, nil, "rlExtra.move_animal")
     if self.moveFrame ~= nil and self.moveFrame.initialize ~= nil then
         self.moveFrame:initialize()
     end
 
     -- Manage tab
-    self:registerPage(self.infoFrame, 3, basePredicate)
+    self:registerPage(self.infoFrame, 4, basePredicate)
     self:addPageTab(self.infoFrame, nil, nil, "rlExtra.info_animal")
     if self.infoFrame ~= nil and self.infoFrame.initialize ~= nil then
         self.infoFrame:initialize()
     end
 
     -- Messages tab
-    self:registerPage(self.messagesFrame, 4, basePredicate)
+    self:registerPage(self.messagesFrame, 5, basePredicate)
     self:addPageTab(self.messagesFrame, nil, nil, "rlExtra.notify_animal")
     if self.messagesFrame ~= nil and self.messagesFrame.initialize ~= nil then
         self.messagesFrame:initialize()
     end
 
-    Log:debug("RLMenu:setupMenuPages: 4 pages registered (sell, move, manage, messages)")
+    Log:debug("RLMenu:setupMenuPages: 5 pages registered (buy, sell, move, manage, messages)")
 end
 
 --- Configure the bottom button bar.

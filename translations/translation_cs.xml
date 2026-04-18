@@ -734,6 +734,11 @@
         <text name="rl_menu_sell_cart_header" text="Sale Summary"/>
         <text name="rl_menu_sell_cart_selected" text="Selected"/>
         <text name="rl_menu_sell_cart_empty" text="Select animals to sell"/>
+
+        <!-- Phase 5: Buy tab -->
+        <text name="rl_menu_buy_title" text="Buy"/>
+        <text name="rl_menu_buy_empty_no_types" text="The dealer has no animal types available"/>
+        <text name="rl_menu_buy_empty_no_animals" text="No animals available at the dealer for this type"/>
         <text name="rl_settings_geneticsDisplay_label" text="Genetics Display"/>
         <text name="rl_settings_geneticsDisplay_texts_1" text="Off"/>
         <text name="rl_settings_geneticsDisplay_texts_2" text="Short"/>

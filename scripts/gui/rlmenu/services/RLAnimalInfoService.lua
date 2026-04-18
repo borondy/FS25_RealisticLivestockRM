@@ -315,6 +315,21 @@ function RLAnimalInfoService.getAnimalDisplay(animal, husbandry)
     if husbandry ~= nil and husbandry.getAnimalInfos ~= nil then
         local ok, result = pcall(function() return husbandry:getAnimalInfos(animal) end)
         if ok and type(result) == "table" then statRows = result end
+    elseif animal.addInfos ~= nil then
+        -- Nil-husbandry fallback for the Buy tab (dealer animals have no source
+        -- husbandry). Animal:addInfos mutates the table with animal-intrinsic
+        -- rows (health, weight, reproduction, etc.) that do not need a
+        -- husbandry context. Pass `forceShowAll=true` so monitor-gated rows
+        -- (Health, Weight, Lactation) are included - dealer animals carry no
+        -- monitor but players need full visibility at purchase time.
+        -- pcall-guarded because some Animal:addInfos branches reference
+        -- self.clusterSystem which may be nil on a fresh sale animal;
+        -- degrading to age-only is acceptable.
+        local ok, err = pcall(function() animal:addInfos(statRows, true) end)
+        if not ok then
+            Log:trace("RLAnimalInfoService.getAnimalDisplay: animal:addInfos failed for dealer animal, age-only fallback: %s", tostring(err))
+            statRows = {}
+        end
     end
 
     -- Age is always first, ungated (mirrors legacy AnimalItemStock pattern).
@@ -332,6 +347,11 @@ function RLAnimalInfoService.getAnimalDisplay(animal, husbandry)
     if husbandry ~= nil and husbandry.getAnimalDescription ~= nil then
         local ok, result = pcall(function() return husbandry:getAnimalDescription(animal) end)
         if ok and result ~= nil then description = result end
+    elseif visual ~= nil and visual.store ~= nil and visual.store.description ~= nil then
+        -- Nil-husbandry fallback for the Buy tab: use the breed lore text from
+        -- the visual config (mirrors base-game AnimalItemStock:getDescription
+        -- behavior).
+        description = visual.store.description
     end
 
     local geneticsRows = {}
