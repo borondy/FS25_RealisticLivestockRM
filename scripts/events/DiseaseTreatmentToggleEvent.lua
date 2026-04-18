@@ -32,6 +32,11 @@ function DiseaseTreatmentToggleEvent:writeStream(streamId, connection)
 end
 
 function DiseaseTreatmentToggleEvent:run(connection)
+    if self.object == nil then
+        Log:warning("DiseaseTreatmentToggleEvent:run: self.object is nil (husbandry gone during event flight?), aborting")
+        return
+    end
+
     if not connection:getIsServer() then
         g_server:broadcastEvent(
             DiseaseTreatmentToggleEvent.new(self.object, self.animal, self.diseaseTitle, self.beingTreated),
