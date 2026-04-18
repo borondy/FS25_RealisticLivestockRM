@@ -153,8 +153,8 @@ RLConstants.DAYS_PER_MONTH = {
 
 
 RLConstants.START_YEAR = {
-    ["FULL"] = 2024,
-    ["PARTIAL"] = 24
+    ["FULL"] = 0,
+    ["PARTIAL"] = 0
 }
 
 
