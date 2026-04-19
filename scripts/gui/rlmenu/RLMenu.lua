@@ -51,12 +51,13 @@ function RLMenu.setupGui()
     -- 1. Load RL menu profiles (separate file from gui/guiProfiles.xml)
     g_gui:loadProfiles(Utils.getFilename("gui/rlmenu/rlMenuProfiles.xml", modDirectory))
 
-    -- 2. Register frames (Phase 1: Messages; Phase 2a: Info; Phase 3: Move; Phase 4: Sell; Phase 5: Buy)
+    -- 2. Register frames (Phase 1: Messages; Phase 2a: Info; Phase 3: Move; Phase 4: Sell; Phase 5: Buy; Phase 6: AI)
     RLMenuMessagesFrame.setupGui()
     RLMenuInfoFrame.setupGui()
     RLMenuMoveFrame.setupGui()
     RLMenuSellFrame.setupGui()
     RLMenuBuyFrame.setupGui()
+    RLMenuAIFrame.setupGui()
 
     -- 3. Create the menu instance and load its XML
     g_rlMenu = RLMenu.new()
@@ -114,14 +115,21 @@ function RLMenu:setupMenuPages()
         self.infoFrame:initialize()
     end
 
+    -- AI tab
+    self:registerPage(self.aiFrame, 5, basePredicate)
+    self:addPageTab(self.aiFrame, nil, nil, "rlExtra.manage_animal")
+    if self.aiFrame ~= nil and self.aiFrame.initialize ~= nil then
+        self.aiFrame:initialize()
+    end
+
     -- Messages tab
-    self:registerPage(self.messagesFrame, 5, basePredicate)
+    self:registerPage(self.messagesFrame, 6, basePredicate)
     self:addPageTab(self.messagesFrame, nil, nil, "rlExtra.notify_animal")
     if self.messagesFrame ~= nil and self.messagesFrame.initialize ~= nil then
         self.messagesFrame:initialize()
     end
 
-    Log:debug("RLMenu:setupMenuPages: 5 pages registered (buy, sell, move, manage, messages)")
+    Log:debug("RLMenu:setupMenuPages: 6 pages registered (buy, sell, move, manage, ai, messages)")
 end
 
 --- Configure the bottom button bar.

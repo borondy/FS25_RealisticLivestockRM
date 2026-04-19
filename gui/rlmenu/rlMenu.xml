@@ -20,6 +20,7 @@
         <FrameReference ref="RLMenuSellFrame" name="sellFrame" id="sellFrame"/>
         <FrameReference ref="RLMenuMoveFrame" name="moveFrame" id="moveFrame"/>
         <FrameReference ref="RLMenuInfoFrame" name="infoFrame" id="infoFrame"/>
+        <FrameReference ref="RLMenuAIFrame" name="aiFrame" id="aiFrame"/>
         <FrameReference ref="RLMenuMessagesFrame" name="messagesFrame" id="messagesFrame"/>
     </Paging>
 

@@ -764,6 +764,13 @@
 		<text name="rl_menu_buy_cart_header" text="Purchase Summary"/>
 		<text name="rl_menu_buy_cart_selected" text="Selected"/>
 
+		<!-- Phase 6: AI tab -->
+		<text name="rl_menu_ai_title" text="Artificial Insemination"/>
+		<text name="rl_menu_ai_quantity" text="Quantity"/>
+		<text name="rl_menu_ai_price" text="Price"/>
+		<text name="rl_menu_ai_empty_no_stock" text="No bulls available at the dealer for this species"/>
+		<text name="rl_menu_ai_empty_no_species" text="No animal species registered"/>
+
 
 		<!-- Missing keys (English fallback) -->
 		<text name="input_RL_RENAME" text="Rename"/>

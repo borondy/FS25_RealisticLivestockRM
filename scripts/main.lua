@@ -143,11 +143,13 @@ source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalMoveService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalSellService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalBuyService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLDealerQuery.lua")
+source(modDirectory .. "scripts/gui/rlmenu/services/RLAIStockService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuMessagesFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuInfoFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuMoveFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuSellFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuBuyFrame.lua")
+source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuAIFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/RLMenu.lua")
 
 -- SECTION 14: Migration System

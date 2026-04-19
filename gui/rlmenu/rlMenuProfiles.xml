@@ -164,6 +164,39 @@
     </Profile>
 
     <!--
+        AI tab quantity stepper. Extends the `fs25_animalAmountSelector`
+        profile (same profile our legacy AI screen at `AnimalScreen.xml:457`
+        uses with an inline `width="100%"` override to fill the parent
+        column). This profile encapsulates that override so the frame XML
+        stays clean.
+
+        Additional overrides:
+          - `anchorTopStretchingX` (instead of inheriting `anchorBottomCenter`)
+            spans the parent's full horizontal width. The `anchorTopCenter`
+            trait is a FS25 gotcha: its anchor rect is `0.5 0.5 1 1` = right
+            HALF of parent, not "centered across parent". Using it with 100%
+            size puts the widget in the right half only.
+          - `position` reset to 0,0 (the inherited profile carries a Y offset
+            that is appropriate for its original bottom-anchored host; not
+            needed when this widget flows as a BoxLayout child).
+          - `absoluteSizeOffset` overridden to shrink the widget by 40px
+            (see below).
+    -->
+    <Profile name="rlMenu_aiQuantitySelector" extends="fs25_animalAmountSelector" with="anchorTopStretchingX">
+        <size value="100% 42px"/>
+        <!--
+            Shrink the stretched 100% width by 40px total (20px each side).
+            FS25 `absoluteSizeOffset` uses SUBTRACTIVE semantics: a POSITIVE
+            value reduces the effective size. Runtime-verified: -40px
+            produced a 430px-wide widget (panel +40), +40px produces the
+            correct 350px widget so it sits inside the 390px panel with
+            20px of breathing room on each side.
+        -->
+        <absoluteSizeOffset value="40px 0px"/>
+        <position value="0px 0px"/>
+    </Profile>
+
+    <!--
         Cart fee info text: multiline grey text sized for the pen column.
         Mirrors rlMenu_animalDescription pattern (resize layout mode) but
         narrower (350px vs 640px) to fit the pen column.

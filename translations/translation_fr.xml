@@ -730,6 +730,12 @@
         <text name="rl_menu_buy_empty_no_animals" text="No animals available at the dealer for this type"/>
         <text name="rl_menu_buy_cart_header" text="Purchase Summary"/>
         <text name="rl_menu_buy_cart_selected" text="Selected"/>
+        <!-- Phase 6: AI tab (English fallback) -->
+        <text name="rl_menu_ai_title" text="Artificial Insemination"/>
+        <text name="rl_menu_ai_quantity" text="Quantity"/>
+        <text name="rl_menu_ai_price" text="Price"/>
+        <text name="rl_menu_ai_empty_no_stock" text="No bulls available at the dealer for this species"/>
+        <text name="rl_menu_ai_empty_no_species" text="No animal species registered"/>
         <text name="rl_settings_geneticsDisplay_label" text="Genetics Display"/>
         <text name="rl_settings_geneticsDisplay_texts_1" text="Off"/>
         <text name="rl_settings_geneticsDisplay_texts_2" text="Short"/>
