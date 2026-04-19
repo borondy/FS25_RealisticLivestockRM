@@ -19,6 +19,17 @@ RLAIStockService = {}
 
 local Log = RmLogging.getLogger("RLRM")
 
+--- Resolve the local player object. Defaults to the `g_localPlayer` global;
+--- exposed as a field so tests can swap in a nil-returning stub.
+---
+--- The FS25 runtime protects `g_*` root-key writes, so a test cannot nil
+--- out `g_localPlayer` directly. This seam gives the nil-player guard in
+--- `toggleFavourite` a way to be exercised from tests.
+--- @return table|nil
+RLAIStockService._getLocalPlayer = function()
+    return g_localPlayer
+end
+
 -- =============================================================================
 -- Species enumeration
 -- =============================================================================
@@ -314,4 +325,71 @@ function RLAIStockService.getPriceForQuantity(animal, quantity)
     Log:trace("RLAIStockService.getPriceForQuantity: uniqueId=%s quantity=%d price=%.2f",
         tostring(animal.uniqueId), quantity, price)
     return price
+end
+
+-- =============================================================================
+-- Favourite toggle (local-only; mirrors legacy AnimalScreen.lua:708-726)
+-- =============================================================================
+
+--- Toggle the local player's favourite mark on an AI-stock bull.
+---
+--- Legacy parity (AnimalScreen.lua:708-726): the favourite bit is stored on
+--- animal.favouritedBy[uid] and never network-synced, so a rejoining client
+--- loses its favourites. RLRM-172 tracks the MP persistence gap; it is OUT
+--- OF SCOPE for Phase 2.
+---
+--- Return contract:
+---   nil   -> failure (g_localPlayer unavailable). Distinct from false so
+---            the caller can tell "unfavourited" apart from "couldn't run."
+---   true  -> bull is now favourited
+---   false -> bull is now un-favourited
+--- @param animal table  Raw Animal with a `favouritedBy` table (lazily created)
+--- @return boolean|nil isFavourite
+function RLAIStockService.toggleFavourite(animal)
+    if animal == nil then
+        Log:warning("RLAIStockService.toggleFavourite: nil animal")
+        return nil
+    end
+
+    local localPlayer = RLAIStockService._getLocalPlayer()
+    if localPlayer == nil then
+        Log:warning("RLAIStockService.toggleFavourite: g_localPlayer unavailable; skipping toggle")
+        return nil
+    end
+
+    local uniqueId = localPlayer:getUniqueId()
+    if uniqueId == nil then
+        Log:warning("RLAIStockService.toggleFavourite: localPlayer uniqueId nil")
+        return nil
+    end
+
+    if type(animal.favouritedBy) ~= "table" then
+        animal.favouritedBy = {}
+    end
+
+    -- Collapse legacy's three-branch nil/true/false logic (AnimalScreen.lua:716-720)
+    -- into one write. Both nil -> true and false -> true land on true; true -> false.
+    local newState = not (animal.favouritedBy[uniqueId] == true)
+    animal.favouritedBy[uniqueId] = newState
+
+    Log:debug("RLAIStockService.toggleFavourite: uniqueId=%s farmId=%s bullUid=%s -> %s",
+        tostring(uniqueId), tostring(animal.farmId), tostring(animal.uniqueId),
+        tostring(newState))
+    return newState
+end
+
+
+--- Resolve the Favourite button's i18n key for the given favourite state.
+--- Shared by selection-change (read) and toggle (post-write) call sites so
+--- both fall through the same mapping. Mirrors the label choice in legacy
+--- AnimalScreen.lua:645 (the only site legacy gets right; the toggle site
+--- at line 722 is a latent bug we deliberately do not replicate).
+--- @param isFavourite boolean|nil
+--- @return string i18nKey  Pass to g_i18n:getText
+function RLAIStockService.getFavouriteButtonText(isFavourite)
+    Log:trace("RLAIStockService.getFavouriteButtonText: isFavourite=%s", tostring(isFavourite))
+    if isFavourite == true then
+        return "rl_ui_unFavourite"
+    end
+    return "rl_ui_favourite"
 end
