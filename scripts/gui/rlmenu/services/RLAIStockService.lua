@@ -335,8 +335,8 @@ end
 ---
 --- Legacy parity (AnimalScreen.lua:708-726): the favourite bit is stored on
 --- animal.favouritedBy[uid] and never network-synced, so a rejoining client
---- loses its favourites. RLRM-172 tracks the MP persistence gap; it is OUT
---- OF SCOPE for Phase 2.
+--- loses its favourites. MP persistence gap tracked separately; it is OUT
+--- OF SCOPE for this release.
 ---
 --- Return contract:
 ---   nil   -> failure (g_localPlayer unavailable). Distinct from false so

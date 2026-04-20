@@ -45,7 +45,7 @@ end
 --- approach is fragile for punctuation-heavy templates but every existing
 --- rl_message_* translation in 17 language files was authored against this
 --- exact behavior. Diverging now would silently break translated text.
---- Cleanup is deferred to Phase 8.
+--- TODO: rework the substitution once translations can be regenerated.
 --- @param template string Localized template string (output of g_i18n:getText)
 --- @param args table|nil Argument list from the raw message record
 --- @return string Substituted text

@@ -9,15 +9,11 @@
     with Average Success + Quantity + stepper + total price, and a right-hand
     detail pane reusing RLDetailPaneHelper (bulls have no husbandry).
 
-    Phase 1 shell: browsable read-only frame with disabled/no-op Favourite +
-    Buy footer buttons. Phase 2 wires:
+    Footer wiring:
       - quantity stepper state-change -> recompute total price
-      - Favourite toggle (local, no network event; RLRM-172 tracks MP bug)
+      - Favourite toggle (local, no network event; MP persistence gap
+        tracked separately)
       - Buy action (SemenBuyEvent dispatch + PlacementUtil spawn + InfoDialog)
-
-    The stepper's state CYCLES on click in Phase 1 (default widget behavior
-    since no callback is bound), but the displayed price does NOT update -
-    Phase 2 binds the callback and recomputes on every state change.
 
     Selection is isolated: no read/write of g_rlMenu.sharedSelection (AI bulls
     are not farm-owned).
@@ -70,11 +66,9 @@ function RLMenuAIFrame.new()
     -- Back button (always present, required with hasCustomMenuButtons)
     self.backButtonInfo = { inputAction = InputAction.MENU_BACK }
 
-    -- Action bar button definitions.
-    -- Phase 1: no-op TRACE stub callbacks. Buttons are enabled when a bull
-    -- is focused (mirrors legacy at AnimalScreen.lua:630-641 which gates
-    -- purely on selection state). Phase 2 replaces these callbacks with
-    -- real toggleFavourite + onClickBuy handlers.
+    -- Action bar button definitions. Buttons are enabled when a bull is
+    -- focused (mirrors legacy at AnimalScreen.lua:630-641 which gates
+    -- purely on selection state).
     self.favouriteButtonInfo = {
         inputAction = InputAction.MENU_EXTRA_1,
         text = g_i18n:getText("rl_ui_favourite"),
@@ -189,7 +183,7 @@ function RLMenuAIFrame:onFrameOpen()
 
     -- Subscribe to MONEY_CHANGED so the header balance refreshes when an
     -- MP balance update arrives asynchronously. Matches the pattern Buy/Sell/
-    -- Info use (RLRM-170 context).
+    -- Info use.
     g_messageCenter:subscribe(MessageType.MONEY_CHANGED, self.onMoneyChanged, self)
 
     -- Explicit focus links. Without these, FocusManager auto-layout can
@@ -447,12 +441,12 @@ end
 --- Refresh dependent UI for the currently-focused bull. Central entry point
 --- called from onListSelectionChanged, restoreSelection, refreshSpecies.
 ---
---- Phase 2: selection-identity dedupe cache prevents spurious stepper resets.
+--- Selection-identity dedupe cache prevents spurious stepper resets.
 --- onClickFavourite calls animalList:reloadData to refresh the orange tint
 --- (legacy parity at AnimalScreen.lua:724). Bare reloadData usually preserves
 --- the highlight without refiring the selection callback, but if it ever
 --- does, the cache check here early-returns before touching the stepper or
---- the detail pane. Also covers the RLRM-162 class of spurious re-fires.
+--- the detail pane. Also covers the class of spurious re-fires.
 function RLMenuAIFrame:onBullSelectionChanged()
     local animal = self:getSelectedAnimal()
 
@@ -672,7 +666,7 @@ end
 -- =============================================================================
 
 --- Favourite footer action. Delegates to RLAIStockService.toggleFavourite
---- (local-only; no network event; RLRM-172 tracks the MP persistence gap)
+--- (local-only; no network event; MP persistence gap tracked separately)
 --- and refreshes the row tint + button label on success.
 ---
 --- Legacy parity at AnimalScreen.lua:708-726. Binds the post-toggle button
@@ -720,11 +714,10 @@ end
 --- AnimalScreen.lua:526-564 line-by-line. Step ordering preserved INCLUDING
 --- the known pre-existing bug at line 542 (markPlaceUsed BEFORE the
 --- permission/money checks leaks the store slot on failed pre-flight;
---- tracked separately as RLRM-173 and out of scope for Phase 2 per
---- MUTATION PARITY rule).
+--- tracked separately and out of scope per MUTATION PARITY rule).
 ---
 --- No-spawn-slot UX extension: legacy silently returns on `x == nil` at
---- line 538-540; Phase 2 shows a warning dialog with `shop_messageNoSpace`
+--- line 538-540; this handler shows a warning dialog with `shop_messageNoSpace`
 --- to close the "why didn't anything happen?" gap. No event is dispatched.
 function RLMenuAIFrame:onClickBuy()
     -- Reentrancy guard: InfoDialog is async, so a second Enter press between
@@ -781,7 +774,7 @@ function RLMenuAIFrame:onClickBuy()
     -- Step 2: mark the slot as used. Legacy line 542.
     -- NOTE: This runs BEFORE the permission/money checks so a failed
     -- pre-flight leaks the slot. Legacy bug mirrored per MUTATION PARITY;
-    -- tracked as RLRM-173.
+    -- tracked separately.
     PlacementUtil.markPlaceUsed(usedPlaces, place, width)
 
     -- Commit to opening a result dialog. Flag blocks reentrant Enter clicks.
@@ -868,7 +861,7 @@ end
 --- (postSemenBought) which calls `self.aiList:reloadData()`. Phase 2 reloads
 --- the whole bull list so stock changes reflect immediately.
 ---
---- Stale-frame guard mirrors Buy/Sell/Info's RLRM-170 pattern: the
+--- Stale-frame guard mirrors Buy/Sell/Info's pattern: the
 --- InfoDialog is modal but survives frame teardown, so the user can press
 --- Buy -> close the menu -> dismiss the dialog and we would otherwise call
 --- reloadBullList on a torn-down frame. `activeSpeciesTypeIndex` is set in

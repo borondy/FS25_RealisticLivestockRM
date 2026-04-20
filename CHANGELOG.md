@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.2.2.0-dev.2
+
+### RL Menu (preview - work in progress):
+- Added Artificial Insemination tab: browse dealer bulls by species, pick a straw quantity with live price preview, favourite bulls, and buy straws without leaving the menu
+
 ## v1.2.2.0-dev.1
 - Fixed singleplayer: RL Messages tab now shows "Bought/Sold N animal(s) for €X" entries after buying or selling (previously these entries only appeared in multiplayer)
 - Fixed potential multiplayer crash when changing monitor, name, or disease treatment on an animal while the husbandry is being sold or demolished
