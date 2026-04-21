@@ -148,11 +148,28 @@ function RLMenuInfoFrame:onFrameOpen()
             tostring(shared.animalIdentity and shared.animalIdentity.uniqueId))
     end
 
+    -- Reset SmoothList's selection sentinels to 0 (the "no selection"
+    -- sentinel value) so the chained captureCurrentSelection during
+    -- refreshHusbandries -> reloadAnimalList short-circuits via its
+    -- sectionOrder guard instead of overwriting the just-imported
+    -- selectedIdentity. Must be 0, not nil - SmoothList expects numeric
+    -- indices and crashes on nil.
+    if self.animalList ~= nil then
+        self.animalList.selectedSectionIndex = 0
+        self.animalList.selectedIndex = 0
+    end
+
     -- refreshHusbandries owns chrome state for both populated and empty
     -- husbandry cases. Do NOT clearDetail here: refreshHusbandries auto-
     -- selects state 1, which fires onHusbandryChanged -> updatePenDisplay,
     -- and a trailing clearDetail would wipe the pen we just rendered.
     self:refreshHusbandries()
+
+    -- Subscribe to MONEY_CHANGED so the header balance refreshes whenever
+    -- any code path credits/debits the farm while this frame is open. Info
+    -- does not mutate the balance itself but displays it and would drift
+    -- under external credits (other players, production events) in MP.
+    g_messageCenter:subscribe(MessageType.MONEY_CHANGED, self.onMoneyChanged, self)
 
     -- Explicit focus links for keyboard navigation (Fresh RmSettingsFrame
     -- pattern). Required because multiple frames share the same sidebar +
@@ -182,8 +199,20 @@ function RLMenuInfoFrame:onFrameClose()
             tostring(self.selectedIdentity and self.selectedIdentity.uniqueId))
     end
 
+    g_messageCenter:unsubscribe(MessageType.MONEY_CHANGED, self)
     RLMenuInfoFrame:superClass().onFrameClose(self)
     self.isFrameOpen = false
+end
+
+
+---MessageType.MONEY_CHANGED handler. Delegates to the existing
+---updateMoneyDisplay wrapper to keep the refresh path consistent with
+---other Info-tab call sites. No farmId gating needed because
+---updateMoneyDisplay reads the current player's farm internally.
+function RLMenuInfoFrame:onMoneyChanged()
+    if not self.isFrameOpen then return end
+    Log:trace("RLMenuInfoFrame:onMoneyChanged: refreshing money display")
+    self:updateMoneyDisplay()
 end
 
 -- =============================================================================

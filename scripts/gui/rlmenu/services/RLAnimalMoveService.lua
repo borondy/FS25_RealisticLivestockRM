@@ -27,20 +27,24 @@ RLAnimalMoveService.ERROR_CODE_MAPPING = {
 
 --- Enumerate valid move destinations for a given source husbandry and animal subtype.
 --- Delegates to AnimalScreenMoveFarm.getValidDestinations (static).
---- @param sourceHusbandry table The source husbandry placeable (excluded from results)
+---
+--- Nil `sourceHusbandry` is a supported use case for dealer-buy flows: the
+--- delegate's `placeable ~= sourceHusbandry` exclusion check becomes a no-op,
+--- so every farm-owned placeable supporting the subtype is returned.
+--- @param sourceHusbandry table|nil The source husbandry placeable (excluded from results; nil for dealer-buy)
 --- @param farmId number The owning farm ID
 --- @param animalSubTypeIndex number The animal subtype that destinations must support
 --- @return table Array of destination entries ({placeable, name, currentCount, maxCount, freeSlots, isEPP, minAge?, maxAge?})
 function RLAnimalMoveService.getValidDestinations(sourceHusbandry, farmId, animalSubTypeIndex)
-    if sourceHusbandry == nil then
-        Log:warning("RLAnimalMoveService.getValidDestinations: nil sourceHusbandry")
-        return {}
-    end
     if farmId == nil or farmId == 0 then
         Log:warning("RLAnimalMoveService.getValidDestinations: invalid farmId=%s", tostring(farmId))
         return {}
     end
-    Log:debug("RLAnimalMoveService.getValidDestinations: farmId=%d subTypeIndex=%d", farmId, animalSubTypeIndex)
+    if sourceHusbandry == nil then
+        Log:trace("RLAnimalMoveService.getValidDestinations: nil source (dealer-buy path)")
+    end
+    Log:debug("RLAnimalMoveService.getValidDestinations: farmId=%d subTypeIndex=%d source=%s",
+        farmId, animalSubTypeIndex, tostring(sourceHusbandry ~= nil))
     return AnimalScreenMoveFarm.getValidDestinations(sourceHusbandry, farmId, animalSubTypeIndex)
 end
 

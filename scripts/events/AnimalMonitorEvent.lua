@@ -50,6 +50,11 @@ end
 
 
 function AnimalMonitorEvent:run(connection)
+    if self.object == nil then
+        Log:warning("AnimalMonitorEvent:run: self.object is nil (husbandry gone during event flight?), aborting")
+        return
+    end
+
     if not connection:getIsServer() then
         g_server:broadcastEvent(
             AnimalMonitorEvent.new(self.object, self.animal, self.active, self.removed),

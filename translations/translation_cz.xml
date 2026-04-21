@@ -745,5 +745,18 @@
 		<text name="rl_menu_sell_cart_header" text="Sale Summary"/>
 		<text name="rl_menu_sell_cart_selected" text="Selected"/>
 		<text name="rl_menu_sell_cart_empty" text="Select animals to sell"/>
+
+		<!-- Phase 5: Buy tab -->
+		<text name="rl_menu_buy_title" text="Buy"/>
+		<text name="rl_menu_buy_empty_no_types" text="The dealer has no animal types available"/>
+		<text name="rl_menu_buy_empty_no_animals" text="No animals available at the dealer for this type"/>
+		<text name="rl_menu_buy_cart_header" text="Purchase Summary"/>
+		<text name="rl_menu_buy_cart_selected" text="Selected"/>
+        <!-- Phase 6: AI tab (English fallback) -->
+        <text name="rl_menu_ai_title" text="Artificial Insemination"/>
+        <text name="rl_menu_ai_quantity" text="Quantity"/>
+        <text name="rl_menu_ai_price" text="Price"/>
+        <text name="rl_menu_ai_empty_no_stock" text="No bulls available at the dealer for this species"/>
+        <text name="rl_menu_ai_empty_no_species" text="No animal species registered"/>
 	</texts>
 </l10n>

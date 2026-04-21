@@ -529,10 +529,17 @@ function Animal:getCanBeSold()
     return self.isDead == false and self.canBeSold ~= false
 end
 
-function Animal:addInfos(infos)
+--- Populate the info rows for this animal.
+--- @param infos table   Appended with stat rows (mutated in place).
+--- @param forceShowAll? boolean  When true, unhide monitor-gated fields
+---        (Health, Weight, Lactation). Used by the Buy tab so dealer animals
+---        expose full stats at purchase time even though they carry no
+---        monitor. Defaults to false; existing callers (Info / Move / Sell
+---        via husbandry:getAnimalInfos) behave unchanged.
+function Animal:addInfos(infos, forceShowAll)
     local subType = self:getSubType()
 
-    local hasMonitor = self.monitor.active or self.monitor.removed
+    local hasMonitor = self.monitor.active or self.monitor.removed or forceShowAll == true
     local healthFactor = self:getHealthFactor()
 
     if hasMonitor then

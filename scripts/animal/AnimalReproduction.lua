@@ -69,7 +69,7 @@ local function resolveInsemination(animal, month, year)
     else
         animal:addMessage("INSEMINATION_FAIL")
         g_server:broadcastEvent(AnimalInseminationResultEvent.new(
-            animal.clusterSystem.owner, animal, true))
+            animal.clusterSystem.owner, animal, false))
 
         Log:trace("  insemination failed (childNum=%d)", childNum)
     end

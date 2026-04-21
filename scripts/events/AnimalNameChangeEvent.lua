@@ -51,6 +51,11 @@ end
 
 
 function AnimalNameChangeEvent:run(connection)
+    if self.object == nil then
+        Log:warning("AnimalNameChangeEvent:run: self.object is nil (husbandry gone during event flight?), aborting")
+        return
+    end
+
     if not connection:getIsServer() then
         g_server:broadcastEvent(
             AnimalNameChangeEvent.new(self.object, self.animal, self.name),

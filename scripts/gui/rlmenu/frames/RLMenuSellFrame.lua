@@ -140,7 +140,24 @@ function RLMenuSellFrame:onFrameOpen()
             tostring(shared.animalIdentity and shared.animalIdentity.uniqueId))
     end
 
+    -- Reset SmoothList's selection sentinels to 0 (the "no selection"
+    -- sentinel value) so the chained captureCurrentSelection during
+    -- refreshHusbandries -> reloadAnimalList short-circuits via its
+    -- sectionOrder guard instead of overwriting the just-imported
+    -- selectedIdentity. Must be 0, not nil - SmoothList expects numeric
+    -- indices and crashes on nil.
+    if self.animalList ~= nil then
+        self.animalList.selectedSectionIndex = 0
+        self.animalList.selectedIndex = 0
+    end
+
     self:refreshHusbandries()
+
+    -- Subscribe to MONEY_CHANGED so the header balance refreshes when a
+    -- post-sell balance update arrives asynchronously (MP) or when any
+    -- other code path credits/debits the farm while this frame is open.
+    -- SP is unaffected because the change is synchronous there.
+    g_messageCenter:subscribe(MessageType.MONEY_CHANGED, self.onMoneyChanged, self)
 
     -- Explicit focus links for keyboard navigation. Required because multiple
     -- frames share the same sidebar + SmoothList structure, and FocusManager
@@ -171,8 +188,22 @@ function RLMenuSellFrame:onFrameClose()
             tostring(self.selectedIdentity and self.selectedIdentity.uniqueId))
     end
 
+    g_messageCenter:unsubscribe(MessageType.MONEY_CHANGED, self)
     RLMenuSellFrame:superClass().onFrameClose(self)
     self.isFrameOpen = false
+end
+
+
+--- MessageType.MONEY_CHANGED handler. Fires on both server and client
+--- contexts: on clients, the message is published locally after the farm
+--- balance is updated from a server stream, so subscribing lets the Sell
+--- frame refresh its header balance in MP without polling. No farmId
+--- gating here because updateMoneyDisplay reads the current player's farm
+--- internally.
+function RLMenuSellFrame:onMoneyChanged()
+    if not self.isFrameOpen then return end
+    Log:trace("RLMenuSellFrame:onMoneyChanged: refreshing money display")
+    RLDetailPaneHelper.updateMoneyDisplay(self)
 end
 
 
@@ -204,6 +235,12 @@ function RLMenuSellFrame:refreshHusbandries()
         self.selectedHusbandry = nil
         self.items = {}
         self.selectedAnimals = {}
+        -- Clear section state BEFORE reloadData so SmoothList's section-count
+        -- callback does not read stale keys from a prior populated husbandry.
+        -- Mirrors the fix applied to RLMenuBuyFrame:refreshTypes on 2026-04-18.
+        self.sectionOrder    = {}
+        self.itemsBySection  = {}
+        self.titlesBySection = {}
         if self.animalList ~= nil then self.animalList:reloadData() end
         self:updateEmptyState()
         self:updateButtonVisibility()
@@ -978,11 +1015,15 @@ end
 
 
 --- Callback from RLAnimalSellService after server responds.
+--- Stale-frame guard: skips refresh if the frame has closed (tab-switch /
+--- menu-close mid-dispatch) OR if the husbandry context was cleared.
+--- `isFrameOpen` is cleared in onFrameClose; `selectedHusbandry` guards
+--- against a husbandry-less state (e.g., farm has no husbandries).
 --- @param errorCode number
 function RLMenuSellFrame:onSellComplete(errorCode)
-    -- Stale-frame guard: if husbandry gone during sell event flight
-    if self.selectedHusbandry == nil then
-        Log:trace("RLMenuSellFrame:onSellComplete: stale frame, ignoring")
+    if not self.isFrameOpen or self.selectedHusbandry == nil then
+        Log:trace("RLMenuSellFrame:onSellComplete: stale frame (isFrameOpen=%s husbandry=%s), ignoring",
+            tostring(self.isFrameOpen), tostring(self.selectedHusbandry ~= nil))
         return
     end
 
