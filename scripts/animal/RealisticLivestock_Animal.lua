@@ -1348,7 +1348,7 @@ function Animal:updateInput()
             if self.isLactating then litersPerDay = litersPerDay * 1.25 end
 
             if self.reproduction ~= nil and self.reproduction > 0 and self.pregnancy ~= nil and self.pregnancy.pregnancies ~= nil then
-                litersPerDay = litersPerDay * math.pow(1 + ((self.reproduction / 100) / 5), #self.pregnancy.pregnancies)
+                litersPerDay = litersPerDay * math.pow(1 + ((self.reproduction / 100) / 5),  math.min(#self.pregnancy.pregnancies, 3)))
             end
 
             if self.genetics.metabolism ~= nil then litersPerDay = litersPerDay * self.genetics.metabolism end
@@ -1362,7 +1362,7 @@ function Animal:updateInput()
             if self.isLactating then litersPerDay = litersPerDay * 1.5 end
 
             if self.reproduction ~= nil and self.reproduction > 0 and self.pregnancy ~= nil and self.pregnancy.pregnancies ~= nil then
-                litersPerDay = litersPerDay * math.pow(1 + ((self.reproduction / 100) / 5), #self.pregnancy.pregnancies)
+                litersPerDay = litersPerDay * math.pow(1 + ((self.reproduction / 100) / 5),  math.min(#self.pregnancy.pregnancies, 3)))
             end
         end
 
