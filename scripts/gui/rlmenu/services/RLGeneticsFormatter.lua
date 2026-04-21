@@ -3,11 +3,15 @@
     Pure genetics display formatter for the RL Tabbed Menu detail pane.
 
     Converts Animal genetics + type into a list of display-ready rows:
-      { { labelKey, valueKey, colorKey }, ... }
+      { { labelKey, valueKey, colorKey, numericValue }, ... }
 
-    Thresholds match Animal:addGeneticsInfo. Pure module - no logging,
-    no GUI calls, no g_* access. Unit-testable without a running mission.
+    Thresholds match Animal:addGeneticsInfo. Pure module - no g_* access,
+    no GUI calls. Unit-testable without a running mission. The optional
+    numericValue (0-99) is produced by RL_AnimalScreenBase.scaleToNinetyNine,
+    the same helper that powers the in-game animal name tag.
 ]]
+
+local Log = RmLogging and RmLogging.getLogger and RmLogging.getLogger("RLRM") or nil
 
 RLGeneticsFormatter = {}
 
@@ -121,6 +125,28 @@ function RLGeneticsFormatter.resolveFertilityTier(fertility)
 end
 
 -- =============================================================================
+-- Numeric value (0-99)
+-- =============================================================================
+
+--- Convert a raw 0.25..1.75 genetics value into the same 0-99 integer that
+--- the in-game animal name tag uses ([98-94:87:...]). Returns nil when the
+--- shared helper is missing (see RL_AnimalScreenBase.scaleToNinetyNine in
+--- scripts/animals/shop/controllers/AnimalScreenBase.lua). Caller renders the
+--- nil case as "label only" (no number prefix).
+---
+--- Silent when the helper is missing — the warning is emitted once per
+--- format() pass by the caller, not per row, to avoid log spam.
+--- @param value number|nil
+--- @return integer|nil
+function RLGeneticsFormatter.toNumericValue(value)
+    if value == nil then return nil end
+    if RL_AnimalScreenBase == nil or RL_AnimalScreenBase.scaleToNinetyNine == nil then
+        return nil
+    end
+    return RL_AnimalScreenBase.scaleToNinetyNine(value)
+end
+
+-- =============================================================================
 -- Productivity label per species
 -- =============================================================================
 
@@ -151,11 +177,14 @@ end
 ---   [5] Meat        ("high/low" scale)
 ---   [6] Productivity (optional, species-dependent label Milk/Wool/Eggs)
 ---
---- Each row is `{ labelKey = string, valueKey = string, colorKey = string }`.
---- All values are localization keys; the frame resolves text, the color key
---- is mapped to an RGBA tuple by the frame.
+--- Each row is `{ labelKey, valueKey, colorKey, numericValue }`:
+---   - labelKey/valueKey are localization keys (frame resolves text)
+---   - colorKey maps to an RGBA tuple (frame applies setTextColor)
+---   - numericValue is an integer 0..99 (or nil if RL_AnimalScreenBase is
+---     not loaded). Same scale as the in-game name tag.
 ---
---- Pure function: no side effects, no GUI, no g_* access.
+--- Pure function: no side effects, no GUI, no g_* access. Uses the
+--- RL_AnimalScreenBase.scaleToNinetyNine helper for the numeric value.
 ---
 --- @param genetics table|nil
 --- @param animalTypeIndex number|nil
@@ -174,6 +203,15 @@ function RLGeneticsFormatter.format(genetics, animalTypeIndex)
         return {}
     end
 
+    -- Warn once per format() pass if the 0-99 scale helper is missing, so a
+    -- load-order regression does not silently downgrade every row to
+    -- label-only. toNumericValue() itself stays silent (emitting per row
+    -- would spam 5-6 duplicate warnings on every menu refresh).
+    if Log ~= nil
+        and (RL_AnimalScreenBase == nil or RL_AnimalScreenBase.scaleToNinetyNine == nil) then
+        Log:warning("RLGeneticsFormatter.format: RL_AnimalScreenBase.scaleToNinetyNine unavailable, rows will render as label-only (check main.lua load order)")
+    end
+
     local rows = {}
 
     -- Row 1: Overall. Sums the five stats against 1.75 per best-slot.
@@ -183,19 +221,24 @@ function RLGeneticsFormatter.format(genetics, animalTypeIndex)
     local health       = genetics.health or 0
     local fertility    = genetics.fertility or 0
     local hasProductivity = productivity ~= nil
+    local statCount = hasProductivity and 5 or 4
 
     local overallSum = metabolism + quality + health + fertility + (hasProductivity and productivity or 0)
-    local overallBest = 1.75 * (hasProductivity and 5 or 4)
+    local overallBest = 1.75 * statCount
     local overallFactor = (overallBest > 0) and (overallSum / overallBest) or 0
     local overallKey = RLGeneticsFormatter.resolveTier(
         overallFactor,
         RLGeneticsFormatter.OVERALL_TIER_THRESHOLDS,
         RLGeneticsFormatter.OVERALL_TIER_KEYS
     )
+    -- Overall numeric uses the stat average through scaleToNinetyNine so it
+    -- matches the in-game name-tag's [NN-...] overall figure in AnimalScreenBase.
+    local overallAvg = (statCount > 0) and (overallSum / statCount) or 0
     table.insert(rows, {
-        labelKey = "rl_ui_overall",
-        valueKey = overallKey,
-        colorKey = RLGeneticsFormatter.VALUE_KEY_TO_COLOR_KEY[overallKey],
+        labelKey     = "rl_ui_overall",
+        valueKey     = overallKey,
+        colorKey     = RLGeneticsFormatter.VALUE_KEY_TO_COLOR_KEY[overallKey],
+        numericValue = RLGeneticsFormatter.toNumericValue(overallAvg),
     })
 
     -- Row 2: Metabolism
@@ -205,9 +248,10 @@ function RLGeneticsFormatter.format(genetics, animalTypeIndex)
         RLGeneticsFormatter.HIGH_TIER_KEYS
     )
     table.insert(rows, {
-        labelKey = "rl_ui_metabolism",
-        valueKey = metabolismKey,
-        colorKey = RLGeneticsFormatter.VALUE_KEY_TO_COLOR_KEY[metabolismKey],
+        labelKey     = "rl_ui_metabolism",
+        valueKey     = metabolismKey,
+        colorKey     = RLGeneticsFormatter.VALUE_KEY_TO_COLOR_KEY[metabolismKey],
+        numericValue = RLGeneticsFormatter.toNumericValue(metabolism),
     })
 
     -- Row 3: Health
@@ -217,17 +261,19 @@ function RLGeneticsFormatter.format(genetics, animalTypeIndex)
         RLGeneticsFormatter.HIGH_TIER_KEYS
     )
     table.insert(rows, {
-        labelKey = "rl_ui_health",
-        valueKey = healthKey,
-        colorKey = RLGeneticsFormatter.VALUE_KEY_TO_COLOR_KEY[healthKey],
+        labelKey     = "rl_ui_health",
+        valueKey     = healthKey,
+        colorKey     = RLGeneticsFormatter.VALUE_KEY_TO_COLOR_KEY[healthKey],
+        numericValue = RLGeneticsFormatter.toNumericValue(health),
     })
 
     -- Row 4: Fertility (with special infertile case)
     local fertilityKey = RLGeneticsFormatter.resolveFertilityTier(fertility)
     table.insert(rows, {
-        labelKey = "rl_ui_fertility",
-        valueKey = fertilityKey,
-        colorKey = RLGeneticsFormatter.VALUE_KEY_TO_COLOR_KEY[fertilityKey],
+        labelKey     = "rl_ui_fertility",
+        valueKey     = fertilityKey,
+        colorKey     = RLGeneticsFormatter.VALUE_KEY_TO_COLOR_KEY[fertilityKey],
+        numericValue = RLGeneticsFormatter.toNumericValue(fertility),
     })
 
     -- Row 5: Meat (quality)
@@ -237,9 +283,10 @@ function RLGeneticsFormatter.format(genetics, animalTypeIndex)
         RLGeneticsFormatter.HIGH_TIER_KEYS
     )
     table.insert(rows, {
-        labelKey = "rl_ui_meat",
-        valueKey = meatKey,
-        colorKey = RLGeneticsFormatter.VALUE_KEY_TO_COLOR_KEY[meatKey],
+        labelKey     = "rl_ui_meat",
+        valueKey     = meatKey,
+        colorKey     = RLGeneticsFormatter.VALUE_KEY_TO_COLOR_KEY[meatKey],
+        numericValue = RLGeneticsFormatter.toNumericValue(quality),
     })
 
     -- Row 6 (optional): Productivity — species-specific label
@@ -251,10 +298,18 @@ function RLGeneticsFormatter.format(genetics, animalTypeIndex)
             RLGeneticsFormatter.HIGH_TIER_KEYS
         )
         table.insert(rows, {
-            labelKey = productivityLabel,
-            valueKey = productivityKey,
-            colorKey = RLGeneticsFormatter.VALUE_KEY_TO_COLOR_KEY[productivityKey],
+            labelKey     = productivityLabel,
+            valueKey     = productivityKey,
+            colorKey     = RLGeneticsFormatter.VALUE_KEY_TO_COLOR_KEY[productivityKey],
+            numericValue = RLGeneticsFormatter.toNumericValue(productivity),
         })
+    end
+
+    if Log ~= nil then
+        for _, row in ipairs(rows) do
+            Log:trace("RLGeneticsFormatter.format: row label=%s value=%s color=%s numeric=%s",
+                tostring(row.labelKey), tostring(row.valueKey), tostring(row.colorKey), tostring(row.numericValue))
+        end
     end
 
     return rows
