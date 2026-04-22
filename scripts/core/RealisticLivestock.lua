@@ -125,6 +125,7 @@ function RealisticLivestock.loadMap()
     g_overlayManager:addTextureConfigFile(modDirectory .. "gui/status_icons.xml", "rlStatus")
     g_rlConsoleCommandManager = RLConsoleCommandManager.new()
     g_diseaseManager = DiseaseManager.new()
+    g_rlFilterService = RLFilterService.new()
 
     MoneyType.HERDSMAN_WAGES = MoneyType.register("herdsmanWages", "rl_ui_herdsmanWages")
     MoneyType.LAST_ID = MoneyType.LAST_ID + 1
