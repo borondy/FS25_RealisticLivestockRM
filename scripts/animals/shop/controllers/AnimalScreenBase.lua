@@ -14,14 +14,6 @@ AnimalScreenBase.setCurrentHusbandry = Utils.appendedFunction(AnimalScreenBase.s
 end)
 
 
-function RL_AnimalScreenBase.scaleToNinetyNine(value)
-    local scaled = math.floor(((value - 0.25) / 1.5) * 99 + 0.5)
-    if scaled < 0 then return 0 end
-    if scaled > 99 then return 99 end
-    return scaled
-end
-
-
 function RL_AnimalScreenBase.formatDisplayName(name, animal)
     if animal == nil or animal.genetics == nil then return name end
 
@@ -49,18 +41,18 @@ function RL_AnimalScreenBase.formatDisplayName(name, animal)
     local tag
 
     if displaySetting.state == 2 then
-        tag = string.format("[%02d]", RL_AnimalScreenBase.scaleToNinetyNine(avg))
+        tag = string.format("[%02d]", RLScaleHelper.scaleToNinetyNine(avg))
     else
-        local m = genetics.metabolism and RL_AnimalScreenBase.scaleToNinetyNine(genetics.metabolism) or 0
-        local h = genetics.health and RL_AnimalScreenBase.scaleToNinetyNine(genetics.health) or 0
-        local f = genetics.fertility and RL_AnimalScreenBase.scaleToNinetyNine(genetics.fertility) or 0
-        local q = genetics.quality and RL_AnimalScreenBase.scaleToNinetyNine(genetics.quality) or 0
+        local m = genetics.metabolism and RLScaleHelper.scaleToNinetyNine(genetics.metabolism) or 0
+        local h = genetics.health and RLScaleHelper.scaleToNinetyNine(genetics.health) or 0
+        local f = genetics.fertility and RLScaleHelper.scaleToNinetyNine(genetics.fertility) or 0
+        local q = genetics.quality and RLScaleHelper.scaleToNinetyNine(genetics.quality) or 0
 
         if genetics.productivity ~= nil then
-            local p = RL_AnimalScreenBase.scaleToNinetyNine(genetics.productivity)
-            tag = string.format("[%02d-%02d:%02d:%02d:%02d:%02d]", RL_AnimalScreenBase.scaleToNinetyNine(avg), m, h, f, q, p)
+            local p = RLScaleHelper.scaleToNinetyNine(genetics.productivity)
+            tag = string.format("[%02d-%02d:%02d:%02d:%02d:%02d]", RLScaleHelper.scaleToNinetyNine(avg), m, h, f, q, p)
         else
-            tag = string.format("[%02d-%02d:%02d:%02d:%02d]", RL_AnimalScreenBase.scaleToNinetyNine(avg), m, h, f, q)
+            tag = string.format("[%02d-%02d:%02d:%02d:%02d]", RLScaleHelper.scaleToNinetyNine(avg), m, h, f, q)
         end
     end
 

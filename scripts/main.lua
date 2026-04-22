@@ -24,6 +24,7 @@ source(modDirectory .. "scripts/gui/MPLoadingScreen.lua")
 -- SECTION 2b: Utilities
 source(modDirectory .. "scripts/utils/RmSafeUtils.lua")
 source(modDirectory .. "scripts/utils/RLAnimalUtil.lua")
+source(modDirectory .. "scripts/utils/RLScaleHelper.lua")
 
 -- SECTION 2c: Constants
 source(modDirectory .. "scripts/core/RLConstants.lua")
@@ -108,6 +109,11 @@ source(modDirectory .. "scripts/animal/AnimalHealth.lua")
 -- SECTION 11f: Persistence & Serialization (delegate modules, sourced before Animal.lua)
 source(modDirectory .. "scripts/animal/AnimalPersistence.lua")
 source(modDirectory .. "scripts/animal/AnimalSerialization.lua")
+
+-- SECTION 11g: Saveable Filters - headless service (Phase 0 P1 sources;
+-- P2 adds serialization + service; P3 adds events; P4 adds state event)
+source(modDirectory .. "scripts/filters/RLFilterFieldCatalog.lua")
+source(modDirectory .. "scripts/filters/RLFilterEvaluator.lua")
 
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")
