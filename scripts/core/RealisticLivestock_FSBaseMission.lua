@@ -301,6 +301,34 @@ function RealisticLivestock_FSBaseMission:sendInitialClientState(connection, _, 
     connection:sendEvent(AnimalSystemStateEvent.new(animalSystem.countries, animalSystem.animals, animalSystem.aiAnimals))
     connection:sendEvent(HusbandryMessageStateEvent.new(g_currentMission.husbandrySystem.placeables))
 
+    -- P4: push the authoritative saveable-filter state to the new client so
+    -- late-joiners converge with the server. Empty-set (count=0) is a valid
+    -- state event and still sends so clients see a deterministic "clear".
+    --
+    -- Routes through the static `RLFilterStateEvent.sendEvent` dispatcher
+    -- (not `connection:sendEvent(...new(...))` directly) so the
+    -- `g_server == nil` + nil-connection guards live on a single code path.
+    -- The review-triage chose this over mirroring the neighbouring
+    -- AnimalSystem/HusbandryMessage sends so a future refactor of this
+    -- function cannot leak the state event as a client-originated send.
+    --
+    -- Ordering note: this whole function is registered via
+    -- `Utils.prependedFunction` below, so it runs BEFORE the wrapped
+    -- function's own body. That ordering is fine TODAY because
+    -- `RLFilterStateEvent:run` on the receiver only touches
+    -- `g_rlFilterService` (initialised at mod load). If a future phase
+    -- ever validates against `g_farmManager` or `g_currentMission.userManager`
+    -- on the receiver, switch to `Utils.appendedFunction` so the wrapped
+    -- body's state events arrive first.
+    if g_rlFilterService ~= nil then
+        local filters = g_rlFilterService:list()
+        RLFilterStateEvent.sendEvent(filters, connection)
+        Log:debug("RealisticLivestock_FSBaseMission:sendInitialClientState: sent RLFilterStateEvent with %d filter(s) to new client",
+            #filters)
+    else
+        Log:warning("RealisticLivestock_FSBaseMission:sendInitialClientState: g_rlFilterService is nil; new client will have empty filter state")
+    end
+
 end
 
 FSBaseMission.sendInitialClientState = Utils.prependedFunction(FSBaseMission.sendInitialClientState, RealisticLivestock_FSBaseMission.sendInitialClientState)

@@ -110,8 +110,7 @@ source(modDirectory .. "scripts/animal/AnimalHealth.lua")
 source(modDirectory .. "scripts/animal/AnimalPersistence.lua")
 source(modDirectory .. "scripts/animal/AnimalSerialization.lua")
 
--- SECTION 11g: Saveable Filters - headless service (Phase 0 P1+P2+P3 sources;
--- P4 adds state event)
+-- SECTION 11g: Saveable Filters - headless service + MP events (Phase 0)
 source(modDirectory .. "scripts/filters/RLFilterFieldCatalog.lua")
 source(modDirectory .. "scripts/filters/RLFilterEvaluator.lua")
 source(modDirectory .. "scripts/filters/RLFilterSerialization.lua")
@@ -120,6 +119,7 @@ source(modDirectory .. "scripts/filters/RLFilterService.lua")
 source(modDirectory .. "scripts/events/RLFilterCreateEvent.lua")
 source(modDirectory .. "scripts/events/RLFilterUpdateEvent.lua")
 source(modDirectory .. "scripts/events/RLFilterDeleteEvent.lua")
+source(modDirectory .. "scripts/events/RLFilterStateEvent.lua")
 
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")
