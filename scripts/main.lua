@@ -162,6 +162,7 @@ source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuMoveFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuSellFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuBuyFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuAIFrame.lua")
+source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuSettingsFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/RLMenu.lua")
 
 -- SECTION 14: Migration System

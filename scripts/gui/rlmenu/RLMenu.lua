@@ -51,13 +51,14 @@ function RLMenu.setupGui()
     -- 1. Load RL menu profiles (separate file from gui/guiProfiles.xml)
     g_gui:loadProfiles(Utils.getFilename("gui/rlmenu/rlMenuProfiles.xml", modDirectory))
 
-    -- 2. Register frames (Phase 1: Messages; Phase 2a: Info; Phase 3: Move; Phase 4: Sell; Phase 5: Buy; Phase 6: AI)
+    -- 2. Register frames (Phase 1: Messages; Phase 2a: Info; Phase 3: Move; Phase 4: Sell; Phase 5: Buy; Phase 6: AI; Phase 7: Settings)
     RLMenuMessagesFrame.setupGui()
     RLMenuInfoFrame.setupGui()
     RLMenuMoveFrame.setupGui()
     RLMenuSellFrame.setupGui()
     RLMenuBuyFrame.setupGui()
     RLMenuAIFrame.setupGui()
+    RLMenuSettingsFrame.setupGui()
 
     -- 3. Create the menu instance and load its XML
     g_rlMenu = RLMenu.new()
@@ -129,7 +130,14 @@ function RLMenu:setupMenuPages()
         self.messagesFrame:initialize()
     end
 
-    Log:debug("RLMenu:setupMenuPages: 6 pages registered (buy, sell, move, manage, ai, messages)")
+    -- Settings tab (tail - hosts the saveable-filters editor from P1-2 onward)
+    self:registerPage(self.settingsFrame, 7, basePredicate)
+    self:addPageTab(self.settingsFrame, nil, nil, "gui.icon_options_generalSettings")
+    if self.settingsFrame ~= nil and self.settingsFrame.initialize ~= nil then
+        self.settingsFrame:initialize()
+    end
+
+    Log:debug("RLMenu:setupMenuPages: 7 pages registered (buy, sell, move, manage, ai, messages, settings)")
 end
 
 --- Configure the bottom button bar.

@@ -776,6 +776,11 @@
 		<text name="rl_menu_ai_empty_no_stock" text="No bulls available at the dealer for this species"/>
 		<text name="rl_menu_ai_empty_no_species" text="No animal species registered"/>
 
+		<!-- Phase 1 P1-1: Settings tab shell -->
+		<text name="rl_menu_settings_title" text="Settings"/>
+		<text name="rl_menu_settings_tab_general" text="General"/>
+		<text name="rl_menu_settings_tab_filters" text="Filters"/>
+
 
 		<!-- Missing keys (English fallback) -->
 		<text name="input_RL_RENAME" text="Rename"/>

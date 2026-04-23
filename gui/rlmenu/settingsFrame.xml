@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!--
+    settingsFrame.xml
+    RL Tabbed Menu Settings tab - shell only; tab content lands in
+    later phases.
+
+    Horizontal subcategory tab bar over two empty content panes. Tab
+    highlight and pane swap are driven by self.subCategoryPaging state
+    (seeded in initializeSubCategoryPages).
+
+    The fs25_lineSeparatorTopHighlighted between the tab bar and the
+    paging MultiTextOption visually separates the two rows - without it
+    the tab bar blends into the pager.
+-->
+<GUI name="RLMenuSettingsFrame">
+    <GuiElement profile="fs25_menuContainer">
+
+        <!-- Header with settings gear icon -->
+        <GuiElement profile="fs25_menuHeaderPanel">
+            <Bitmap profile="fs25_menuHeaderIconBg">
+                <Bitmap profile="fs25_menuHeaderIcon" imageSliceId="gui.icon_options_generalSettings"/>
+            </Bitmap>
+            <Text profile="fs25_menuHeaderTitle" text="$l10n_rl_menu_settings_title"/>
+        </GuiElement>
+
+        <!-- Sub-category tab bar -->
+        <BoxLayout profile="fs25_subCategorySelectorTabbedBox" id="subCategoryBox">
+            <Button profile="fs25_subCategorySelectorTabbedTab" id="subCategoryTabs[1]"
+                    text="$l10n_rl_menu_settings_tab_general" onClick="onClickGeneralTab">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
+            <Button profile="fs25_subCategorySelectorTabbedTab" id="subCategoryTabs[2]"
+                    text="$l10n_rl_menu_settings_tab_filters" onClick="onClickFiltersTab">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
+        </BoxLayout>
+        <ThreePartBitmap profile="fs25_lineSeparatorTopHighlighted" position="0px -57px"/>
+        <MultiTextOption profile="fs25_subCategorySelectorTabbed" id="subCategoryPaging"
+                         position="0px -10px" onClick="updateSubCategoryPages"/>
+
+        <!-- Page 1: General (placeholder - content TBD in a future phase) -->
+        <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="subCategoryPages[1]">
+            <!-- P1-1 shell: empty pane. Future content lands here. -->
+        </GuiElement>
+
+        <!-- Page 2: Filters (populated by P1-2) -->
+        <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="subCategoryPages[2]">
+            <!-- P1-1 shell: empty pane. P1-2 fills with the filter list + editor. -->
+        </GuiElement>
+
+    </GuiElement>
+</GUI>
