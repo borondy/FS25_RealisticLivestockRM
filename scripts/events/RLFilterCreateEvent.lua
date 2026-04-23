@@ -149,6 +149,14 @@ function RLFilterCreateEvent:run(connection)
     g_rlFilterService:applyIncomingCreate(filter)
     Log:debug("RLFilterCreateEvent:run: applied create id=%s name=%s",
         tostring(filter.id), tostring(filter.name))
+
+    -- Refresh the Settings frame if it is currently open on this machine.
+    -- Nil-guarded: g_rlMenu may not exist during early lifecycle,
+    -- settingsFrame may be nil if the menu was never opened.
+    if g_rlMenu ~= nil and g_rlMenu.settingsFrame ~= nil
+       and g_rlMenu.settingsFrame.refreshIfOpen ~= nil then
+        g_rlMenu.settingsFrame:refreshIfOpen()
+    end
 end
 
 --- Thin dispatch: broadcast to clients if we are the server, otherwise

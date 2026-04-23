@@ -29,7 +29,7 @@
         <text name="animal_descriptionBoarReproduction" text="Zdraví kanci starší 8 měsíců se mohou rozmnožovat."/>
         <text name="rl_descriptionPigReproduction" text="Zdravé prasnice starší 6 měsíců se mohou rozmnožovat."/>
         <text name="animal_descriptionBoarFeed" text="Kanci sežerou téměř cokoli. Můžete je krmit kukuřicí, pšenicí, ječmenem, řepkou, slunečnicí, sójou, bramborami, čirokem a cukrovou řepou."/>
-        <text name="animal_descriptionBoarYoung" text="Toto je selátko – samec."/>
+        <text name="animal_descriptionBoarYoung" text="Toto je selátko - samec."/>
 
         <!-- SHEEP -->
 
@@ -565,7 +565,7 @@
 
 
         <text name="rl_help_monitors_title" text="Monitory"/>
-        <text name="rl_help_monitors_1" text="Abyste viděli většinu statistik zvířete, musíte mu přidat monitorovací štítek. Lze to provést v menu zvířat (kde kupujete a prodáváte). Monitorovací štítek je také viditelný na zvířeti – na levém uchu vedle identifikačního štítku."/>
+        <text name="rl_help_monitors_1" text="Abyste viděli většinu statistik zvířete, musíte mu přidat monitorovací štítek. Lze to provést v menu zvířat (kde kupujete a prodáváte). Monitorovací štítek je také viditelný na zvířeti - na levém uchu vedle identifikačního štítku."/>
         <text name="rl_help_monitors_2" text="Monitorovací štítky vám zobrazí důležité informace včetně zdraví, váhy, laktace, produkce a požadavků na slámu, krmivo a vodu."/>
         <text name="rl_help_monitors_3" text="Přidání štítku zvířeti stojí malý měsíční poplatek podle druhu zvířete. Pokud štítek odstraníte, bude odebrán na začátku příštího měsíce."/>
 
@@ -590,7 +590,7 @@
         <text name="rl_help_genetics_2" text="Metabolismus ovlivňuje, jak zvíře přeměňuje krmivo na váhu a kolik krmiva spotřebuje."/>
         <text name="rl_help_genetics_3" text="Plodnost ovlivňuje šanci na zabřeznutí (u samic) nebo oplodnění (u samců) a počet mláďat."/>
         <text name="rl_help_genetics_4" text="Zdraví ovlivňuje zdravotní stav zvířete a šanci na odstranění každý měsíc. Vyšší genetika zdraví prodlužuje život zvířete."/>
-        <text name="rl_help_genetics_5" text="Kvalita ovlivňuje prodejní hodnotu zvířete – čím vyšší kvalita, tím vyšší cena při prodeji."/>
+        <text name="rl_help_genetics_5" text="Kvalita ovlivňuje prodejní hodnotu zvířete - čím vyšší kvalita, tím vyšší cena při prodeji."/>
         <text name="rl_help_genetics_6" text="Skot, ovce a slepice mají navíc produkční genetiku, která ovlivňuje množství produkovaného mléka, vajec nebo vlny."/>
 
 
@@ -679,7 +679,7 @@
 
         <!-- Daily summary messages -->
         <text name="rl_message_dailyBirthsSummary" text="V %s se narodilo %s zvířat"/>
-        <text name="rl_message_dailyDeathsSummary" text="V %s uhynulo %s zvířat – %s"/>
+        <text name="rl_message_dailyDeathsSummary" text="V %s uhynulo %s zvířat - %s"/>
         <text name="rl_message_dailySalesSummary" text="Prodáno %s zvířat v %s za %s"/>
         <text name="rl_message_dailyOvercrowdingSummary" text="Přeplnění: prodáno %s novorozenat v %s za %s"/>
         <text name="rl_message_dailyPurchasesSummary" text="Koupeno %s zvířat v %s za %s"/>
@@ -767,5 +767,11 @@
         <text name="rl_menu_settings_title" text="Settings"/>
         <text name="rl_menu_settings_tab_general" text="General"/>
         <text name="rl_menu_settings_tab_filters" text="Filters"/>
+
+		<!-- Phase 1 P1-2: Filters tab list -->
+		<text name="rl_menu_filters_empty" text="No saved filters yet"/>
+		<text name="rl_menu_filters_empty_no_farm" text="You need a farm to save filters"/>
+		<text name="rl_menu_filters_new_button" text="New filter"/>
+		<text name="rl_menu_filters_default_name" text="New filter"/>
 	</texts>
 </l10n>

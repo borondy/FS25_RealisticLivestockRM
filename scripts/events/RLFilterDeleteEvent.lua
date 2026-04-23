@@ -124,6 +124,19 @@ function RLFilterDeleteEvent:run(connection)
     else
         Log:trace("RLFilterDeleteEvent:run: no-op delete id=%s (already gone)", tostring(id))
     end
+
+    -- Refresh the Settings frame if it is currently open on this machine.
+    -- Called after the branched if/else end so both applied and no-op
+    -- paths trigger the refresh - the no-op path means the id was already
+    -- gone locally (late-join reconcile or redundant rebroadcast), and a
+    -- pass through refreshData still costs little and keeps the UI
+    -- consistent with any concurrent events that may have landed.
+    -- Nil-guarded: g_rlMenu may not exist during early lifecycle,
+    -- settingsFrame may be nil if the menu was never opened.
+    if g_rlMenu ~= nil and g_rlMenu.settingsFrame ~= nil
+       and g_rlMenu.settingsFrame.refreshIfOpen ~= nil then
+        g_rlMenu.settingsFrame:refreshIfOpen()
+    end
 end
 
 --- Thin dispatch. Caller MUST have mutated local state first.

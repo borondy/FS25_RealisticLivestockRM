@@ -1,16 +1,8 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <!--
     settingsFrame.xml
-    RL Tabbed Menu Settings tab - shell only; tab content lands in
-    later phases.
-
-    Horizontal subcategory tab bar over two empty content panes. Tab
-    highlight and pane swap are driven by self.subCategoryPaging state
-    (seeded in initializeSubCategoryPages).
-
-    The fs25_lineSeparatorTopHighlighted between the tab bar and the
-    paging MultiTextOption visually separates the two rows - without it
-    the tab bar blends into the pager.
+    RL Tabbed Menu Settings tab: horizontal subcategory tab bar with
+    [General] and [Filters] panes.
 -->
 <GUI name="RLMenuSettingsFrame">
     <GuiElement profile="fs25_menuContainer">
@@ -43,9 +35,32 @@
             <!-- P1-1 shell: empty pane. Future content lands here. -->
         </GuiElement>
 
-        <!-- Page 2: Filters (populated by P1-2) -->
+        <!-- Page 2: Filters -->
         <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="subCategoryPages[2]">
-            <!-- P1-1 shell: empty pane. P1-2 fills with the filter list + editor. -->
+
+            <!-- 410px sidebar panel, leaves right portion of pane free for P1-3's editor. -->
+            <GuiElement profile="fs25_subCategoryContainer" id="filtersListContainer">
+                <Bitmap profile="fs25_subCategoryStartClipper" name="filtersStartClipper"/>
+                <Bitmap profile="fs25_subCategoryStopClipper" name="filtersEndClipper"/>
+
+                <SmoothList profile="fs25_subCategoryList"
+                            id="filtersList"
+                            startClipperElementName="filtersStartClipper"
+                            endClipperElementName="filtersEndClipper">
+                    <ListItem profile="fs25_subCategoryListItem" name="defaultCell">
+                        <Text profile="fs25_subCategoryListItemName" name="filterName"/>
+                    </ListItem>
+                </SmoothList>
+
+                <Text profile="fs25_animalListEmptyText"
+                      id="filtersEmptyState"
+                      text="$l10n_rl_menu_filters_empty"/>
+
+                <ThreePartBitmap profile="fs25_subCategoryListSliderBox" id="filtersSliderBox">
+                    <Slider profile="fs25_listSlider" dataElementId="filtersList" id="filtersSlider"/>
+                </ThreePartBitmap>
+            </GuiElement>
+
         </GuiElement>
 
     </GuiElement>
