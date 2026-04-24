@@ -1136,10 +1136,9 @@ function RLMenuSellFrame:updateFilterChip()
     Log:debug("RLMenuSellFrame:updateFilterChip: Filter: %s (id=%s)",
         name, tostring(self.activeFilterId))
     if chip.absPosition ~= nil and chip.size ~= nil then
-        Log:debug("RLMenuSellFrame:updateFilterChip: absPos=(%.0f,%.0f)px size=(%.0f,%.0f)px visible=%s",
+        Log:debug("RLMenuSellFrame:updateFilterChip: absPos=(%.0f,%.0f)px size=(%.0f,%.0f)px",
             chip.absPosition[1] * 1920, chip.absPosition[2] * 1080,
-            (chip.size[1] or 0) * 1920, (chip.size[2] or 0) * 1080,
-            tostring(chip:getVisible()))
+            (chip.size[1] or 0) * 1920, (chip.size[2] or 0) * 1080)
     end
 end
 
