@@ -724,6 +724,7 @@
 		<!-- Missing keys (English fallback) -->
 		<text name="input_RL_MENU" text="Open RL Menu (new)"/>
 		<text name="input_RL_RENAME" text="Rename"/>
+		<text name="input_RL_CYCLE_FILTER" text="Cycle Saved Filter"/>
 		<text name="rl_menu_info_children" text="Children"/>
 		<text name="rl_menu_info_diseases_header" text="Diseases"/>
 		<text name="rl_menu_info_empty_no_animals" text="No animals in this husbandry"/>
@@ -777,5 +778,11 @@
 		<text name="rl_menu_filters_empty_no_farm" text="You need a farm to save filters"/>
 		<text name="rl_menu_filters_new_button" text="New filter"/>
 		<text name="rl_menu_filters_default_name" text="New filter"/>
+
+		<!-- Filter cycle + chip MVP (RLRM-181) -->
+		<text name="rl_menu_filter_chip_none" text="No filter"/>
+		<text name="rl_menu_filter_chip_active" text="Filter: %s"/>
+		<text name="rl_menu_cycle_filter_button" text="Cycle filter"/>
+		<text name="rl_menu_filter_chip_unnamed" text="(unnamed)"/>
 	</texts>
 </l10n>

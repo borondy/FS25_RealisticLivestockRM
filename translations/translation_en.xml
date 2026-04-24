@@ -787,8 +787,15 @@
 		<text name="rl_menu_filters_new_button" text="New filter"/>
 		<text name="rl_menu_filters_default_name" text="New filter"/>
 
+		<!-- Filter cycle + chip MVP (RLRM-181) -->
+		<text name="rl_menu_filter_chip_none" text="No filter"/>
+		<text name="rl_menu_filter_chip_active" text="Filter: %s"/>
+		<text name="rl_menu_cycle_filter_button" text="Cycle filter"/>
+		<text name="rl_menu_filter_chip_unnamed" text="(unnamed)"/>
+
 
 		<!-- Missing keys (English fallback) -->
 		<text name="input_RL_RENAME" text="Rename"/>
+		<text name="input_RL_CYCLE_FILTER" text="Cycle Saved Filter"/>
 	</texts>
 </l10n>

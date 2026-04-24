@@ -43,6 +43,14 @@
         <BoxLayout profile="fs25_subCategorySelectorBox" id="subCategoryDotBox"/>
         <RoundCorner profile="fs25_subCategorySelectorDot" id="subCategoryDotTemplate"/>
 
+        <!-- Filter chip: readonly readout of currently-active saved filter
+             (RLRM-181 SP MVP). Positioned in the 30px empty strip between
+             the dot indicators (bottom at y=-115) and the animal list
+             container (top at y=-145). X=28 aligns with the left edge of
+             the husbandry selector body (fs25_subCategorySelector's
+             absoluteSizeOffset inset), in line with the left-arrow button. -->
+        <Text id="filterChip" profile="rlMenu_filterChip" text="$l10n_rl_menu_filter_chip_none" position="28px -125px"/>
+
         <!-- Animal list container -->
         <GuiElement profile="fs25_subCategoryListContainer" id="animalListContainer">
             <Bitmap profile="fs25_subCategoryStartClipper" name="startClipper"/>

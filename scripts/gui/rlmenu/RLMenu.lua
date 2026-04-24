@@ -177,8 +177,35 @@ function RLMenu:onOpen()
 end
 
 --- Called by the GUI manager when the menu is closing.
---- Clears open state.
+--- Clears open state + resets per-frame saved-filter session state
+--- (RLRM-181 SP MVP: Locked Decision #13, session-only active filter).
 function RLMenu:onClose()
+    -- Saved-filter session reset across the 4 consumer frames. Runs before
+    -- superClass().onClose so frame references are still live. Nil-guards
+    -- each frame (early-init edge case: menu close before a frame finished
+    -- .new()).
+    local frames = { self.infoFrame, self.buyFrame, self.sellFrame, self.moveFrame }
+    local cleared = 0
+    for _, f in ipairs(frames) do
+        if f ~= nil and f.activeFilterId ~= nil then
+            f.activeFilterId = nil
+            f.activeFilter = nil
+            cleared = cleared + 1
+        end
+    end
+    if cleared > 0 then
+        Log:debug("RLMenu:onClose: reset activeFilterId on %d frame(s)", cleared)
+    end
+
+    -- Clear the cross-frame shared filter id too so the next menu open starts
+    -- clean. Info/Move/Sell read + write sharedSelection.activeFilterId for
+    -- tab-switch preservation (RLRM-181 tab-switch fix).
+    if self.sharedSelection ~= nil and self.sharedSelection.activeFilterId ~= nil then
+        Log:debug("RLMenu:onClose: clearing sharedSelection.activeFilterId=%s",
+            tostring(self.sharedSelection.activeFilterId))
+        self.sharedSelection.activeFilterId = nil
+    end
+
     RLMenu:superClass().onClose(self)
     self.isOpen = false
     Log:info("RLMenu closed")

@@ -471,4 +471,14 @@
         <position value="3px 0px"/>
     </Profile>
 
+    <!-- =========================================================== -->
+    <!-- Filter chip (RLRM-181): readonly active-filter indicator    -->
+    <!-- in each frame's left sidebar. Extends fs25_textDefault with -->
+    <!-- anchorTopLeft so position="28px -125px" places the chip     -->
+    <!-- below the dot indicators (bottom at y=-115) and above the   -->
+    <!-- animal list container (top at y=-145), left-aligned with    -->
+    <!-- the husbandry/type selector's left-arrow button at x=28.   -->
+    <!-- =========================================================== -->
+    <Profile name="rlMenu_filterChip" extends="fs25_textDefault" with="anchorTopLeft"/>
+
 </GUIProfiles>

@@ -43,6 +43,11 @@ function RLMenuInfoFrame.new()
     -- (cow filters reference fields a sheep doesn't have and would drop every row).
     self.activeAnimalTypeIndex = nil
 
+    -- Saved-filter session state. Id is authoritative; cached snapshot
+    -- refreshed via getById on cycle + revalidate.
+    self.activeFilterId = nil
+    self.activeFilter   = nil
+
     self.isFrameOpen = false
 
     self.hasCustomMenuButtons = true
@@ -81,6 +86,11 @@ function RLMenuInfoFrame.new()
         inputAction = InputAction.RL_AI,
         text = g_i18n:getText("rl_ui_artificialInsemination"),
         callback = function() self:onClickInseminate() end,
+    }
+    self.cycleFilterButtonInfo = {
+        inputAction = InputAction.RL_CYCLE_FILTER,
+        text = g_i18n:getText("rl_menu_cycle_filter_button"),
+        callback = function() self:onCycleFilter() end,
     }
     self.menuButtonInfo = { self.backButtonInfo }
 
@@ -142,6 +152,15 @@ function RLMenuInfoFrame:onFrameOpen()
         if shared.animalIdentity ~= nil then
             self.selectedIdentity = shared.animalIdentity
         end
+        -- Saved-filter sharing across Info/Move/Sell (RLRM-181 tab-switch
+        -- preservation fix). BuyFrame is isolated and never touches this.
+        if shared.activeFilterId ~= nil then
+            self.activeFilterId = shared.activeFilterId
+            self.activeFilter = g_rlFilterService ~= nil
+                and g_rlFilterService:getById(shared.activeFilterId) or nil
+            Log:debug("RLMenuInfoFrame:onFrameOpen: imported shared activeFilterId=%s",
+                tostring(shared.activeFilterId))
+        end
         Log:debug("RLMenuInfoFrame:onFrameOpen: imported shared selection (husbandry=%s animal=%s/%s)",
             tostring(shared.husbandry ~= nil and shared.husbandry:getName() or "nil"),
             tostring(shared.animalIdentity and shared.animalIdentity.farmId),
@@ -182,6 +201,12 @@ function RLMenuInfoFrame:onFrameOpen()
     if self.animalList ~= nil then
         FocusManager:setFocus(self.animalList)
     end
+
+    -- Revalidate active saved filter against current scope on tab activation
+    -- (handles farm swap, scope drift from future P1-3 edits, etc.) then
+    -- render the chip with the possibly-cleared state.
+    self:revalidateActiveFilter()
+    self:updateFilterChip()
 end
 
 ---Called by the Paging element when this tab is deactivated.
@@ -192,11 +217,13 @@ function RLMenuInfoFrame:onFrameClose()
         g_rlMenu.sharedSelection = {
             husbandry      = self.selectedHusbandry,
             animalIdentity = self.selectedIdentity,
+            activeFilterId = self.activeFilterId,
         }
-        Log:debug("RLMenuInfoFrame:onFrameClose: exported shared selection (husbandry=%s animal=%s/%s)",
+        Log:debug("RLMenuInfoFrame:onFrameClose: exported shared selection (husbandry=%s animal=%s/%s filter=%s)",
             tostring(self.selectedHusbandry ~= nil and self.selectedHusbandry:getName() or "nil"),
             tostring(self.selectedIdentity and self.selectedIdentity.farmId),
-            tostring(self.selectedIdentity and self.selectedIdentity.uniqueId))
+            tostring(self.selectedIdentity and self.selectedIdentity.uniqueId),
+            tostring(self.activeFilterId))
     end
 
     g_messageCenter:unsubscribe(MessageType.MONEY_CHANGED, self)
@@ -316,6 +343,12 @@ function RLMenuInfoFrame:onHusbandryChanged(state)
     end
     self.activeAnimalTypeIndex = newTypeIndex
 
+    -- Revalidate active saved filter against new scope (animal type may have
+    -- changed). Clears if the cached id is no longer in listAvailable.
+    -- Mirrors the ad-hoc filter invalidation pattern above.
+    self:revalidateActiveFilter()
+    self:updateFilterChip()
+
     Log:debug("RLMenuInfoFrame:onHusbandryChanged: state=%d husbandry='%s'",
         state,
         (self.selectedHusbandry ~= nil and self.selectedHusbandry.getName ~= nil
@@ -372,6 +405,12 @@ function RLMenuInfoFrame:reloadAnimalList()
         self.items = {}
     else
         self.items = RLAnimalQuery.listAnimalsForHusbandry(self.selectedHusbandry, self.filters)
+    end
+
+    -- Saved-filter narrowing runs AFTER the query's ad-hoc filter; the two
+    -- apply in series (AND semantics). No-op when activeFilter is nil.
+    if self.activeFilter ~= nil then
+        self.items = RLFilterCycleHelper.applyFilter(self.items, self.activeFilter)
     end
 
     self.sectionOrder, self.itemsBySection, self.titlesBySection =
@@ -499,6 +538,13 @@ function RLMenuInfoFrame:updateButtonVisibility()
     self.menuButtonInfo = { self.backButtonInfo }
     if #self.sortedHusbandries > 0 then
         table.insert(self.menuButtonInfo, self.filterButtonInfo)
+    end
+
+    -- Cycle-filter button: always visible when farm is present so the F
+    -- binding is discoverable even with zero saved filters (press-F on
+    -- empty list hits the no-op branch in onCycleFilter).
+    if self.farmId ~= nil and self.farmId ~= 0 then
+        table.insert(self.menuButtonInfo, self.cycleFilterButtonInfo)
     end
 
     local animal = self:getSelectedAnimal()
@@ -909,4 +955,119 @@ function RLMenuInfoFrame:onClickCastrate()
     Log:debug("RLMenuInfoFrame:onClickCastrate: farmId=%s uniqueId=%s castrated via service",
         tostring(animal.farmId), tostring(animal.uniqueId))
     self:refreshAfterMutation()
+end
+
+-- =============================================================================
+-- Saved-filter cycle + chip (RLRM-181 SP MVP)
+-- =============================================================================
+
+--- Cycle the active saved filter (F key). Reads current animalType from the
+--- selected husbandry and the farm from self.farmId; resolves the next id via
+--- RLFilterCycleHelper. Zero-availability hits a TRACE no-op branch so the
+--- button can stay visible even with no filters configured.
+function RLMenuInfoFrame:onCycleFilter()
+    if self.farmId == nil or self.farmId == 0 then
+        Log:trace("RLMenuInfoFrame:onCycleFilter: no farm, aborting")
+        return
+    end
+
+    local animalTypeIndex = nil
+    if self.selectedHusbandry ~= nil and self.selectedHusbandry.getAnimalTypeIndex ~= nil then
+        animalTypeIndex = self.selectedHusbandry:getAnimalTypeIndex()
+    end
+
+    local filters = RLFilterCycleHelper.getAvailableFilters(animalTypeIndex, self.farmId)
+    if #filters == 0 then
+        if self.activeFilterId ~= nil then
+            self.activeFilterId = nil
+            self.activeFilter = nil
+        end
+        Log:trace("RLMenuInfoFrame:onCycleFilter: no filters available, chip reset")
+        self:updateFilterChip()
+        self:reloadAnimalList()
+        return
+    end
+
+    local nextId = RLFilterCycleHelper.cycleFilterId(self.activeFilterId, filters)
+    local prevId = self.activeFilterId
+    self.activeFilterId = nextId
+    self.activeFilter = (nextId ~= nil and g_rlFilterService ~= nil
+        and g_rlFilterService:getById(nextId)) or nil
+
+    Log:debug("RLMenuInfoFrame:onCycleFilter: from=%s to=%s (count=%d)",
+        tostring(prevId), tostring(nextId), #filters)
+
+    self:updateFilterChip()
+    self:reloadAnimalList()
+end
+
+--- Render the filterChip Text element to reflect self.activeFilter state.
+--- No-op + WARNING if the XML element is missing.
+function RLMenuInfoFrame:updateFilterChip()
+    local chip = self.filterChip
+    if chip == nil then
+        Log:warning("RLMenuInfoFrame:updateFilterChip: filterChip element missing from XML")
+        return
+    end
+    if self.activeFilter == nil then
+        chip:setVisible(false)
+        Log:trace("RLMenuInfoFrame:updateFilterChip: hidden (no filter)")
+        return
+    end
+    chip:setVisible(true)
+    local name = self.activeFilter.name or g_i18n:getText("rl_menu_filter_chip_unnamed")
+    chip:setText(string.format(g_i18n:getText("rl_menu_filter_chip_active"), name))
+    Log:debug("RLMenuInfoFrame:updateFilterChip: Filter: %s (id=%s)",
+        name, tostring(self.activeFilterId))
+    -- Runtime-measure the chip so layout can be verified against the
+    -- computed 28px,-125px placement (RLRM-181 visual refinement).
+    -- absPosition is set during the first layout pass; may still be nil
+    -- on pre-layout calls.
+    if chip.absPosition ~= nil and chip.size ~= nil then
+        Log:debug("RLMenuInfoFrame:updateFilterChip: absPos=(%.0f,%.0f)px size=(%.0f,%.0f)px",
+            chip.absPosition[1] * 1920, chip.absPosition[2] * 1080,
+            (chip.size[1] or 0) * 1920, (chip.size[2] or 0) * 1080)
+    end
+end
+
+--- Revalidate activeFilterId against the current scope. Clears when the
+--- cached id is no longer in listAvailable (farm swap, husbandry type change,
+--- remote delete via future Spec B). Refreshes the cached snapshot when
+--- still in scope so name / expression changes are picked up.
+function RLMenuInfoFrame:revalidateActiveFilter()
+    if self.activeFilterId == nil then return end
+
+    if self.farmId == nil or self.farmId == 0 then
+        self.activeFilterId = nil
+        self.activeFilter = nil
+        Log:debug("RLMenuInfoFrame:revalidateActiveFilter: no farm, cleared")
+        return
+    end
+
+    local animalTypeIndex = nil
+    if self.selectedHusbandry ~= nil and self.selectedHusbandry.getAnimalTypeIndex ~= nil then
+        animalTypeIndex = self.selectedHusbandry:getAnimalTypeIndex()
+    end
+
+    local available = RLFilterCycleHelper.getAvailableFilters(animalTypeIndex, self.farmId)
+    local stillInScope = false
+    for _, f in ipairs(available) do
+        if f.id == self.activeFilterId then
+            stillInScope = true
+            break
+        end
+    end
+
+    if not stillInScope then
+        Log:debug("RLMenuInfoFrame:revalidateActiveFilter: id=%s out of scope, cleared",
+            tostring(self.activeFilterId))
+        self.activeFilterId = nil
+        self.activeFilter = nil
+    else
+        if g_rlFilterService ~= nil then
+            self.activeFilter = g_rlFilterService:getById(self.activeFilterId)
+        end
+        Log:trace("RLMenuInfoFrame:revalidateActiveFilter: id=%s still in scope, snapshot refreshed",
+            tostring(self.activeFilterId))
+    end
 end
