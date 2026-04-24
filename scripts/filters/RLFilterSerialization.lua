@@ -16,6 +16,7 @@
 --   number -> setFloat/getFloat
 --   bool   -> setBool /getBool
 --   enum   -> setString/getString
+--   string -> setString/getString (same codec as enum; semantic split only)
 --
 -- animalType is stored in XML as the STABLE STRING NAME ("COW", "SHEEP", ...)
 -- not the runtime int index -- matches the persistence contract used for
@@ -57,6 +58,10 @@ local TYPE_CODECS = {
         read  = function(x, k, d) return x:getBool(k, d) end,
     },
     enum = {
+        write = function(x, k, v) x:setString(k, v) end,
+        read  = function(x, k, d) return x:getString(k, d) end,
+    },
+    string = {
         write = function(x, k, v) x:setString(k, v) end,
         read  = function(x, k, d) return x:getString(k, d) end,
     },

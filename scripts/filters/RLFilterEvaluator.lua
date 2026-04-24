@@ -4,7 +4,7 @@
 -- Node shape:
 --   node      = group | condition
 --   group     = { op="AND"|"OR", children={node, ...} }
---   condition = { field="<catalog key>", cmp="<|<=|==|!=|>=|>|in|notin", value=<scalar|list> }
+--   condition = { field="<catalog key>", cmp="<|<=|==|!=|>=|>|in|notin|contains|notcontains", value=<scalar|list> }
 --   filter    = { id, name, animalType, farmId, expression=<node>, version }
 --
 -- Evaluation rules:
@@ -56,6 +56,22 @@ local function compare(op, animalValue, conditionValue)
             end
         end
         if op == "in" then return found end
+        return not found
+    end
+
+    -- String-substring operators: case-insensitive, plain (non-pattern) match
+    -- via string.find(..., 1, true). Both operands must be strings; malformed
+    -- payloads fail closed. Empty needle explicitly rejected so "contains ''"
+    -- does not trivially match every named animal. Upstream evalCondition
+    -- already short-circuits a nil animalValue, so nil only appears here
+    -- through a malformed condition payload -> false is the correct fallback.
+    if op == "contains" or op == "notcontains" then
+        if type(animalValue) ~= "string" or type(conditionValue) ~= "string" then
+            return false
+        end
+        if conditionValue == "" then return false end
+        local found = string.find(animalValue:lower(), conditionValue:lower(), 1, true) ~= nil
+        if op == "contains" then return found end
         return not found
     end
 

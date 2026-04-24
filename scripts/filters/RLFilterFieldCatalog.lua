@@ -9,8 +9,8 @@
 -- Field entry shape:
 --   {
 --     key          = "<stable string, also stored in filters>",
---     type         = "number" | "bool" | "enum",
---     cmps         = { "<", "<=", "==", "!=", ">=", ">", "in", "notin" },
+--     type         = "number" | "bool" | "enum" | "string",
+--     cmps         = { "<", "<=", "==", "!=", ">=", ">", "in", "notin", "contains", "notcontains" },
 --     animalTypes  = "all" | { "COW", "SHEEP", ... },  -- stable string names;
 --                                                       -- resolved at runtime via AnimalType[name]
 --                                                       -- (AnimalType global is populated by AnimalSystem
@@ -36,9 +36,13 @@ RLFilterFieldCatalog = {}
 --   * `!=` kept for number + enum (leaf-level negation primitive since the
 --     AST has no NOT operator yet); dropped for bool (redundant with `==`).
 --   * `between` intentionally omitted - expressed as AND of two conditions.
+--   * string: substring match only. `==`/`!=` deliberately excluded so the
+--     op set stays disjoint from enum (both are strings at the Lua-type
+--     level). Callers can use `contains <fullName>` for exact match if needed.
 local NUMBER_CMPS = { "<", "<=", "==", "!=", ">=", ">", "in", "notin" }
 local BOOL_CMPS   = { "==" }
 local ENUM_CMPS   = { "==", "!=", "in", "notin" }
+local STRING_CMPS = { "contains", "notcontains" }
 
 -- =============================================================================
 -- Getter helpers
@@ -144,6 +148,44 @@ RLFilterFieldCatalog.FIELDS = {
         getter      = function(animal)
             if animal.getHasAnyDisease ~= nil then return animal:getHasAnyDisease() end
             return animal.diseases ~= nil and #animal.diseases > 0
+        end,
+        monitorGated = false,
+    },
+    {
+        key         = "hasAnyMark",
+        type        = "bool",
+        cmps        = BOOL_CMPS,
+        animalTypes = "all",
+        -- Mirrors Animal:getMarked() with no key (RealisticLivestock_Animal.lua:1494-1504):
+        -- true iff at least one entry in animal.marks has active=true. Fallback path
+        -- walks the raw table so tests can use plain-table fake animals. Generic
+        -- "any mark" only; per-mark-kind fields (PLAYER / AI_MANAGER_*) deferred.
+        getter      = function(animal)
+            if animal.getMarked ~= nil then return animal:getMarked() == true end
+            if animal.marks == nil then return false end
+            for _, mark in pairs(animal.marks) do
+                if mark.active then return true end
+            end
+            return false
+        end,
+        monitorGated = false,
+    },
+    {
+        key         = "name",
+        type        = "string",
+        cmps        = STRING_CMPS,
+        animalTypes = "all",
+        -- Free-text animal name. Returns "" (not nil) for unset / empty-string
+        -- names so notcontains gets the right semantic for unnamed animals:
+        -- an empty name vacuously does not contain any needle -> notcontains
+        -- is true. If we returned nil, the evaluator's blanket nil-guard would
+        -- collapse notcontains to false, which silently excludes every
+        -- unnamed animal from a "name notcontains X" filter (the symptom that
+        -- turned up when testing chicken/sheep butcher filters where most
+        -- animals are unnamed).
+        getter      = function(animal)
+            if animal.name == nil then return "" end
+            return animal.name
         end,
         monitorGated = false,
     },

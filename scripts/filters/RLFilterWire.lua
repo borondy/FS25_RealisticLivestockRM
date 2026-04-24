@@ -53,7 +53,7 @@ RLFilterWire = {}
 --- Write a single scalar value of the given catalog type to `streamId`.
 ---@param streamId number
 ---@param v any
----@param typ string "number" | "bool" | "enum"
+---@param typ string "number" | "bool" | "enum" | "string"
 ---@return boolean wrote true on success
 local function writeByType(streamId, v, typ)
     if typ == "number" then
@@ -61,6 +61,8 @@ local function writeByType(streamId, v, typ)
     elseif typ == "bool" then
         streamWriteBool(streamId, v == true)
     elseif typ == "enum" then
+        streamWriteString(streamId, tostring(v))
+    elseif typ == "string" then
         streamWriteString(streamId, tostring(v))
     else
         Log:warning("RLFilterWire.writeByType: unknown type '%s' (skipping)", tostring(typ))
@@ -79,6 +81,8 @@ local function readByType(streamId, typ)
     elseif typ == "bool" then
         return streamReadBool(streamId)
     elseif typ == "enum" then
+        return streamReadString(streamId)
+    elseif typ == "string" then
         return streamReadString(streamId)
     end
     Log:warning("RLFilterWire.readByType: unknown type '%s'", tostring(typ))
@@ -198,6 +202,8 @@ local function writeCondition(streamId, cond)
             elseif field.type == "bool" then
                 streamWriteBool(streamId, false)
             elseif field.type == "enum" then
+                streamWriteString(streamId, "")
+            elseif field.type == "string" then
                 streamWriteString(streamId, "")
             end
             return false
