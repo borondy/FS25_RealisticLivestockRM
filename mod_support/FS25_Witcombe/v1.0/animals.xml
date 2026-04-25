@@ -28,13 +28,54 @@
     </breeds>
 
     <!-- ======================================================================
-         COW: Visual overrides for Hereford and Highland Cattle
-         RLRM uses Limousin models (indices 16/17/18) for Hereford because the base game
-         has no dedicated Hereford models. Witcombe adds custom Hereford models at indices 8/12/4.
-         Highland Cattle indices shifted: RLRM 19/20/21 -> Witcombe 16/17/18.
+         COW: Visual + simulation overrides for Hereford and Highland Cattle.
+
+         Hereford: full property override (heritage signatures applied on top of
+           the RLRM-bundle universal modernisation; see the per-block comment
+           on COW_HEREFORD below for the rationale and math). RLRM uses Limousin
+           models (indices 16/17/18) for Hereford because the base game has no
+           dedicated Hereford models. Witcombe adds custom Hereford models at
+           indices 8/12/4.
+
+         Highland Cattle: visual-only override (indices shifted RLRM 19/20/21 ->
+           Witcombe 16/17/18). NO simulation override is added by design - the
+           map's animals.xml registers COW_HIGHLAND_CATTLE later than the RLRM
+           bundle, so the engine's first-registration-wins rule keeps the
+           bundle's modernised stats live and the map's BASE-Angus-vintage
+           values are dead code at runtime. Adding any reproduction / price /
+           input / output block here would either restate live values (dead
+           bytes) or regress the bundle's modernisation. The bull mirrors the
+           cow: visual-only by the same load-order argument.
          ====================================================================== -->
     <animal type="COW">
-        <!-- COW_HEREFORD: visual indices 18/17/16/16 -> 8/12/4/4, custom images from map -->
+        <!-- COW_HEREFORD: leaner heritage beef breed with shorter gestation, premium
+             pricing, and a young-beef sell-curve. RLRM Phase 1 wins on the duplicate
+             subtype name, so map-author character must be re-applied via this override
+             to be reachable in-game.
+
+             Override applies these adjustments (each preserves the breed signature):
+               reproduction.durationMonth=9 (heritage shorter gestation). Single-attr
+                 override leaves minAgeMonth=12 + minHealthFactor=0.75 intact (universal
+                 cattle maturity gate kept).
+               buyPrice 300/3000 (heritage premium calf + adult).
+               sellPrice 5-key 250/2500/3500/2600/1500 at 0/18/24/36/60m: extra 18m
+                 keyframe at 2500 models the young-beef premium market signature.
+               straw 15/100, manure 25/200, liquidManure 40/180 (leaner adult outputs).
+               water 40/100 at 0m/18m: calf 40 derived as 0.667 x donor calf-realism
+                 value 60, where 0.667 = breed adult 100 / donor adult 150. Adult 100
+                 preserves the leaner-adult signature.
+               food 80/280/380 at 0m/12m/18m: calf 80 preserved (signal-bearing value
+                 distinct from the RLRM-bundle's anomalously lower calf=65 for this
+                 breed). 12m midpoint 280 matches the donor curve since the breed
+                 adult/donor adult ratio = 1.0. Adult 380 agreed by both sources.
+
+             RL universal modernisation kept (NOT overridden in this block):
+               reproduction.minAgeMonth=12 (universal cattle maturity gate)
+               transportPrice 40/100/200 (universal RLRM cattle modernisation)
+               milk 0/0/190/190/265/265/125 dual-purpose curve (intentional uniform
+                 RLRM design for beef breeds; not removed)
+
+             BULL_HEREFORD untouched (no map-author character defined for the bull). -->
         <subType subType="COW_HEREFORD">
             <visuals>
                 <visual minAge="0" visualAnimalIndex="8" image="map/config/cows/store_cowHerefordBaby.png"/>
@@ -42,9 +83,67 @@
                 <visual minAge="12" visualAnimalIndex="4" image="map/config/cows/store_cowHereford.png"/>
                 <visual minAge="18" visualAnimalIndex="4" image="map/config/cows/store_cowHereford.png"/>
             </visuals>
+            <reproduction durationMonth="9"/>
+            <buyPrice>
+                <key ageMonth="0" value="300"/>
+                <key ageMonth="24" value="3000"/>
+            </buyPrice>
+            <sellPrice>
+                <key ageMonth="0" value="250"/>
+                <key ageMonth="18" value="2500"/>
+                <key ageMonth="24" value="3500"/>
+                <key ageMonth="36" value="2600"/>
+                <key ageMonth="60" value="1500"/>
+            </sellPrice>
+            <input>
+                <straw>
+                    <key ageMonth="0" value="15"/>
+                    <key ageMonth="18" value="100"/>
+                </straw>
+                <water>
+                    <key ageMonth="0" value="40"/>
+                    <key ageMonth="18" value="100"/>
+                </water>
+                <food>
+                    <key ageMonth="0" value="80"/>
+                    <key ageMonth="12" value="280"/>
+                    <key ageMonth="18" value="380"/>
+                </food>
+            </input>
+            <output>
+                <manure>
+                    <key ageMonth="0" value="25"/>
+                    <key ageMonth="18" value="200"/>
+                </manure>
+                <liquidManure>
+                    <key ageMonth="0" value="40"/>
+                    <key ageMonth="18" value="180"/>
+                </liquidManure>
+            </output>
         </subType>
 
-        <!-- BULL_HEREFORD: same visual fix as COW_HEREFORD -->
+        <!-- BULL_HEREFORD: leaner heritage beef Hereford bull. The cow side carries
+             the heritage shorter-gestation trait (durationMonth=9) which doesn't
+             apply to the male; the bull contributes only the breeding-age gate
+             (minAgeMonth=12) to the pair.
+
+             Curve values:
+               reproduction supported=false, minAgeMonth=12
+               buyPrice 375/3375: heritage-premium pricing for breeding-stock bull
+               sellPrice 5-key 365/3000/4200/3035/1930 at 0/18/24/36/60m:
+                 young-beef shape with 18m premium and a 36m peak typical for
+                 heritage beef bulls
+               transportPrice 40/150/500: heavy-livestock transport rates
+               straw 15/100: leaner adult bedding consistent with the leaner-frame
+                 heritage signature
+               water 40/100: leaner adult demand. Calf 40 reflects calf-stage demand
+                 scaled to the breed's leaner frame
+               food 80/290/390: leaner-but-bigger-bull-side adult; 12m midpoint 290
+                 follows the growth-spurt curve shape with a small bull-side bump
+               manure 25/185 / liquidManure 40/160: leaner waste outputs consistent
+                 with the leaner-frame signature; small bull-side reductions vs
+                 cow-equivalent values
+               (no milk produced - bulls do not lactate) -->
         <subType subType="BULL_HEREFORD">
             <visuals>
                 <visual minAge="0" visualAnimalIndex="8" image="map/config/cows/store_cowHerefordBaby.png"/>
@@ -52,6 +151,48 @@
                 <visual minAge="12" visualAnimalIndex="4" image="map/config/cows/store_cowHereford.png"/>
                 <visual minAge="18" visualAnimalIndex="4" image="map/config/cows/store_cowHereford.png"/>
             </visuals>
+            <reproduction supported="false" minAgeMonth="12"/>
+            <buyPrice>
+                <key ageMonth="0" value="375"/>
+                <key ageMonth="24" value="3375"/>
+            </buyPrice>
+            <sellPrice>
+                <key ageMonth="0" value="365"/>
+                <key ageMonth="18" value="3000"/>
+                <key ageMonth="24" value="4200"/>
+                <key ageMonth="36" value="3035"/>
+                <key ageMonth="60" value="1930"/>
+            </sellPrice>
+            <transportPrice>
+                <key ageMonth="0" value="40"/>
+                <key ageMonth="12" value="150"/>
+                <key ageMonth="18" value="500"/>
+            </transportPrice>
+            <input>
+                <straw>
+                    <key ageMonth="0" value="15"/>
+                    <key ageMonth="18" value="100"/>
+                </straw>
+                <water>
+                    <key ageMonth="0" value="40"/>
+                    <key ageMonth="18" value="100"/>
+                </water>
+                <food>
+                    <key ageMonth="0" value="80"/>
+                    <key ageMonth="12" value="290"/>
+                    <key ageMonth="18" value="390"/>
+                </food>
+            </input>
+            <output>
+                <manure>
+                    <key ageMonth="0" value="25"/>
+                    <key ageMonth="18" value="185"/>
+                </manure>
+                <liquidManure>
+                    <key ageMonth="0" value="40"/>
+                    <key ageMonth="18" value="160"/>
+                </liquidManure>
+            </output>
         </subType>
 
         <!-- COW_HIGHLAND_CATTLE: visual indices 19/20/21/21 -> 16/17/18/18 -->
@@ -74,10 +215,79 @@
             </visuals>
         </subType>
 
-        <!-- COW_JERSEY: set breed on map-defined female subtype -->
-        <subType subType="COW_JERSEY" breed="JERSEY"/>
+        <!-- COW_JERSEY: small-frame, drought-efficient heritage dairy. Override applies
+             these adjustments (each value chosen to preserve breed signature endpoints):
+               reproduction.minAgeMonth 12: matches universal cattle maturity gate.
+                 Single-attribute override leaves durationMonth=9 + minHealthFactor=0.75
+                 intact (heritage shorter gestation preserved).
+               transportPrice 40/100/200 at 0m/12m/18m: full curve replace; no
+                 transport signature on this breed.
+               water 32/75 at 0m/18m: calf 32 derived as 0.577 x donor calf-realism
+                 value 55, where 0.577 = breed adult 75 / donor adult 130. Adult 75
+                 preserves the drought-efficiency signature.
+               food 80/223/280 at 0m/12m/18m: 12m midpoint 223 derived as 0.797 x
+                 breed adult 280, where 0.797 is the donor's growth-spurt ratio.
+                 Endpoints 0m=80 + 18m=280 preserve the small-frame signature.
+               milk 0/0/113/113/160/160/69 at 0m/12m/12m/36m/36m/72m/120m: full
+                 three-stage lactation shape (floor / peak / senescence) scaled to
+                 peak 160. Floor 113 = 0.706 x 160; senescence 69 = 0.431 x 160.
+                 Peak 160 preserves the small-frame dairy signature.
 
-        <!-- New: BULL_JERSEY - male variant using Swiss Brown models (same as COW_JERSEY) -->
+             Witcombe-source signatures preserved (NOT overridden in this block):
+               reproduction.durationMonth=9 (heritage shorter gestation)
+               buyPrice 300/2500 (heritage premium)
+               sellPrice 250/2000/2800/2200/1200 (young-market peak + fast-aging)
+               straw 15/75 (lower bedding need)
+               manure 25/150, liquidManure 40/130 -->
+        <subType subType="COW_JERSEY" breed="JERSEY">
+            <reproduction minAgeMonth="12"/>
+            <transportPrice>
+                <key ageMonth="0" value="40"/>
+                <key ageMonth="12" value="100"/>
+                <key ageMonth="18" value="200"/>
+            </transportPrice>
+            <input>
+                <water>
+                    <key ageMonth="0" value="32"/>
+                    <key ageMonth="18" value="75"/>
+                </water>
+                <food>
+                    <key ageMonth="0" value="80"/>
+                    <key ageMonth="12" value="223"/>
+                    <key ageMonth="18" value="280"/>
+                </food>
+            </input>
+            <output>
+                <milk fillType="MILK">
+                    <key ageMonth="0" value="0"/>
+                    <key ageMonth="12" value="0"/>
+                    <key ageMonth="12" value="113"/>
+                    <key ageMonth="36" value="113"/>
+                    <key ageMonth="36" value="160"/>
+                    <key ageMonth="72" value="160"/>
+                    <key ageMonth="120" value="69"/>
+                </milk>
+            </output>
+        </subType>
+
+        <!-- BULL_JERSEY: small-frame, drought-efficient heritage dairy bull.
+
+             Curve values:
+               reproduction supported=false, minAgeMonth=12 (breeding-age gate)
+               buyPrice 375/2800: heritage-premium pricing for breeding-stock bull
+               sellPrice 5-key 365/2400/3360/2570/1540 at 0/18/24/36/60m:
+                 young-market shape with 18m early-sale premium
+               transportPrice 40/150/500: heavy-livestock transport rates
+               straw 15/75: low bedding need
+               water 32/75: drought-efficient adult. Calf 32 = (75/130) x 55,
+                 scaling species-typical calf-stage demand to the breed's
+                 small-frame adult signature
+               food 80/230/290: small-frame adult; 12m midpoint 230 follows the
+                 growth-spurt curve shape with a small bull-side bump per keyframe
+               manure 25/140 / liquidManure 40/120: leaner waste outputs consistent
+                 with the small-frame signature; small bull-side reductions on
+                 the adult keyframe
+               (no milk produced - bulls do not lactate) -->
         <subType subType="BULL_JERSEY" fillTypeName="BULL_JERSEY"
                  gender="male" breed="JERSEY"
                  minWeight="35.0" targetWeight="700.0" maxWeight="1200.0">
@@ -105,43 +315,44 @@
             </visuals>
             <reproduction supported="false" minAgeMonth="12"/>
             <buyPrice>
-                <key ageMonth="0" value="250"/>
-                <key ageMonth="24" value="2200"/>
+                <key ageMonth="0" value="375"/>
+                <key ageMonth="24" value="2800"/>
             </buyPrice>
             <sellPrice>
-                <key ageMonth="0" value="220"/>
-                <key ageMonth="24" value="2000"/>
-                <key ageMonth="36" value="2500"/>
-                <key ageMonth="60" value="1500"/>
+                <key ageMonth="0" value="365"/>
+                <key ageMonth="18" value="2400"/>
+                <key ageMonth="24" value="3360"/>
+                <key ageMonth="36" value="2570"/>
+                <key ageMonth="60" value="1540"/>
             </sellPrice>
             <transportPrice>
                 <key ageMonth="0" value="40"/>
-                <key ageMonth="12" value="120"/>
-                <key ageMonth="18" value="400"/>
+                <key ageMonth="12" value="150"/>
+                <key ageMonth="18" value="500"/>
             </transportPrice>
             <input>
                 <straw>
-                    <key ageMonth="0" value="10"/>
-                    <key ageMonth="18" value="80"/>
+                    <key ageMonth="0" value="15"/>
+                    <key ageMonth="18" value="75"/>
                 </straw>
                 <water>
-                    <key ageMonth="0" value="50"/>
-                    <key ageMonth="18" value="100"/>
+                    <key ageMonth="0" value="32"/>
+                    <key ageMonth="18" value="75"/>
                 </water>
                 <food>
-                    <key ageMonth="0" value="90"/>
-                    <key ageMonth="12" value="240"/>
-                    <key ageMonth="18" value="300"/>
+                    <key ageMonth="0" value="80"/>
+                    <key ageMonth="12" value="230"/>
+                    <key ageMonth="18" value="290"/>
                 </food>
             </input>
             <output>
                 <manure>
-                    <key ageMonth="0" value="20"/>
-                    <key ageMonth="18" value="160"/>
+                    <key ageMonth="0" value="25"/>
+                    <key ageMonth="18" value="140"/>
                 </manure>
                 <liquidManure>
                     <key ageMonth="0" value="40"/>
-                    <key ageMonth="18" value="150"/>
+                    <key ageMonth="18" value="120"/>
                 </liquidManure>
             </output>
         </subType>
@@ -152,10 +363,86 @@
          PIG_GLOUCESTERSHIRE_OLD_SPOT uses Black Pied visual models (indices 4/5/6)
          ====================================================================== -->
     <animal type="PIG">
-        <!-- Override: set breed on existing female subtype (defaults to "PIG_GLOUCESTERSHIRE_OLD_SPOT") -->
-        <subType subType="PIG_GLOUCESTERSHIRE_OLD_SPOT" breed="GLOUCESTERSHIRE_OLD_SPOT"/>
+        <!-- PIG_GLOUCESTERSHIRE_OLD_SPOT: heritage slow-breeder, slow-grow, premium-priced
+             pig. Override applies these adjustments (each preserves the breed signature):
+               transportPrice 30/50/150 at 0m/6m/12m: 12m endpoint added; 0m/6m
+                 preserved as authored. No transport signature on this breed.
+               water 3/15 at 0m/8m: calf 3 derived as 0.429 x donor calf-realism
+                 value 8, where 0.429 = breed adult 15 / donor adult 35. Adult 15
+                 and stop-at-8m end-age preserved (slow-grow signature).
+               food 10/40/65 at 0m/6m/10m: calf 10 derived as 0.65 x donor calf-realism
+                 value 15, where 0.65 = breed adult 65 / donor adult 100. 6m midpoint 40
+                 and 10m custom keyframe 65 preserved (deliberate slow-grow ramp signature
+                 distinct from the donor's 2-keyframe shape).
+               manure 13/40 at 0m/8m: calf 13 derived as 0.889 x donor calf 15.
+                 Adult 40 and stop-at-8m end-age preserved.
+               liquidManure 25/60 at 0m/8m: calf 25 derived as 0.706 x donor calf 35.
+                 Adult 60 and stop-at-8m end-age preserved. (Calf 25 is slightly lower
+                 than the source-XML value 30 because the breed-frame ratio 60/85
+                 applied to the donor's elevated calf 35 yields a smaller value;
+                 consistent with the small-frame-scaling principle used elsewhere.)
 
-        <!-- New: BOAR_GLOUCESTERSHIRE_OLD_SPOT -->
+             Witcombe-source signatures preserved (NOT overridden in this block):
+               reproduction minAgeMonth=8 (heritage slow-breeder; already live)
+               reproduction durationMonth=4, minHealthFactor=0.75
+               buyPrice 250/1500 (heritage premium calf + base-vintage adult ceiling)
+               sellPrice 125/2500 (heritage premium calf + base-vintage adult)
+               straw 5/25 at 0m/8m (slow-grow extension + higher end-value signatures) -->
+        <subType subType="PIG_GLOUCESTERSHIRE_OLD_SPOT" breed="GLOUCESTERSHIRE_OLD_SPOT">
+            <transportPrice>
+                <key ageMonth="0" value="30"/>
+                <key ageMonth="6" value="50"/>
+                <key ageMonth="12" value="150"/>
+            </transportPrice>
+            <input>
+                <water>
+                    <key ageMonth="0" value="3"/>
+                    <key ageMonth="8" value="15"/>
+                </water>
+                <food>
+                    <key ageMonth="0" value="10"/>
+                    <key ageMonth="6" value="40"/>
+                    <key ageMonth="10" value="65"/>
+                </food>
+            </input>
+            <output>
+                <manure>
+                    <key ageMonth="0" value="13"/>
+                    <key ageMonth="8" value="40"/>
+                </manure>
+                <liquidManure>
+                    <key ageMonth="0" value="25"/>
+                    <key ageMonth="8" value="60"/>
+                </liquidManure>
+            </output>
+        </subType>
+
+        <!-- BOAR_GLOUCESTERSHIRE_OLD_SPOT: heritage slow-breeder, slow-grow,
+             premium-priced GOS boar.
+
+             Curve values:
+               reproduction supported=false, minAgeMonth=8 (heritage slow-breeder
+                 gate matches the sow's)
+               buyPrice 295/1900: heritage-premium pricing for breeding-stock boar
+               sellPrice 155/2950 at 0m/24m: heritage-premium 2-key sell shape
+                 (no 6m midpoint - matches the sow's authored 2-key structure)
+               transportPrice 40/125/250 at 0m/6m/12m: heavy-livestock transport
+                 rates applied across the whole curve (the sow side preserved
+                 lower BASE-vintage rates at 0m/6m for breed-character reasons;
+                 the bull side uses the modernised rates for all three keyframes
+                 since transport is shape-agnostic)
+               straw 5/25 at 0m/8m: slow-grow age extension preserved on the male
+                 side; same 8m end-age as the sow
+               water 3/15 at 0m/8m: heritage-frame demand. Calf 3 reflects
+                 calf-stage demand scaled to the breed's small-frame ratio
+               food 10/40/72 at 0m/6m/10m: slow-grow custom 3-key shape preserved;
+                 calf 10 + 6m midpoint 40 mirror the sow exactly; 10m extension
+                 72 applies a small bull-side bump on the end keyframe
+               manure 13/43 at 0m/8m: slow-grow end-age preserved; calf 13 mirrors
+                 sow; 8m adult 43 applies a small bull-side bump
+               liquidManure 25/64 at 0m/8m: same structure - calf mirrors sow,
+                 adult 64 applies a small bull-side bump
+               (no milk produced - this species does not lactate in any source) -->
         <subType subType="BOAR_GLOUCESTERSHIRE_OLD_SPOT" fillTypeName="BOAR_GLOUCESTERSHIRE_OLD_SPOT"
                  gender="male" breed="GLOUCESTERSHIRE_OLD_SPOT"
                  minWeight="1.75" targetWeight="250.0" maxWeight="1200.0">
@@ -178,13 +465,12 @@
             </visuals>
             <reproduction supported="false" minAgeMonth="8"/>
             <buyPrice>
-                <key ageMonth="0" value="55"/>
-                <key ageMonth="12" value="1200"/>
+                <key ageMonth="0" value="295"/>
+                <key ageMonth="12" value="1900"/>
             </buyPrice>
             <sellPrice>
-                <key ageMonth="0" value="45"/>
-                <key ageMonth="6" value="450"/>
-                <key ageMonth="24" value="1500"/>
+                <key ageMonth="0" value="155"/>
+                <key ageMonth="24" value="2950"/>
             </sellPrice>
             <transportPrice>
                 <key ageMonth="0" value="40"/>
@@ -194,27 +480,26 @@
             <input>
                 <straw>
                     <key ageMonth="0" value="5"/>
-                    <key ageMonth="6" value="20"/>
+                    <key ageMonth="8" value="25"/>
                 </straw>
                 <water>
-                    <key ageMonth="0" value="8"/>
-                    <key ageMonth="6" value="34"/>
-                    <key ageMonth="24" value="72"/>
+                    <key ageMonth="0" value="3"/>
+                    <key ageMonth="8" value="15"/>
                 </water>
                 <food>
-                    <key ageMonth="0" value="15"/>
-                    <key ageMonth="6" value="55"/>
-                    <key ageMonth="24" value="96"/>
+                    <key ageMonth="0" value="10"/>
+                    <key ageMonth="6" value="40"/>
+                    <key ageMonth="10" value="72"/>
                 </food>
             </input>
             <output>
                 <manure>
-                    <key ageMonth="0" value="14"/>
-                    <key ageMonth="6" value="44"/>
+                    <key ageMonth="0" value="13"/>
+                    <key ageMonth="8" value="43"/>
                 </manure>
                 <liquidManure>
-                    <key ageMonth="0" value="36"/>
-                    <key ageMonth="6" value="83"/>
+                    <key ageMonth="0" value="25"/>
+                    <key ageMonth="8" value="64"/>
                 </liquidManure>
             </output>
         </subType>
@@ -225,12 +510,147 @@
          Texel uses Steinschaf models (4/5/6), Suffolk and BFL use Landrace models (1/2/3)
          ====================================================================== -->
     <animal type="SHEEP">
-        <!-- Override: set breed on existing female subtypes -->
-        <subType subType="SHEEP_TEXEL" breed="TEXEL"/>
-        <subType subType="SHEEP_SUFFOLK" breed="SUFFOLK"/>
-        <subType subType="SHEEP_BLUE_FACED_LEICESTER" breed="BLUE_FACED_LEICESTER"/>
+        <!-- SHEEP_TEXEL: heavier-frame meat sheep with early-market lamb peak,
+             stops-at-8m maturity-aligned input curves, and low wool peak. Override
+             adds the universal sheep field-additions scoped to the breed's 8m maturity:
+               transportPrice 30/50/150 at 0m/8m/18m: 18m endpoint added; 0m/8m
+                 preserved as authored.
+               straw added: 3/20 at 0m/8m. End-age 8m matches the breed's other input
+                 curves; do not extend to 18m senescence (would break stop-at-8m
+                 consistency).
+               manure added: 5/16 at 0m/8m. Same end-age scoping as straw.
 
-        <!-- New: RAM_TEXEL -->
+             Witcombe-source signatures preserved (NOT overridden in this block):
+               reproduction 8/5/0.75
+               buyPrice 250/1800 (heritage premium)
+               sellPrice 120/600/1200 at 0m/8m/8m (early-market lamb 5-key shape:
+                 step-jump from 600 to 1200 at 8m maturity)
+               water 5/30 at 0m/8m (heavier-frame adult; calf already above the
+                 universal calf-realism baseline, no scaled raise needed)
+               food 10/75 at 0m/8m (same reasoning as water)
+               wool 0/0/10/25 at 0m/6m/6m/18m (4-key shape preserves lamb-shearing-
+                 onset realism: production stays at zero before 6m. Peak 25 is the
+                 meat-breed-low-wool signature.) -->
+        <subType subType="SHEEP_TEXEL" breed="TEXEL">
+            <transportPrice>
+                <key ageMonth="0" value="30"/>
+                <key ageMonth="8" value="50"/>
+                <key ageMonth="18" value="150"/>
+            </transportPrice>
+            <input>
+                <straw>
+                    <key ageMonth="0" value="3"/>
+                    <key ageMonth="8" value="20"/>
+                </straw>
+            </input>
+            <output>
+                <manure>
+                    <key ageMonth="0" value="5"/>
+                    <key ageMonth="8" value="16"/>
+                </manure>
+            </output>
+        </subType>
+
+        <!-- SHEEP_SUFFOLK: fast-breeder (minAgeMonth=6) medium-frame meat sheep with
+             early-market lamb peak. Override adds the universal sheep field-additions
+             scoped to the breed's 6m maturity:
+               transportPrice 30/50/150 at 0m/8m/18m: 18m endpoint added; 0m/8m
+                 preserved as authored.
+               straw added: 3/20 at 0m/6m. End-age 6m matches the breed's other input
+                 curves (do not extend to 18m senescence).
+               manure added: 5/16 at 0m/6m. Same end-age scoping as straw.
+
+             Witcombe-source signatures preserved (NOT overridden in this block):
+               reproduction 6/5/0.75 (fast-breeder; unique among Witcombe sheep)
+               buyPrice 220/1600 (modest heritage premium)
+               sellPrice 110/550/1100 at 0m/6m/36m (3-key early-market lamb peak)
+               water 4/28 at 0m/6m (medium-frame; calf already above the universal
+                 calf-realism baseline, no scaled raise needed)
+               food 8/70 at 0m/6m (same reasoning as water)
+               wool 0/0/8/35 at 0m/6m/6m/18m (4-key shape preserves lamb-shearing-
+                 onset realism; peak 35 is the meat-breed signature) -->
+        <subType subType="SHEEP_SUFFOLK" breed="SUFFOLK">
+            <transportPrice>
+                <key ageMonth="0" value="30"/>
+                <key ageMonth="8" value="50"/>
+                <key ageMonth="18" value="150"/>
+            </transportPrice>
+            <input>
+                <straw>
+                    <key ageMonth="0" value="3"/>
+                    <key ageMonth="6" value="20"/>
+                </straw>
+            </input>
+            <output>
+                <manure>
+                    <key ageMonth="0" value="5"/>
+                    <key ageMonth="6" value="16"/>
+                </manure>
+            </output>
+        </subType>
+
+        <!-- SHEEP_BLUE_FACED_LEICESTER: heritage breeding-stock sheep with the
+             buy-high-sell-low economic signature, shorter gestation, and light-frame
+             inputs. Override adds the universal sheep field-additions scoped to the
+             breed's 6m maturity:
+               transportPrice 30/50/150 at 0m/8m/18m: 18m endpoint added; 0m/8m
+                 preserved as authored.
+               straw added: 3/20 at 0m/6m. End-age 6m matches the breed's other input
+                 curves (do not extend to 18m senescence).
+               manure added: 5/16 at 0m/6m. Same end-age scoping as straw.
+
+             Witcombe-source signatures preserved (NOT overridden in this block):
+               reproduction 7/4/0.75 (heritage shorter gestation; durationMonth=4
+                 is unique to this breed among the Witcombe sheep)
+               buyPrice 300/2500 (highest premium pricing of the heritage sheep)
+               sellPrice 100/250/700 at 0m/6m/36m (modest sell despite premium
+                 acquisition; breeding-stock economics signature)
+               water 3/20 at 0m/6m (light-frame; adult matches the genus baseline,
+                 no raise applied)
+               food 6/45 at 0m/6m (light-frame; adult 45 is the deliberate
+                 efficiency signature - lower than the genus baseline)
+               wool 0/0/6/30 at 0m/6m/6m/18m (4-key shape preserves lamb-shearing-
+                 onset realism; peak 30 is the dual-purpose-leaning signature) -->
+        <subType subType="SHEEP_BLUE_FACED_LEICESTER" breed="BLUE_FACED_LEICESTER">
+            <transportPrice>
+                <key ageMonth="0" value="30"/>
+                <key ageMonth="8" value="50"/>
+                <key ageMonth="18" value="150"/>
+            </transportPrice>
+            <input>
+                <straw>
+                    <key ageMonth="0" value="3"/>
+                    <key ageMonth="6" value="20"/>
+                </straw>
+            </input>
+            <output>
+                <manure>
+                    <key ageMonth="0" value="5"/>
+                    <key ageMonth="6" value="16"/>
+                </manure>
+            </output>
+        </subType>
+
+        <!-- RAM_TEXEL: heavier-frame meat-breed Texel ram.
+
+             Curve values:
+               reproduction supported=false, minAgeMonth=5 (sheep breeding-age gate)
+               buyPrice 300/2400: heritage-premium pricing for breeding-stock ram
+               sellPrice 5-key 150/720/1440 at 0m/8m/8m: early-market lamb peak
+                 with step-jump from 720 to 1440 at 8m maturity
+               transportPrice 30/65/200 at 0m/8m/18m: 0m matches the breed's
+                 baseline; mid + end include small bull-side raises
+               straw 3/20 at 0m/8m: end-age 8m matches the breed's other input
+                 curves (slow-grow signature preserved on the male side)
+               water 5/33 at 0m/8m: heavier-frame adult; small bull-side raise
+                 (~+10%) over the cow side at the adult keyframe
+               food 10/83 at 0m/8m: heavier-frame adult; small bull-side raise
+                 (~+10%) over the cow side at the adult keyframe
+               manure 5/16 at 0m/8m: same end-age as the breed's other curves
+               pallets/wool 0/0/10/25 at 0m/6m/6m/18m: 4-key shape preserves
+                 lamb-shearing-onset realism (no production before 6m); peak 25
+                 is the meat-breed-low-wool signature shared by both sexes of
+                 this breed -->
         <subType subType="RAM_TEXEL" fillTypeName="RAM_TEXEL"
                  gender="male" breed="TEXEL"
                  minWeight="5.5" targetWeight="75.0" maxWeight="150.0">
@@ -253,50 +673,67 @@
             </visuals>
             <reproduction supported="false" minAgeMonth="5"/>
             <buyPrice>
-                <key ageMonth="0" value="70"/>
-                <key ageMonth="36" value="900"/>
+                <key ageMonth="0" value="300"/>
+                <key ageMonth="36" value="2400"/>
             </buyPrice>
             <sellPrice>
-                <key ageMonth="0" value="55"/>
-                <key ageMonth="36" value="750"/>
+                <key ageMonth="0" value="150"/>
+                <key ageMonth="8" value="720"/>
+                <key ageMonth="8" value="1440"/>
             </sellPrice>
             <transportPrice>
-                <key ageMonth="0" value="50"/>
-                <key ageMonth="8" value="125"/>
+                <key ageMonth="0" value="30"/>
+                <key ageMonth="8" value="65"/>
                 <key ageMonth="18" value="200"/>
             </transportPrice>
             <input>
                 <straw>
                     <key ageMonth="0" value="3"/>
-                    <key ageMonth="5" value="20"/>
-                    <key ageMonth="18" value="40"/>
+                    <key ageMonth="8" value="20"/>
                 </straw>
                 <water>
-                    <key ageMonth="0" value="3"/>
-                    <key ageMonth="5" value="42"/>
-                    <key ageMonth="18" value="70"/>
+                    <key ageMonth="0" value="5"/>
+                    <key ageMonth="8" value="33"/>
                 </water>
                 <food>
-                    <key ageMonth="0" value="5"/>
-                    <key ageMonth="5" value="50"/>
-                    <key ageMonth="18" value="120"/>
+                    <key ageMonth="0" value="10"/>
+                    <key ageMonth="8" value="83"/>
                 </food>
             </input>
             <output>
                 <manure>
                     <key ageMonth="0" value="5"/>
-                    <key ageMonth="5" value="16"/>
-                    <key ageMonth="18" value="35"/>
+                    <key ageMonth="8" value="16"/>
                 </manure>
                 <pallets fillType="WOOL">
                     <key ageMonth="0" value="0"/>
-                    <key ageMonth="6" value="15"/>
-                    <key ageMonth="18" value="85"/>
+                    <key ageMonth="6" value="0"/>
+                    <key ageMonth="6" value="10"/>
+                    <key ageMonth="18" value="25"/>
                 </pallets>
             </output>
         </subType>
 
-        <!-- New: RAM_SUFFOLK -->
+        <!-- RAM_SUFFOLK: fast-breeder medium-frame Suffolk ram.
+
+             Curve values:
+               reproduction supported=false, minAgeMonth=5 (sheep breeding-age gate)
+               buyPrice 265/2125: modest heritage-premium pricing for breeding-
+                 stock ram
+               sellPrice 3-key 140/660/1330 at 0m/6m/36m: early-market 6m peak
+                 shape with 36m senescence
+               transportPrice 30/65/200 at 0m/8m/18m: 0m matches breed baseline;
+                 mid + end include small bull-side raises
+               straw 3/20 at 0m/6m: end-age 6m matches the breed's stops-at-6m
+                 input signature
+               water 4/31 at 0m/6m: medium-frame adult; small bull-side raise
+                 on the adult keyframe
+               food 8/77 at 0m/6m: medium-frame adult; small bull-side raise
+                 on the adult keyframe
+               manure 5/16 at 0m/6m: same end-age as the breed's other curves
+               pallets/wool 0/0/8/35 at 0m/6m/6m/18m: 4-key shape preserves
+                 lamb-shearing-onset realism; peak 35 is the meat-breed signature
+                 shared by both sexes of this breed -->
         <subType subType="RAM_SUFFOLK" fillTypeName="RAM_SUFFOLK"
                  gender="male" breed="SUFFOLK"
                  minWeight="5.0" targetWeight="70.0" maxWeight="150.0">
@@ -319,50 +756,68 @@
             </visuals>
             <reproduction supported="false" minAgeMonth="5"/>
             <buyPrice>
-                <key ageMonth="0" value="65"/>
-                <key ageMonth="36" value="850"/>
+                <key ageMonth="0" value="265"/>
+                <key ageMonth="36" value="2125"/>
             </buyPrice>
             <sellPrice>
-                <key ageMonth="0" value="50"/>
-                <key ageMonth="36" value="700"/>
+                <key ageMonth="0" value="140"/>
+                <key ageMonth="6" value="660"/>
+                <key ageMonth="36" value="1330"/>
             </sellPrice>
             <transportPrice>
-                <key ageMonth="0" value="50"/>
-                <key ageMonth="8" value="125"/>
+                <key ageMonth="0" value="30"/>
+                <key ageMonth="8" value="65"/>
                 <key ageMonth="18" value="200"/>
             </transportPrice>
             <input>
                 <straw>
                     <key ageMonth="0" value="3"/>
-                    <key ageMonth="5" value="18"/>
-                    <key ageMonth="18" value="36"/>
+                    <key ageMonth="6" value="20"/>
                 </straw>
                 <water>
-                    <key ageMonth="0" value="3"/>
-                    <key ageMonth="5" value="38"/>
-                    <key ageMonth="18" value="65"/>
+                    <key ageMonth="0" value="4"/>
+                    <key ageMonth="6" value="31"/>
                 </water>
                 <food>
-                    <key ageMonth="0" value="4"/>
-                    <key ageMonth="5" value="46"/>
-                    <key ageMonth="18" value="110"/>
+                    <key ageMonth="0" value="8"/>
+                    <key ageMonth="6" value="77"/>
                 </food>
             </input>
             <output>
                 <manure>
                     <key ageMonth="0" value="5"/>
-                    <key ageMonth="5" value="14"/>
-                    <key ageMonth="18" value="32"/>
+                    <key ageMonth="6" value="16"/>
                 </manure>
                 <pallets fillType="WOOL">
                     <key ageMonth="0" value="0"/>
-                    <key ageMonth="6" value="12"/>
-                    <key ageMonth="18" value="75"/>
+                    <key ageMonth="6" value="0"/>
+                    <key ageMonth="6" value="8"/>
+                    <key ageMonth="18" value="35"/>
                 </pallets>
             </output>
         </subType>
 
-        <!-- New: RAM_BLUE_FACED_LEICESTER -->
+        <!-- RAM_BLUE_FACED_LEICESTER: light-frame heritage breeding-stock BFL ram.
+             The breed has buy-high-sell-low economics (premium acquisition,
+             modest sell prices) reflecting its breeding-stock role.
+
+             Curve values:
+               reproduction supported=false, minAgeMonth=5 (sheep breeding-age gate)
+               buyPrice 360/3325: highest heritage-premium pricing in the heritage
+                 sheep group (breeding-stock acquisition)
+               sellPrice 3-key 125/300/860 at 0m/6m/36m: modest sell despite
+                 premium acquisition (breeding-stock economics)
+               transportPrice 30/65/200 at 0m/8m/18m: 0m matches breed baseline;
+                 mid + end include small bull-side raises
+               straw 3/20 at 0m/6m: end-age 6m matches the breed's stops-at-6m
+                 input signature
+               water 3/22 at 0m/6m: light-frame adult with small bull-side raise
+               food 6/50 at 0m/6m: light-frame adult (still below the species
+                 baseline - efficiency signature) with small bull-side raise
+               manure 5/16 at 0m/6m
+               pallets/wool 0/0/6/30 at 0m/6m/6m/18m: 4-key shape preserves
+                 lamb-shearing-onset realism; peak 30 is the dual-purpose-leaning
+                 signature shared by both sexes of this breed -->
         <subType subType="RAM_BLUE_FACED_LEICESTER" fillTypeName="RAM_BLUE_FACED_LEICESTER"
                  gender="male" breed="BLUE_FACED_LEICESTER"
                  minWeight="4.5" targetWeight="55.0" maxWeight="150.0">
@@ -385,54 +840,79 @@
             </visuals>
             <reproduction supported="false" minAgeMonth="5"/>
             <buyPrice>
-                <key ageMonth="0" value="75"/>
-                <key ageMonth="36" value="1000"/>
+                <key ageMonth="0" value="360"/>
+                <key ageMonth="36" value="3325"/>
             </buyPrice>
             <sellPrice>
-                <key ageMonth="0" value="45"/>
-                <key ageMonth="36" value="600"/>
+                <key ageMonth="0" value="125"/>
+                <key ageMonth="6" value="300"/>
+                <key ageMonth="36" value="860"/>
             </sellPrice>
             <transportPrice>
-                <key ageMonth="0" value="50"/>
-                <key ageMonth="8" value="125"/>
+                <key ageMonth="0" value="30"/>
+                <key ageMonth="8" value="65"/>
                 <key ageMonth="18" value="200"/>
             </transportPrice>
             <input>
                 <straw>
-                    <key ageMonth="0" value="2"/>
-                    <key ageMonth="5" value="15"/>
-                    <key ageMonth="18" value="30"/>
+                    <key ageMonth="0" value="3"/>
+                    <key ageMonth="6" value="20"/>
                 </straw>
                 <water>
-                    <key ageMonth="0" value="2"/>
-                    <key ageMonth="5" value="30"/>
-                    <key ageMonth="18" value="55"/>
+                    <key ageMonth="0" value="3"/>
+                    <key ageMonth="6" value="22"/>
                 </water>
                 <food>
-                    <key ageMonth="0" value="3"/>
-                    <key ageMonth="5" value="35"/>
-                    <key ageMonth="18" value="85"/>
+                    <key ageMonth="0" value="6"/>
+                    <key ageMonth="6" value="50"/>
                 </food>
             </input>
             <output>
                 <manure>
-                    <key ageMonth="0" value="4"/>
-                    <key ageMonth="5" value="12"/>
-                    <key ageMonth="18" value="28"/>
+                    <key ageMonth="0" value="5"/>
+                    <key ageMonth="6" value="16"/>
                 </manure>
                 <pallets fillType="WOOL">
                     <key ageMonth="0" value="0"/>
-                    <key ageMonth="6" value="10"/>
-                    <key ageMonth="18" value="65"/>
+                    <key ageMonth="6" value="0"/>
+                    <key ageMonth="6" value="6"/>
+                    <key ageMonth="18" value="30"/>
                 </pallets>
             </output>
         </subType>
     </animal>
 
     <!-- ======================================================================
-         RABBIT: New male subtype + pregnancy/weight overrides
-         navMesh h=0.3, r=0.2 gives absurd derived weights: max=45, target=18
-         Real domestic rabbits: 2-5kg
+         RABBIT: New male subtype + pregnancy/weight + doe-input overrides.
+
+         The overrides in this section are pre-release bork-fixes, NOT a
+         modernisation pass. They address concrete gameplay bugs:
+           - navMesh h=0.3, r=0.2 yields absurd derived weights: max=45,
+             target=18. Real domestic rabbits: 2-5kg. Weight override
+             corrects this.
+           - The map's source XML uses sheep-scaled input rates (~16.5 L
+             water/day, ~15 L food/day adult), which collapses doe Health
+             to 0% within hours. Doe-input override mirrors the buck's
+             rabbit-scale rates.
+           - Witcombe defines no male variant; RABBIT_MALE creation here
+             enables breeding.
+           - Type-level pregnancy avg=4 / max=8 sets a sensible litter
+             distribution.
+
+         Modernisation runbook does NOT apply to RABBIT, by design:
+           - The RLRM bundle defines no rabbit subtype, so there is no
+             RL donor pattern to scale toward.
+           - Base-game vanilla also defines no rabbit (Witcombe-defined
+             species).
+           - Cross-species mass-ratio scaling (e.g. rabbit_straw =
+             0.055 x sheep_straw) is forbidden: numbers must come from a
+             real source XML, not an invented ratio.
+           - Adding rabbit output curves (manure / liquidManure / wool /
+             meat) is a feature change, not a modernisation. Out of scope.
+
+         Future agents: do not "modernise" this section by inventing
+         scaled-from-cross-species values. If a future RLRM release adds
+         authoritative rabbit data, re-evaluate at that point.
          ====================================================================== -->
     <animal type="RABBIT">
         <pregnancy average="4" max="8"/>
