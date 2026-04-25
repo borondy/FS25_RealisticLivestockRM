@@ -1,6 +1,6 @@
 <modDesc descVersion="107">
     <author>Ritter</author>
-    <version>1.2.2.0-dev.2</version>
+    <version>1.2.2.0</version>
     <title>
         <en>Realistic Livestock - Ritter version</en>
         <it>Allevamento Realistico - Versione Ritter</it>
@@ -24,19 +24,17 @@ Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivest
 
 Changelog
 
-1.2.2.0-dev.2:
-
-RL Menu (preview - work in progress):
-- Added Artificial Insemination tab: browse dealer bulls by species, pick a straw quantity with live price preview, favourite bulls, and buy straws without leaving the menu
-
-1.2.2.0-dev.1:
-
+1.2.2.0:
+- Added Witcombe map support: new UK breeds (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) with full breeding, genetics, and reproduction; rabbits get viable weights, litter sizes, and consumption rates; automatic version-aware compatibility
+- Hereford on Witcombe now uses a heritage breed profile: 9-month gestation, premium pricing (300/3000), and an 18-month sell-price peak
+- Info tab genetics now show a 0-99 score next to each label (e.g. "97 - Extremely high") so animals within the same bucket can be compared at a glance
 - Fixed singleplayer: RL Messages tab now shows "Bought/Sold N animal(s) for €X" entries after buying or selling (previously these entries only appeared in multiplayer)
 - Fixed potential multiplayer crash when changing monitor, name, or disease treatment on an animal while the husbandry is being sold or demolished
 - Fixed multiplayer: insemination result notification to clients no longer reports success when the insemination actually failed
 
 RL Menu (preview - work in progress):
 - Added Buy tab: browse dealer animals, see per-row prices and a running cart total, then buy one or many at a time via a destination-picker flow
+- Added Artificial Insemination tab: browse dealer bulls by species, pick a straw quantity with live price preview, favourite bulls, and buy straws without leaving the menu
 - Fixed multiplayer: Sell and Info tabs now refresh the farm balance display immediately instead of showing a stale value until the next action
 
 1.2.1.0:
