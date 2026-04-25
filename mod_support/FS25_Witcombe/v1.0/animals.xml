@@ -38,7 +38,7 @@
         <subType subType="COW_HEREFORD">
             <visuals>
                 <visual minAge="0" visualAnimalIndex="8" image="map/config/cows/store_cowHerefordBaby.png"/>
-                <visual minAge="6" visualAnimalIndex="12" image="map/config/cows/store_cowHerfordKid.png"/>
+                <visual minAge="6" visualAnimalIndex="12" image="map/config/cows/store_cowHerefordKid.png"/>
                 <visual minAge="12" visualAnimalIndex="4" image="map/config/cows/store_cowHereford.png"/>
                 <visual minAge="18" visualAnimalIndex="4" image="map/config/cows/store_cowHereford.png"/>
             </visuals>
@@ -48,7 +48,7 @@
         <subType subType="BULL_HEREFORD">
             <visuals>
                 <visual minAge="0" visualAnimalIndex="8" image="map/config/cows/store_cowHerefordBaby.png"/>
-                <visual minAge="6" visualAnimalIndex="12" image="map/config/cows/store_cowHerfordKid.png"/>
+                <visual minAge="6" visualAnimalIndex="12" image="map/config/cows/store_cowHerefordKid.png"/>
                 <visual minAge="12" visualAnimalIndex="4" image="map/config/cows/store_cowHereford.png"/>
                 <visual minAge="18" visualAnimalIndex="4" image="map/config/cows/store_cowHereford.png"/>
             </visuals>
@@ -235,18 +235,18 @@
                  gender="male" breed="TEXEL"
                  minWeight="5.5" targetWeight="75.0" maxWeight="150.0">
             <visuals>
-                <visual minAge="0" visualAnimalIndex="4" name="$l10n_animal_visual_baby"
-                        image="$dataS/character/animals/domesticated/sheep/store_sheepSteinschafBaby.png"
+                <visual minAge="0" visualAnimalIndex="1" name="$l10n_animal_visual_baby"
+                        image="$dataS/character/animals/domesticated/sheep/store_sheepLandraceBaby.png"
                         canBeBought="true">
                     <description>$l10n_rl_bridge_ramTexelLambDesc</description>
                 </visual>
-                <visual minAge="3" visualAnimalIndex="5" name="$l10n_animal_visual_kid"
-                        image="$dataS/character/animals/domesticated/sheep/store_sheepSteinschafKid.png"
+                <visual minAge="3" visualAnimalIndex="2" name="$l10n_animal_visual_kid"
+                        image="map/config/sheep/store_sheepTexelKid.png"
                         canBeBought="true">
                     <description>$l10n_rl_bridge_ramTexelYoungDesc</description>
                 </visual>
-                <visual minAge="8" visualAnimalIndex="6" name="$l10n_animal_visual_adult"
-                        image="$dataS/character/animals/domesticated/sheep/store_sheepSteinschaf.png"
+                <visual minAge="8" visualAnimalIndex="3" name="$l10n_animal_visual_adult"
+                        image="map/config/sheep/store_sheepTexel.png"
                         canBeBought="true">
                     <description>$l10n_rl_bridge_ramTexelAdultDesc</description>
                 </visual>
@@ -301,18 +301,18 @@
                  gender="male" breed="SUFFOLK"
                  minWeight="5.0" targetWeight="70.0" maxWeight="150.0">
             <visuals>
-                <visual minAge="0" visualAnimalIndex="1" name="$l10n_animal_visual_baby"
-                        image="$dataS/character/animals/domesticated/sheep/store_sheepLandraceBaby.png"
+                <visual minAge="0" visualAnimalIndex="4" name="$l10n_animal_visual_baby"
+                        image="$dataS/character/animals/domesticated/sheep/store_sheepSteinschafBaby.png"
                         canBeBought="true">
                     <description>$l10n_rl_bridge_ramSuffolkLambDesc</description>
                 </visual>
-                <visual minAge="3" visualAnimalIndex="2" name="$l10n_animal_visual_kid"
-                        image="$dataS/character/animals/domesticated/sheep/store_sheepLandraceKid.png"
+                <visual minAge="3" visualAnimalIndex="5" name="$l10n_animal_visual_kid"
+                        image="$dataS/character/animals/domesticated/sheep/store_sheepSteinschafKid.png"
                         canBeBought="true">
                     <description>$l10n_rl_bridge_ramSuffolkYoungDesc</description>
                 </visual>
-                <visual minAge="8" visualAnimalIndex="3" name="$l10n_animal_visual_adult"
-                        image="$dataS/character/animals/domesticated/sheep/store_sheepLandrace.png"
+                <visual minAge="8" visualAnimalIndex="6" name="$l10n_animal_visual_adult"
+                        image="$dataS/character/animals/domesticated/sheep/store_sheepSteinschaf.png"
                         canBeBought="true">
                     <description>$l10n_rl_bridge_ramSuffolkAdultDesc</description>
                 </visual>
@@ -368,17 +368,17 @@
                  minWeight="4.5" targetWeight="55.0" maxWeight="150.0">
             <visuals>
                 <visual minAge="0" visualAnimalIndex="1" name="$l10n_animal_visual_baby"
-                        image="$dataS/character/animals/domesticated/sheep/store_sheepLandraceBaby.png"
+                        image="map/config/sheep/store_sheepBlueFacedLeicesterBaby.png"
                         canBeBought="true">
                     <description>$l10n_rl_bridge_ramBFLLambDesc</description>
                 </visual>
                 <visual minAge="3" visualAnimalIndex="2" name="$l10n_animal_visual_kid"
-                        image="$dataS/character/animals/domesticated/sheep/store_sheepLandraceKid.png"
+                        image="map/config/sheep/store_sheepBlueFacedLeicesterKid.png"
                         canBeBought="true">
                     <description>$l10n_rl_bridge_ramBFLYoungDesc</description>
                 </visual>
                 <visual minAge="8" visualAnimalIndex="3" name="$l10n_animal_visual_adult"
-                        image="$dataS/character/animals/domesticated/sheep/store_sheepLandrace.png"
+                        image="map/config/sheep/store_sheepBlueFacedLeicester.png"
                         canBeBought="true">
                     <description>$l10n_rl_bridge_ramBFLAdultDesc</description>
                 </visual>
@@ -437,8 +437,21 @@
     <animal type="RABBIT">
         <pregnancy average="4" max="8"/>
 
-        <!-- Override: fix existing RABBIT (female) weights and set breed -->
-        <subType subType="RABBIT" breed="RABBIT" minWeight="0.1" targetWeight="2.5" maxWeight="5.0"/>
+        <!-- Override: fix existing RABBIT (female) weights, breed, and consumption rates.
+             Witcombe map's original input is sheep-scaled (16.5 L water/day, 15 L food/day adult)
+             which collapses doe Health to 0% within hours. Mirror the buck's rabbit-scale rates. -->
+        <subType subType="RABBIT" breed="RABBIT" minWeight="0.1" targetWeight="2.5" maxWeight="5.0">
+            <input>
+                <water>
+                    <key ageMonth="0" value="0.1"/>
+                    <key ageMonth="5" value="0.5"/>
+                </water>
+                <food>
+                    <key ageMonth="0" value="0.2"/>
+                    <key ageMonth="5" value="1.5"/>
+                </food>
+            </input>
+        </subType>
 
         <!-- New: RABBIT_MALE -->
         <subType subType="RABBIT_MALE" fillTypeName="RABBIT_MALE"
