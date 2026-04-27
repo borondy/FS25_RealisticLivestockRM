@@ -1047,18 +1047,30 @@ function RealisticLivestock.addAnimals(self, superFunc, subTypeIndex, numAnimals
         end
     end
 
-    if cluster:getSupportsMerging() then
-        cluster.numAnimals = numAnimals
-        cluster.age = age
-        cluster.subTypeIndex = subTypeIndex
-        self:addCluster(cluster)
-    else
-        for i = 1, numAnimals do
-            cluster = animalSystem:createClusterFromSubTypeIndex(subTypeIndex)
-            cluster.numAnimals = 1
+    local clusterSystem = self.spec_husbandryAnimals.clusterSystem
+    Log:debug("RealisticLivestock.addAnimals: queueing subTypeIndex=%d numAnimals=%d age=%s",
+        subTypeIndex, numAnimals, tostring(age))
+
+    local ok, err = pcall(function()
+        if cluster:getSupportsMerging() then
+            cluster.numAnimals = numAnimals
             cluster.age = age
-            self:addCluster(cluster)
+            cluster.subTypeIndex = subTypeIndex
+            clusterSystem:addPendingAddCluster(cluster)
+        else
+            for i = 1, numAnimals do
+                cluster = animalSystem:createClusterFromSubTypeIndex(subTypeIndex)
+                cluster.numAnimals = 1
+                cluster.age = age
+                clusterSystem:addPendingAddCluster(cluster)
+            end
         end
+    end)
+    local ok2, err2 = pcall(function() clusterSystem:updateNow() end)
+
+    if not (ok and ok2) then
+        Log:error("RealisticLivestock.addAnimals: batch failed subTypeIndex=%d numAnimals=%d queue=%s flush=%s",
+            subTypeIndex, numAnimals, tostring(err), tostring(err2))
     end
 end
 
