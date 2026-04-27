@@ -305,20 +305,39 @@ AnimalClusterSystem.getClusterById = Utils.overwrittenFunction(AnimalClusterSyst
 
 
 
+--- Add an animal to self.animals (local-only after RLRM-204). External callers MUST go
+--- through addPendingAddCluster + updateNow; the only callers of this method are now
+--- updateClusters' queue-processing (lines 423/476/486/537) and readStream (line 222).
+--- Includes the invalid-uniqueId early-return guard before the table insert.
+--- @param superFunc function Overwritten-function predecessor (unused; replaced wholesale)
+--- @param animal table Animal entity to add (must have valid uniqueId)
 function RealisticLivestock_AnimalClusterSystem:addCluster(superFunc, animal)
 
     if animal.uniqueId == nil or animal.uniqueId == "1-1" or animal.uniqueId == "0-0" then return end
     animal:setClusterSystem(self)
     table.insert(self.animals, animal)
 
-    self:updateIdMapping()
-
+    Log:trace("AnimalClusterSystem:addCluster: husbandry=%s animal uniqueId=%s farmId=%s",
+        tostring(self.owner and self.owner.getName and self.owner:getName() or self.owner),
+        tostring(animal.uniqueId), tostring(animal.farmId))
 end
 
 AnimalClusterSystem.addCluster = Utils.overwrittenFunction(AnimalClusterSystem.addCluster, RealisticLivestock_AnimalClusterSystem.addCluster)
 
 
+--- Remove an animal from self.animals by numeric index OR string key (local-only after
+--- RLRM-204). Visual-counter side effects (clusterHusbandry.husbandryIdsToVisualAnimalCount,
+--- visualAnimalCount, removeHusbandryAnimal callback) still run per-animal and are
+--- order-independent (per-animal increments). External callers MUST go through
+--- addPendingRemoveCluster + updateNow; the only callers of this method are now
+--- updateClusters' queue-processing (line 561) and readStream (line 233).
+--- @param _ function Overwritten-function predecessor (unused; replaced wholesale)
+--- @param animalIndex number|string Numeric index into self.animals OR string key resolved by linear scan
 function RealisticLivestock_AnimalClusterSystem:removeCluster(_, animalIndex)
+
+    Log:trace("AnimalClusterSystem:removeCluster: husbandry=%s animalIndex=%s",
+        tostring(self.owner and self.owner.getName and self.owner:getName() or self.owner),
+        tostring(animalIndex))
 
     if self.animals[animalIndex] ~= nil then
         local animal = self.animals[animalIndex]
@@ -404,13 +423,18 @@ function RealisticLivestock_AnimalClusterSystem:removeCluster(_, animalIndex)
         end
     end
 
-    self:updateIdMapping()
-
 end
 
 AnimalClusterSystem.removeCluster = Utils.overwrittenFunction(AnimalClusterSystem.removeCluster, RealisticLivestock_AnimalClusterSystem.removeCluster)
 
 
+--- Process pending add/remove queues, rebuild idToIndex, and (after RLRM-204) fire one
+--- AnimalClusterUpdateEvent broadcast + g_messageCenter publish per call gated on the
+--- local isDirty accumulator. isDirty starts false at line 416 and is set to true when
+--- work happens (queue processing at 424/477/487/538, per-animal animal.isDirty
+--- consumption at 548-549, removal pass at 558); publish/broadcast tail runs after the
+--- existing trailing self:updateIdMapping() at line 567 only when isDirty is true.
+--- @param superFunc function Overwritten-function predecessor (unused; replaced wholesale)
 function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
 
     local isDirty = false
@@ -565,6 +589,27 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
     self.clustersToRemove = {}
 
     self:updateIdMapping()
+
+    -- Publish + broadcast tail (RLRM-204). Gated on the local isDirty accumulator
+    -- (line 416) which captures per-animal animal.isDirty work plus add/remove
+    -- activity. The direct self.owner:updatedClusters(...) call previously inside
+    -- updateIdMapping is removed; the publish below triggers the existing
+    -- AnimalClusterUpdateEvent subscriber installed by the husbandry placeable, so
+    -- updatedClusters fires exactly once per flush. Fixes the pre-existing
+    -- double-fire (server) / triple-fire (client receive via readStream) of
+    -- updatedClusters that the per-call updateIdMapping path produced.
+    if isDirty and g_server ~= nil then
+        g_server:broadcastEvent(AnimalClusterUpdateEvent.new(self.owner, self.animals))
+    end
+    if isDirty then
+        g_messageCenter:publish(AnimalClusterUpdateEvent, self.owner, self.animals)
+    end
+
+    Log:debug("AnimalClusterSystem:updateClusters: husbandry=%s flushed isDirty=%s animals=%d",
+        tostring(self.owner and self.owner.getName and self.owner:getName() or self.owner),
+        tostring(isDirty),
+        #self.animals)
+
     if self.owner.spec_husbandryAnimals ~= nil then self.owner.spec_husbandryAnimals:updateVisualAnimals() end
 
 
@@ -573,6 +618,12 @@ end
 AnimalClusterSystem.updateClusters = Utils.overwrittenFunction(AnimalClusterSystem.updateClusters, RealisticLivestock_AnimalClusterSystem.updateClusters)
 
 
+--- Rebuild self.idToIndex from self.animals. Pure index rebuild after RLRM-204:
+--- the publish + broadcast + direct owner.updatedClusters call previously embedded
+--- here moved to the tail of updateClusters (gated on the local isDirty accumulator).
+--- Removing the direct call also fixes the pre-existing double-fire of updatedClusters
+--- server-side and triple-fire client-side that the per-call path produced.
+--- @param superFunc function Overwritten-function predecessor (unused; replaced wholesale)
 function RealisticLivestock_AnimalClusterSystem:updateIdMapping(superFunc)
     self.idToIndex = {}
 
@@ -580,12 +631,10 @@ function RealisticLivestock_AnimalClusterSystem:updateIdMapping(superFunc)
         if index == nil then continue end
         self.idToIndex[RLAnimalUtil.toShortKey(animal.farmId, animal.uniqueId)] = index
     end
-        
-    if self.owner.updatedClusters ~= nil then self.owner:updatedClusters(self.owner, self.animals) end
 
-    if g_server ~= nil then g_server:broadcastEvent(AnimalClusterUpdateEvent.new(self.owner, self.animals)) end
-    g_messageCenter:publish(AnimalClusterUpdateEvent, self.owner, self.animals)
-    
+    Log:trace("AnimalClusterSystem:updateIdMapping: husbandry=%s rebuilt idToIndex over %d animals",
+        tostring(self.owner and self.owner.getName and self.owner:getName() or self.owner),
+        #self.animals)
 end
 
 AnimalClusterSystem.updateIdMapping = Utils.overwrittenFunction(AnimalClusterSystem.updateIdMapping, RealisticLivestock_AnimalClusterSystem.updateIdMapping)
