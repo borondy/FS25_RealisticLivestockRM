@@ -135,11 +135,16 @@ function AnimalMoveEvent:run(connection)
 		Log:trace("AnimalMoveEvent:run: EPP typeData=%s", tostring(eppTypeData))
 	end
 
+	-- Pass 1: EPP filter + source-cluster lookup. Pre-resolving source references here
+	-- avoids a second linear scan inside addPendingRemoveCluster, and skipping EPP-failed
+	-- animals at this stage keeps them out of both pending queues entirely.
+	local targetClusterSystem = self.targetObject:getClusterSystem()
+	local transferList = {}
 	for i, animal in pairs(self.animals) do
 		Log:trace("AnimalMoveEvent:run: processing animal %d id='%s' age=%s",
 			i, tostring(animal.uniqueId), tostring(animal.age))
 
-		-- Server-side EPP age validation: skip animals outside age range
+		local skip = false
 		if eppTypeData ~= nil then
 			local age = animal.age or 0
 			local minAge = eppTypeData.minimumAge or 0
@@ -147,28 +152,49 @@ function AnimalMoveEvent:run(connection)
 			if age < minAge or age > maxAge then
 				Log:trace("AnimalMoveEvent:run: skipping animal '%s' age=%d (EPP range %d-%d)",
 					animal.uniqueId or "?", age, minAge, maxAge)
-			else
-				local clusterId = RLAnimalUtil.toKey(animal.farmId, animal.uniqueId, animal.birthday.country)
-				Log:trace("AnimalMoveEvent:run: removeCluster '%s'", clusterId)
-				clusterSystemSource:removeCluster(clusterId)
-				animal.id, animal.idFull = nil, nil
-				Log:trace("AnimalMoveEvent:run: addCluster to target")
-				self.targetObject:addCluster(animal)
-				Log:trace("AnimalMoveEvent:run: addCluster complete")
+				skip = true
 			end
-		else
+		end
+
+		if not skip then
 			local clusterId = RLAnimalUtil.toKey(animal.farmId, animal.uniqueId, animal.birthday.country)
-			Log:trace("AnimalMoveEvent:run: removeCluster '%s'", clusterId)
-			clusterSystemSource:removeCluster(clusterId)
-			animal.id, animal.idFull = nil, nil
-			Log:trace("AnimalMoveEvent:run: addCluster to target")
-			self.targetObject:addCluster(animal)
-			Log:trace("AnimalMoveEvent:run: addCluster complete")
+			local sourceCluster = clusterSystemSource:getClusterById(clusterId)
+			if sourceCluster ~= nil then
+				table.insert(transferList, { animal = animal, sourceCluster = sourceCluster })
+			else
+				Log:warning("AnimalMoveEvent:run: source cluster not found for clusterId='%s' (skipping)",
+					tostring(clusterId))
+			end
 		end
 	end
 
-	Log:debug("AnimalMoveEvent:run: transfer complete, sending success response")
-	connection:sendEvent(AnimalMoveEvent.newServerToClient(AnimalMoveEvent.MOVE_SUCCESS))
+	-- Pass 2: three independent pcall blocks (loop + target updateNow + source updateNow).
+	-- Independent pcalls so a flush failure on one cluster system does not skip the other -
+	-- otherwise the queued mutation auto-flushes on the next frame's update(dt) and the
+	-- move appears non-atomic during the gap.
+	local ok1, err1 = pcall(function()
+		for _, entry in ipairs(transferList) do
+			clusterSystemSource:addPendingRemoveCluster(entry.sourceCluster)
+			entry.animal.id, entry.animal.idFull = nil, nil
+			targetClusterSystem:addPendingAddCluster(entry.animal)
+		end
+	end)
+	local ok2, err2 = pcall(function() targetClusterSystem:updateNow() end)
+	local ok3, err3 = pcall(function() clusterSystemSource:updateNow() end)
+	local okAll = ok1 and ok2 and ok3
+
+	if okAll then
+		Log:debug("AnimalMoveEvent:run: transfer complete N=%d source=%s target=%s, sending success",
+			#transferList,
+			tostring(self.sourceObject and self.sourceObject.getName and self.sourceObject:getName()),
+			tostring(self.targetObject and self.targetObject.getName and self.targetObject:getName()))
+		connection:sendEvent(AnimalMoveEvent.newServerToClient(AnimalMoveEvent.MOVE_SUCCESS))
+	else
+		Log:error("AnimalMoveEvent:run: batch failed N=%d loop=%s targetFlush=%s sourceFlush=%s",
+			#transferList, tostring(err1), tostring(err2), tostring(err3))
+		connection:sendEvent(AnimalMoveEvent.newServerToClient(AnimalMoveEvent.MOVE_ERROR_INVALID_CLUSTER))
+		return
+	end
 
 	if g_server ~= nil and not g_server.netIsRunning then return end
 

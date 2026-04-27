@@ -103,8 +103,25 @@ function AnimalBirthEvent:run(connection)
 
         local clusterSystem = self.object:getClusterSystem()
 
-        for _, child in pairs(self.children) do clusterSystem:addCluster(child) end
+        -- Server-only: queue children adds + flush so they appear in clusterSystem.animals
+        -- before the parent lookup. Clients skip; their cluster state syncs via the
+        -- AnimalClusterUpdateEvent broadcast that fires from the server's flush.
+        if g_server ~= nil then
+            local ok, err = pcall(function()
+                for _, child in pairs(self.children) do
+                    clusterSystem:addPendingAddCluster(child)
+                end
+            end)
+            local ok2, err2 = pcall(function() clusterSystem:updateNow() end)
+            if not (ok and ok2) then
+                Log:error("BirthEvent:run: addCluster batch failed children=%d queue=%s flush=%s",
+                    #self.children, tostring(err), tostring(err2))
+            end
+        end
 
+        -- Every machine: parent state mutations on the existing animal reference.
+        -- Client clusterSystem.animals already contains parent (synced from earlier);
+        -- server clusterSystem.animals contains parent (was there before this event).
         local parent = RLAnimalUtil.find(clusterSystem.animals, identifiers.farmId, identifiers.uniqueId, country)
 
         if parent ~= nil then
@@ -120,7 +137,24 @@ function AnimalBirthEvent:run(connection)
             Log:trace("BirthEvent:run parent not found uniqueId=%s (cluster)", tostring(identifiers.uniqueId))
         end
 
-        if self.parentDied then clusterSystem:removeCluster(RLAnimalUtil.toKeyFromIdentifiers(identifiers)) end
+        -- Server-only: parentDied removal + flush.
+        if self.parentDied and g_server ~= nil then
+            local parentKey = RLAnimalUtil.toKeyFromIdentifiers(identifiers)
+            local parentCluster = clusterSystem:getClusterById(parentKey)
+            if parentCluster ~= nil then
+                local ok, err = pcall(function() clusterSystem:addPendingRemoveCluster(parentCluster) end)
+                local ok2, err2 = pcall(function() clusterSystem:updateNow() end)
+                if not (ok and ok2) then
+                    Log:error("BirthEvent:run: parentDied removal failed key=%s queue=%s flush=%s",
+                        tostring(parentKey), tostring(err), tostring(err2))
+                end
+            else
+                Log:warning("BirthEvent:run: parentDied but cluster not found for key=%s", tostring(parentKey))
+            end
+        end
+
+        Log:debug("BirthEvent:run: cluster path complete uniqueId=%s children=%d parentDied=%s server=%s",
+            tostring(identifiers.uniqueId), #self.children, tostring(self.parentDied), tostring(g_server ~= nil))
 
     end
 

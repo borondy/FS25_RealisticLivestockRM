@@ -4,11 +4,22 @@ local Log = RmLogging.getLogger("RLRM")
 
 function RealisticLivestock_LivestockTrailer:addAnimals(superFunc, animals)
 
-    for _, animal in pairs(animals) do
+    local clusterSystem = self.spec_livestockTrailer.clusterSystem
 
-        self:addCluster(animal)
+    local ok, err = pcall(function()
+        for _, animal in pairs(animals) do
+            self:addCluster(animal)
+        end
+    end)
+    local ok2, err2 = pcall(function() clusterSystem:updateNow() end)
 
+    if not (ok and ok2) then
+        Log:error("Trailer addAnimals: batch failed N=%d queue=%s flush=%s",
+            #animals, tostring(err), tostring(err2))
     end
+
+    Log:debug("Trailer addAnimals: queued %d animal(s) through self:addCluster and flushed once",
+        #animals)
 
 end
 
@@ -57,17 +68,17 @@ function RealisticLivestock_LivestockTrailer:addCluster(superFunc, cluster)
                 clusterSystem = clusterSystem,
                 canBeSold = canBeSoldFlag
             })
-            clusterSystem:addCluster(animal)
+            clusterSystem:addPendingAddCluster(animal)
         end
-        clusterSystem:updateNow()
+        -- Flush is the caller's responsibility (addAnimals tail); per-cluster updateNow
+        -- removed for RLRM-204 to keep trailer loads at one flush instead of N.
         return
 
     end
 
     Log:trace("Trailer addCluster: pass-through RLRM animal (uniqueId=%s canBeSold=%s)",
         tostring(cluster.uniqueId), tostring(cluster.canBeSold))
-    clusterSystem:addCluster(cluster)
-    clusterSystem:updateNow()
+    clusterSystem:addPendingAddCluster(cluster)
 end
 
 LivestockTrailer.addCluster = Utils.overwrittenFunction(LivestockTrailer.addCluster, RealisticLivestock_LivestockTrailer.addCluster)

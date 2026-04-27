@@ -762,16 +762,35 @@ function AnimalReproduction.reproduce(animal, spec, day, month, year, isSaleAnim
     end
 
     local animalSystem = g_currentMission.animalSystem
+    local clusterSystem = animal.clusterSystem
+    local clusterChildren = 0
 
-    for _, child in pairs(pregnancies) do
-
-        if isSaleAnimal then
-            animalSystem:addExistingSaleAnimal(child)
-        else
-            animal.clusterSystem:addCluster(child)
+    local ok, err = pcall(function()
+        for _, child in pairs(pregnancies) do
+            if isSaleAnimal then
+                animalSystem:addExistingSaleAnimal(child)
+            else
+                clusterSystem:addPendingAddCluster(child)
+                clusterChildren = clusterChildren + 1
+            end
         end
+    end)
 
+    -- Flush only when at least one child took the cluster path; pure sale-animal
+    -- births don't touch the cluster system and don't need a flush.
+    local ok2, err2 = true, nil
+    if clusterChildren > 0 and clusterSystem ~= nil then
+        ok2, err2 = pcall(function() clusterSystem:updateNow() end)
     end
+
+    if not (ok and ok2) then
+        Log:error("AnimalReproduction: birth batch failed mother=%s farmId=%s queue=%s flush=%s",
+            tostring(animal.uniqueId), tostring(animal.farmId), tostring(err), tostring(err2))
+    end
+
+    Log:debug("AnimalReproduction: birth batch flushed mother=%s farmId=%s clusterChildren=%d totalPregnancies=%d isSaleAnimal=%s",
+        tostring(animal.uniqueId), tostring(animal.farmId),
+        clusterChildren, #pregnancies, tostring(isSaleAnimal))
 
     -- Build scannable birth summary line
     local fatherId = animal.impregnatedBy and animal.impregnatedBy.uniqueId or "?"

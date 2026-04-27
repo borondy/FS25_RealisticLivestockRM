@@ -234,17 +234,32 @@ PlaceableHusbandryAnimals.updateVisualAnimals = Utils.overwrittenFunction(Placea
 
 
 
---- Handle both RLRM internal calls (table of Animal objects) and base game API calls
---- (subTypeIndex, numAnimals, age) used by external mods like HB's CFTA incubator system.
+--- Handle both RLRM internal calls (table of Animal objects) and external API calls
+--- (subTypeIndex, numAnimals, age) used by other mods like HB's CFTA incubator system.
+--- The RLRM path queues every animal via the cluster system's pending API and flushes
+--- once at the end (post-RLRM-204). The external-signature path delegates to superFunc
+--- which lands in RealisticLivestock.addAnimals (also queue-based after RLRM-204).
 function RealisticLivestock_PlaceableHusbandryAnimals:addAnimals(superFunc, animals, ...)
 
     if type(animals) == "table" then
         Log:trace("addAnimals: RLRM path - %d animal(s) in table", #animals)
-        for _, animal in pairs(animals) do self:addCluster(animal) end
+        local clusterSystem = self.spec_husbandryAnimals.clusterSystem
+
+        local ok, err = pcall(function()
+            for _, animal in pairs(animals) do
+                clusterSystem:addPendingAddCluster(animal)
+            end
+        end)
+        local ok2, err2 = pcall(function() clusterSystem:updateNow() end)
+
+        if not (ok and ok2) then
+            Log:error("addAnimals: RLRM path batch failed N=%d queue=%s flush=%s",
+                #animals, tostring(err), tostring(err2))
+        end
     else
-        -- Base game signature: addAnimals(subTypeIndex, numAnimals, age)
+        -- External API signature: addAnimals(subTypeIndex, numAnimals, age)
         local numAnimals, age = ...
-        Log:trace("addAnimals: base game path - subTypeIndex=%s numAnimals=%s age=%s",
+        Log:trace("addAnimals: external path - subTypeIndex=%s numAnimals=%s age=%s",
             tostring(animals), tostring(numAnimals), tostring(age))
         superFunc(self, animals, numAnimals, age)
     end
