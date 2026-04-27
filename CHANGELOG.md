@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.2.3.0-dev.1
+- Improved bulk animal operations (move, sell, buy, AI sell): large herds should no longer freeze the game when moving, selling, or buying many animals at once
+- Improved multiplayer bandwidth on bulk operations and daily reproduction / death cycles: clients now receive a single update per affected husbandry instead of one per animal
+- Fixed redundant "animals changed" notifications firing multiple times per mutation
+
 ## v1.2.2.0
 - Added Witcombe map support: new UK breeds (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) with full breeding, genetics, and reproduction; rabbits get viable weights, litter sizes, and consumption rates; automatic version-aware compatibility
 - Hereford on Witcombe now uses a heritage breed profile: 9-month gestation, premium pricing (300/3000), and an 18-month sell-price peak

@@ -1,6 +1,6 @@
 <modDesc descVersion="107">
     <author>Ritter</author>
-    <version>1.2.2.0</version>
+    <version>1.2.3.0-dev.1</version>
     <title>
         <en>Realistic Livestock - Ritter version</en>
         <it>Allevamento Realistico - Versione Ritter</it>
@@ -23,6 +23,11 @@ Documentation: https://rittermod.github.io/FS25_RealisticLivestockRM
 Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivestockRM
 
 Changelog
+
+1.2.3.0-dev.1:
+- Improved bulk animal operations (move, sell, buy, AI sell): large herds should no longer freeze the game when moving, selling, or buying many animals at once
+- Improved multiplayer bandwidth on bulk operations and daily reproduction / death cycles: clients now receive a single update per affected husbandry instead of one per animal
+- Fixed redundant "animals changed" notifications firing multiple times per mutation
 
 1.2.2.0:
 - Added Witcombe map support: new UK breeds (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) with full breeding, genetics, and reproduction; rabbits get viable weights, litter sizes, and consumption rates; automatic version-aware compatibility

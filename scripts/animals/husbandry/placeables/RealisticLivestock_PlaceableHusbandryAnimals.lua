@@ -237,8 +237,8 @@ PlaceableHusbandryAnimals.updateVisualAnimals = Utils.overwrittenFunction(Placea
 --- Handle both RLRM internal calls (table of Animal objects) and external API calls
 --- (subTypeIndex, numAnimals, age) used by other mods like HB's CFTA incubator system.
 --- The RLRM path queues every animal via the cluster system's pending API and flushes
---- once at the end (post-RLRM-204). The external-signature path delegates to superFunc
---- which lands in RealisticLivestock.addAnimals (also queue-based after RLRM-204).
+--- once at the end. The external-signature path delegates to superFunc which lands
+--- in RealisticLivestock.addAnimals (also queue-based).
 function RealisticLivestock_PlaceableHusbandryAnimals:addAnimals(superFunc, animals, ...)
 
     if type(animals) == "table" then

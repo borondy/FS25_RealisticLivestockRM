@@ -305,7 +305,7 @@ AnimalClusterSystem.getClusterById = Utils.overwrittenFunction(AnimalClusterSyst
 
 
 
---- Add an animal to self.animals (local-only after RLRM-204). External callers MUST go
+--- Add an animal to self.animals (local-only). External callers MUST go
 --- through addPendingAddCluster + updateNow; the only callers of this method are now
 --- updateClusters' queue-processing (lines 423/476/486/537) and readStream (line 222).
 --- Includes the invalid-uniqueId early-return guard before the table insert.
@@ -325,8 +325,8 @@ end
 AnimalClusterSystem.addCluster = Utils.overwrittenFunction(AnimalClusterSystem.addCluster, RealisticLivestock_AnimalClusterSystem.addCluster)
 
 
---- Remove an animal from self.animals by numeric index OR string key (local-only after
---- RLRM-204). Visual-counter side effects (clusterHusbandry.husbandryIdsToVisualAnimalCount,
+--- Remove an animal from self.animals by numeric index OR string key (local-only).
+--- Visual-counter side effects (clusterHusbandry.husbandryIdsToVisualAnimalCount,
 --- visualAnimalCount, removeHusbandryAnimal callback) still run per-animal and are
 --- order-independent (per-animal increments). External callers MUST go through
 --- addPendingRemoveCluster + updateNow; the only callers of this method are now
@@ -428,7 +428,7 @@ end
 AnimalClusterSystem.removeCluster = Utils.overwrittenFunction(AnimalClusterSystem.removeCluster, RealisticLivestock_AnimalClusterSystem.removeCluster)
 
 
---- Process pending add/remove queues, rebuild idToIndex, and (after RLRM-204) fire one
+--- Process pending add/remove queues, rebuild idToIndex, and fire one
 --- AnimalClusterUpdateEvent broadcast + g_messageCenter publish per call gated on the
 --- local isDirty accumulator. isDirty starts false at line 416 and is set to true when
 --- work happens (queue processing at 424/477/487/538, per-animal animal.isDirty
@@ -590,7 +590,7 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
 
     self:updateIdMapping()
 
-    -- Publish + broadcast tail (RLRM-204). Gated on the local isDirty accumulator
+    -- Publish + broadcast tail. Gated on the local isDirty accumulator
     -- (line 416) which captures per-animal animal.isDirty work plus add/remove
     -- activity. The direct self.owner:updatedClusters(...) call previously inside
     -- updateIdMapping is removed; the publish below triggers the existing
@@ -618,7 +618,7 @@ end
 AnimalClusterSystem.updateClusters = Utils.overwrittenFunction(AnimalClusterSystem.updateClusters, RealisticLivestock_AnimalClusterSystem.updateClusters)
 
 
---- Rebuild self.idToIndex from self.animals. Pure index rebuild after RLRM-204:
+--- Rebuild self.idToIndex from self.animals. Pure index rebuild:
 --- the publish + broadcast + direct owner.updatedClusters call previously embedded
 --- here moved to the tail of updateClusters (gated on the local isDirty accumulator).
 --- Removing the direct call also fixes the pre-existing double-fire of updatedClusters

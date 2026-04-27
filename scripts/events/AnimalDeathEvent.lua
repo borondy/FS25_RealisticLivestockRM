@@ -47,7 +47,7 @@ end
 
 --- Remove dead animal from herd. Uses findAndRemove for non-cluster path (animalSystem,
 --- runs on every machine) or addPendingRemoveCluster + updateNow for cluster path
---- (server-only after RLRM-204; clients sync via the AnimalClusterUpdateEvent broadcast
+--- (server-only; clients sync via the AnimalClusterUpdateEvent broadcast
 --- that fires from the server's flush). Without the server guard, addPendingRemoveCluster
 --- would assert(self.isServer) and crash clients on every animal death.
 function AnimalDeathEvent:run(connection)

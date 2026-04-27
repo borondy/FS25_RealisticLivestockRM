@@ -71,7 +71,7 @@ function RealisticLivestock_LivestockTrailer:addCluster(superFunc, cluster)
             clusterSystem:addPendingAddCluster(animal)
         end
         -- Flush is the caller's responsibility (addAnimals tail); per-cluster updateNow
-        -- removed for RLRM-204 to keep trailer loads at one flush instead of N.
+        -- removed to keep trailer loads at one flush instead of N.
         return
 
     end

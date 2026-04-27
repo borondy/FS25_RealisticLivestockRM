@@ -64,9 +64,9 @@ function AIAnimalSellEvent:run(connection)
 	Log:trace("AIAnimalSellEvent:run selling %d animals server=%s",
 		#self.animals, tostring(g_server ~= nil))
 
-	-- Server-only after RLRM-204: clients sync via the AnimalClusterUpdateEvent broadcast
-	-- that fires from the server's updateNow flush. The pending API asserts isServer, so
-	-- clients must skip the whole cluster mutation block to avoid crashing.
+	-- Server-only: clients sync via the AnimalClusterUpdateEvent broadcast that fires
+	-- from the server's updateNow flush. The pending API asserts isServer, so clients
+	-- must skip the whole cluster mutation block to avoid crashing.
 	if g_server == nil then return end
 
 	local clusterSystem = self.object:getClusterSystem()
