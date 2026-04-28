@@ -21,15 +21,14 @@ function RmSafeUtils.safeCall(context, fn)
     local gameTime = (RLDebugUtils and RLDebugUtils.formatGameTime and RLDebugUtils.formatGameTime()) or "?"
     Log:debug("[safeCall] %s: enter (gameTime=%s)", context, gameTime)
 
-    local ok, err = xpcall(fn, function(e)
-        return tostring(e) .. "\n" .. debug.traceback("", 2)
-    end)
+    local ok, err = xpcall(fn, function(e) return tostring(e) end)
 
     local elapsedMs = (getTimeSec() - startSec) * 1000
     Log:debug("[safeCall] %s: exit  (took %.2fms)", context, elapsedMs)
 
     if not ok then
         Log:error("Error in %s: %s", context, tostring(err))
+        printCallstack()
     end
     return ok
 end
@@ -42,14 +41,13 @@ end
 ---@param defaults table|nil     array of default values on error
 ---@return ...                   fn results or defaults
 function RmSafeUtils.safeAnimalCall(animal, context, fn, defaults)
-    local results = { xpcall(fn, function(e)
-        return tostring(e) .. "\n" .. debug.traceback("", 2)
-    end) }
+    local results = { xpcall(fn, function(e) return tostring(e) end) }
     if results[1] then
         return unpack(results, 2)
     else
         Log:error("Error in %s for animal '%s': %s",
             context, tostring(animal.uniqueId or "unknown"), tostring(results[2]))
+        printCallstack()
         if defaults then return unpack(defaults) end
     end
 end
