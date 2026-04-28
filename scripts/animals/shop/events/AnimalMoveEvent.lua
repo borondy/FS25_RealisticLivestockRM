@@ -1,5 +1,35 @@
 local Log = RmLogging.getLogger("RLRM")
 
+--- Log a one-line snapshot of a cluster husbandry's visual-count state.
+--- Used by AnimalMoveEvent:run to make source/target visual-count drift
+--- observable in the log on every move (RLRM-213).
+--- Trailer cluster systems have no clusterHusbandry; logged as "no clusterHusbandry".
+--- @param side string "source" | "target"
+--- @param stage string "before" | "after"
+--- @param clusterSystem table The cluster system to inspect
+function AnimalMoveEvent._logVisualCountSnapshot(side, stage, clusterSystem)
+	local owner = clusterSystem and clusterSystem.owner
+	local spec = owner and owner.spec_husbandryAnimals
+	local clusterHusbandry = spec and spec.clusterHusbandry
+	local ownerName = owner and owner.getName and owner:getName() or tostring(owner)
+
+	if clusterHusbandry == nil then
+		Log:debug("AnimalMoveEvent snapshot: side=%s stage=%s owner=%s (no clusterHusbandry)",
+			side, stage, tostring(ownerName))
+		return
+	end
+
+	local visualCount = clusterHusbandry.visualAnimalCount or 0
+	local slotsParts = {}
+	if type(clusterHusbandry.husbandryIdsToVisualAnimalCount) == "table" then
+		for engineId, count in pairs(clusterHusbandry.husbandryIdsToVisualAnimalCount) do
+			table.insert(slotsParts, string.format("%s=%s", tostring(engineId), tostring(count)))
+		end
+	end
+	Log:debug("AnimalMoveEvent snapshot: side=%s stage=%s owner=%s visualCount=%d slots=[%s]",
+		side, stage, tostring(ownerName), visualCount, table.concat(slotsParts, ","))
+end
+
 function AnimalMoveEvent.new(sourceObject, targetObject, animals, moveType)
 
 	local event = AnimalMoveEvent.emptyNew()
@@ -168,20 +198,37 @@ function AnimalMoveEvent:run(connection)
 		end
 	end
 
-	-- Pass 2: three independent pcall blocks (loop + target updateNow + source updateNow).
-	-- Independent pcalls so a flush failure on one cluster system does not skip the other -
-	-- otherwise the queued mutation auto-flushes on the next frame's update(dt) and the
-	-- move appears non-atomic during the gap.
+	-- Pass 2: source-first flush order is mandatory (RLRM-213). Target's updateClusters
+	-- tail-calls updateVisualAnimals, which reassigns animal.idFull on the shared Animal
+	-- entity for any animal target visualizes. If we flushed target first, source's
+	-- removeCluster would read target's engine handle and miss its own
+	-- husbandryIdsToVisualAnimalCount lookup, leaving source's visualCount stuck and
+	-- source's engine-side visual chickens never freed (visual leak + add-back failure).
+	-- Order: queue source -> flush source (source's idFull is still source's) -> clear
+	-- stale id/idFull -> queue target -> flush target. Independent pcalls so a flush
+	-- failure on one cluster system does not skip the other, otherwise the queued
+	-- mutation auto-flushes on the next frame's update(dt) and the move appears
+	-- non-atomic during the gap. Snapshot logging makes drift observable in the log.
 	local ok1, err1 = pcall(function()
 		for _, entry in ipairs(transferList) do
 			clusterSystemSource:addPendingRemoveCluster(entry.sourceCluster)
+		end
+	end)
+	AnimalMoveEvent._logVisualCountSnapshot("source", "before", clusterSystemSource)
+	local ok2, err2 = pcall(function() clusterSystemSource:updateNow() end)
+	AnimalMoveEvent._logVisualCountSnapshot("source", "after", clusterSystemSource)
+
+	local ok3, err3 = pcall(function()
+		for _, entry in ipairs(transferList) do
 			entry.animal.id, entry.animal.idFull = nil, nil
 			targetClusterSystem:addPendingAddCluster(entry.animal)
 		end
 	end)
-	local ok2, err2 = pcall(function() targetClusterSystem:updateNow() end)
-	local ok3, err3 = pcall(function() clusterSystemSource:updateNow() end)
-	local okAll = ok1 and ok2 and ok3
+	AnimalMoveEvent._logVisualCountSnapshot("target", "before", targetClusterSystem)
+	local ok4, err4 = pcall(function() targetClusterSystem:updateNow() end)
+	AnimalMoveEvent._logVisualCountSnapshot("target", "after", targetClusterSystem)
+
+	local okAll = ok1 and ok2 and ok3 and ok4
 
 	if okAll then
 		Log:debug("AnimalMoveEvent:run: transfer complete N=%d source=%s target=%s, sending success",
@@ -190,8 +237,8 @@ function AnimalMoveEvent:run(connection)
 			tostring(self.targetObject and self.targetObject.getName and self.targetObject:getName()))
 		connection:sendEvent(AnimalMoveEvent.newServerToClient(AnimalMoveEvent.MOVE_SUCCESS))
 	else
-		Log:error("AnimalMoveEvent:run: batch failed N=%d loop=%s targetFlush=%s sourceFlush=%s",
-			#transferList, tostring(err1), tostring(err2), tostring(err3))
+		Log:error("AnimalMoveEvent:run: batch failed N=%d sourceQueue=%s sourceFlush=%s targetQueue=%s targetFlush=%s",
+			#transferList, tostring(err1), tostring(err2), tostring(err3), tostring(err4))
 		connection:sendEvent(AnimalMoveEvent.newServerToClient(AnimalMoveEvent.MOVE_ERROR_INVALID_CLUSTER))
 		return
 	end
