@@ -325,14 +325,17 @@ end
 AnimalClusterSystem.addCluster = Utils.overwrittenFunction(AnimalClusterSystem.addCluster, RealisticLivestock_AnimalClusterSystem.addCluster)
 
 
---- Remove an animal from self.animals by numeric index OR string key (local-only).
+--- Remove an animal from self.animals by numeric index (local-only, private primitive).
 --- Visual-counter side effects (clusterHusbandry.husbandryIdsToVisualAnimalCount,
 --- visualAnimalCount, removeHusbandryAnimal callback) still run per-animal and are
 --- order-independent (per-animal increments). External callers MUST go through
 --- addPendingRemoveCluster + updateNow; the only callers of this method are now
---- updateClusters' queue-processing (line 561) and readStream (line 233).
+--- updateClusters' queue-processing (line 585) and readStream (line 233).
+--- Numeric out-of-range is a silent no-op. Non-numeric keys
+--- log Log:warning with stack trace for telemetry and no-op - the legacy string-key
+--- linear-scan branch was deleted in RLRM-205 (no remaining callers post-RLRM-204).
 --- @param _ function Overwritten-function predecessor (unused; replaced wholesale)
---- @param animalIndex number|string Numeric index into self.animals OR string key resolved by linear scan
+--- @param animalIndex number Numeric index into self.animals
 function RealisticLivestock_AnimalClusterSystem:removeCluster(_, animalIndex)
 
     Log:trace("AnimalClusterSystem:removeCluster: husbandry=%s animalIndex=%s",
@@ -380,47 +383,10 @@ function RealisticLivestock_AnimalClusterSystem:removeCluster(_, animalIndex)
 
         table.remove(self.animals, animalIndex)
         animal:setClusterSystem(nil)
-    else
-        for i, animal in pairs(self.animals) do
-            if RLAnimalUtil.toKey(animal.farmId, animal.uniqueId, animal.birthday.country) == animalIndex then
-
-                local spec = self.owner.spec_husbandryAnimals
-
-                if animal.idFull ~= nil and animal.idFull ~= "1-1" and spec ~= nil then
-
-                    local sep = string.find(animal.idFull, "-")
-                    local husbandry = tonumber(string.sub(animal.idFull, 1, sep - 1))
-                    local animalId = tonumber(string.sub(animal.idFull, sep + 1))
-
-                    if husbandry ~= 0 and animalId ~= 0 then
-
-                        removeHusbandryAnimal(husbandry, animalId)
-
-                        local clusterHusbandry = spec.clusterHusbandry
-                        local count = clusterHusbandry.husbandryIdsToVisualAnimalCount[husbandry]
-                        if count ~= nil then
-                            clusterHusbandry.husbandryIdsToVisualAnimalCount[husbandry] = math.max(count - 1, 0)
-                            clusterHusbandry.visualAnimalCount = math.max(clusterHusbandry.visualAnimalCount - 1, 0)
-                        else
-                            Log:warning("removeCluster: visual count missing for husbandryId=%s idFull=%s", tostring(husbandry), tostring(animal.idFull))
-                        end
-
-                        for husbandryIndex, animalIds in pairs(clusterHusbandry.animalIdToCluster) do
-                            if clusterHusbandry.husbandryIds[husbandryIndex] == husbandry then
-                                animalIds[animalId] = nil
-                                break
-                            end
-                        end
-
-                    end
-
-                end
-
-                table.remove(self.animals, i)
-                animal:setClusterSystem(nil)
-                break
-            end
-        end
+    elseif type(animalIndex) ~= "number" then
+        Log:warning("removeCluster: non-numeric key '%s'; ignored. Direct removeCluster is private - use addPendingRemoveCluster(cluster).",
+            tostring(animalIndex))
+        printCallstack()
     end
 
 end
