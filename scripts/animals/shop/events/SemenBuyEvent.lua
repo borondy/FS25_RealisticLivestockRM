@@ -88,34 +88,38 @@ end
 
 function SemenBuyEvent:run(connection)
 
-	-- Server only - create the dewar Vehicle
-	if g_server == nil then return end
+	RmSafeUtils.safeCall("SemenBuyEvent:run", function()
 
-	Log:info("SemenBuyEvent:run farmId=%d quantity=%d price=%.2f animalType=%s",
-		self.farmId, self.quantity, self.price, tostring(self.animal.animalTypeIndex))
+		-- Server only - create the dewar Vehicle
+		if g_server == nil then return end
 
-	local storeItem = g_storeManager:getItemByXMLFilename(modDirectory .. "objects/dewar/dewar.xml")
-	if storeItem == nil then
-		Log:error("SemenBuyEvent: could not find dewar store item")
-		return
-	end
+		Log:info("SemenBuyEvent:run farmId=%d quantity=%d price=%.2f animalType=%s",
+			self.farmId, self.quantity, self.price, tostring(self.animal.animalTypeIndex))
 
-	local data = VehicleLoadingData.new()
-	data:setStoreItem(storeItem)
-	data:setPropertyState(VehiclePropertyState.OWNED)
-	data:setOwnerFarmId(self.farmId)
-	data:setPosition(self.position[1], self.position[2], self.position[3])
-	data:setRotation(self.rotation[1], self.rotation[2], self.rotation[3])
+		local storeItem = g_storeManager:getItemByXMLFilename(modDirectory .. "objects/dewar/dewar.xml")
+		if storeItem == nil then
+			Log:error("SemenBuyEvent: could not find dewar store item")
+			return
+		end
 
-	Log:debug("SemenBuyEvent: VehicleLoadingData configured, starting async load")
+		local data = VehicleLoadingData.new()
+		data:setStoreItem(storeItem)
+		data:setPropertyState(VehiclePropertyState.OWNED)
+		data:setOwnerFarmId(self.farmId)
+		data:setPosition(self.position[1], self.position[2], self.position[3])
+		data:setRotation(self.rotation[1], self.rotation[2], self.rotation[3])
 
-	-- Store event data for callback access
-	self.pendingAnimal = self.animal
-	self.pendingQuantity = self.quantity
-	self.pendingPrice = self.price
-	self.pendingFarmId = self.farmId
+		Log:debug("SemenBuyEvent: VehicleLoadingData configured, starting async load")
 
-	data:load(SemenBuyEvent.onDewarLoaded, self)
+		-- Store event data for callback access
+		self.pendingAnimal = self.animal
+		self.pendingQuantity = self.quantity
+		self.pendingPrice = self.price
+		self.pendingFarmId = self.farmId
+
+		data:load(SemenBuyEvent.onDewarLoaded, self)
+
+	end)
 
 end
 
