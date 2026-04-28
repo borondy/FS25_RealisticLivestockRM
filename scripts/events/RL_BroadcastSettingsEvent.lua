@@ -83,8 +83,10 @@ function RL_BroadcastSettingsEvent:run(connection)
         for name, setting in pairs(RLSettings.SETTINGS) do
             if setting.ignore then continue end
             setting.element:setState(setting.state)
-            if setting.callback ~= nil then setting.callback(name, setting.values[setting.state]) end 
+            if setting.callback ~= nil then setting.callback(name, setting.values[setting.state]) end
         end
+
+        RLDebugUtils.dumpSettingsOnce()
 
     else
             
