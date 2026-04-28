@@ -1517,87 +1517,89 @@ end
 
 
 function AnimalSystem:onHourChanged()
+    RmSafeUtils.safeCall("AnimalSystem:onHourChanged", function()
 
-    local day = g_currentMission.environment.currentMonotonicDay
-    local hasChanges = false
+        local day = g_currentMission.environment.currentMonotonicDay
+        local hasChanges = false
 
-    for animalTypeIndex, animals in pairs(self.animals) do
+        for animalTypeIndex, animals in pairs(self.animals) do
 
-        local indexesToRemove = {}
+            local indexesToRemove = {}
 
-        for i, animal in pairs(animals) do
+            for i, animal in pairs(animals) do
 
-            if animal.sale ~= nil then
+                if animal.sale ~= nil then
 
-                local saleDay = animal.sale.day
+                    local saleDay = animal.sale.day
 
-                if saleDay == day then continue end
+                    if saleDay == day then continue end
 
-                local geneticQuality = 0
-                local totalGenetics = 0
+                    local geneticQuality = 0
+                    local totalGenetics = 0
 
-                for _, value in pairs(animal.genetics) do
-                    if value ~= nil then
-                        totalGenetics = totalGenetics + 1
-                        geneticQuality = geneticQuality + value
+                    for _, value in pairs(animal.genetics) do
+                        if value ~= nil then
+                            totalGenetics = totalGenetics + 1
+                            geneticQuality = geneticQuality + value
+                        end
                     end
+
+                    local averageGenetics = geneticQuality / totalGenetics
+
+                    if math.random() >= (saleDay / day) / (averageGenetics * 1.45) then
+                        table.insert(indexesToRemove, i)
+                        hasChanges = true
+                    end
+
                 end
 
-                local averageGenetics = geneticQuality / totalGenetics
+            end
 
-                if math.random() >= (saleDay / day) / (averageGenetics * 1.45) then
-                    table.insert(indexesToRemove, i)
-                    hasChanges = true
+            for i = #indexesToRemove, 1, -1 do
+                table.remove(animals, indexesToRemove[i])
+            end
+
+            local threshold = math.random(10, self.maxDealerAnimals)
+
+            if #animals < threshold then
+
+                for i = #animals + 1, threshold do
+
+                    local animal = self:createNewSaleAnimal(animalTypeIndex)
+
+                    if animal ~= nil then
+                        table.insert(animals, animal)
+                        hasChanges = true
+                    end
+
                 end
 
             end
 
         end
 
-        for i = #indexesToRemove, 1, -1 do
-            table.remove(animals, indexesToRemove[i])
-        end
+        for animalTypeIndex, animals in pairs(self.aiAnimals) do
 
-        local threshold = math.random(10, self.maxDealerAnimals)
+            if #animals < 15 then
 
-        if #animals < threshold then
+                for i = #animals + 1, 15 do
 
-            for i = #animals + 1, threshold do
+                    local animal = self:createNewAIAnimal(animalTypeIndex)
 
-                local animal = self:createNewSaleAnimal(animalTypeIndex)
+                    if animal ~= nil then
+                        table.insert(animals, animal)
+                        hasChanges = true
+                    end
 
-                if animal ~= nil then
-                    table.insert(animals, animal)
-                    hasChanges = true
                 end
 
             end
 
         end
-    
-    end
 
-    for animalTypeIndex, animals in pairs(self.aiAnimals) do
+        if hasChanges then g_server:broadcastEvent(AnimalSystemStateEvent.new(self.countries, self.animals, self.aiAnimals)) end
 
-        if #animals < 15 then
-
-            for i = #animals + 1, 15 do
-
-                local animal = self:createNewAIAnimal(animalTypeIndex)
-
-                if animal ~= nil then
-                    table.insert(animals, animal)
-                    hasChanges = true
-                end
-
-            end
-
-        end
-    
-    end
-
-    if hasChanges then g_server:broadcastEvent(AnimalSystemStateEvent.new(self.countries, self.animals, self.aiAnimals)) end
-
+    end)
 end
 
 

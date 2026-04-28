@@ -6,6 +6,24 @@ RLDebugUtils = {}
 RLDebugUtils._dumped = false
 
 
+--- Compact in-game time stamp for log lines.
+--- Format: "D{currentMonotonicDay} P{currentPeriod} HH:MM" (e.g. "D125 P3 06:00").
+--- Reuses Utils.formatTime for the clock part.
+--- Safe during early load: returns "?" when g_currentMission or environment is nil.
+--- No log calls inside this function - it is invoked from log-emitting code.
+---@return string gameTime  e.g. "D125 P3 06:00", or "?" if env is unavailable
+function RLDebugUtils.formatGameTime()
+    local mission = g_currentMission
+    if mission == nil or mission.environment == nil then return "?" end
+
+    local env = mission.environment
+    return string.format("D%d P%d %s",
+        env.currentMonotonicDay or 0,
+        env.currentPeriod or 0,
+        Utils.formatTime((env.dayTime or 0) / 60000))
+end
+
+
 --- Resolve the runtime role string for the dump header.
 --- Order matters: dedicated server is also a "server" so check it first.
 ---@return string role  one of: "dedi", "SP", "host", "client"

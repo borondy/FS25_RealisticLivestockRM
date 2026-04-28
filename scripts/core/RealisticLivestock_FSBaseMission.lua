@@ -179,28 +179,30 @@ FSBaseMission.sendInitialClientState = Utils.prependedFunction(FSBaseMission.sen
 
 
 function RealisticLivestock_FSBaseMission:onDayChanged()
+	RmSafeUtils.safeCall("RealisticLivestock_FSBaseMission:onDayChanged", function()
 
-	if not self:getIsServer() then return end
+		if not self:getIsServer() then return end
 
-	local husbandrySystem = self.husbandrySystem
+		local husbandrySystem = self.husbandrySystem
 
-	for _, farm in pairs(g_farmManager:getFarms()) do
+		for _, farm in pairs(g_farmManager:getFarms()) do
 
-		local husbandries = husbandrySystem:getPlaceablesByFarm(farm.farmId)
-		local wages = 0
+			local husbandries = husbandrySystem:getPlaceablesByFarm(farm.farmId)
+			local wages = 0
 
-		for _, husbandry in pairs(husbandries) do
+			for _, husbandry in pairs(husbandries) do
 
-			local aiManager = husbandry:getAIManager()
+				local aiManager = husbandry:getAIManager()
 
-			if aiManager ~= nil then wages = wages + (aiManager.wage or 0) end
+				if aiManager ~= nil then wages = wages + (aiManager.wage or 0) end
+
+			end
+
+			if wages > 0 then self:addMoney(-wages, farm.farmId, MoneyType.HERDSMAN_WAGES, true, true) end
 
 		end
 
-		if wages > 0 then self:addMoney(-wages, farm.farmId, MoneyType.HERDSMAN_WAGES, true, true) end
-
-	end
-
+	end)
 end
 
 FSBaseMission.onDayChanged = Utils.appendedFunction(FSBaseMission.onDayChanged, RealisticLivestock_FSBaseMission.onDayChanged)
