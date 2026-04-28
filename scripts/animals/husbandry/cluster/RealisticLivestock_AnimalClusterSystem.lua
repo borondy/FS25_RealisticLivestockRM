@@ -333,7 +333,7 @@ AnimalClusterSystem.addCluster = Utils.overwrittenFunction(AnimalClusterSystem.a
 --- updateClusters' queue-processing (line 585) and readStream (line 233).
 --- Numeric out-of-range is a silent no-op. Non-numeric keys
 --- log Log:warning with stack trace for telemetry and no-op - the legacy string-key
---- linear-scan branch was deleted in RLRM-205 (no remaining callers post-RLRM-204).
+--- linear-scan branch was deleted (no remaining callers).
 --- @param _ function Overwritten-function predecessor (unused; replaced wholesale)
 --- @param animalIndex number Numeric index into self.animals
 function RealisticLivestock_AnimalClusterSystem:removeCluster(_, animalIndex)

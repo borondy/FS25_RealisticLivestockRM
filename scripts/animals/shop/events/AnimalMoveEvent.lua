@@ -2,7 +2,7 @@ local Log = RmLogging.getLogger("RLRM")
 
 --- Log a one-line snapshot of a cluster husbandry's visual-count state.
 --- Used by AnimalMoveEvent:run to make source/target visual-count drift
---- observable in the log on every move (RLRM-213).
+--- observable in the log on every move.
 --- Trailer cluster systems have no clusterHusbandry; logged as "no clusterHusbandry".
 --- @param side string "source" | "target"
 --- @param stage string "before" | "after"
@@ -200,7 +200,7 @@ function AnimalMoveEvent:run(connection)
 			end
 		end
 
-		-- Pass 2: source-first flush order is mandatory (RLRM-213). Target's updateClusters
+		-- Pass 2: source-first flush order is mandatory. Target's updateClusters
 		-- tail-calls updateVisualAnimals, which reassigns animal.idFull on the shared Animal
 		-- entity for any animal target visualizes. If we flushed target first, source's
 		-- removeCluster would read target's engine handle and miss its own

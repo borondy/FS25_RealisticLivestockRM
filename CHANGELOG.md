@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.2.3.0-dev.2
+- Added `rlDumpSettings` console command and one-time startup log dump: writes the active RL settings (single-player, host, or client) to log.txt for easier support reports
+- Added periodic-handler timing to the debug log: hour, day, and period-change handlers now record enter/exit with in-game time and elapsed milliseconds, for easier performance triage in support reports (set log level to DEBUG to see them)
+- Added shop-action timing to the debug log: buying, selling, moving, inseminating animals and buying semen now record enter/exit with elapsed milliseconds, so per-action lag can be triaged from the log (set log level to DEBUG to see them)
+- Fixed bulk animal moves leaving stale visual animals in the source husbandry: source are now correctly emptied and can accept new arrivals without requiring a save reload
+- Fixed misleading error messages in support logs: when an internal error occurs, the log now shows the real error and a usable stack trace instead of "attempt to index nil with 'traceback'"
+- Improved third-party mod compatibility diagnostics: animal cluster removal now logs a warning + stack trace when another mod calls the internal API with the wrong key type (instead of silently scanning the animal list); helps surface integration bugs in support reports
+
 ## v1.2.3.0-dev.1
 - Improved bulk animal operations (move, sell, buy, AI sell): large herds should no longer freeze the game when moving, selling, or buying many animals at once
 - Improved multiplayer bandwidth on bulk operations and daily reproduction / death cycles: clients now receive a single update per affected husbandry instead of one per animal
