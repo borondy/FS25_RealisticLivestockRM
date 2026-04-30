@@ -11,6 +11,7 @@ function RealisticLivestock_PlaceableHusbandryAnimals.registerFunctions(placeabl
 	SpecializationUtil.registerFunction(placeable, "getNextRLMessageUniqueId", PlaceableHusbandryAnimals.getNextRLMessageUniqueId)
 	SpecializationUtil.registerFunction(placeable, "setNextRLMessageUniqueId", PlaceableHusbandryAnimals.setNextRLMessageUniqueId)
 	SpecializationUtil.registerFunction(placeable, "getAIManager", PlaceableHusbandryAnimals.getAIManager)
+	SpecializationUtil.registerFunction(placeable, "_flushPenDayChange", PlaceableHusbandryAnimals._flushPenDayChange)
 end
 
 PlaceableHusbandryAnimals.registerFunctions = Utils.appendedFunction(PlaceableHusbandryAnimals.registerFunctions, RealisticLivestock_PlaceableHusbandryAnimals.registerFunctions)
@@ -271,6 +272,65 @@ PlaceableHusbandryAnimals.addAnimals = Utils.overwrittenFunction(PlaceableHusban
 
 
 
+--- Tail flush at the end of a pen-day-change.
+---
+--- Births and deaths during the per-animal loop in `onDayChanged` queue mutations
+--- via `addPendingAddCluster` / `addPendingRemoveCluster` but do NOT call
+--- `updateNow` per-animal. Flushing here once per pen-day-change collapses what
+--- would be N publish chains (one per pregnant mother and one per dying animal)
+--- into 1 - so `HUSBANDRY_ANIMALS_CHANGED` listeners (food calculators, the
+--- in-game menu, third-party mods) recompute once instead of N times per pen-day.
+---
+--- `pcall` isolates per-pen failure: an exception in `updateNow` would otherwise
+--- kill the day-change loop and skip downstream pens. With the wrap, ERROR is
+--- logged with pen name + (births, deaths) and execution continues.
+---
+--- Failure-recovery model: our `updateClusters` override commits queue mutations
+--- into `self.animals` before the publish / broadcast / visual tail. So if
+--- `updateNow` raises later in the tail (e.g. a foreign-mod listener throwing
+--- on the `HUSBANDRY_ANIMALS_CHANGED` publish, or `updateVisualAnimals` throwing):
+---   - cluster contents are correct (committed before the failure point)
+---   - the publish chain may have only partially fired
+---   - `updateVisualAnimals` may not have fired
+---   - listeners and visuals resync at the next cluster mutation that runs a
+---     fresh flush (sale, move, manual edit, next day-change with deltas)
+---
+--- Caller must skip `spec.clusterHusbandry:updateVisuals()` when this returns
+--- false, to avoid rendering against a partially-published state.
+---
+--- Atomicity tradeoff vs prior per-mother flush: money commits in `onDayChanged`
+--- (auto-sold offspring, dead-animal cash) happen during the per-animal loop and
+--- commit per-mother regardless of the tail flush. On flush failure, farm balance
+--- is correct but listeners may be momentarily stale. This is a deliberate
+--- semantic change vs the prior flush-per-mother behaviour, justified by the
+--- N-to-1 reduction in publish-chain firings on heavy mod loadouts. Listener
+--- desync window closes at the next cluster mutation. Cluster contents stay
+--- correct in either case.
+---
+--- @param spec table The husbandryAnimals spec (provides `clusterSystem`)
+--- @param totalChildren number Count of newborns kept in the pen (excludes auto-sold)
+--- @param totalDeaths number `randomDeaths + oldAgeDeaths + lowHealthDeaths + deadParents`
+--- @return boolean okFlush True if `updateNow` succeeded (or no-deltas no-op); false on pcall failure
+function PlaceableHusbandryAnimals:_flushPenDayChange(spec, totalChildren, totalDeaths)
+    if totalChildren == 0 and totalDeaths == 0 then return true end
+
+    local penName = tostring(self.getName and self:getName() or self)
+    local tFlushStart = getTimeSec()
+    local okFlush, errFlush = pcall(function() spec.clusterSystem:updateNow() end)
+    local tFlushMs = (getTimeSec() - tFlushStart) * 1000
+
+    if okFlush then
+        Log:debug("onDayChanged tail flush [%s]: updateNow took %.2fms (births=%d deaths=%d)",
+            penName, tFlushMs, totalChildren, totalDeaths)
+    else
+        Log:error("onDayChanged tail flush [%s]: updateNow FAILED after %.2fms: %s (births=%d deaths=%d)",
+            penName, tFlushMs, tostring(errFlush), totalChildren, totalDeaths)
+    end
+
+    return okFlush
+end
+
+
 function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
     RmSafeUtils.safeCall("PlaceableHusbandryAnimals:onDayChanged", function()
 
@@ -358,7 +418,10 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
 
         spec.minTemp = minTemp
 
-        if randomDeaths > 0 or oldAgeDeaths > 0 or lowHealthDeaths > 0 or deadParents > 0 or totalChildren > 0 then spec.clusterHusbandry:updateVisuals() end
+        local totalDeaths = randomDeaths + oldAgeDeaths + lowHealthDeaths + deadParents
+        local okFlush = self:_flushPenDayChange(spec, totalChildren, totalDeaths)
+
+        if okFlush and (totalChildren > 0 or totalDeaths > 0) then spec.clusterHusbandry:updateVisuals() end
 
         self:raiseActive()
 

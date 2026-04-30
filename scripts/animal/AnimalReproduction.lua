@@ -776,19 +776,24 @@ function AnimalReproduction.reproduce(animal, spec, day, month, year, isSaleAnim
         end
     end)
 
-    -- Flush only when at least one child took the cluster path; pure sale-animal
-    -- births don't touch the cluster system and don't need a flush.
-    local ok2, err2 = true, nil
-    if clusterChildren > 0 and clusterSystem ~= nil then
-        ok2, err2 = pcall(function() clusterSystem:updateNow() end)
+    -- Birth queueing is unconditional. The per-pen tail flush in
+    -- PlaceableHusbandryAnimals:onDayChanged commits the queue once per
+    -- day-change, so HUSBANDRY_ANIMALS_CHANGED listeners see one batched
+    -- update per pen instead of one per pregnant mother. addPendingAddCluster
+    -- already set needsUpdate; the engine's update(dt) is the safety net if
+    -- the day-change tail flush is somehow missed.
+    if not ok then
+        Log:error("AnimalReproduction: birth queue failed mother=%s farmId=%s queue=%s",
+            tostring(animal.uniqueId), tostring(animal.farmId), tostring(err))
     end
 
-    if not (ok and ok2) then
-        Log:error("AnimalReproduction: birth batch failed mother=%s farmId=%s queue=%s flush=%s",
-            tostring(animal.uniqueId), tostring(animal.farmId), tostring(err), tostring(err2))
+    if clusterChildren > 0 then
+        Log:trace("AnimalReproduction: birth queued mother=%s farmId=%s clusterChildren=%d totalPregnancies=%d (flush deferred to onDayChanged tail)",
+            tostring(animal.uniqueId), tostring(animal.farmId),
+            clusterChildren, #pregnancies)
     end
 
-    Log:debug("AnimalReproduction: birth batch flushed mother=%s farmId=%s clusterChildren=%d totalPregnancies=%d isSaleAnimal=%s",
+    Log:debug("AnimalReproduction: birth batch queued mother=%s farmId=%s clusterChildren=%d totalPregnancies=%d isSaleAnimal=%s",
         tostring(animal.uniqueId), tostring(animal.farmId),
         clusterChildren, #pregnancies, tostring(isSaleAnimal))
 
