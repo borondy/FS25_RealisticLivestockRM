@@ -1,6 +1,12 @@
 RealisticLivestock_PlaceableHusbandryAnimals = {}
 
 
+-- Per-animal onDayChanged outlier threshold. Animals exceeding this elapsed
+-- cost during the per-pen day-change loop emit a TRACE line. Module scope so
+-- the value is allocated once and visible to any future helper.
+local SLOW_ANIMAL_MS = 50.0
+
+
 function RealisticLivestock_PlaceableHusbandryAnimals.registerFunctions(placeable)
 	SpecializationUtil.registerFunction(placeable, "setHasUnreadRLMessages", PlaceableHusbandryAnimals.setHasUnreadRLMessages)
 	SpecializationUtil.registerFunction(placeable, "getHasUnreadRLMessages", PlaceableHusbandryAnimals.getHasUnreadRLMessages)
@@ -226,8 +232,22 @@ function RealisticLivestock_PlaceableHusbandryAnimals:updateVisualAnimals(_)
     local spec = self.spec_husbandryAnimals
     local animals = spec.clusterSystem:getAnimals()
 
+    -- Phase timing: setClusters just stores the next cluster set (cheap);
+    -- updateVisuals does the engine work. Splitting them lets us pair this
+    -- log with the matching updateVisuals 4-phase summary.
+    local tStart = getTimeSec()
     spec.clusterHusbandry:setClusters(animals)
+    local tSetMs = (getTimeSec() - tStart) * 1000
+
+    local tUpdateStart = getTimeSec()
     spec.clusterHusbandry:updateVisuals()
+    local tUpdateMs = (getTimeSec() - tUpdateStart) * 1000
+
+    Log:debug("updateVisualAnimals [%s anim=%d]: setClusters=%.2fms updateVisuals=%.2fms total=%.2fms",
+        tostring(self.getName and self:getName() or self),
+        #animals,
+        tSetMs, tUpdateMs, tSetMs + tUpdateMs)
+
     self:raiseActive()
 end
 
@@ -351,6 +371,13 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
 
         local totalChildren, deadParents, childrenToSell, childrenToSellMoney, lowHealthDeaths, oldAgeDeaths, randomDeaths, randomDeathsMoney = 0, 0, 0, 0, 0, 0, 0, 0
 
+        -- Per-pen day-change instrumentation: per-iteration timer feeds
+        -- nIterated/nSlow/maxAnimal* trackers; outliers (>SLOW_ANIMAL_MS) emit
+        -- a TRACE line; per-pen DEBUG summary fires unconditionally at the tail.
+        local tLoopStart = getTimeSec()
+        local nIterated, nSlow, maxAnimalMs = 0, 0, 0
+        local maxAnimalUid, maxAnimalSubType = nil, nil
+
         for _, animal in ipairs(animals) do
 
             if self.isServer and RealisticLivestock.testAnimalPrefix ~= nil then
@@ -367,9 +394,33 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
                 animal.isParent = false
             end
 
+            local tAnimalStart = getTimeSec()
             local a, b, c, d, e, f, g, h = RmSafeUtils.safeAnimalCall(animal, "onDayChanged", function()
                 return animal:onDayChanged(spec, self.isServer, day, month, year, currentDayInPeriod, daysPerPeriod)
             end, {0, 0, 0, 0, 0, 0, 0, 0})
+            local tAnimalMs = (getTimeSec() - tAnimalStart) * 1000
+
+            nIterated = nIterated + 1
+            -- pcall-guard the subType lookup: telemetry must NOT break the per-animal
+            -- isolation that safeAnimalCall provides above. On lookup failure we fall
+            -- back to subTypeIndex (still uniquely identifying for support reports).
+            local function _safeSubTypeName()
+                local ok, subType = pcall(function() return animal.getSubType ~= nil and animal:getSubType() or nil end)
+                return (ok and subType ~= nil) and subType.name or tostring(animal.subTypeIndex)
+            end
+            if tAnimalMs > maxAnimalMs then
+                maxAnimalMs = tAnimalMs
+                maxAnimalUid = animal.uniqueId
+                maxAnimalSubType = _safeSubTypeName()
+            end
+            if tAnimalMs > SLOW_ANIMAL_MS then
+                nSlow = nSlow + 1
+                Log:trace("onDayChanged SLOW animal: husbandry=%s uniqueId=%s subType=%s took %.2fms",
+                    tostring(self.getName and self:getName() or self),
+                    tostring(animal.uniqueId),
+                    _safeSubTypeName(),
+                    tAnimalMs)
+            end
 
             totalChildren = totalChildren + (a or 0)
             deadParents = deadParents + (b or 0)
@@ -381,6 +432,9 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
             randomDeathsMoney = randomDeathsMoney + (h or 0)
 
         end
+
+        local tLoopMs = (getTimeSec() - tLoopStart) * 1000
+        local tPostStart = getTimeSec()
 
         if self.isServer then
 
@@ -430,6 +484,20 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
             g_currentMission:addIngameNotification(FSBaseMission.INGAME_NOTIFICATION_CRITICAL, string.format(g_i18n:getText("rl_ui_unreadMessages"), self:getName()))
 
         end
+
+        local tPostMs = (getTimeSec() - tPostStart) * 1000
+        local meanLoopMs = (nIterated > 0) and (tLoopMs / nIterated) or 0
+
+        Log:debug("onDayChanged summary [%s nAnim=%d]: ms_loop=%.2f ms_post=%.2f mean_per_animal=%.3fms slowAnimals=%d worst=%s(%s)@%.2fms births=%d deadParents=%d childrenToSell=%d lowHealth=%d oldAge=%d randomDeaths=%d",
+            tostring(self.getName and self:getName() or self),
+            nIterated,
+            tLoopMs, tPostMs, meanLoopMs,
+            nSlow,
+            tostring(maxAnimalUid),
+            tostring(maxAnimalSubType),
+            maxAnimalMs,
+            totalChildren, deadParents, childrenToSell,
+            lowHealthDeaths, oldAgeDeaths, randomDeaths)
 
     end)
 end

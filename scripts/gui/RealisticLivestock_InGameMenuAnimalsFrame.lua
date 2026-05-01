@@ -74,7 +74,27 @@ local function findAnimalPosition(frame, animal)
 end
 
 
+-- Per-call counter so consecutive reloadList fires can be distinguished in
+-- the log when triaging menu-refresh churn (a single user action can fan out
+-- to many reloads via the publish chain).
+RealisticLivestock_InGameMenuAnimalsFrame._reloadListCount = 0
+
+
 function RealisticLivestock_InGameMenuAnimalsFrame:reloadList(superFunc)
+    RealisticLivestock_InGameMenuAnimalsFrame._reloadListCount =
+        RealisticLivestock_InGameMenuAnimalsFrame._reloadListCount + 1
+    local callId = RealisticLivestock_InGameMenuAnimalsFrame._reloadListCount
+
+    -- No printCallstack() here - it always emits an engine [ERROR] line, which
+    -- would surface phantom ERRORs in support logs on this hot path.
+    -- No safeCall wrap either: it would silence GUI errors AND leak the
+    -- reloadData/soundDisabled mutations on throw (not finally-safe under xpcall).
+    -- Errors propagate up as expected.
+    Log:debug("InGameMenuAnimalsFrame:reloadList #%d enter: selectorState=%s, frame=%s",
+        callId,
+        tostring(self.subCategorySelector and self.subCategorySelector.getState and self.subCategorySelector:getState() or "?"),
+        tostring(self))
+
     -- Save selected animal BEFORE superFunc rebuilds data in base order.
     -- After superFunc, the numeric selection index still points at the old
     -- position but a different animal may now occupy that slot.
@@ -83,16 +103,20 @@ function RealisticLivestock_InGameMenuAnimalsFrame:reloadList(superFunc)
     -- Prevent superFunc from calling reloadData() with unsorted data.
     -- The base game's reloadList() seems to call list:reloadData() internally,
     -- which would scroll and fire selection events based on wrong order.
+    local tSuperStart = getTimeSec()
     local origReloadData = self.list.reloadData
     self.list.reloadData = function() end
     superFunc(self)
     self.list.reloadData = origReloadData
+    local tSuperMs = (getTimeSec() - tSuperStart) * 1000
 
     if self.husbandrySubTypes == nil or #self.husbandrySubTypes == 0 then
         self.list:reloadData()
+        Log:debug("InGameMenuAnimalsFrame:reloadList #%d exit: empty (super=%.2fms)", callId, tSuperMs)
         return
     end
 
+    local tSortStart = getTimeSec()
     if #self.husbandrySubTypes > 1 then
         table.sort(self.husbandrySubTypes)
     end
@@ -103,21 +127,31 @@ function RealisticLivestock_InGameMenuAnimalsFrame:reloadList(superFunc)
             table.sort(animals, sortRawAnimals)
         end
     end
+    local tSortMs = (getTimeSec() - tSortStart) * 1000
 
     -- Pre-set list selection indices to the saved animal's new position BEFORE
     -- reloadData(). The list picks up these indices during reload, so we avoid
     -- a post-reload correction call and its scroll/selection-change side effects.
+    local tFindStart = getTimeSec()
     local newSection, newIndex = findAnimalPosition(self, selectedAnimal)
     if newSection ~= nil then
         self.list.selectedSectionIndex = newSection
         self.list.selectedIndex = newIndex
         Log:trace("AnimalsFrame: pre-set selection to section %d index %d", newSection, newIndex)
     end
+    local tFindMs = (getTimeSec() - tFindStart) * 1000
 
     -- Suppress click sound during reload.
+    local tReloadDataStart = getTimeSec()
     self.list.soundDisabled = true
     self.list:reloadData()
     self.list.soundDisabled = false
+    local tReloadDataMs = (getTimeSec() - tReloadDataStart) * 1000
+
+    Log:debug("InGameMenuAnimalsFrame:reloadList #%d exit: subTypes=%d super=%.2fms sort=%.2fms find=%.2fms reloadData=%.2fms",
+        callId,
+        #self.husbandrySubTypes,
+        tSuperMs, tSortMs, tFindMs, tReloadDataMs)
 
     Log:debug("AnimalsFrame: reloadList sorted %d subTypes", #self.husbandrySubTypes)
 end

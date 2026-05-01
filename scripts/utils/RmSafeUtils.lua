@@ -1,15 +1,15 @@
 RmSafeUtils = {}
 
 --- Wraps a function body in xpcall with traceback logging, and emits
---- DEBUG enter/exit log lines bracketing the call. Use for outer protection
+--- TRACE enter/exit log lines bracketing the call. Use for outer protection
 --- of timer-driven handler callbacks (HOUR/DAY/PERIOD_CHANGED, deferred
 --- Timer.createOneshot bodies). The enter/exit pair makes performance
 --- triageable from the log: in-game time on enter, elapsed wall-clock
---- duration on exit. Both gated at DEBUG (no production noise).
+--- duration on exit. Both gated at TRACE; default DEBUG view stays clean.
 ---
 --- Output shape:
----   [safeCall] <context>: enter (gameTime=D125 P3 06:00)
----   [safeCall] <context>: exit  (took 42.18ms)
+---   [safeCall] <context>: enter (gameTime=D125 P3 06:00)   -- TRACE
+---   [safeCall] <context>: exit  (took 42.18ms)             -- TRACE
 ---
 --- Exit log fires even if the body throws (xpcall itself never raises).
 --- The error log on failure is preserved.
@@ -19,12 +19,13 @@ RmSafeUtils = {}
 function RmSafeUtils.safeCall(context, fn)
     local startSec = getTimeSec()
     local gameTime = (RLDebugUtils and RLDebugUtils.formatGameTime and RLDebugUtils.formatGameTime()) or "?"
-    Log:debug("[safeCall] %s: enter (gameTime=%s)", context, gameTime)
+    -- Enter/exit is execution-path detail (TRACE), not per-item DEBUG content.
+    Log:trace("[safeCall] %s: enter (gameTime=%s)", context, gameTime)
 
     local ok, err = xpcall(fn, function(e) return tostring(e) end)
 
     local elapsedMs = (getTimeSec() - startSec) * 1000
-    Log:debug("[safeCall] %s: exit  (took %.2fms)", context, elapsedMs)
+    Log:trace("[safeCall] %s: exit  (took %.2fms)", context, elapsedMs)
 
     if not ok then
         Log:error("Error in %s: %s", context, tostring(err))

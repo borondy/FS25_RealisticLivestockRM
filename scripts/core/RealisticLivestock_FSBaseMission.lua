@@ -75,6 +75,10 @@ function RealisticLivestock_FSBaseMission:onStartMission()
         xmlFile:delete()
     end
 
+    -- Logged at INFO so support reports always carry this cap value
+    -- (lives in modSettings/.../Settings.xml, otherwise invisible).
+    Log:info("Maximum number of visual animals: %d", RealisticLivestock_AnimalClusterHusbandry.MAX_HUSBANDRIES)
+
     AnimalAIDialog.register()
     AnimalInfoDialog.register()
     DiseaseDialog.register()

@@ -384,9 +384,10 @@ function RealisticLivestock_AnimalClusterSystem:removeCluster(_, animalIndex)
         table.remove(self.animals, animalIndex)
         animal:setClusterSystem(nil)
     elseif type(animalIndex) ~= "number" then
+        -- No printCallstack here - it always emits an engine [ERROR] line; this
+        -- "should never happen" branch must not surface as ERROR in support logs.
         Log:warning("removeCluster: non-numeric key '%s'; ignored. Direct removeCluster is private - use addPendingRemoveCluster(cluster).",
             tostring(animalIndex))
-        printCallstack()
     end
 
 end
@@ -402,6 +403,20 @@ AnimalClusterSystem.removeCluster = Utils.overwrittenFunction(AnimalClusterSyste
 --- existing trailing self:updateIdMapping() at line 567 only when isDirty is true.
 --- @param superFunc function Overwritten-function predecessor (unused; replaced wholesale)
 function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
+
+    -- Phase timing: localise where flush time is spent
+    -- (queue / dirty / remove / idmap / broadcast / publish / visual).
+    -- The post-publish "flushed isDirty=" line below acts as the failure-path
+    -- observability anchor when updateVisualAnimals() throws and the tail
+    -- summary doesn't fire. Timer cost: ~7 getTimeSec calls per flush.
+    local tStart = getTimeSec()
+    local tPhase = tStart
+    local function phaseDoneMs()
+        local now = getTimeSec()
+        local ms = (now - tPhase) * 1000
+        tPhase = now
+        return ms
+    end
 
     local isDirty = false
     local removedClusterIndices = {}
@@ -533,6 +548,8 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
 
     end
 
+    local tQueueMs = phaseDoneMs()
+
 
     for animalIndex, animal in pairs(self.animals) do
         if animal.isDirty then
@@ -542,6 +559,8 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
 
         if self.clustersToRemove[animal] ~= nil or (animal.beingRidden ~= nil and animal.beingRidden) or animal:getNumAnimals() == 0 or animal.uniqueId == "1-1" or animal.uniqueId == "0-0" then table.insert(removedClusterIndices, animalIndex) end
     end
+
+    local tDirtyMs = phaseDoneMs()
 
 
     for i = #removedClusterIndices, 1, -1 do
@@ -554,7 +573,11 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
     self.clustersToAdd = {}
     self.clustersToRemove = {}
 
+    local tRemoveMs = phaseDoneMs()
+
     self:updateIdMapping()
+
+    local tIdMapMs = phaseDoneMs()
 
     -- Publish + broadcast tail. Gated on the local isDirty accumulator
     -- (line 416) which captures per-animal animal.isDirty work plus add/remove
@@ -567,16 +590,33 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
     if isDirty and g_server ~= nil then
         g_server:broadcastEvent(AnimalClusterUpdateEvent.new(self.owner, self.animals))
     end
+
+    local tBroadcastMs = phaseDoneMs()
+
     if isDirty then
         g_messageCenter:publish(AnimalClusterUpdateEvent, self.owner, self.animals)
     end
 
+    local tPublishMs = phaseDoneMs()
+
+    -- Failure-path observability anchor: this fires before updateVisualAnimals().
+    -- If updateVisualAnimals() throws, the tail summary below doesn't fire, but
+    -- this line still does - so support logs always carry the flush outcome.
     Log:debug("AnimalClusterSystem:updateClusters: husbandry=%s flushed isDirty=%s animals=%d",
         tostring(self.owner and self.owner.getName and self.owner:getName() or self.owner),
         tostring(isDirty),
         #self.animals)
 
     if self.owner.spec_husbandryAnimals ~= nil then self.owner.spec_husbandryAnimals:updateVisualAnimals() end
+
+    local tVisualMs = phaseDoneMs()
+    local tTotalMs = (getTimeSec() - tStart) * 1000
+
+    Log:debug("updateClusters phases [%s isDirty=%s anim=%d]: queue=%.2fms dirty=%.2fms remove=%.2fms idmap=%.2fms broadcast=%.2fms publish=%.2fms visual=%.2fms total=%.2fms",
+        tostring(self.owner and self.owner.getName and self.owner:getName() or "?"),
+        tostring(isDirty),
+        #self.animals,
+        tQueueMs, tDirtyMs, tRemoveMs, tIdMapMs, tBroadcastMs, tPublishMs, tVisualMs, tTotalMs)
 
 
 end
