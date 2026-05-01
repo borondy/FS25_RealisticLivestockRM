@@ -7,8 +7,10 @@
        reproduction.
     2. PROPERTY OVERRIDES: Patches breed, weights, pregnancy on existing types/subtypes
        from earlier layers (base game, RLRM, map).
-    3. VISUAL OVERRIDES: Fixes visual model indices for COW_HEREFORD and COW_HIGHLAND_CATTLE
-       where Witcombe uses custom models at different indices than RLRM's base config.
+    3. STORE-IMAGE OVERRIDES: Surfaces Witcombe's custom dealer-menu thumbnails for
+       COW_HEREFORD / BULL_HEREFORD via the per-visual `image=` attribute, while
+       leaving visualAnimalIndex to RLRM's Phase-1 husbandry XML so the breed-
+       correct in-pen mesh is used.
 
     Property override rules:
     - Only explicitly defined properties are overridden (omitted = keep current value)
@@ -28,24 +30,33 @@
     </breeds>
 
     <!-- ======================================================================
-         COW: Visual + simulation overrides for Hereford and Highland Cattle.
+         COW: Property overrides for Hereford and Jersey (each documented in
+              its own subtype block below). Highland Cattle has no override
+              by design - see notes near each block.
 
-         Hereford: full property override (heritage signatures applied on top of
-           the RLRM-bundle universal modernisation; see the per-block comment
-           on COW_HEREFORD below for the rationale and math). RLRM uses Limousin
-           models (indices 16/17/18) for Hereford because the base game has no
-           dedicated Hereford models. Witcombe adds custom Hereford models at
-           indices 8/12/4.
+         Hereford: full property override (heritage signatures applied on top
+           of the RLRM-bundle universal modernisation; see the per-block
+           comment on COW_HEREFORD below for the rationale and math).
 
-         Highland Cattle: visual-only override (indices shifted RLRM 19/20/21 ->
-           Witcombe 16/17/18). NO simulation override is added by design - the
-           map's animals.xml registers COW_HIGHLAND_CATTLE later than the RLRM
-           bundle, so the engine's first-registration-wins rule keeps the
-           bundle's modernised stats live and the map's BASE-Angus-vintage
-           values are dead code at runtime. Adding any reproduction / price /
-           input / output block here would either restate live values (dead
-           bytes) or regress the bundle's modernisation. The bull mirrors the
-           cow: visual-only by the same load-order argument.
+           Visuals: index attributes are intentionally NOT overridden. RLRM's
+           Phase-1 husbandry XML registers Hereford at indices 18/17/16/16
+           where the Angus mesh is paired with a Hereford-specific texture
+           tile (tileUIndex=1, tileVIndex=1 of cattleAngus_diffuse.dds) and
+           three Angus-specific nodes hidden, producing the white-face
+           Hereford appearance. The bridge keeps only the per-visual image
+           attribute to surface Witcombe's custom dealer-menu thumbnails;
+           visualAnimalIndex is omitted so RLRM's Phase-1 indices win
+           (RLMapBridge.lua:1300-1314 reads index and image independently).
+
+         Highland Cattle: NO override at all. RLRM's Phase-1 indices 19/20/21
+           already point at the real Highland models (cattleHighland.i3d).
+           Witcombe's map-level animals.xml declares Highland at 16/17/18,
+           but Phase-2 loadSubTypes (AnimalSystem.lua:511-515) skips already-
+           existing subtype names, so the map's <visual> block is dead code
+           at runtime. Any bridge override here would point at non-Highland
+           slots in RLRM's bundle (16/17/18 = Angus-mesh-with-Hereford-tile,
+           NOT Highland). RLRM-230 fix: Highland subType blocks removed
+           entirely.
          ====================================================================== -->
     <animal type="COW">
         <!-- COW_HEREFORD: leaner heritage beef breed with shorter gestation, premium
@@ -75,13 +86,18 @@
                milk 0/0/190/190/265/265/125 dual-purpose curve (intentional uniform
                  RLRM design for beef breeds; not removed)
 
-             BULL_HEREFORD untouched (no map-author character defined for the bull). -->
+             BULL_HEREFORD has its own per-block override below (see comment
+             at the BULL_HEREFORD subType element). -->
         <subType subType="COW_HEREFORD">
+            <!-- visualAnimalIndex intentionally omitted - keeps RLRM Phase-1 indices
+                 18/17/16/16 (Angus mesh + Hereford texture tile + node-hiding) which
+                 produce the correct white-face Hereford appearance. Image attributes
+                 are kept so Witcombe's custom dealer-menu thumbnails still appear. -->
             <visuals>
-                <visual minAge="0" visualAnimalIndex="8" image="map/config/cows/store_cowHerefordBaby.png"/>
-                <visual minAge="6" visualAnimalIndex="12" image="map/config/cows/store_cowHerefordKid.png"/>
-                <visual minAge="12" visualAnimalIndex="4" image="map/config/cows/store_cowHereford.png"/>
-                <visual minAge="18" visualAnimalIndex="4" image="map/config/cows/store_cowHereford.png"/>
+                <visual minAge="0" image="map/config/cows/store_cowHerefordBaby.png"/>
+                <visual minAge="6" image="map/config/cows/store_cowHerefordKid.png"/>
+                <visual minAge="12" image="map/config/cows/store_cowHereford.png"/>
+                <visual minAge="18" image="map/config/cows/store_cowHereford.png"/>
             </visuals>
             <reproduction durationMonth="9"/>
             <buyPrice>
@@ -145,11 +161,12 @@
                  cow-equivalent values
                (no milk produced - bulls do not lactate) -->
         <subType subType="BULL_HEREFORD">
+            <!-- visualAnimalIndex intentionally omitted - same rationale as COW_HEREFORD. -->
             <visuals>
-                <visual minAge="0" visualAnimalIndex="8" image="map/config/cows/store_cowHerefordBaby.png"/>
-                <visual minAge="6" visualAnimalIndex="12" image="map/config/cows/store_cowHerefordKid.png"/>
-                <visual minAge="12" visualAnimalIndex="4" image="map/config/cows/store_cowHereford.png"/>
-                <visual minAge="18" visualAnimalIndex="4" image="map/config/cows/store_cowHereford.png"/>
+                <visual minAge="0" image="map/config/cows/store_cowHerefordBaby.png"/>
+                <visual minAge="6" image="map/config/cows/store_cowHerefordKid.png"/>
+                <visual minAge="12" image="map/config/cows/store_cowHereford.png"/>
+                <visual minAge="18" image="map/config/cows/store_cowHereford.png"/>
             </visuals>
             <reproduction supported="false" minAgeMonth="12"/>
             <buyPrice>
@@ -195,25 +212,13 @@
             </output>
         </subType>
 
-        <!-- COW_HIGHLAND_CATTLE: visual indices 19/20/21/21 -> 16/17/18/18 -->
-        <subType subType="COW_HIGHLAND_CATTLE">
-            <visuals>
-                <visual minAge="0" visualAnimalIndex="16"/>
-                <visual minAge="6" visualAnimalIndex="17"/>
-                <visual minAge="12" visualAnimalIndex="18"/>
-                <visual minAge="18" visualAnimalIndex="18"/>
-            </visuals>
-        </subType>
-
-        <!-- BULL_HIGHLAND_CATTLE: same index fix as COW_HIGHLAND_CATTLE -->
-        <subType subType="BULL_HIGHLAND_CATTLE">
-            <visuals>
-                <visual minAge="0" visualAnimalIndex="16"/>
-                <visual minAge="6" visualAnimalIndex="17"/>
-                <visual minAge="12" visualAnimalIndex="18"/>
-                <visual minAge="18" visualAnimalIndex="18"/>
-            </visuals>
-        </subType>
+        <!-- COW_HIGHLAND_CATTLE / BULL_HIGHLAND_CATTLE: no override needed.
+             RLRM Phase-1 indices 19/20/21/21 already point at the real Highland
+             models (cattleHighland.i3d). The previous bridge override remapped
+             Highland to indices 16/17/18 - the slots RLRM uses for Hereford
+             (Angus mesh + Hereford texture tile + node-hiding), not Highland -
+             which made adult Highlands render as the small Angus calf model.
+             Removed in RLRM-230. -->
 
         <!-- COW_JERSEY: small-frame, drought-efficient heritage dairy. Override applies
              these adjustments (each value chosen to preserve breed signature endpoints):
