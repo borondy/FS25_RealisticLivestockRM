@@ -17,9 +17,9 @@
 -->
 <animals>
 
-    <!-- Breed display names for GUI -->
+    <!-- Breed display names + marker colours for GUI -->
     <breeds>
-        <breed name="JERSEY" displayName="$l10n_breed_jersey"/>
+        <breed name="JERSEY" displayName="$l10n_breed_jersey" markerColour="0.85 0.7 0.4"/>
         <breed name="GLOUCESTERSHIRE_OLD_SPOT" displayName="$l10n_breed_gloucestershire_old_spot"/>
         <breed name="TEXEL" displayName="$l10n_breed_texel"/>
         <breed name="SUFFOLK" displayName="$l10n_breed_suffolk"/>
