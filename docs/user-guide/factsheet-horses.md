@@ -106,6 +106,8 @@ All breeds and both genders consume the same amount.
 | Gestation | 11 months (longest of all species) |
 | Min health to breed | 75% |
 
+*See the [Breeding Reference](reference-breeding.md) for a side-by-side table of breeding ages, gestation, and litter sizes across all species.*
+
 ### Offspring per Birth
 
 Horses almost always produce a single foal. Multiple births are rare:

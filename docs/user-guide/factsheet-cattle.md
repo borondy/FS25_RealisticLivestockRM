@@ -205,6 +205,8 @@ All cattle breeds share the same reproduction rules:
 | Gestation | 10 months |
 | Lactation duration | 10 months after birth |
 
+*See the [Breeding Reference](reference-breeding.md) for a side-by-side table of breeding ages, gestation, and litter sizes across all species.*
+
 ### Offspring per Birth
 
 | Age of Cow | No Birth | 1 Calf | Twins | Triplets |

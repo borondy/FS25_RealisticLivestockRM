@@ -30,6 +30,8 @@ For reproduction to occur, ALL of the following must be true:
 | **Horses** | 22 months | 36 months | 300 months (25 yr) | 11 months | 264 months (22 yr) |
 | **Chickens** | 6 months | 6 months | No limit | 2 months | 120 months (10 yr) |
 
+*See the [Breeding Reference](reference-breeding.md) for a per-breed view that splits female and male rows and includes peak litter sizes.*
+
 > **Critical insight:** Males retire from breeding much earlier than females in some species! Boars stop at 4 years while sows breed until 8. Rams stop at 6 years while ewes breed until 10. Plan male replacements early.
 
 > **Genetics matter:** A male's maximum breeding age is scaled by his fertility genetics. A bull with high fertility may breed well beyond 11 years, while one with poor fertility may retire much sooner. The ages above assume average genetics.

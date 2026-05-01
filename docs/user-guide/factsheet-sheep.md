@@ -173,6 +173,8 @@ Genetics significantly affect how much each animal eats - some are naturally muc
 | Gestation | 5 months | 5 months |
 | Min health to breed | 75% | 75% |
 
+*See the [Breeding Reference](reference-breeding.md) for a side-by-side table of breeding ages, gestation, and litter sizes across all species.*
+
 > **Note:** Rams stop breeding at 72 months - earlier than the ewe's fertile period (120 months). Replace your rams regularly!
 
 ### Offspring per Birth (Sheep)
