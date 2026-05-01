@@ -55,8 +55,8 @@
            existing subtype names, so the map's <visual> block is dead code
            at runtime. Any bridge override here would point at non-Highland
            slots in RLRM's bundle (16/17/18 = Angus-mesh-with-Hereford-tile,
-           NOT Highland). RLRM-230 fix: Highland subType blocks removed
-           entirely.
+           NOT Highland) - so the override is dropped and no subType blocks
+           are needed for Highland here.
          ====================================================================== -->
     <animal type="COW">
         <!-- COW_HEREFORD: leaner heritage beef breed with shorter gestation, premium
@@ -214,11 +214,11 @@
 
         <!-- COW_HIGHLAND_CATTLE / BULL_HIGHLAND_CATTLE: no override needed.
              RLRM Phase-1 indices 19/20/21/21 already point at the real Highland
-             models (cattleHighland.i3d). The previous bridge override remapped
+             models (cattleHighland.i3d). A previous bridge override remapped
              Highland to indices 16/17/18 - the slots RLRM uses for Hereford
              (Angus mesh + Hereford texture tile + node-hiding), not Highland -
              which made adult Highlands render as the small Angus calf model.
-             Removed in RLRM-230. -->
+             That override is no longer present. -->
 
         <!-- COW_JERSEY: small-frame, drought-efficient heritage dairy. Override applies
              these adjustments (each value chosen to preserve breed signature endpoints):
