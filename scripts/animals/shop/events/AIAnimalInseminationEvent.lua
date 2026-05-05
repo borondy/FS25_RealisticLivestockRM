@@ -64,41 +64,45 @@ end
 
 function AIAnimalInseminationEvent:run(connection)
 
-	local clusterSystem = self.object:getClusterSystem()
-	local farmId = self.object:getOwnerFarmId()
-	local farmDewars = g_dewarManager:getDewarsByFarm(farmId)
+	RmSafeUtils.safeCall("AIAnimalInseminationEvent:run", function()
 
-	if farmDewars == nil then return end
+		local clusterSystem = self.object:getClusterSystem()
+		local farmId = self.object:getOwnerFarmId()
+		local farmDewars = g_dewarManager:getDewarsByFarm(farmId)
 
-	for i, item in pairs(self.items) do
-	
-		local dewars = farmDewars[item.animal.animalTypeIndex]
+		if farmDewars == nil then return end
 
-		if dewars == nil or #dewars == 0 then continue end
+		for i, item in pairs(self.items) do
 
-		local identifiers = item.animal
+			local dewars = farmDewars[item.animal.animalTypeIndex]
 
-		for _, dewar in pairs(dewars) do
+			if dewars == nil or #dewars == 0 then continue end
 
-			if dewar:getUniqueId() == item.dewar then
+			local identifiers = item.animal
 
-				local animal = RLAnimalUtil.find(clusterSystem.animals, identifiers.farmId, identifiers.uniqueId, identifiers.country or identifiers.birthday.country)
+			for _, dewar in pairs(dewars) do
 
-				if animal ~= nil then
-					animal:setInsemination(dewar.animal)
-					dewar:changeStraws(-1)
-					Log:trace("AIInseminationEvent:run inseminated %s dewar=%s", tostring(identifiers.uniqueId), tostring(item.dewar))
-				else
-					Log:trace("AIInseminationEvent:run animal not found uniqueId=%s", tostring(identifiers.uniqueId))
+				if dewar:getUniqueId() == item.dewar then
+
+					local animal = RLAnimalUtil.find(clusterSystem.animals, identifiers.farmId, identifiers.uniqueId, identifiers.country or identifiers.birthday.country)
+
+					if animal ~= nil then
+						animal:setInsemination(dewar.animal)
+						dewar:changeStraws(-1)
+						Log:trace("AIInseminationEvent:run inseminated %s dewar=%s", tostring(identifiers.uniqueId), tostring(item.dewar))
+					else
+						Log:trace("AIInseminationEvent:run animal not found uniqueId=%s", tostring(identifiers.uniqueId))
+					end
+
+					break
+
 				end
-
-				break
 
 			end
 
 		end
 
-	end
+	end)
 
 end
 

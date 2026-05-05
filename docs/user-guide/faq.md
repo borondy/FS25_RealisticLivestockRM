@@ -151,7 +151,7 @@ Ritter can do part 2 but not part 1. The animal pack system makes it possible fo
 
 ### Map-based animals
 
-When a map includes its own animal types, the mod can add built-in support with full breeding and reproduction. **[Hof Bergmann](map-hof-bergmann.md)** is the first example - its exotic animals (ducks, geese, cats, rabbits, alpacas, and quail) are fully supported.
+When a map includes its own animal types or breeds, the mod can add built-in support with full breeding and reproduction. **[Hof Bergmann](map-hof-bergmann.md)** adds exotic animal *species* (ducks, geese, cats, rabbits, alpacas, quail). **[Witcombe](map-witcombe.md)** instead adds new *breeds* within the standard cow, pig, sheep, and rabbit types (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) — and corrects Hereford on the map with a heritage profile.
 
 The mod uses **version-aware map support**. It detects which version of a supported map you have installed and loads the matching configuration automatically. This means:
 

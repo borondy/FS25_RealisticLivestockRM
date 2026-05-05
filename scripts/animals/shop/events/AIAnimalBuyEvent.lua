@@ -62,22 +62,26 @@ end
 
 function AIAnimalBuyEvent:run(connection)
 
-	for _, animal in pairs(self.animals) do
+	RmSafeUtils.safeCall("AIAnimalBuyEvent:run", function()
 
-		animal:setRecentlyBoughtByAI(true)
+		for _, animal in pairs(self.animals) do
 
-		g_currentMission.animalSystem:removeSaleAnimal(animal.animalTypeIndex, animal.birthday.country, animal.farmId, animal.uniqueId)
+			animal:setRecentlyBoughtByAI(true)
 
-	end
+			g_currentMission.animalSystem:removeSaleAnimal(animal.animalTypeIndex, animal.birthday.country, animal.farmId, animal.uniqueId)
 
-	self.object:addAnimals(self.animals)
+		end
 
-	if g_server ~= nil then
+		self.object:addAnimals(self.animals)
 
-		local farmId = self.object:getOwnerFarmId()
-		g_currentMission:addMoney(-self.price, farmId, MoneyType.NEW_ANIMALS_COST, true, true)
+		if g_server ~= nil then
 
-	end
+			local farmId = self.object:getOwnerFarmId()
+			g_currentMission:addMoney(-self.price, farmId, MoneyType.NEW_ANIMALS_COST, true, true)
+
+		end
+
+	end)
 
 end
 

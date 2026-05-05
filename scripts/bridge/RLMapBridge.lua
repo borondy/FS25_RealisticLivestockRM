@@ -23,6 +23,11 @@ RLMapBridge.SUPPORTED_MAPS = {
         modName = "FS25_HofBergmann",
         basePath = "mod_support/FS25_HofBergmann/",
         name = "Hof Bergmann"
+    },
+    {
+        modName = "FS25_Witcombe",
+        basePath = "mod_support/FS25_Witcombe/",
+        name = "Witcombe"
     }
 }
 
@@ -935,6 +940,28 @@ function RLMapBridge.applyPropertyOverrides(animalSystem, xmlFile, bridgeName, m
 end
 
 
+--- Format an AnimCurve's keyframes as a grep-friendly debug string.
+--- Used by the override appliers to log curve content at DEBUG level so an operator
+--- can verify what the bridge actually loaded without sampling in-game.
+---@param curve table|nil AnimCurve instance from AnimalSystem.loadAnimCurve, or nil
+---@return string formatted Like "[0m=300, 24m=2500]"; "[]" for nil or empty
+function RLMapBridge._formatCurveKeys(curve)
+    if curve == nil then
+        Log:trace("RLMapBridge._formatCurveKeys: nil curve")
+        return "[]"
+    end
+    if curve.keyframes == nil then
+        return "[]"
+    end
+    local parts = {}
+    -- AnimCurve keyframe: positional [1]=value, named .time=ageMonth
+    for _, kf in ipairs(curve.keyframes) do
+        table.insert(parts, string.format("%dm=%s", kf.time or 0, tostring(kf[1])))
+    end
+    return "[" .. table.concat(parts, ", ") .. "]"
+end
+
+
 --- Apply type-level property overrides from bridge XML.
 --- Only overrides properties that are explicitly defined in the XML (nil = keep current).
 ---@param animalType table The animalType object to patch
@@ -952,6 +979,7 @@ function RLMapBridge.applyTypeOverrides(animalType, animalSystem, xmlFile, key, 
         local maxChildren = xmlFile:getInt(key .. ".pregnancy#max", math.max(avgChildren * 3, 3))
         animalType.pregnancy = RLMapBridge.buildPregnancyData(avgChildren, maxChildren)
         table.insert(patches, string.format("pregnancy(avg=%d, max=%d)", avgChildren, maxChildren))
+        Log:debug("MapBridge: Type '%s' pregnancy: average=%d max=%d", typeName, avgChildren, maxChildren)
     end
 
     -- Fertility curve
@@ -959,6 +987,7 @@ function RLMapBridge.applyTypeOverrides(animalType, animalSystem, xmlFile, key, 
     if fertility ~= nil then
         animalType.fertility = fertility
         table.insert(patches, "fertility")
+        Log:debug("MapBridge: Type '%s' fertility keys: %s", typeName, RLMapBridge._formatCurveKeys(fertility))
     end
 
     -- Buy age
@@ -979,6 +1008,7 @@ function RLMapBridge.applyTypeOverrides(animalType, animalSystem, xmlFile, key, 
     if sqmPerAnimal ~= nil then
         animalType.sqmPerAnimal = sqmPerAnimal
         table.insert(patches, "sqmPerAnimal=" .. sqmPerAnimal)
+        Log:debug("MapBridge: Type '%s' pasture sqmPerAnimal=%s", typeName, tostring(sqmPerAnimal))
     end
 
     if #patches > 0 then
@@ -1109,18 +1139,21 @@ function RLMapBridge.applySubTypeOverrides(subType, animalSystem, xmlFile, key, 
     if buyPrice ~= nil then
         subType.buyPrice = buyPrice
         table.insert(patches, "buyPrice")
+        Log:debug("MapBridge: SubType '%s' buyPrice keys: %s", subTypeName, RLMapBridge._formatCurveKeys(buyPrice))
     end
 
     local sellPrice = AnimalSystem.loadAnimCurve(animalSystem, xmlFile, key .. ".sellPrice")
     if sellPrice ~= nil then
         subType.sellPrice = sellPrice
         table.insert(patches, "sellPrice")
+        Log:debug("MapBridge: SubType '%s' sellPrice keys: %s", subTypeName, RLMapBridge._formatCurveKeys(sellPrice))
     end
 
     local transportPrice = AnimalSystem.loadAnimCurve(animalSystem, xmlFile, key .. ".transportPrice")
     if transportPrice ~= nil then
         subType.transportPrice = transportPrice
         table.insert(patches, "transportPrice")
+        Log:debug("MapBridge: SubType '%s' transportPrice keys: %s", subTypeName, RLMapBridge._formatCurveKeys(transportPrice))
     end
 
     -- Input (AnimCurves)
@@ -1128,18 +1161,21 @@ function RLMapBridge.applySubTypeOverrides(subType, animalSystem, xmlFile, key, 
     if food ~= nil then
         subType.input.food = food
         table.insert(patches, "input.food")
+        Log:debug("MapBridge: SubType '%s' input.food keys: %s", subTypeName, RLMapBridge._formatCurveKeys(food))
     end
 
     local straw = AnimalSystem.loadAnimCurve(animalSystem, xmlFile, key .. ".input.straw")
     if straw ~= nil then
         subType.input.straw = straw
         table.insert(patches, "input.straw")
+        Log:debug("MapBridge: SubType '%s' input.straw keys: %s", subTypeName, RLMapBridge._formatCurveKeys(straw))
     end
 
     local water = AnimalSystem.loadAnimCurve(animalSystem, xmlFile, key .. ".input.water")
     if water ~= nil then
         subType.input.water = water
         table.insert(patches, "input.water")
+        Log:debug("MapBridge: SubType '%s' input.water keys: %s", subTypeName, RLMapBridge._formatCurveKeys(water))
     end
 
     -- Output (AnimCurves)
@@ -1147,12 +1183,14 @@ function RLMapBridge.applySubTypeOverrides(subType, animalSystem, xmlFile, key, 
     if manure ~= nil then
         subType.output.manure = manure
         table.insert(patches, "output.manure")
+        Log:debug("MapBridge: SubType '%s' output.manure keys: %s", subTypeName, RLMapBridge._formatCurveKeys(manure))
     end
 
     local liquidManure = AnimalSystem.loadAnimCurve(animalSystem, xmlFile, key .. ".output.liquidManure")
     if liquidManure ~= nil then
         subType.output.liquidManure = liquidManure
         table.insert(patches, "output.liquidManure")
+        Log:debug("MapBridge: SubType '%s' output.liquidManure keys: %s", subTypeName, RLMapBridge._formatCurveKeys(liquidManure))
     end
 
     if xmlFile:hasProperty(key .. ".output.milk") then
@@ -1168,10 +1206,14 @@ function RLMapBridge.applySubTypeOverrides(subType, animalSystem, xmlFile, key, 
                 curve = milkCurve
             }
             table.insert(patches, "output.milk")
+            Log:debug("MapBridge: SubType '%s' output.milk fillType=%s keys: %s",
+                subTypeName, tostring(milkFillTypeName or "<inherited>"),
+                RLMapBridge._formatCurveKeys(milkCurve))
         elseif milkFillTypeIndex ~= nil and subType.output.milk ~= nil then
             -- FillType-only remap (no curve override)
             subType.output.milk.fillType = milkFillTypeIndex
             table.insert(patches, "output.milk.fillType")
+            Log:debug("MapBridge: SubType '%s' output.milk fillType: %s", subTypeName, tostring(milkFillTypeName))
         end
     end
 
@@ -1186,10 +1228,14 @@ function RLMapBridge.applySubTypeOverrides(subType, animalSystem, xmlFile, key, 
                 curve = palletsCurve
             }
             table.insert(patches, "output.pallets")
+            Log:debug("MapBridge: SubType '%s' output.pallets fillType=%s keys: %s",
+                subTypeName, tostring(palletsFillTypeName or "<inherited>"),
+                RLMapBridge._formatCurveKeys(palletsCurve))
         elseif palletsFillTypeIndex ~= nil and subType.output.pallets ~= nil then
             -- FillType-only remap (no curve override)
             subType.output.pallets.fillType = palletsFillTypeIndex
             table.insert(patches, "output.pallets.fillType")
+            Log:debug("MapBridge: SubType '%s' output.pallets fillType: %s", subTypeName, tostring(palletsFillTypeName))
         end
     end
 

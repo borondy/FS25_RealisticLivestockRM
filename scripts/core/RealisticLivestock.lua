@@ -951,58 +951,60 @@ end
 
 
 function RealisticLivestock.onPeriodChanged(self, func)
-    if self.isServer then
-        local minTemp = math.floor(g_currentMission.environment.weather.temperatureUpdater.currentMin)
+    RmSafeUtils.safeCall("RealisticLivestock.onPeriodChanged", function()
+        if self.isServer then
+            local minTemp = math.floor(g_currentMission.environment.weather.temperatureUpdater.currentMin)
 
-        local spec = self.spec_husbandryAnimals
-        local clusters = spec.clusterSystem:getClusters()
-        local totalNumAnimals = self:getNumOfAnimals()
-        local freeSlots = math.max(spec.maxNumAnimals - totalNumAnimals, 0)
-        local animalSystem = g_currentMission.animalSystem
+            local spec = self.spec_husbandryAnimals
+            local clusters = spec.clusterSystem:getClusters()
+            local totalNumAnimals = self:getNumOfAnimals()
+            local freeSlots = math.max(spec.maxNumAnimals - totalNumAnimals, 0)
+            local animalSystem = g_currentMission.animalSystem
 
-        for _, cluster in ipairs(clusters) do
-            if cluster.monthsSinceLastBirth == nil then
-                cluster.monthsSinceLastBirth = 0
-            end
+            for _, cluster in ipairs(clusters) do
+                if cluster.monthsSinceLastBirth == nil then
+                    cluster.monthsSinceLastBirth = 0
+                end
 
-            if cluster.isParent == nil then
-                cluster.isParent = false
-            end
+                if cluster.isParent == nil then
+                    cluster.isParent = false
+                end
 
-            cluster:onPeriodChanged()
-            cluster.monthsSinceLastBirth = cluster.monthsSinceLastBirth + 1
+                cluster:onPeriodChanged()
+                cluster.monthsSinceLastBirth = cluster.monthsSinceLastBirth + 1
 
-            local numNewAnimals = cluster:updateReproduction()
+                local numNewAnimals = cluster:updateReproduction()
 
-            if cluster.monthsSinceLastBirth <= 2 then cluster.reproduction = 0 end
+                if cluster.monthsSinceLastBirth <= 2 then cluster.reproduction = 0 end
 
 
-            local index = cluster:getSubTypeIndex()
+                local index = cluster:getSubTypeIndex()
 
-            local subTypeFull = animalSystem:getSubTypeByIndex(index)
-            local reproductionDuration = subTypeFull.reproductionDurationMonth
+                local subTypeFull = animalSystem:getSubTypeByIndex(index)
+                local reproductionDuration = subTypeFull.reproductionDurationMonth
 
-            if cluster.gender == "female" and reproductionDuration ~= nil then
-                if cluster.reproduction > 0 and cluster.reproduction <= 100 / reproductionDuration and not RealisticLivestock.hasMaleAnimalInPen(spec, subTypeFull.name) then cluster.reproduction = 0 end
-            end
-
-            if numNewAnimals > 0 then
-                numNewAnimals = math.min(freeSlots, numNewAnimals)
+                if cluster.gender == "female" and reproductionDuration ~= nil then
+                    if cluster.reproduction > 0 and cluster.reproduction <= 100 / reproductionDuration and not RealisticLivestock.hasMaleAnimalInPen(spec, subTypeFull.name) then cluster.reproduction = 0 end
+                end
 
                 if numNewAnimals > 0 then
-                    RealisticLivestock:updateReproduction(spec, cluster, numNewAnimals, freeSlots, self.isServer)
+                    numNewAnimals = math.min(freeSlots, numNewAnimals)
+
+                    if numNewAnimals > 0 then
+                        RealisticLivestock:updateReproduction(spec, cluster, numNewAnimals, freeSlots, self.isServer)
+                    end
                 end
+
+                RealisticLivestock.calculateRandomMonthlyAnimalDeaths(spec, cluster, self.isServer)
+                RealisticLivestock.calculateOldAgeMonthlyAnimalDeaths(spec, cluster)
+                RealisticLivestock.calculateLowHealthMonthlyAnimalDeaths(spec, cluster)
             end
 
-            RealisticLivestock.calculateRandomMonthlyAnimalDeaths(spec, cluster, self.isServer)
-            RealisticLivestock.calculateOldAgeMonthlyAnimalDeaths(spec, cluster)
-            RealisticLivestock.calculateLowHealthMonthlyAnimalDeaths(spec, cluster)
+            spec.minTemp = minTemp
+
+            self:raiseActive()
         end
-
-        spec.minTemp = minTemp
-
-        self:raiseActive()
-    end
+    end)
 end
 
 function RealisticLivestock:updateInfo(superFunc, infoTable)
@@ -1047,18 +1049,30 @@ function RealisticLivestock.addAnimals(self, superFunc, subTypeIndex, numAnimals
         end
     end
 
-    if cluster:getSupportsMerging() then
-        cluster.numAnimals = numAnimals
-        cluster.age = age
-        cluster.subTypeIndex = subTypeIndex
-        self:addCluster(cluster)
-    else
-        for i = 1, numAnimals do
-            cluster = animalSystem:createClusterFromSubTypeIndex(subTypeIndex)
-            cluster.numAnimals = 1
+    local clusterSystem = self.spec_husbandryAnimals.clusterSystem
+    Log:debug("RealisticLivestock.addAnimals: queueing subTypeIndex=%d numAnimals=%d age=%s",
+        subTypeIndex, numAnimals, tostring(age))
+
+    local ok, err = pcall(function()
+        if cluster:getSupportsMerging() then
+            cluster.numAnimals = numAnimals
             cluster.age = age
-            self:addCluster(cluster)
+            cluster.subTypeIndex = subTypeIndex
+            clusterSystem:addPendingAddCluster(cluster)
+        else
+            for i = 1, numAnimals do
+                cluster = animalSystem:createClusterFromSubTypeIndex(subTypeIndex)
+                cluster.numAnimals = 1
+                cluster.age = age
+                clusterSystem:addPendingAddCluster(cluster)
+            end
         end
+    end)
+    local ok2, err2 = pcall(function() clusterSystem:updateNow() end)
+
+    if not (ok and ok2) then
+        Log:error("RealisticLivestock.addAnimals: batch failed subTypeIndex=%d numAnimals=%d queue=%s flush=%s",
+            subTypeIndex, numAnimals, tostring(err), tostring(err2))
     end
 end
 

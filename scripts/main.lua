@@ -225,6 +225,7 @@ source(modDirectory .. "scripts/messaging/RLMessageAggregator.lua")
 
 -- SECTION 20k: Core (settings)
 source(modDirectory .. "scripts/core/RLSettings.lua")
+source(modDirectory .. "scripts/utils/RLDebugUtils.lua")
 
 -- =============================================================================
 -- RL Tabbed Menu: install hooks (end-of-file, after all sources are loaded).

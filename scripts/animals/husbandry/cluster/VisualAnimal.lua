@@ -118,15 +118,27 @@ function VisualAnimal:setBumId()
 end
 
 
+VisualAnimal.DEFAULT_MARKER_COLOUR = { 1, 1, 1 }
+
+
 function VisualAnimal:setMarker()
 
 	if self.nodes.marker == nil then return end
 
-	local markerColour = AnimalSystem.BREED_TO_MARKER_COLOUR[self.animal.breed]
+	local breedColour = AnimalSystem.BREED_TO_MARKER_COLOUR[self.animal.breed]
+    local markerColour = breedColour or VisualAnimal.DEFAULT_MARKER_COLOUR
     local isMarked = self.animal:getMarked()
 
     setVisibility(self.nodes.marker, isMarked)
-    if isMarked then setShaderParameter(self.nodes.marker, "colorScale", markerColour[1], markerColour[2], markerColour[3], nil, false) end
+    if isMarked then
+        setShaderParameter(self.nodes.marker, "colorScale", markerColour[1], markerColour[2], markerColour[3], nil, false)
+        if breedColour == nil then
+            local Log = RmLogging.getLogger("RLRM")
+            Log:trace("VisualAnimal:setMarker: no breed colour for breed='%s' (animal uniqueId=%s) - applying default %s",
+                tostring(self.animal.breed), tostring(self.animal.uniqueId),
+                string.format("{%.2f,%.2f,%.2f}", markerColour[1], markerColour[2], markerColour[3]))
+        end
+    end
 
 end
 

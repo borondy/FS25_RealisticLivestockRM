@@ -22,6 +22,8 @@ Cattle are the most diverse livestock in Realistic Livestock RM, with 7 breeds r
 
 > **Breed-locking:** Water Buffalo bulls can only breed with Water Buffalo cows. All other bull breeds can breed with any non-Water-Buffalo cow.
 
+> **Hereford on Witcombe:** When playing on the [Witcombe](map-witcombe.md) map, Hereford uses a heritage profile with 9-month gestation, premium pricing (300 / 3000), an 18-month sell-price peak, and leaner feed/water needs. The values shown above are the standard RLRM Hereford used on every other map.
+
 ---
 
 ## Milk Production by Breed
@@ -202,6 +204,8 @@ All cattle breeds share the same reproduction rules:
 | Cow fertility ends | 132 months (11 years) |
 | Gestation | 10 months |
 | Lactation duration | 10 months after birth |
+
+*See the [Breeding Reference](reference-breeding.md) for a side-by-side table of breeding ages, gestation, and litter sizes across all species.*
 
 ### Offspring per Birth
 

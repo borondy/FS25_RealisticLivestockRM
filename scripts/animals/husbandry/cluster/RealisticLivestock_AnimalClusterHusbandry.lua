@@ -80,13 +80,28 @@ AnimalClusterHusbandry.deleteHusbandry = Utils.overwrittenFunction(AnimalCluster
 
 function RealisticLivestock_AnimalClusterHusbandry:updateVisuals(superFunc, removeAll)
 
+    -- Phase timing: localise visual-update cost
+    -- (staleRemove / setup / mainLoop / shader). Both early-return paths
+    -- (husbandryNotReady, cap reached) emit a one-line DEBUG with elapsed ms.
+    local tStart = getTimeSec()
+    local tPhase = tStart
+    local function phaseDoneMs()
+        local now = getTimeSec()
+        local ms = (now - tPhase) * 1000
+        tPhase = now
+        return ms
+    end
+
     if self.husbandryId == nil or not isHusbandryReady(self.husbandryId) then
         self.visualUpdatePending = true
+        Log:debug("AnimalClusterHusbandry:updateVisuals: deferred (husbandryNotReady) took %.2fms",
+            (getTimeSec() - tStart) * 1000)
         return
     end
 
 
     local animals = self.nextUpdateClusters or {}
+    local nextCount = #animals
     self.totalNumAnimalsPerVisualAnimalIndex = {}
     local newAnimalMapping = {}
     local newAnimalIdToVisualAnimalIndex = {}
@@ -129,11 +144,17 @@ function RealisticLivestock_AnimalClusterHusbandry:updateVisuals(superFunc, remo
 
     end
 
-    
-    if removeAll then self.animalIdToCluster = {} end
-    if RealisticLivestock_AnimalClusterHusbandry.MAX_HUSBANDRIES <= 0 or self.visualAnimalCount == RealisticLivestock_AnimalClusterHusbandry.MAX_HUSBANDRIES then return end
 
-    
+    local tStaleRemoveMs = phaseDoneMs()
+
+    if removeAll then self.animalIdToCluster = {} end
+    if RealisticLivestock_AnimalClusterHusbandry.MAX_HUSBANDRIES <= 0 or self.visualAnimalCount == RealisticLivestock_AnimalClusterHusbandry.MAX_HUSBANDRIES then
+        Log:debug("AnimalClusterHusbandry:updateVisuals: early-return (cap reached) staleRemove=%.2fms total=%.2fms",
+            tStaleRemoveMs, (getTimeSec() - tStart) * 1000)
+        return
+    end
+
+
     local areaCode = RealisticLivestock.getMapCountryCode()
 
 
@@ -152,8 +173,10 @@ function RealisticLivestock_AnimalClusterHusbandry:updateVisuals(superFunc, remo
     local earTagLeftTextR, earTagLeftTextG, earTagLeftTextB = colours.earTagLeft_text[1], colours.earTagLeft_text[2], colours.earTagLeft_text[3]
     local earTagRightR, earTagRightG, earTagRightB = colours.earTagRight[1], colours.earTagRight[2], colours.earTagRight[3]
     local earTagRightTextR, earTagRightTextG, earTagRightTextB = colours.earTagRight_text[1], colours.earTagRight_text[2], colours.earTagRight_text[3]
-    
-    
+
+    local tSetupMs = phaseDoneMs()
+
+
     for _, animal in pairs(animals) do
 
         if self.visualAnimalCount >= RealisticLivestock_AnimalClusterHusbandry.MAX_HUSBANDRIES or i > #self.husbandryIds or animal.isDead or animal.numAnimals <= 0 or animal.uniqueId == "1-1" or animal.uniqueId == "0-0" or (animal.id ~= nil and animal.idFull ~= nil and animal.id ~= "0-0" and animal.visualAnimalIndex == nil) then continue end
@@ -273,6 +296,8 @@ function RealisticLivestock_AnimalClusterHusbandry:updateVisuals(superFunc, remo
 
     end
 
+    local tMainLoopMs = phaseDoneMs()
+
     i = 1
 
 
@@ -294,6 +319,8 @@ function RealisticLivestock_AnimalClusterHusbandry:updateVisuals(superFunc, remo
         end
     end
 
+    local tShaderPassMs = phaseDoneMs()
+
 
 
 
@@ -301,6 +328,14 @@ function RealisticLivestock_AnimalClusterHusbandry:updateVisuals(superFunc, remo
     self:getPlaceable().spec_husbandryAnimals.clusterSystem:updateIdMapping()
     self.nextUpdateClusters = nil
     self.visualUpdatePending = false
+
+    local tTotalMs = (getTimeSec() - tStart) * 1000
+
+    Log:debug("AnimalClusterHusbandry:updateVisuals: husbandryId=%s nextClusters=%d visualCount=%d phases: staleRemove=%.2fms setup=%.2fms mainLoop=%.2fms shader=%.2fms total=%.2fms",
+        tostring(self.husbandryId),
+        nextCount,
+        self.visualAnimalCount,
+        tStaleRemoveMs, tSetupMs, tMainLoopMs, tShaderPassMs, tTotalMs)
 
 end
 

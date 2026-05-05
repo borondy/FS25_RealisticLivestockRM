@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<l10n>
+	<texts>
+		<!-- Breed display names -->
+		<text name="breed_jersey" text="Jersey"/>
+		<text name="breed_gloucestershire_old_spot" text="Gloucestershire Old Spot"/>
+		<text name="breed_texel" text="Texel"/>
+		<text name="breed_suffolk" text="Suffolk"/>
+		<text name="breed_blue_faced_leicester" text="Blue Faced Leicester"/>
+		<text name="breed_rabbit" text="Rabbit"/>
+
+		<!-- Fill types for bridge-added male subtypes -->
+		<text name="fillType_bull_jersey" text="Jersey Bull"/>
+		<text name="fillType_boar_gloucestershire_old_spot" text="Gloucestershire Old Spot Boar"/>
+		<text name="fillType_ram_texel" text="Texel Ram"/>
+		<text name="fillType_ram_suffolk" text="Suffolk Ram"/>
+		<text name="fillType_ram_blue_faced_leicester" text="Blue Faced Leicester Ram"/>
+		<text name="fillType_rabbit_male" text="Buck Rabbit"/>
+
+		<!-- Bull Jersey visual descriptions -->
+		<text name="rl_bridge_bullJerseyCalfDesc" text="A young male Jersey calf. Bulls that are healthy and older than 12 months can reproduce."/>
+		<text name="rl_bridge_bullJerseyYoungDesc" text="A young Jersey bull. Bulls that are healthy and older than 12 months can reproduce."/>
+		<text name="rl_bridge_bullJerseyAdultDesc" text="An adult Jersey bull. Bulls that are healthy and older than 12 months can reproduce."/>
+
+		<!-- Boar Gloucestershire Old Spot visual descriptions -->
+		<text name="rl_bridge_boarGOSPigletDesc" text="A young male Gloucestershire Old Spot piglet. Boars that are healthy and older than 8 months can reproduce."/>
+		<text name="rl_bridge_boarGOSYoungDesc" text="A young male Gloucestershire Old Spot pig. Boars that are healthy and older than 8 months can reproduce."/>
+		<text name="rl_bridge_boarGOSAdultDesc" text="An adult Gloucestershire Old Spot boar. Boars that are healthy and older than 8 months can reproduce."/>
+
+		<!-- Ram Texel visual descriptions -->
+		<text name="rl_bridge_ramTexelLambDesc" text="A young male Texel lamb. Rams that are healthy and older than 5 months can reproduce."/>
+		<text name="rl_bridge_ramTexelYoungDesc" text="A young Texel ram. Rams that are healthy and older than 5 months can reproduce."/>
+		<text name="rl_bridge_ramTexelAdultDesc" text="An adult Texel ram. Rams that are healthy and older than 5 months can reproduce."/>
+
+		<!-- Ram Suffolk visual descriptions -->
+		<text name="rl_bridge_ramSuffolkLambDesc" text="A young male Suffolk lamb. Rams that are healthy and older than 5 months can reproduce."/>
+		<text name="rl_bridge_ramSuffolkYoungDesc" text="A young Suffolk ram. Rams that are healthy and older than 5 months can reproduce."/>
+		<text name="rl_bridge_ramSuffolkAdultDesc" text="An adult Suffolk ram. Rams that are healthy and older than 5 months can reproduce."/>
+
+		<!-- Ram Blue Faced Leicester visual descriptions -->
+		<text name="rl_bridge_ramBFLLambDesc" text="A young male Blue Faced Leicester lamb. Rams that are healthy and older than 5 months can reproduce."/>
+		<text name="rl_bridge_ramBFLYoungDesc" text="A young Blue Faced Leicester ram. Rams that are healthy and older than 5 months can reproduce."/>
+		<text name="rl_bridge_ramBFLAdultDesc" text="An adult Blue Faced Leicester ram. Rams that are healthy and older than 5 months can reproduce."/>
+
+		<!-- Rabbit Male visual descriptions -->
+		<text name="rl_bridge_rabbitMaleBabyDesc" text="A young male rabbit (buck). Bucks that are healthy and older than 4 months can reproduce."/>
+		<text name="rl_bridge_rabbitMaleDesc" text="A male rabbit (buck). Bucks that are healthy and older than 4 months can reproduce."/>
+	</texts>
+</l10n>

@@ -125,6 +125,8 @@ Genetics significantly affect how much each animal eats - some are naturally muc
 | Gestation | 4 months |
 | Min health to breed | 75% |
 
+*See the [Breeding Reference](reference-breeding.md) for a side-by-side table of breeding ages, gestation, and litter sizes across all species.*
+
 > **Key insight:** Boars retire from breeding at just 4 years while sows can breed until 8 years. Plan your boar replacements early!
 
 ### Litter Sizes

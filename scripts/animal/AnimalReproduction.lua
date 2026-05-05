@@ -124,7 +124,7 @@ local function advancePregnancy(animal, spec, day, month, year, isSaleAnimal)
                     quality = animal.genetics.quality,
                     health = animal.genetics.health,
                     fertility = animal.genetics.fertility,
-                    productivity = animal.genetics.productivity or nil,
+                    productivity = animal.genetics.productivity or 1.0,
                 }
             end
 
@@ -133,6 +133,11 @@ local function advancePregnancy(animal, spec, day, month, year, isSaleAnimal)
             if animal.impregnatedBy.quality == nil then animal.impregnatedBy.quality = animal.genetics.meatQuality end
             if animal.impregnatedBy.health == nil then animal.impregnatedBy.health = animal.genetics.health end
             if animal.impregnatedBy.fertility == nil then animal.impregnatedBy.fertility = animal.genetics.fertility end
+            if animal.impregnatedBy.productivity == nil then
+                animal.impregnatedBy.productivity = animal.genetics.productivity or 1.0
+                Log:trace("advancePregnancy: backfilled impregnatedBy.productivity for animal %s (genetics.productivity was %s)",
+                    animal.uniqueId or "?", tostring(animal.genetics.productivity))
+            end
 
             animal.isPregnant = false
 
@@ -257,7 +262,11 @@ end
 --- @param childNum number Number of offspring to create
 --- @param month number Current month (1-12)
 --- @param year number Current year
---- @param father table|nil Optional father data {uniqueId, metabolism, quality, health, fertility, productivity}
+--- @param father table|nil Optional father data {uniqueId, metabolism, quality, health, fertility, productivity}.
+---   The productivity field is coalesced to 1.0 at the impregnatedBy-assignment boundary regardless
+---   of caller, covering both the eligible-father selection branch (where the selected pig/horse male
+---   has genetics.productivity == nil) and resolveInsemination's explicit-father path (where AI-straw
+---   semen for pigs/horses has insemination.genetics.productivity == nil) uniformly.
 function AnimalReproduction.createPregnancy(animal, childNum, month, year, father)
 
     local fertility = animal.genetics.fertility
@@ -332,13 +341,21 @@ function AnimalReproduction.createPregnancy(animal, childNum, month, year, fathe
             father.productivity = selectedFather.genetics.productivity
             father.animal = selectedFather
 
-            Log:trace("createPregnancy: selected father %s (subType=%s)",
-                father.uniqueId, selectedFather.subType or "?")
+            Log:trace("createPregnancy: selected father %s (subType=%s) genetics m=%s q=%s h=%s f=%s p=%s",
+                father.uniqueId, selectedFather.subType or "?",
+                tostring(father.metabolism), tostring(father.quality), tostring(father.health),
+                tostring(father.fertility), tostring(father.productivity))
         else
             Log:trace("createPregnancy: no eligible father found, using defaults")
         end
 
     end
+
+    -- Coalesce productivity to 1.0 for paternal-snapshot field. genetics.productivity
+    -- is nil for PIG and HORSE; without this both eligible-father selection and
+    -- resolveInsemination's explicit-father path would assign nil here, crashing
+    -- AnimalPregnancyEvent:writeStream's streamWriteFloat32 call.
+    father.productivity = father.productivity or 1.0
 
     animal.impregnatedBy = father
     animal.reproduction = 0
@@ -762,16 +779,40 @@ function AnimalReproduction.reproduce(animal, spec, day, month, year, isSaleAnim
     end
 
     local animalSystem = g_currentMission.animalSystem
+    local clusterSystem = animal.clusterSystem
+    local clusterChildren = 0
 
-    for _, child in pairs(pregnancies) do
-
-        if isSaleAnimal then
-            animalSystem:addExistingSaleAnimal(child)
-        else
-            animal.clusterSystem:addCluster(child)
+    local ok, err = pcall(function()
+        for _, child in pairs(pregnancies) do
+            if isSaleAnimal then
+                animalSystem:addExistingSaleAnimal(child)
+            else
+                clusterSystem:addPendingAddCluster(child)
+                clusterChildren = clusterChildren + 1
+            end
         end
+    end)
 
+    -- Birth queueing is unconditional. The per-pen tail flush in
+    -- PlaceableHusbandryAnimals:onDayChanged commits the queue once per
+    -- day-change, so HUSBANDRY_ANIMALS_CHANGED listeners see one batched
+    -- update per pen instead of one per pregnant mother. addPendingAddCluster
+    -- already set needsUpdate; the engine's update(dt) is the safety net if
+    -- the day-change tail flush is somehow missed.
+    if not ok then
+        Log:error("AnimalReproduction: birth queue failed mother=%s farmId=%s queue=%s",
+            tostring(animal.uniqueId), tostring(animal.farmId), tostring(err))
     end
+
+    if clusterChildren > 0 then
+        Log:trace("AnimalReproduction: birth queued mother=%s farmId=%s clusterChildren=%d totalPregnancies=%d (flush deferred to onDayChanged tail)",
+            tostring(animal.uniqueId), tostring(animal.farmId),
+            clusterChildren, #pregnancies)
+    end
+
+    Log:debug("AnimalReproduction: birth batch queued mother=%s farmId=%s clusterChildren=%d totalPregnancies=%d isSaleAnimal=%s",
+        tostring(animal.uniqueId), tostring(animal.farmId),
+        clusterChildren, #pregnancies, tostring(isSaleAnimal))
 
     -- Build scannable birth summary line
     local fatherId = animal.impregnatedBy and animal.impregnatedBy.uniqueId or "?"

@@ -72,53 +72,74 @@ function AnimalSellEvent:run(connection)
 
 	end
 
-	if not g_currentMission:getHasPlayerPermission("tradeAnimals", connection) then
+	RmSafeUtils.safeCall("AnimalSellEvent:run", function()
 
-		connection:sendEvent(AnimalSellEvent.newServerToClient(AnimalSellEvent.SELL_ERROR_NO_PERMISSION))
-		return
+		if not g_currentMission:getHasPlayerPermission("tradeAnimals", connection) then
 
-	end
+			connection:sendEvent(AnimalSellEvent.newServerToClient(AnimalSellEvent.SELL_ERROR_NO_PERMISSION))
+			return
 
-	local userId = g_currentMission.userManager:getUniqueUserIdByConnection(connection)
-	local farmId = g_farmManager:getFarmForUniqueUserId(userId).farmId
+		end
 
-	local clusterSystem = self.object:getClusterSystem()
+		local userId = g_currentMission.userManager:getUniqueUserIdByConnection(connection)
+		local farmId = g_farmManager:getFarmForUniqueUserId(userId).farmId
 
-	Log:trace("SellEvent:run selling %d animals", #self.animals)
+		local clusterSystem = self.object:getClusterSystem()
 
-	-- Pass 1: pre-validate all animals before removing any (prevents partial removal on blocked batch)
-	for i, identifier in pairs(self.animals) do
-		local key = RLAnimalUtil.toKeyFromIdentifiers(identifier)
-		Log:trace("SellEvent:run pass1 [%d] key=%s", i, tostring(key))
-		if key ~= nil then
-			local animal = self.object:getClusterById(key)
-			Log:trace("SellEvent:run pass1 [%d] found=%s name=%s canBeSold=%s getCanBeSold=%s",
-				i, tostring(animal ~= nil), animal and (animal.name or "?") or "nil",
-				tostring(animal and animal.canBeSold), tostring(animal and animal:getCanBeSold()))
-			if animal ~= nil and not animal:getCanBeSold() then
-				Log:warning("SellEvent:run blocked sell of non-sellable animal (name=%s, uniqueId=%s, farmId=%s)",
-					animal.name or "?", animal.uniqueId or "?", animal.farmId or "?")
-				connection:sendEvent(AnimalSellEvent.newServerToClient(AnimalSellEvent.SELL_ERROR_CANNOT_BE_SOLD))
-				return
+		Log:trace("SellEvent:run selling %d animals", #self.animals)
+
+		-- Pass 1: pre-validate all animals before removing any (prevents partial removal on
+		-- blocked batch). Collect cluster references here so pass 2 doesn't repeat the
+		-- getClusterById linear scan (S2 micro-opt from review).
+		local validatedClusters = {}
+		for i, identifier in pairs(self.animals) do
+			local key = RLAnimalUtil.toKeyFromIdentifiers(identifier)
+			Log:trace("SellEvent:run pass1 [%d] key=%s", i, tostring(key))
+			if key ~= nil then
+				local animal = self.object:getClusterById(key)
+				Log:trace("SellEvent:run pass1 [%d] found=%s name=%s canBeSold=%s getCanBeSold=%s",
+					i, tostring(animal ~= nil), animal and (animal.name or "?") or "nil",
+					tostring(animal and animal.canBeSold), tostring(animal and animal:getCanBeSold()))
+				if animal ~= nil and not animal:getCanBeSold() then
+					Log:warning("SellEvent:run blocked sell of non-sellable animal (name=%s, uniqueId=%s, farmId=%s)",
+						animal.name or "?", animal.uniqueId or "?", animal.farmId or "?")
+					connection:sendEvent(AnimalSellEvent.newServerToClient(AnimalSellEvent.SELL_ERROR_CANNOT_BE_SOLD))
+					return
+				end
+				if animal ~= nil then
+					table.insert(validatedClusters, animal)
+				end
 			end
 		end
-	end
 
-	-- Pass 2: all animals validated, now remove
-	for i, identifier in pairs(self.animals) do
-		local key = RLAnimalUtil.toKeyFromIdentifiers(identifier)
-		if key ~= nil then
-			clusterSystem:removeCluster(key)
+		-- Pass 2: queue all validated animals for removal, single flush.
+		local ok, err = pcall(function()
+			for _, cluster in ipairs(validatedClusters) do
+				clusterSystem:addPendingRemoveCluster(cluster)
+			end
+		end)
+		local ok2, err2 = pcall(function() clusterSystem:updateNow() end)
+
+		-- Transaction gate: skip money credit + success notification if anything failed.
+		if not (ok and ok2) then
+			Log:error("SellEvent:run: removal batch failed N=%d queue=%s flush=%s",
+				#validatedClusters, tostring(err), tostring(err2))
+			connection:sendEvent(AnimalSellEvent.newServerToClient(AnimalSellEvent.SELL_ERROR_OBJECT_DOES_NOT_EXIST))
+			return
 		end
-	end
 
-	g_currentMission:addMoney(self.price + self.transportPrice, farmId, MoneyType.SOLD_ANIMALS, true, true)
-	connection:sendEvent(AnimalSellEvent.newServerToClient(AnimalSellEvent.SELL_SUCCESS))
+		g_currentMission:addMoney(self.price + self.transportPrice, farmId, MoneyType.SOLD_ANIMALS, true, true)
+		connection:sendEvent(AnimalSellEvent.newServerToClient(AnimalSellEvent.SELL_SUCCESS))
 
-	if #self.animals == 1 then
-        self.object:addRLMessage("SOLD_ANIMALS_SINGLE", nil, { g_i18n:formatMoney(math.abs(self.price + self.transportPrice), 2, true, true) })
-    elseif #self.animals > 0 then
-        self.object:addRLMessage("SOLD_ANIMALS_MULTIPLE", nil, { #self.animals, g_i18n:formatMoney(math.abs(self.price + self.transportPrice), 2, true, true) })
-    end
+		if #self.animals == 1 then
+			self.object:addRLMessage("SOLD_ANIMALS_SINGLE", nil, { g_i18n:formatMoney(math.abs(self.price + self.transportPrice), 2, true, true) })
+		elseif #self.animals > 0 then
+			self.object:addRLMessage("SOLD_ANIMALS_MULTIPLE", nil, { #self.animals, g_i18n:formatMoney(math.abs(self.price + self.transportPrice), 2, true, true) })
+		end
+
+		Log:debug("SellEvent:run: sold %d animals farmId=%s total=%s",
+			#validatedClusters, tostring(farmId), tostring(self.price + self.transportPrice))
+
+	end)
 
 end

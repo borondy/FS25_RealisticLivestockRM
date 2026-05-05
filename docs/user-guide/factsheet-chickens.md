@@ -100,10 +100,13 @@ Chicken prices are low and identical for hens and roosters:
 | Parameter | Value |
 |-----------|-------|
 | Hen breeding age | 6+ months |
+| Rooster breeding age | 6+ months |
 | Rooster max breeding age | No limit (breeds for life) |
 | Hen fertility | Declines sharply with age |
 | Gestation (hatching) | 2 months |
 | Min health to breed | 75% |
+
+*See the [Breeding Reference](reference-breeding.md) for a side-by-side table of breeding ages, gestation, and litter sizes across all species.*
 
 > **Eggs vs chicks:** Hens lay eggs as an output product automatically (no rooster needed). But to **hatch chicks** (reproduction), a rooster must be in the same pen.
 
