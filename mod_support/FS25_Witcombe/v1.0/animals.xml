@@ -922,6 +922,36 @@
     <animal type="RABBIT">
         <pregnancy average="4" max="8"/>
 
+        <!-- Type-level fertility curve. Witcombe's map/config/animals.xml defines no
+             <fertility> block for the RABBIT type, and RLRM's bundle xml/animals.xml
+             only ships curves for COW / PIG / SHEEP / HORSE / CHICKEN, so without this
+             override animalType.fertility:get(age) returns 0 and natural conception
+             never produces childNum > 0 (no does ever get pregnant).
+
+             Curve derived from real domestic-rabbit husbandry references:
+               - USU Extension (Basic Rabbit Selection and Breeding Considerations):
+                 does breed effectively until ~3 years; first mating 4-7 months.
+               - FAO Chapter 8 (The rabbit, t0690e): mature at 5-6 months, can continue
+                 to have young for 4 years.
+               - Mother Earth News (When to Start Breeding Rabbits): productive 1-3.5
+                 years; some does breed at 4-5 years but "winding down".
+               - PetMD: puberty 3-5 months, fully mature 7-8 months; small breeds at
+                 4-4.5 months.
+             Step-up keyframe pattern at the breeding-age threshold mirrors the
+             cow/pig/sheep curves in our bundled xml/animals.xml. Peak >= cow's 980
+             reflects rabbits' documented exceptional fecundity (FAO: re-breed within
+             days of kindling; ~6 litters/year per doe). -->
+        <fertility>
+            <key ageMonth="0"  value="0"/>
+            <key ageMonth="4"  value="0"/>
+            <key ageMonth="4"  value="900"/>
+            <key ageMonth="6"  value="980"/>
+            <key ageMonth="24" value="970"/>
+            <key ageMonth="36" value="800"/>
+            <key ageMonth="48" value="300"/>
+            <key ageMonth="60" value="0"/>
+        </fertility>
+
         <!-- Override: fix existing RABBIT (female) weights, breed, and consumption rates.
              Witcombe map's original input is sheep-scaled (16.5 L water/day, 15 L food/day adult)
              which collapses doe Health to 0% within hours. Mirror the buck's rabbit-scale rates. -->
