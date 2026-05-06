@@ -1,40 +1,29 @@
 # Changelog
 
-## v1.2.3.0-dev.5
-- Pregnancy food and water consumption now caps at 2x the non-pregnant baseline. Previously sows with large litters reached 4-9x during late gestation, draining feed bins unrealistically fast; cattle and sheep with typical litters are unaffected. Builds on contributor PR #72 (thanks @borondy).
-- Fixed pregnant and lactating cows/goats not actually drinking more water - the multiplier was being computed but silently discarded. Water bins for these herds will drain noticeably faster on existing saves.
-- Fixed rabbits on Witcombe never getting pregnant: the Witcombe bridge now ships a fertility-by-age curve for the RABBIT type.
-- Fixed RL Menu Messages tab not clearing the per-pen unread flag on open. The daily "<pen> has unread messages" notification will no longer keep firing for pens you've already reviewed; existing saves with stuck unread flags will auto-heal the first time you open the Messages tab.
-- Fixed pregnancy state occasionally clearing the pregnant flag inconsistently after an internal cleanup; affected pregnancy sync across multiplayer peers and sale animals at the dealer.
-- Added a non-blocking startup warning for known-trouble mods. Dismissible dialog at game start with a link to the new Mod Compatibility reference page; hard-conflict mods are unchanged.
-- Fixed multiplayer: the hard-conflict dialog now fires on every peer instead of only the host. Pure clients connecting to a host with a known-conflict mod are returned to the main menu instead of silently entering a broken session.
-- User-guide pages updated for accuracy: Witcombe Hereford sell-price peak corrected from 18 to 24 months (it's the value at 18 months, not the peak), PED disease guide now frames fatality as time-since-infection (the mechanic) rather than age-when-infected, and lactation-bonus wording is consistent with the new Mod Compatibility reference page.
+## v1.2.3.0
 
-## v1.2.3.0-dev.4
-- Fixed compatibility with the Butcher Table mod (and any other `extendedProductionPoint`-based mod): animals sent to the butcher are now correctly delivered to the production storage. Previously they were removed from the source pen but the input fillLevel never rose, so production never started and no meat pallets spawned.
-- Day-change with many simultaneous births now fires the cluster-update chain once per pen instead of once per pregnant mother. Mods that listen to husbandry-animal updates do their work once per day-change instead of per birth, reducing day-change lag on large herds with heavy mod loadouts.
-- Added a Breeding Reference page to the user guide: per-breed table of female and male breeding ages, gestation, and peak litter sizes across all base species. Rooster minimum breeding age (6 months) is now documented alongside the hen value. Linked from every species factsheet and the Breeding Guide.
-- Fixed a multiplayer error that left pig and horse pregnancies unsynced to clients: the server's pregnancy event broadcast aborted with a `streamWriteFloat32` Nil-argument crash because pigs and horses don't track productivity genetics like cows/sheep/chickens. Affects both natural conception and AI-straw insemination - the insemination would appear to succeed on the host but never replicate to other players. The pregnancy now broadcasts cleanly and arrives on every connected peer.
-- Fixed Jersey cows on Witcombe showing the marker spray and monitor collar permanently regardless of actual state. Also fixes missing ear-tag text, missing ID digits, and stuck-on monitor visuals for Witcombe-bridge sheep and pig breeds (Texel / Suffolk / Blue-Faced Leicester rams, Gloucestershire Old Spot boar) and Hereford bulls. The fix applies to any map that adds new breeds reusing RLRM's visual indices, not just Witcombe.
-- Marker tool no longer crashes when applied to a breed without a registered marker colour (Jersey, Highland). Added Jersey (cream) and Highland (auburn) marker colours, and falls back to white for any future unregistered breed instead of leaving stale colour from another animal.
-- Fixed Witcombe Highland Cattle rendering as a small Angus calf at all ages and Witcombe Herefords rendering as Limousin-coloured Angus instead of the white-face Hereford. The Witcombe bridge's visual-index overrides for these breeds were misrouted to the wrong slots in RLRM's bundle; removing them lets the correct Highland models and Hereford texture variant win. Witcombe's custom Hereford dealer-menu thumbnails are preserved.
+### Added
+- Non-blocking startup warning for known-trouble mods: dismissible dialog at game start with a link to the new Mod Compatibility reference page; hard-conflict mods are unchanged.
+- Breeding Reference page in the user guide: per-breed table of female and male breeding ages, gestation, and peak litter sizes across all base species.
+- Support-log diagnostics for lag triage and bug reports: per-pen timing summaries for day-change/cluster-update/visual-update/buy operations, an `rlDumpSettings` console command, and a one-time startup dump of active RL settings (set log level to DEBUG to see timing detail).
 
-## v1.2.3.0-dev.3
-- Better support logs for diagnosing lag: per-pen day-change, cluster-update, visual-update and animal-buy operations now write fine-grained timing summaries to log.txt. Use `rmSetLoglevel * debug` for the summaries, `* trace` for full per-phase detail.
-- Cleaner default debug log: handler enter/exit chatter moved to trace level so the new summaries stand out, and a stray [ERROR] line that the wrong-type-key safety check used to print on log startup is gone.
+### Improved
+- Bulk animal operations (move, sell, buy, AI sell) and multiplayer sync of reproduction/death cycles: large herds no longer freeze the game; clients receive a single update per affected husbandry instead of one per animal; day-change with simultaneous births collapses to one cluster-update per pen.
+- Pregnancy food and water consumption now caps at 2x the non-pregnant baseline (previously sows with large litters reached 4-9x during late gestation; cattle and sheep with typical litters are unaffected). Builds on contributor PR #72 - thanks @borondy.
 
-## v1.2.3.0-dev.2
-- Added `rlDumpSettings` console command and one-time startup log dump: writes the active RL settings (single-player, host, or client) to log.txt for easier support reports
-- Added periodic-handler timing to the debug log: hour, day, and period-change handlers now record enter/exit with in-game time and elapsed milliseconds, for easier performance triage in support reports (set log level to DEBUG to see them)
-- Added shop-action timing to the debug log: buying, selling, moving, inseminating animals and buying semen now record enter/exit with elapsed milliseconds, so per-action lag can be triaged from the log (set log level to DEBUG to see them)
-- Fixed bulk animal moves leaving stale visual animals in the source husbandry: source are now correctly emptied and can accept new arrivals without requiring a save reload
-- Fixed misleading error messages in support logs: when an internal error occurs, the log now shows the real error and a usable stack trace instead of "attempt to index nil with 'traceback'"
-- Improved third-party mod compatibility diagnostics: animal cluster removal now logs a warning + stack trace when another mod calls the internal API with the wrong key type (instead of silently scanning the animal list); helps surface integration bugs in support reports
-
-## v1.2.3.0-dev.1
-- Improved bulk animal operations (move, sell, buy, AI sell): large herds should no longer freeze the game when moving, selling, or buying many animals at once
-- Improved multiplayer bandwidth on bulk operations and daily reproduction / death cycles: clients now receive a single update per affected husbandry instead of one per animal
-- Fixed redundant "animals changed" notifications firing multiple times per mutation
+### Fixed
+- Multiplayer hard-conflict dialog now fires on every peer; pure clients connecting to a host with a known-conflict mod are returned to the main menu instead of silently entering a broken session.
+- Pregnant and lactating cows/goats now actually drink more water - the multiplier was being computed but silently discarded.
+- Pregnancy state occasionally clearing the pregnant flag inconsistently after an internal cleanup; affected pregnancy sync across multiplayer peers and sale animals at the dealer.
+- Multiplayer error that left pig and horse pregnancies unsynced to clients (both natural conception and AI-straw insemination would appear to succeed on the host but never replicate to other players).
+- Multiplayer crash on per-animal load/unload from the trailer animal screen: clicking the single-row load button crashed the client and corrupted the move packet on the server. Multi-select bulk was the only working path until now.
+- Rabbits on Witcombe never getting pregnant: the Witcombe bridge now ships a fertility-by-age curve for the RABBIT type.
+- Witcombe Highland Cattle rendering as a small Angus calf at all ages and Witcombe Herefords rendering as Limousin-coloured Angus instead of the white-face Hereford. Witcombe's custom Hereford dealer-menu thumbnails are preserved.
+- Jersey cows on Witcombe showing the marker spray and monitor collar permanently regardless of actual state; same fix applies to Witcombe-bridge sheep and pig breeds (Texel / Suffolk / Blue-Faced Leicester rams, Gloucestershire Old Spot boar) and Hereford bulls.
+- Marker tool no longer crashes on Jersey or Highland (added cream and auburn marker colours; unregistered breeds fall back to white).
+- RL Menu Messages tab not clearing the per-pen unread flag on open; existing saves with stuck unread flags will auto-heal the first time you open the Messages tab.
+- Redundant "animals changed" notifications firing multiple times per mutation.
+- User guide accuracy: Witcombe Hereford peak (the value at 18 months is not the peak; the peak is at 24 months), PED disease fatality framing (time-since-infection rather than age-when-infected), and lactation-bonus wording.
 
 ## v1.2.2.0
 - Added Witcombe map support: new UK breeds (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) with full breeding, genetics, and reproduction; rabbits get viable weights, litter sizes, and consumption rates; automatic version-aware compatibility

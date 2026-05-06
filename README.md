@@ -33,18 +33,19 @@ This is a maintained version of the original mod by Arrow-kb, who has discontinu
 - Highland cattle bull support
 - Animal pack system: third-party mods can add new breeds or adjust animal balance
 - Map support: Hof Bergmann (ducks, geese, cats, rabbits, alpacas, quail) with automatic version-aware compatibility
-- Map support: Witcombe (UK breeds — Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester, plus Hereford heritage profile) with automatic version-aware compatibility
+- Map support: Witcombe (UK breeds - Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester, plus Hereford heritage profile) with automatic version-aware compatibility
 - Simple support for butchers using Extended Production Point (EPP) mod
+- Mod compatibility checks at startup: hard-block dialog for incompatible mods, plus a dismissible warning tier for mods known to degrade gameplay
 - Multiplayer support (server-authoritative)
 
 ## Supported Maps & Packs
 
 **Maps:**
-- [Hof Bergmann](https://www.lsfarming-mods.com/) — ducks, geese, cats, rabbits, alpacas, quail with full breeding support
-- [Witcombe](https://oxygendavid.itch.io/witcombe-park-farm) — UK breeds (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) with full breeding support; Hereford heritage profile
+- [Hof Bergmann](https://www.lsfarming-mods.com/) - ducks, geese, cats, rabbits, alpacas, quail with full breeding support
+- [Witcombe](https://oxygendavid.itch.io/witcombe-park-farm) - UK breeds (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) with full breeding support; Hereford heritage profile
 
 **Animal Packs:**
-- [Cow Breeds Pack for RLRM](https://github.com/ConGan98/FS25_CowBreedsRLRM) by ConGan98 — additional cattle breeds
+- [Cow Breeds Pack for RLRM](https://github.com/ConGan98/FS25_CowBreedsRLRM) by ConGan98 - additional cattle breeds
 
 ## Notes
 
