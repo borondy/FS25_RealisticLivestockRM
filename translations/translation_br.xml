@@ -687,6 +687,11 @@
         <text name="rm_rl_migration_title" text="Aviso de migração de dados"/>
         <text name="rm_rl_mod_conflict_message" text="O(s) seguinte(s) mod(s) estão em conflito com 'Realistic Livestock - Ritter version' e não podem ser usados juntos: %s &#10;&#10;Por favor, desative o(s) mod(s) conflitante(s) e reinicie o jogo."/>
 
+        <text name="rl_mod_warn_title" text="Mod Compatibility Warning"/>
+        <text name="rl_mod_warn_message" text="The following mod(s) loaded with Realistic Livestock RM may cause issues:%s&#10;&#10;See %s for details. The game will continue."/>
+        <text name="rl_mod_compat_url" text="https://rittermod.github.io/FS25_RealisticLivestockRM/user-guide/reference-mod-compatibility"/>
+        <text name="rl_mod_warn_FS25_AnimalFoodCalculator" text="FS25_AnimalFoodCalculator: significant performance impact that grows with herd size."/>
+
 		
 
         <!-- Missing keys (English fallback) -->
