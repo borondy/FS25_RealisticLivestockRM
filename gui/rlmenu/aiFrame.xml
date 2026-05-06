@@ -153,9 +153,6 @@
                     widget). Combined with the profile's 40px narrowing,
                     the 20px shift centers the narrower widget within the
                     panel - 20px gap on each side.
-
-                    Phase 1 onClick handler is a TRACE-only stub (no
-                    price recompute); Phase 2 replaces the handler body.
                 -->
                 <MultiTextOption profile="rlMenu_aiQuantitySelector"
                                  id="aiQuantitySelector"

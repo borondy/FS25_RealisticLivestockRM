@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.2.3.0-dev.5
+- Pregnancy food and water consumption now caps at 2x the non-pregnant baseline. Previously sows with large litters reached 4-9x during late gestation, draining feed bins unrealistically fast; cattle and sheep with typical litters are unaffected. Builds on contributor PR #72 (thanks @borondy).
+- Fixed pregnant and lactating cows/goats not actually drinking more water - the multiplier was being computed but silently discarded. Water bins for these herds will drain noticeably faster on existing saves.
+- Fixed rabbits on Witcombe never getting pregnant: the Witcombe bridge now ships a fertility-by-age curve for the RABBIT type.
+- Fixed RL Menu Messages tab not clearing the per-pen unread flag on open. The daily "<pen> has unread messages" notification will no longer keep firing for pens you've already reviewed; existing saves with stuck unread flags will auto-heal the first time you open the Messages tab.
+- Fixed pregnancy state occasionally clearing the pregnant flag inconsistently after an internal cleanup; affected pregnancy sync across multiplayer peers and sale animals at the dealer.
+- Added a non-blocking startup warning for known-trouble mods. Dismissible dialog at game start with a link to the new Mod Compatibility reference page; hard-conflict mods are unchanged.
+- Fixed multiplayer: the hard-conflict dialog now fires on every peer instead of only the host. Pure clients connecting to a host with a known-conflict mod are returned to the main menu instead of silently entering a broken session.
+- User-guide pages updated for accuracy: Witcombe Hereford sell-price peak corrected from 18 to 24 months (it's the value at 18 months, not the peak), PED disease guide now frames fatality as time-since-infection (the mechanic) rather than age-when-infected, and lactation-bonus wording is consistent with the new Mod Compatibility reference page.
+
 ## v1.2.3.0-dev.4
 - Fixed compatibility with the Butcher Table mod (and any other `extendedProductionPoint`-based mod): animals sent to the butcher are now correctly delivered to the production storage. Previously they were removed from the source pen but the input fillLevel never rose, so production never started and no meat pallets spawned.
 - Day-change with many simultaneous births now fires the cluster-update chain once per pen instead of once per pregnant mother. Mods that listen to husbandry-animal updates do their work once per day-change instead of per birth, reducing day-change lag on large herds with heavy mod loadouts.
@@ -160,7 +170,7 @@
 - Added selection count on bulk action buttons
 - Fixed move messages in husbandry message log (were silently failing due to incorrect message keys)
 - Fixed move messages showing wrong direction (to/from was swapped)
-- Fixed typo in move message ("1 animals" → "1 animal")
+- Fixed typo in move message ("1 animals" -> "1 animal")
 
 ## v1.0.1.1:
 - Fixed compatibility with Hof Bergmann's subtype filter for animal pens
