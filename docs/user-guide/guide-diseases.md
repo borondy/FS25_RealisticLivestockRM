@@ -146,19 +146,19 @@ PED is devastating to young piglets - almost always fatal in newborns. Older pig
 | Manure | Severely reduced |
 | Sell price | Significant reduction |
 
-### Fatality by Age
+### Fatality Over Time
 
-| Age When Infected | Death Risk |
-|-------------------|------------|
-| Newborn (0 mo) | **Almost always fatal** |
-| 1 month old | Moderate risk |
-| 2+ months | Very low - adults survive easily |
+| Time Since Infection | Death Risk |
+|----------------------|------------|
+| Just infected | **Almost always fatal** |
+| After 1 month | Low risk |
+| 2+ months | Very low - chronic survivors are stable |
 
-*PED is almost exclusively fatal in newborn piglets. Adult pigs survive easily.*
+*Fatality drops sharply after the first month. The reason newborns rarely survive PED is **not** that fatality changes with age - it's that newborns get infected far more often than adults (spontaneous infection is common at 0 mo, very rare from 24 mo onwards). Once infected, the bulk of deaths happen in the first month regardless of how old the pig was.*
 
 ### Why PED Is Devastating
 
-With pig litters of 11–16 piglets, a PED outbreak in a maternity pen can kill most of a generation in a single month. A sow producing 13 piglets might lose the vast majority of them.
+With pig litters of 11-16 piglets, a PED outbreak in a maternity pen can kill most of a generation in a single month. A sow producing 13 piglets might lose the vast majority of them.
 
 ### Management Tips
 
@@ -196,7 +196,7 @@ Avian Flu is the fastest-spreading disease and has **no treatment**. Infected ch
 | Time Infected | Death Risk |
 |--------------|------------|
 | Just infected | **High - many birds die** |
-| After 1–2 months | High |
+| After 1-2 months | High |
 | 3+ months (survivors) | Moderate but ongoing |
 
 ### Why Avian Flu Is Dangerous
@@ -224,6 +224,6 @@ Two settings control diseases globally:
 | Setting | Default | Range | Effect |
 |---------|---------|-------|--------|
 | **Diseases Enabled** | On | On/Off | Toggles entire disease system |
-| **Disease Chance** | 1x | 0.25–5x | Scales infection probability |
+| **Disease Chance** | 1x | 0.25-5x | Scales infection probability |
 
 *Reducing Disease Chance to 0.25x makes diseases much less common. Setting to 5x makes them much more frequent. Disabling diseases removes them entirely.*

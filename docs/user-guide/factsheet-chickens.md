@@ -13,9 +13,9 @@ Chickens are the cheapest and shortest-lived animals in Realistic Livestock RM. 
 | **Target Weight** | 3.25 kg | 4.25 kg |
 | **Max Weight** | 4.5 kg | 5.5 kg |
 | **Birth Weight** | 0.04 kg | 0.045 kg |
-| **Egg Range (peak)** | **1 – 9 eggs/day** | - |
+| **Egg Range (peak)** | **1 - 9 eggs/day** | - |
 | **Buy Price (adult)** | $30 | $30 |
-| **Sell Price (adult)** | $1 – $45 | $1 – $45 |
+| **Sell Price (adult)** | $1 - $45 | $1 - $45 |
 
 *Roosters are heavier but eat noticeably less food than hens at adult age. Sell prices vary with genetics and health but chickens are always low-value - their worth is in egg production.*
 
@@ -29,10 +29,10 @@ Hens lay eggs regardless of whether a rooster is present - a rooster is only nee
 
 | Age | Range |
 |-----|-------|
-| 0–5 mo | 0 |
-| 6 mo | 0 – 2 |
-| 12–48 mo (peak) | **1 – 9** |
-| 60 mo | 1 – 5 |
+| 0-5 mo | 0 |
+| 6 mo | 0 - 2 |
+| 12-48 mo (peak) | **1 - 9** |
+| 60 mo | 1 - 5 |
 | 72+ mo | 0 |
 
 *Egg production peaks at 12 months and holds steady until 48 months, then declines to zero by 72 months (6 years). Genetics cause large variation between individual hens. Avian Influenza stops ALL egg production.*
@@ -65,7 +65,8 @@ Chicken prices are low and identical for hens and roosters:
 
 | Factor | Effect |
 |--------|--------|
-| Quality genetics | Better genetics → noticeably higher price |
+| Quality genetics | Better genetics -> noticeably higher price |
+| Weight | Well-fed birds near target weight are worth more |
 | Health | Healthy birds sell for more |
 | Avian Influenza | Drastically reduces price |
 
@@ -77,9 +78,9 @@ Chicken prices are low and identical for hens and roosters:
 
 | Age | Hen | Rooster |
 |-----|-----|---------|
-| Newborn | 0 – 2 | 0 – 2 |
-| 6 mo | 1 – 5 | 1 – 5 |
-| 18+ mo (adult) | **2 – 12** | **1 – 9** |
+| Newborn | 0 - 2 | 0 - 2 |
+| 6 mo | 1 - 5 | 1 - 5 |
+| 18+ mo (adult) | **2 - 12** | **1 - 9** |
 
 *Roosters eat noticeably less than hens at adult age. Ranges show the span from the most efficient to the hungriest birds.*
 
@@ -114,15 +115,15 @@ Chicken prices are low and identical for hens and roosters:
 
 Chickens can produce large broods, but the chance of no offspring is always significant:
 
-| Hen Age | No Hatch | Small Brood (1–5) | Medium Brood (5–7) | Large Brood (7–12) |
+| Hen Age | No Hatch | Small Brood (1-5) | Medium Brood (5-7) | Large Brood (7-12) |
 |---------|----------|-------------------|--------------------|---------------------|
-| 6–12 mo | Common | Uncommon | Most likely | Possible |
-| 12–24 mo | Common | Rare | Most likely | Possible |
-| 24–48 mo | Frequent | - | Most likely | Possible |
-| 48–84 mo | Very common | - | Uncommon | Rare |
-| 84–120 mo | Almost always | - | Very rare | Very rare |
+| 6-12 mo | Common | Uncommon | Most likely | Possible |
+| 12-24 mo | Common | Rare | Most likely | Possible |
+| 24-48 mo | Frequent | - | Most likely | Possible |
+| 48-84 mo | Very common | - | Uncommon | Rare |
+| 84-120 mo | Almost always | - | Very rare | Very rare |
 
-*Unlike other animals, hens never die during hatching. The most common successful brood is 5–7 chicks. At older ages, small broods become impossible - hens that do hatch tend to produce medium or larger broods.*
+*Unlike other animals, hens never die during hatching. The most common successful brood is 5-7 chicks. At older ages, small broods become impossible - hens that do hatch tend to produce medium or larger broods.*
 
 ---
 
@@ -152,7 +153,7 @@ Chickens can produce large broods, but the chance of no offspring is always sign
 
 1. **Hens don't need roosters for eggs.** You only need a rooster if you want to hatch chicks. A pen full of hens produces maximum eggs with zero breeding overhead.
 
-2. **Peak production is 12–48 months.** Buy young hens and plan to replace them before they hit 48 months (4 years) when production starts declining.
+2. **Peak production is 12-48 months.** Buy young hens and plan to replace them before they hit 48 months (4 years) when production starts declining.
 
 3. **Avian Flu is devastating.** No treatment exists. Sell infected birds quickly to limit spread and recover some value. Keeping smaller flocks in separate pens also limits outbreak damage.
 
