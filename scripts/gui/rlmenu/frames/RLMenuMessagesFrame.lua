@@ -84,11 +84,27 @@ end
 --- Called by the Paging element when this tab becomes active.
 --- Refreshes data from the service every time the tab opens so the user
 --- always sees the latest messages without needing to close + reopen the menu.
+---
+--- After the refresh, clears the per-husbandry unreadMessages flag farm-wide
+--- via RLMessageService.markAllReadForFarm. Mirrors the legacy AnimalScreen
+--- log-tab clear (per-pen there because that screen is per-pen; farm-wide
+--- here because the Messages tab is a unioned farm view). Without this,
+--- the per-husbandry INGAME_NOTIFICATION_CRITICAL "<pen> has unread
+--- messages" notification keeps re-firing on every onDayChanged after the
+--- player has read or cleared the list.
 function RLMenuMessagesFrame:onFrameOpen()
     RLMenuMessagesFrame:superClass().onFrameOpen(self)
     self.isFrameOpen = true
     Log:debug("RLMenuMessagesFrame:onFrameOpen")
     self:refreshData()
+
+    -- Acknowledge unread state for every pen on the local farm. Iterating
+    -- all placeables (not just rows that contributed to the list) is
+    -- intentional - saves carrying the pre-fix stale flag (flag=true,
+    -- spec.messages empty) auto-heal on first open.
+    Log:trace("RLMenuMessagesFrame:onFrameOpen: clearing unread flags for farmId=%s",
+        tostring(self.farmId))
+    RLMessageService.markAllReadForFarm(self.farmId)
 
     -- Explicit focus required for multi-tab TabbedMenu navigation (Fresh
     -- mod pattern). Without this, FocusManager auto-layout can resolve

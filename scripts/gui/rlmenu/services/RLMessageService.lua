@@ -161,28 +161,54 @@ function RLMessageService.compareRows(a, b)
     return false
 end
 
---- Build the unioned, display-ready, newest-first list of messages for a farm.
---- Walks every husbandry placeable on the farm, unions their getRLMessages()
---- via formatMessage, and sorts the result. Read-only and side-effect-free
---- on both server and client.
+--- Resolve the placeables list for a farm, applying the standard guard chain
+--- (nil/0 farmId, missing g_currentMission.husbandrySystem, nil
+--- getPlaceablesByFarm result). Returns nil on any guard miss so callers can
+--- early-out with a single `if placeables == nil then` check.
+---
+--- Tests can swap this field (RLMessageService._resolvePlaceables = stub) to
+--- inject deterministic placeable arrays without standing up g_currentMission
+--- or husbandrySystem fakes - mirrors the existing _sendDeleteEvent
+--- swappable-hook pattern further down this file. Both the read path
+--- (getMessagesForFarm) and the clear path (markAllReadForFarm) consume this
+--- single resolver, so guard logic cannot drift between them.
+--- @type function
 --- @param farmId number|nil Farm id (typically g_currentMission:getFarmId())
---- @return table rows[] Array of formatted row tables; empty if farmId is nil/0
-function RLMessageService.getMessagesForFarm(farmId)
-    Log:debug("RLMessageService.getMessagesForFarm: farmId=%s", tostring(farmId))
+--- @return table|nil placeables Array of placeables on the farm, or nil if any guard fired
+RLMessageService._resolvePlaceables = function(farmId)
+    Log:trace("RLMessageService._resolvePlaceables: farmId=%s", tostring(farmId))
 
     if farmId == nil or farmId == 0 then
-        Log:trace("RLMessageService.getMessagesForFarm: no farm, returning empty")
-        return {}
+        Log:trace("RLMessageService._resolvePlaceables: no farm, returning nil")
+        return nil
     end
 
     if g_currentMission == nil or g_currentMission.husbandrySystem == nil then
-        Log:warning("RLMessageService.getMessagesForFarm: husbandrySystem unavailable")
-        return {}
+        Log:warning("RLMessageService._resolvePlaceables: husbandrySystem unavailable")
+        return nil
     end
 
     local placeables = g_currentMission.husbandrySystem:getPlaceablesByFarm(farmId)
     if placeables == nil then
-        Log:trace("RLMessageService.getMessagesForFarm: no placeables for farm %d", farmId)
+        Log:trace("RLMessageService._resolvePlaceables: no placeables for farm %d", farmId)
+        return nil
+    end
+
+    return placeables
+end
+
+--- Build the unioned, display-ready, newest-first list of messages for a farm.
+--- Walks every husbandry placeable on the farm (resolved via the shared
+--- _resolvePlaceables hook), unions their getRLMessages() via formatMessage,
+--- and sorts the result. Read-only and side-effect-free on both server
+--- and client.
+--- @param farmId number|nil Farm id (typically g_currentMission:getFarmId())
+--- @return table rows[] Array of formatted row tables; empty if the resolver returns nil
+function RLMessageService.getMessagesForFarm(farmId)
+    Log:debug("RLMessageService.getMessagesForFarm: farmId=%s", tostring(farmId))
+
+    local placeables = RLMessageService._resolvePlaceables(farmId)
+    if placeables == nil then
         return {}
     end
 
@@ -205,6 +231,73 @@ function RLMessageService.getMessagesForFarm(farmId)
     Log:debug("RLMessageService.getMessagesForFarm: %d rows from %d husbandries",
         #rows, husbandryIndex)
     return rows
+end
+
+-- =============================================================================
+-- Phase 1.2: unread-flag clear
+-- =============================================================================
+
+--- Clear the per-husbandry unreadMessages flag on every flagged placeable in
+--- the given array. Pure helper - no farm resolution, no logging at the
+--- per-placeable level (caller logs the aggregate). Defensive against mixed
+--- placeable types: skips entries that lack getHasUnreadRLMessages /
+--- setHasUnreadRLMessages, mirroring the read-path guard
+--- `if placeable.getRLMessages ~= nil` used in getMessagesForFarm above.
+---
+--- Mutation parity: setHasUnreadRLMessages(false) is the same setter the
+--- legacy AnimalScreen log tab calls when the user opens the log, so
+--- semantics match the prior "user opened the log" acknowledgement path
+--- exactly. Only the scope (farm-wide vs per-pen) differs because the new
+--- menu's Messages tab is a unioned farm view.
+--- @param placeables table|nil Array of placeables; nil-safe
+--- @return number count Number of placeables whose flag was cleared this call
+--- @return table names Display names (placeable:getName()) of the cleared placeables, in iteration order
+function RLMessageService._clearUnreadFlagsForPlaceables(placeables)
+    if placeables == nil then
+        return 0, {}
+    end
+
+    local count = 0
+    local names = {}
+
+    for _, placeable in pairs(placeables) do
+        if placeable.getHasUnreadRLMessages ~= nil
+            and placeable.setHasUnreadRLMessages ~= nil
+            and placeable:getHasUnreadRLMessages() then
+            placeable:setHasUnreadRLMessages(false)
+            count = count + 1
+            local name = (placeable.getName ~= nil and placeable:getName()) or "Unknown"
+            table.insert(names, name)
+        end
+    end
+
+    return count, names
+end
+
+--- Public entry point for "user opened the Messages tab - treat every
+--- husbandry on this farm as acknowledged". Resolves the farm's placeables
+--- via the shared _resolvePlaceables hook, then delegates to
+--- _clearUnreadFlagsForPlaceables. Logs farmId + cleared count + cleared
+--- names at debug.
+---
+--- Permissionless by design: matches the legacy AnimalScreen log tab,
+--- which clears without a permission check. The flag is informational
+--- acknowledgement, not destructive content removal - message deletion is
+--- permissioned, flag clear is not. MP scope: clears the local placeable
+--- replicas only; server-authoritative unread-state sync is intentionally
+--- out of scope.
+--- @param farmId number|nil Farm id (typically g_currentMission:getFarmId())
+function RLMessageService.markAllReadForFarm(farmId)
+    Log:debug("RLMessageService.markAllReadForFarm: farmId=%s", tostring(farmId))
+
+    local placeables = RLMessageService._resolvePlaceables(farmId)
+    if placeables == nil then
+        return
+    end
+
+    local count, names = RLMessageService._clearUnreadFlagsForPlaceables(placeables)
+    Log:debug("RLMessageService.markAllReadForFarm: farmId=%s cleared=%d names=[%s]",
+        tostring(farmId), count, table.concat(names, ", "))
 end
 
 -- =============================================================================

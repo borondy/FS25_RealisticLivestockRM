@@ -81,6 +81,10 @@ end
 --- Advance pregnancy or attempt natural conception.
 --- Handles pregnancy state cleanup, reproduction meter advancement, birth when
 --- meter >= 100, and natural conception for eligible non-pregnant females.
+--- The orphaned-pregnancy cleanup branch delegates to
+--- AnimalReproduction._clearOrphanedPregnancy so the four-field invariant
+--- (isPregnant <=> pregnancy ~= nil, plus impregnatedBy + reproduction reset)
+--- is restored in one place; no inline cleanup remains here.
 --- @param animal table Animal instance
 --- @param spec table|nil Husbandry spec (for maxNumAnimals, getNumOfAnimals)
 --- @param day number Current day
@@ -101,12 +105,13 @@ local function advancePregnancy(animal, spec, day, month, year, isSaleAnimal)
         return children, deadAnimals, childrenSold, childrenSoldAmount
     end
 
-    -- Pregnancy state cleanup: if reproduction > 0 but no pregnancies data, reset
+    -- Orphaned pregnancy state cleanup: reproduction > 0 but no usable pregnancy data.
+    -- Delegate to the shared helper so the canonical four-field clear runs
+    -- (pregnancy + impregnatedBy + isPregnant + reproduction). orphanReason is
+    -- computed at the call site so the debug log carries which subcondition fired.
     if animal.reproduction > 0 and (animal.pregnancy == nil or animal.pregnancy.pregnancies == nil) then
-        Log:trace("advancePregnancy: animal=%s clearing orphaned pregnancy state (reproduction=%d)",
-            animal.uniqueId or "?", animal.reproduction)
-        animal.pregnancy = nil
-        animal.reproduction = 0
+        local orphanReason = (animal.pregnancy == nil) and "pregnancy-nil" or "pregnancies-nil"
+        AnimalReproduction._clearOrphanedPregnancy(animal, orphanReason)
     end
 
     if animal.isPregnant then
@@ -170,6 +175,52 @@ local function advancePregnancy(animal, spec, day, month, year, isSaleAnimal)
     end
 
     return children, deadAnimals, childrenSold, childrenSoldAmount
+end
+
+
+-- =============================================================================
+-- PREGNANCY STATE CLEANUP
+-- =============================================================================
+
+--- Clear the four pregnancy-state fields on an animal that landed in the
+--- orphaned state (reproduction > 0 but no usable pregnancy data).
+--- Mirrors the canonical post-birth clear at AnimalBirthEvent's parent-clear
+--- block: pregnancy + impregnatedBy + isPregnant + reproduction reset together.
+---
+--- Restoring the invariant `isPregnant <=> pregnancy ~= nil` at the source
+--- prevents the MP wire-side compound-bool guard
+--- (streamWriteBool(streamId, animal.isPregnant and animal.pregnancy ~= nil))
+--- from ever needing to defend against the orphaned state. Receiver and sender
+--- agree on isPregnant because the orphaned window no longer exists.
+---
+--- Module-level on purpose: called from this file's local advancePregnancy
+--- (one consumer in-file) AND from AnimalSystem:createNewSaleAnimal (the
+--- second consumer in another file). Both call sites delegate; no inline
+--- four-field assignment remains anywhere in the codebase.
+---
+--- The orphanReason parameter is forwarded to the debug log untouched (the
+--- helper does not re-evaluate which subcondition fired); callers compute it
+--- from the cleanup-condition branch they took. Keeps the helper signature
+--- minimal (animal, orphanReason) so unit tests stay simple.
+--- @param animal table Animal instance with the four pregnancy-state fields
+--- @param orphanReason string Triage tag for which subcondition fired
+---   ("pregnancy-nil" | "pregnancies-nil" | call-site-specific variant)
+function AnimalReproduction._clearOrphanedPregnancy(animal, orphanReason)
+    local wasPregnant = animal.isPregnant
+    local wasImpregnatedByPresent = animal.impregnatedBy ~= nil
+
+    animal.pregnancy = nil
+    animal.reproduction = 0
+    animal.isPregnant = false
+    animal.impregnatedBy = nil
+
+    Log:debug("AnimalReproduction._clearOrphanedPregnancy: cleared orphaned pregnancy state for animal farmId=%s uniqueId=%s country=%s isPregnantWasTrue=%s orphanReason=%s impregnatedByPresent=%s",
+        tostring(animal.farmId),
+        tostring(animal.uniqueId),
+        tostring(animal.birthday and animal.birthday.country),
+        tostring(wasPregnant),
+        tostring(orphanReason),
+        tostring(wasImpregnatedByPresent))
 end
 
 

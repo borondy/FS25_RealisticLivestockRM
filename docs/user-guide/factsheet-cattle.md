@@ -1,6 +1,6 @@
 # Cattle Factsheet
 
-Cattle are the most diverse livestock in Realistic Livestock RM, with 7 breeds ranging from high-output dairy cows to premium beef cattle. Each breed has distinct milk output, sell value, and feed requirements. Bulls are heavier and sell for more, but produce no milk.
+Cattle are the most diverse livestock in Realistic Livestock RM, with 7 breeds ranging from high-output dairy cows to premium beef cattle. Each breed has distinct milk output, sell value, and feed requirements. Bulls are heavier and sell for more than cows at every age.
 
 > **Note:** This documentation was generated with AI assistance and may contain inaccuracies. If you spot an error, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues).
 
@@ -10,19 +10,19 @@ Cattle are the most diverse livestock in Realistic Livestock RM, with 7 breeds r
 
 | Breed | Type | Target Weight | Milk Range (peak, lactating) | Sell Value |
 |-------|------|--------------|------------------------------|------------|
-| **Holstein** | Dairy | 575 / 650 kg | 65 – 750 L/day | Moderate |
-| **Hereford** | Dual | 675 / 750 kg | 55 – 600 L/day | Above average |
-| **Swiss Brown** | Dual | 650 / 850 kg | 50 – 580 L/day | Above average |
-| **Angus** | Beef | 700 / 900 kg | 30 – 365 L/day | High |
-| **Highland** *(DLC)* | Beef | 725 / 950 kg | 30 – 365 L/day | High, retains value in old age |
-| **Limousin** | Beef | 630 / 675 kg | 30 – 320 L/day | Highest |
-| **Water Buffalo** | Special | 425 / 500 kg | 5 – 70 L/day | Low |
+| **Holstein** | Dairy | 575 / 650 kg | 65 - 750 L/day | Moderate |
+| **Hereford** | Dual | 675 / 750 kg | 55 - 600 L/day | Above average |
+| **Swiss Brown** | Dual | 650 / 850 kg | 50 - 580 L/day | Above average |
+| **Angus** | Beef | 700 / 900 kg | 30 - 365 L/day | High |
+| **Highland** *(DLC)* | Beef | 725 / 950 kg | 30 - 365 L/day | High, retains value in old age |
+| **Limousin** | Beef | 630 / 675 kg | 30 - 320 L/day | Highest |
+| **Water Buffalo** | Special | 425 / 500 kg | 5 - 70 L/day | Low |
 
 *Target weights shown as cow / bull. Milk range shows the full span from poor to excellent genetics. All cows produce milk when lactating - beef breeds just produce less. Highland cattle require the Highlands & Fishing Pack DLC.*
 
 > **Breed-locking:** Water Buffalo bulls can only breed with Water Buffalo cows. All other bull breeds can breed with any non-Water-Buffalo cow.
 
-> **Hereford on Witcombe:** When playing on the [Witcombe](map-witcombe.md) map, Hereford uses a heritage profile with 9-month gestation, premium pricing (300 / 3000), an 18-month sell-price peak, and leaner feed/water needs. The values shown above are the standard RLRM Hereford used on every other map.
+> **Hereford on Witcombe:** When playing on the [Witcombe](map-witcombe.md) map, Hereford uses a heritage profile with 9-month gestation, premium pricing (300 / 3000), an earlier sell-price peak at 24 months (vs 36 months for other beef breeds), and leaner feed/water needs. The values shown above are the standard RLRM Hereford used on every other map.
 
 ---
 
@@ -34,13 +34,13 @@ Cows produce milk **only while lactating** (10 months after giving birth). Non-l
 
 | Breed | 12 mo | 36 mo (peak) | 120 mo |
 |-------|-------|--------------|-------|
-| **Holstein** | 40 – 445 | **65 – 750** | 35 – 410 |
-| **Hereford** | 40 – 435 | **55 – 600** | 25 – 285 |
-| **Swiss Brown** | 35 – 410 | **50 – 580** | 20 – 250 |
-| **Angus** | 20 – 230 | **30 – 365** | 15 – 160 |
-| **Highland** | 20 – 230 | **30 – 365** | 15 – 160 |
-| **Limousin** | 20 – 205 | **30 – 320** | 10 – 115 |
-| **Water Buffalo** | 5 – 70 | 5 – 70 | 5 – 70 |
+| **Holstein** | 40 - 445 | **65 - 750** | 35 - 410 |
+| **Hereford** | 40 - 435 | **55 - 600** | 25 - 285 |
+| **Swiss Brown** | 35 - 410 | **50 - 580** | 20 - 250 |
+| **Angus** | 20 - 230 | **30 - 365** | 15 - 160 |
+| **Highland** | 20 - 230 | **30 - 365** | 15 - 160 |
+| **Limousin** | 20 - 205 | **30 - 320** | 10 - 115 |
+| **Water Buffalo** | 5 - 70 | 5 - 70 | 5 - 70 |
 
 *Genetics and lactation phase cause large variation between individual animals. Most cows produce somewhere in the middle of these ranges. CVM carrier cows produce even more than the upper range.*
 
@@ -88,7 +88,7 @@ Bulls consistently sell for more than cows at all ages. Beef breeds (Angus, Limo
 
 | Factor | Effect |
 |--------|--------|
-| Quality genetics | Better genetics → noticeably higher price |
+| Quality genetics | Better genetics -> noticeably higher price |
 | Weight | Well-fed animals near target weight are worth more |
 | Health | Healthy animals sell for significantly more |
 | Lactating | Moderate price bonus |
@@ -110,60 +110,60 @@ Bulls consistently sell for more than cows at all ages. Beef breeds (Angus, Limo
 | **Highland** | 300 | 3,000 | 350 | 3,500 |
 | **Water Buffalo** | 200 | 1,500 | 250 | 1,800 |
 
-*Adult prices are at age 24–36 months. Dealer animals have randomised genetics.*
+*Adult prices are at age 24-36 months. Dealer animals have randomised genetics.*
 
 ---
 
 ## Food & Water Consumption by Breed
 
-Genetics significantly affect how much each animal eats - some are naturally much more efficient than others. Lactating cows eat considerably more, and the Food Scale setting also adjusts consumption.
+Genetics significantly affect how much each animal eats - some are naturally much more efficient than others. Lactating cows eat noticeably more, and the Food Scale setting also adjusts consumption.
 
 ### Food Consumption Range (L/day)
 
 | Breed | | Newborn | 18+ mo (adult) |
 |-------|---|---------|-----------------|
-| **Swiss Brown** | Cow | 25 – 175 | 85 – 600 |
-| | Bull | 25 – 175 | 90 – 620 |
-| **Holstein** | Cow | 23 – 158 | 83 – 578 |
-| | Bull | 23 – 158 | 85 – 595 |
-| **Angus** | Cow | 20 – 140 | 110 – 770 |
-| | Bull | 20 – 140 | 115 – 790 |
-| **Limousin** | Cow | 20 – 150 | 120 – 840 |
-| | Bull | 20 – 150 | 125 – 860 |
-| **Hereford** | Cow | 16 – 114 | 95 – 665 |
-| | Bull | 18 – 123 | 105 – 735 |
-| **Highland** | Cow | 20 – 140 | 140 – 960 |
-| | Bull | 20 – 140 | 145 – 1,005 |
-| **Water Buffalo** | Cow | 10 – 70 | 90 – 615 |
-| | Bull | 10 – 80 | 95 – 655 |
+| **Swiss Brown** | Cow | 25 - 175 | 85 - 600 |
+| | Bull | 25 - 175 | 90 - 620 |
+| **Holstein** | Cow | 23 - 158 | 83 - 578 |
+| | Bull | 23 - 158 | 85 - 595 |
+| **Angus** | Cow | 20 - 140 | 110 - 770 |
+| | Bull | 20 - 140 | 115 - 790 |
+| **Limousin** | Cow | 20 - 150 | 120 - 840 |
+| | Bull | 20 - 150 | 125 - 860 |
+| **Hereford** | Cow | 16 - 114 | 95 - 665 |
+| | Bull | 18 - 123 | 105 - 735 |
+| **Highland** | Cow | 20 - 140 | 140 - 960 |
+| | Bull | 20 - 140 | 145 - 1,005 |
+| **Water Buffalo** | Cow | 10 - 70 | 90 - 615 |
+| | Bull | 10 - 80 | 95 - 655 |
 
 *Highland and Limousin are the most expensive breeds to feed. Ranges show the span from the most efficient to the hungriest animals. Most animals eat near the middle of these ranges.*
 
-### Water Consumption (L/day, newborn → adult)
+### Water Consumption (L/day, newborn -> adult)
 
 | Breed | Cow | Bull |
 |-------|-----|------|
-| **Swiss Brown** | 55 → 130 | 55 → 130 |
-| **Holstein** | 45 → 120 | 45 → 120 |
-| **Angus** | 65 → 180 | 65 → 180 |
-| **Limousin** | 70 → 200 | 70 → 200 |
-| **Hereford** | 60 → 150 | 65 → 160 |
-| **Highland** | 20 → 140 | 20 → 140 |
-| **Water Buffalo** | 20 → 140 | 20 → 140 |
+| **Swiss Brown** | 55 -> 130 | 55 -> 130 |
+| **Holstein** | 45 -> 120 | 45 -> 120 |
+| **Angus** | 65 -> 180 | 65 -> 180 |
+| **Limousin** | 70 -> 200 | 70 -> 200 |
+| **Hereford** | 60 -> 150 | 65 -> 160 |
+| **Highland** | 20 -> 140 | 20 -> 140 |
+| **Water Buffalo** | 20 -> 140 | 20 -> 140 |
 
 *Lactating cows drink considerably more water than usual.*
 
-### Straw Consumption (L/day, newborn → adult)
+### Straw Consumption (L/day, newborn -> adult)
 
 | Breed | Cow | Bull |
 |-------|-----|------|
-| **Swiss Brown** | 10 → 95 | 10 → 95 |
-| **Holstein** | 10 → 95 | 10 → 95 |
-| **Angus** | 15 → 130 | 15 → 130 |
-| **Limousin** | 15 → 130 | 15 → 130 |
-| **Hereford** | 15 → 130 | 15 → 130 |
-| **Highland** | 15 → 130 | 15 → 130 |
-| **Water Buffalo** | 10 → 95 | 10 → 95 |
+| **Swiss Brown** | 10 -> 95 | 10 -> 95 |
+| **Holstein** | 10 -> 95 | 10 -> 95 |
+| **Angus** | 15 -> 130 | 15 -> 130 |
+| **Limousin** | 15 -> 130 | 15 -> 130 |
+| **Hereford** | 15 -> 130 | 15 -> 130 |
+| **Highland** | 15 -> 130 | 15 -> 130 |
+| **Water Buffalo** | 10 -> 95 | 10 -> 95 |
 
 *Straw is not affected by genetics or lactation. Beef breeds use more straw than dairy breeds.*
 
@@ -211,10 +211,10 @@ All cattle breeds share the same reproduction rules:
 
 | Age of Cow | No Birth | 1 Calf | Twins | Triplets |
 |------------|----------|--------|-------|----------|
-| 12–28 mo | Moderate | Most likely | Rare | Very rare |
-| 29–48 mo (prime) | Low | Most likely | Rare | Very rare |
-| 49–84 mo | Increasing | Most likely | Rare | Very rare |
-| 85–132 mo (old) | Very common | Less likely | Very rare | Extremely rare |
+| 12-28 mo | Moderate | Most likely | Rare | Very rare |
+| 29-48 mo (prime) | Low | Most likely | Rare | Very rare |
+| 49-84 mo | Increasing | Most likely | Rare | Very rare |
+| 85-132 mo (old) | Very common | Less likely | Very rare | Extremely rare |
 
 *Healthy cows are much more likely to produce offspring. Low health increases the chance of no birth and complications.*
 
