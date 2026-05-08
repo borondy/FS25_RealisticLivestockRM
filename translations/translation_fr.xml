@@ -773,5 +773,9 @@
 
 <!-- Clés manquantes (retour anglais) -->
 <text name="input_RL_RENAME" text="Renommer"/>
+<text name="rl_mod_warn_title" text="Mod Compatibility Warning"/>
+<text name="rl_mod_warn_message" text="The following mod(s) loaded with Realistic Livestock RM may cause issues:%s&#10;&#10;See %s for details. The game will continue."/>
+<text name="rl_mod_compat_url" text="https://rittermod.github.io/FS25_RealisticLivestockRM/user-guide/reference-mod-compatibility"/>
+<text name="rl_mod_warn_FS25_AnimalFoodCalculator" text="FS25_AnimalFoodCalculator: significant performance impact that grows with herd size."/>
 	</texts>
 </l10n>
