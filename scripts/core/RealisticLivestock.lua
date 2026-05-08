@@ -125,7 +125,10 @@ function RealisticLivestock.loadMap()
     g_overlayManager:addTextureConfigFile(modDirectory .. "gui/status_icons.xml", "rlStatus")
     g_rlConsoleCommandManager = RLConsoleCommandManager.new()
     g_diseaseManager = DiseaseManager.new()
-    g_rlFilterService = RLFilterService.new()
+    -- g_rlFilterService is constructed at source-time so save-side
+    -- consumers find a live registry; this assignment is an idempotent
+    -- fallback that re-creates the global if it was ever nilled.
+    g_rlFilterService = g_rlFilterService or RLFilterService.new()
 
     MoneyType.HERDSMAN_WAGES = MoneyType.register("herdsmanWages", "rl_ui_herdsmanWages")
     MoneyType.LAST_ID = MoneyType.LAST_ID + 1

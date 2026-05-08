@@ -1107,22 +1107,16 @@ function AnimalSystem:loadFromXMLFile()
     end)
 
 
-    -- Saveable filters (Phase 0 P2) - single save file, appended under the
-    -- existing root. g_rlFilterService is initialised in RealisticLivestock.loadMap,
-    -- which runs before FarmManager:loadFromXMLFile -> animalSystem:loadFromXMLFile,
-    -- so the nil-guard is defensive only.
-    --
-    -- Legacy savegames on disk used rootKey="animalSystem" (pre-rename); those
-    -- saves never had a filters block so referencing the canonical key is safe
-    -- and keeps load/save in sync (P2 review P1).
-    if g_rlFilterService ~= nil then
-        g_rlFilterService:loadFromXMLFile(xmlFile, RLFilterService.XML_BASE_KEY)
-    else
-        Log:warning("AnimalSystem:loadFromXMLFile: g_rlFilterService is nil; skipping filter load (load-order regression?)")
-    end
-
-
     xmlFile:delete()
+
+    -- Saveable filters live in rm_RlSettings.xml but their on-load
+    -- resolution of animalType=string -> index relies on the
+    -- AnimalType registry being populated, which only completes after
+    -- AnimalSystem savegame load. Calling RLSettings.loadFiltersFromXMLFile
+    -- from here guarantees the AnimalType lookups succeed; calling it
+    -- from RLSettings.loadFromXMLFile (which runs at loadMapData time)
+    -- silently dropped scope to global on every filter.
+    RLSettings.loadFiltersFromXMLFile()
 
     return hasData
 
@@ -1234,16 +1228,6 @@ function AnimalSystem:saveToXMLFile(_)
         end
 
     end)
-
-    -- Saveable filters (Phase 0 P2) - append the <filters> block under the
-    -- existing root. Mirrors the load-side hook above; guard is defensive.
-    -- Uses the shared constant so load/save paths cannot drift (P2 review P1).
-    if g_rlFilterService ~= nil then
-        g_rlFilterService:saveToXMLFile(xmlFile, RLFilterService.XML_BASE_KEY)
-    else
-        Log:warning("AnimalSystem:saveToXMLFile: g_rlFilterService is nil; skipping filter save (load-order regression?)")
-    end
-
 
     xmlFile:save(false, true)
     xmlFile:delete()

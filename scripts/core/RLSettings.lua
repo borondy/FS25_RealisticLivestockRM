@@ -320,6 +320,36 @@ function RLSettings.loadFromXMLFile()
 end
 
 
+--- Deferred filter-load entry point. Called from AnimalSystem:loadFromXMLFile
+--- after the savegame's animal/aiAnimals data has loaded, which is the
+--- earliest point at which the AnimalType registry is populated and
+--- RLFilterSerialization.animalTypeNameToIndex can resolve filter scope
+--- strings ("CHICKEN" / "COW" / ...) to indices. If we load filters at
+--- RLSettings.initialize time (loadMapData), every filter falls through to
+--- global scope and the cycle pulls every saved filter regardless of the
+--- active animal type. Server-only - matches the saveToXMLFile gate.
+function RLSettings.loadFiltersFromXMLFile()
+
+	if g_currentMission.missionInfo == nil or g_currentMission.missionInfo.savegameDirectory == nil then return end
+	if g_server == nil then return end
+
+	if g_rlFilterService == nil then
+		Log:warning("RLSettings.loadFiltersFromXMLFile: g_rlFilterService is nil; skipping filter load (load-order regression?)")
+		return
+	end
+
+	local path = g_currentMission.missionInfo.savegameDirectory .. "/rm_RlSettings.xml"
+	local xmlFile = XMLFile.loadIfExists("rm_RlSettings", path)
+	if xmlFile == nil then
+		Log:debug("RLSettings.loadFiltersFromXMLFile: no rm_RlSettings.xml on disk; filter registry stays empty")
+		return
+	end
+
+	g_rlFilterService:loadFromXMLFile(xmlFile, RLFilterService.XML_BASE_KEY)
+	xmlFile:delete()
+end
+
+
 function RLSettings.saveToXMLFile(name, state)
 
 	if RLSettings.isSaving or g_currentMission.missionInfo == nil or g_currentMission.missionInfo.savegameDirectory == nil then return end
@@ -344,6 +374,15 @@ function RLSettings.saveToXMLFile(name, state)
 
 				if settingName == "useCustomAnimals" and setting.state == 2 and RLSettings.animalsXMLPath ~= nil then xmlFile:setString("rm_RlSettings.useCustomAnimals#path", RLSettings.animalsXMLPath) end
 
+			end
+
+			-- Saveable filters share rm_RlSettings.xml as their on-disk
+			-- home. Server-only by virtue of the surrounding g_server
+			-- branch above.
+			if g_rlFilterService ~= nil then
+				g_rlFilterService:saveToXMLFile(xmlFile, RLFilterService.XML_BASE_KEY)
+			else
+				Log:warning("RLSettings.saveToXMLFile: g_rlFilterService is nil; skipping filter save (load-order regression?)")
 			end
 
 			local saved = xmlFile:save(false, true)

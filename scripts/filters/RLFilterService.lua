@@ -3,13 +3,13 @@
 --
 -- Owns the in-memory filter registry `self.filtersById`, assigns stable
 -- ids on create via base-game `Utils.getUniqueId`, and handles the XML
--- round-trip into the existing `rm_RlAnimalSystem.xml` save file under
--- the new `<filters>` block.
+-- round-trip into the `rm_RlSettings.xml` save file under the
+-- `<filters>` block.
 --
 -- Expected lifecycle: `g_rlFilterService = RLFilterService.new()` at
 -- `RealisticLivestock.loadMap`, alongside `g_diseaseManager`. The
--- AnimalSystem save/load hooks call `:saveToXMLFile` / `:loadFromXMLFile`
--- with the canonical base key `rm_RlAnimalSystem.filters`.
+-- RLSettings save/load hooks call `:saveToXMLFile` / `:loadFromXMLFile`
+-- with the canonical base key `rm_RlSettings.filters`.
 --
 -- Immutability (plan §4.6):
 --   * `id`, `farmId`, `version` are frozen after create.
@@ -50,11 +50,11 @@ local RLFilterService_mt = { __index = RLFilterService }
 --- `UNIQUE_ID_PREFIX` convention (plan §4.7).
 RLFilterService.UNIQUE_ID_PREFIX = "rlFilter_"
 
---- Canonical XML base key for the filters block inside `rm_RlAnimalSystem.xml`.
---- Both the AnimalSystem load hook and save hook MUST reference this constant
+--- Canonical XML base key for the filters block inside `rm_RlSettings.xml`.
+--- Both the RLSettings load hook and save hook MUST reference this constant
 --- rather than hardcoding the literal so load/save paths stay in sync across
 --- future refactors (plan §4.4 / P2 review P1).
-RLFilterService.XML_BASE_KEY = "rm_RlAnimalSystem.filters"
+RLFilterService.XML_BASE_KEY = "rm_RlSettings.filters"
 
 -- =============================================================================
 -- Deep copy (P2 review carryover / P3 ownership hardening)
@@ -441,14 +441,13 @@ end
 
 --- Serialize every stored filter under `baseKey` via
 --- `RLFilterSerialization.writeFilter`. No-op when xmlFile is nil
---- (defensive; the AnimalSystem hook already guards).
+--- (defensive; the RLSettings caller already guards).
 ---
 --- Filters are sorted by id before writing so the on-disk key order
 --- (`filter(0)`, `filter(1)`, ...) is deterministic across save cycles
---- (P2 review P8). Matches the sorted-iteration pattern used elsewhere
---- in the surrounding AnimalSystem save code.
+--- (P2 review P8).
 ---@param xmlFile table XMLFile handle
----@param baseKey string e.g. `"rm_RlAnimalSystem.filters"`
+---@param baseKey string e.g. `"rm_RlSettings.filters"`
 function RLFilterService:saveToXMLFile(xmlFile, baseKey)
     if xmlFile == nil then
         Log:warning("RLFilterService:saveToXMLFile: nil xmlFile; skipping")
@@ -472,10 +471,10 @@ end
 ---
 --- Iterate is wrapped in `pcall` (P2 review P7): a malformed filter that
 --- crashes deep inside the serializer must not propagate out and abort
---- the surrounding `AnimalSystem:loadFromXMLFile`. Partial state is
+--- the surrounding `RLSettings.loadFromXMLFile`. Partial state is
 --- preserved; the warning surfaces the specific failure.
 ---@param xmlFile table XMLFile handle
----@param baseKey string e.g. `"rm_RlAnimalSystem.filters"`
+---@param baseKey string e.g. `"rm_RlSettings.filters"`
 function RLFilterService:loadFromXMLFile(xmlFile, baseKey)
     if xmlFile == nil then
         Log:warning("RLFilterService:loadFromXMLFile: nil xmlFile; skipping")
@@ -543,5 +542,20 @@ RLFilterService._sendDeleteEvent = function(id)
     end
     RLFilterDeleteEvent.sendEvent(id)
 end
+
+-- Eager source-time singleton. The filter save path runs from
+-- RLSettings.saveToXMLFile, which can fire on settings changes early in
+-- the mission lifecycle (and definitely before AnimalSystem savegame
+-- load completes). Constructing the service at source-time means every
+-- consumer sees a live registry regardless of the order in which load
+-- hooks happen to wire up. The actual on-disk filter LOAD is invoked
+-- separately from AnimalSystem:loadFromXMLFile (via
+-- RLSettings.loadFiltersFromXMLFile) so AnimalType is populated before
+-- RLFilterSerialization resolves animalType=string -> index.
+-- main.lua's source order (RmLogging first; utilities, constants,
+-- services before consumers) guarantees this line runs before any
+-- consumer; RealisticLivestock.loadMap keeps an idempotent fallback so
+-- accidental nilling elsewhere can't break filter persistence.
+g_rlFilterService = RLFilterService.new()
 
 Log:trace("RLFilterService: loaded")

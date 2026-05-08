@@ -3,7 +3,7 @@
 --
 -- Canonical XML key contract (saveable-filters-plan.md §4.4):
 --
---   rm_RlAnimalSystem.filters.filter(i)
+--   rm_RlSettings.filters.filter(i)
 --     @id, @name, @animalType, @farmId, @version
 --     .group                       -- root group, exactly one
 --       @op                        -- "AND" | "OR"
