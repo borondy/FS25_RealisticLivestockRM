@@ -776,7 +776,7 @@
 		<text name="rl_menu_filters_default_name" text="New filter"/>
 		<text name="rl_menu_filters_detail_placeholder" text="To be implemented"/>
 
-		<!-- Filter cycle + chip MVP (RLRM-181) -->
+		<!-- Filter cycle + chip MVP -->
 		<text name="rl_menu_filter_chip_none" text="No filter"/>
 		<text name="rl_menu_filter_chip_active" text="Filter: %s"/>
 		<text name="rl_menu_cycle_filter_button" text="Cycle filter"/>

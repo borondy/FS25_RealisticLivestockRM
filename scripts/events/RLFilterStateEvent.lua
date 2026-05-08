@@ -5,7 +5,7 @@
     Server -> client only. Dispatched from `sendInitialClientState` for every
     connecting client so late-joiners converge with the authoritative server
     state. Also serves as the reconciliation path when a Pattern A delta
-    mutation is rejected server-side (see RLRM-180) -- the next state event
+    mutation is rejected server-side -- the next state event
     wipes and re-applies, which reconciles divergent local state.
 
     Wire format (recursive §4.5 codec via RLFilterWire):
@@ -56,7 +56,7 @@ end
 --- Upper sanity bound on the wire-side filter count. Any server that ever
 --- accumulates 10,000 user-defined filters is pathological; the real
 --- purpose of this cap is to defend the reader against a desynced upstream
---- stream (e.g. RLRM-184 unbounded-recursion readGroup walking into the
+--- stream (e.g. unbounded-recursion readGroup walking into the
 --- next event's bytes) that could produce a count up to 65535 and spin
 --- the reader to a session-timing-out crash. Exceeding the cap drops the
 --- event and leaves the receiver in its prior state.

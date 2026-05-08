@@ -46,7 +46,7 @@ function RLMenuBuyFrame.new()
 
     self.activeAnimalTypeIndex = nil
 
-    -- Saved-filter session state (RLRM-181 SP MVP).
+    -- Saved-filter session state.
     self.activeFilterId = nil
     self.activeFilter   = nil
 
@@ -1196,7 +1196,7 @@ function RLMenuBuyFrame:populateCellForItemInSection(list, section, index, cell)
 end
 
 -- =============================================================================
--- Saved-filter cycle + chip (RLRM-181 SP MVP)
+-- Saved-filter cycle + chip
 -- =============================================================================
 
 --- Buy-frame variant: animalType comes from the dealer type selector

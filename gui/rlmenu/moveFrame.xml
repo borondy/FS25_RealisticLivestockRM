@@ -36,7 +36,7 @@
         <RoundCorner profile="fs25_subCategorySelectorDot" id="subCategoryDotTemplate"/>
 
         <!-- Filter chip: readonly readout of currently-active saved filter
-             (RLRM-181 SP MVP). Positioned in the 30px empty strip between
+            . Positioned in the 30px empty strip between
              the dot indicators (bottom at y=-115) and the animal list
              container (top at y=-145). X=28 aligns with the left edge of
              the husbandry selector body (fs25_subCategorySelector's

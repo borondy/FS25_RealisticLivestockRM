@@ -142,9 +142,9 @@ function RLFilterCreateEvent:run(connection)
     -- double-apply, but that scenario cannot occur: `g_server:broadcastEvent`
     -- does not re-run locally, and the sender is always excluded from the
     -- rebroadcast via ignoreConnection. The only real trigger for a
-    -- receiver-has-local-record state is cross-client divergence (see
-    -- RLRM-182), where the AUTHORITATIVE server payload must overwrite the
-    -- stale local record. `applyIncomingCreate` already emits a :warning on
+    -- receiver-has-local-record state is cross-client divergence, where
+    -- the AUTHORITATIVE server payload must overwrite the stale local
+    -- record. `applyIncomingCreate` already emits a :warning on
     -- existing-id overwrite which is the correct convergence signal.
     g_rlFilterService:applyIncomingCreate(filter)
     Log:debug("RLFilterCreateEvent:run: applied create id=%s name=%s",

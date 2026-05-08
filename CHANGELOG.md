@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.2.4.0-dev.1
+
+### Improved
+- French translation refreshed by community contributor @squall39 (PR #83): native-speaker corrections to existing strings (e.g. `Brune des Alpes`, `pie`, expansion of `TMR` to "ration totale mélangée") and translations for the new RL Tabbed Menu strings (Messages, Info, Move, Sell, Buy, AI tabs).
+
+### RL Menu (preview - work in progress)
+- Added saveable animal filters: define filters that match on age, gender, pregnancy, lactation, genetics, subtype, weight, health, marks, and name, nested with AND/OR groups; filters persist across sessions in the savegame. For now filters are authored by hand-editing rm_RlSettings.xml - the in-game editor ships in a future phase.
+- Press F on Info / Buy / Sell / Move tabs to cycle through saved filters; the active filter shows as a chip on the tab. Filter selection is shared across Info / Move / Sell; Buy keeps its own selection per dealer flow.
+- Multiplayer: filter create / update / delete sync across all connected players (admin or tradeAnimals permission required); late-joining clients receive the full filter set on connect.
+- Added Settings tab with two subtabs: [General] surfaces the existing RL settings (now editable from both the new menu and the legacy GAME SETTINGS page, reordered into thematic groups - Mortality, Health & Disease, Husbandry & Economy, Custom Animals, Message Log, Display Preferences, Tools & Admin), and [Filters] lists your saved filters (read-only view today; in-game editor in a future phase). Toggling a setting on either General page reflects on the other when re-opened.
+- Added Filter Hand-Crafting reference page in the user guide for power users authoring saveable filters in rm_RlSettings.xml until the in-game editor lands.
+
 ## v1.2.3.0
 
 ### Added

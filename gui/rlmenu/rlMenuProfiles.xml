@@ -472,7 +472,7 @@
     </Profile>
 
     <!-- =========================================================== -->
-    <!-- Filter chip (RLRM-181): readonly active-filter indicator    -->
+    <!-- Filter chip: readonly active-filter indicator    -->
     <!-- in each frame's left sidebar. Extends fs25_textDefault with -->
     <!-- anchorTopLeft so position="28px -125px" places the chip     -->
     <!-- below the dot indicators (bottom at y=-115) and above the   -->

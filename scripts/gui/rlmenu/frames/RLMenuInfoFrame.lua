@@ -152,7 +152,7 @@ function RLMenuInfoFrame:onFrameOpen()
         if shared.animalIdentity ~= nil then
             self.selectedIdentity = shared.animalIdentity
         end
-        -- Saved-filter sharing across Info/Move/Sell (RLRM-181 tab-switch
+        -- Saved-filter sharing across Info/Move/Sell (tab-switch
         -- preservation fix). BuyFrame is isolated and never touches this.
         if shared.activeFilterId ~= nil then
             self.activeFilterId = shared.activeFilterId
@@ -958,7 +958,7 @@ function RLMenuInfoFrame:onClickCastrate()
 end
 
 -- =============================================================================
--- Saved-filter cycle + chip (RLRM-181 SP MVP)
+-- Saved-filter cycle + chip
 -- =============================================================================
 
 --- Cycle the active saved filter (F key). Reads current animalType from the
@@ -1020,7 +1020,7 @@ function RLMenuInfoFrame:updateFilterChip()
     Log:debug("RLMenuInfoFrame:updateFilterChip: Filter: %s (id=%s)",
         name, tostring(self.activeFilterId))
     -- Runtime-measure the chip so layout can be verified against the
-    -- computed 28px,-125px placement (RLRM-181 visual refinement).
+    -- computed 28px,-125px placement.
     -- absPosition is set during the first layout pass; may still be nil
     -- on pre-layout calls.
     if chip.absPosition ~= nil and chip.size ~= nil then

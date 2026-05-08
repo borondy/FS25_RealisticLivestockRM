@@ -44,7 +44,7 @@ function RLMenuSellFrame.new()
 
     self.activeAnimalTypeIndex = nil
 
-    -- Saved-filter session state (RLRM-181 SP MVP).
+    -- Saved-filter session state.
     self.activeFilterId = nil
     self.activeFilter   = nil
 
@@ -143,7 +143,7 @@ function RLMenuSellFrame:onFrameOpen()
         if shared.animalIdentity ~= nil then
             self.selectedIdentity = shared.animalIdentity
         end
-        -- Saved-filter sharing across Info/Move/Sell (RLRM-181 tab-switch
+        -- Saved-filter sharing across Info/Move/Sell (tab-switch
         -- preservation fix). BuyFrame is isolated and never touches this.
         if shared.activeFilterId ~= nil then
             self.activeFilterId = shared.activeFilterId
@@ -1080,7 +1080,7 @@ function RLMenuSellFrame:onSellComplete(errorCode)
 end
 
 -- =============================================================================
--- Saved-filter cycle + chip (RLRM-181 SP MVP)
+-- Saved-filter cycle + chip
 -- =============================================================================
 
 function RLMenuSellFrame:onCycleFilter()
