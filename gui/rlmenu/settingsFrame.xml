@@ -30,13 +30,173 @@
         <MultiTextOption profile="fs25_subCategorySelectorTabbed" id="subCategoryPaging"
                          position="0px -10px" onClick="updateSubCategoryPages"/>
 
-        <!-- Page 1: General (placeholder - content TBD in a future phase) -->
+        <!-- Page 1: General (mirrors legacy in-game settings page contents) -->
         <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="subCategoryPages[1]">
-            <!-- P1-1 shell: empty pane. Future content lands here. -->
+
+            <!-- ScrollingLayout uses fs25_settingsLayout. Rows render in
+                 source order; per-section 20px GuiElement spacers act as
+                 visual gaps without text headers. Order matches
+                 RLSettings.SETTINGS index 1..17. -->
+            <ScrollingLayout profile="fs25_settingsLayout" id="generalSettingsLayout">
+
+                <!-- 1. Mortality -->
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_deathEnabled">
+                    <BinaryOption profile="fs25_settingsBinaryOption" id="rlmenuSetting_deathEnabled" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </BinaryOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_deathEnabled_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_accidentsChance">
+                    <MultiTextOption profile="fs25_settingsMultiTextOption" id="rlmenuSetting_accidentsChance" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </MultiTextOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_accidentsChance_label"/>
+                </Bitmap>
+
+                <GuiElement size="100% 20px" name="sectionHeader"/>
+
+                <!-- 2. Health & Disease -->
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_diseasesEnabled">
+                    <BinaryOption profile="fs25_settingsBinaryOption" id="rlmenuSetting_diseasesEnabled" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </BinaryOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_diseasesEnabled_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_diseasesChance">
+                    <MultiTextOption profile="fs25_settingsMultiTextOption" id="rlmenuSetting_diseasesChance" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </MultiTextOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_diseasesChance_label"/>
+                </Bitmap>
+
+                <GuiElement size="100% 20px" name="sectionHeader"/>
+
+                <!-- 3. Husbandry & Economy -->
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_foodScale">
+                    <MultiTextOption profile="fs25_settingsMultiTextOption" id="rlmenuSetting_foodScale" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </MultiTextOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_foodScale_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_maxDealerAnimals">
+                    <MultiTextOption profile="fs25_settingsMultiTextOption" id="rlmenuSetting_maxDealerAnimals" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </MultiTextOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_maxDealerAnimals_label"/>
+                </Bitmap>
+
+                <GuiElement size="100% 20px" name="sectionHeader"/>
+
+                <!-- 4. Custom Animals -->
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_useCustomAnimals">
+                    <BinaryOption profile="fs25_settingsBinaryOption" id="rlmenuSetting_useCustomAnimals" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </BinaryOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_useCustomAnimals_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_animalsXML">
+                    <Button profile="rl_settingsButton" id="rlmenuSetting_animalsXML" text="$l10n_rl_settings_animalsXML_text" onClick="onClickGeneralAction">
+                        <ThreePartBitmap profile="fs25_settingsButtonBg"/>
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </Button>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_animalsXML_label"/>
+                </Bitmap>
+
+                <GuiElement size="100% 20px" name="sectionHeader"/>
+
+                <!-- 5. Message Log -->
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_messageSummary">
+                    <BinaryOption profile="fs25_settingsBinaryOption" id="rlmenuSetting_messageSummary" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </BinaryOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_messageSummary_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_maxNumMessages">
+                    <MultiTextOption profile="fs25_settingsMultiTextOption" id="rlmenuSetting_maxNumMessages" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </MultiTextOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_maxNumMessages_label"/>
+                </Bitmap>
+
+                <GuiElement size="100% 20px" name="sectionHeader"/>
+
+                <!-- 6. Display Preferences -->
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_geneticsDisplay">
+                    <MultiTextOption profile="fs25_settingsMultiTextOption" id="rlmenuSetting_geneticsDisplay" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </MultiTextOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_geneticsDisplay_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_geneticsPosition">
+                    <BinaryOption profile="fs25_settingsBinaryOption" id="rlmenuSetting_geneticsPosition" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </BinaryOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_geneticsPosition_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_sortByGenetics">
+                    <BinaryOption profile="fs25_settingsBinaryOption" id="rlmenuSetting_sortByGenetics" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </BinaryOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_sortByGenetics_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_tagColour">
+                    <Button profile="rl_settingsButton" id="rlmenuSetting_tagColour" text="$l10n_rl_settings_tagColour_text" onClick="onClickGeneralAction">
+                        <ThreePartBitmap profile="fs25_settingsButtonBg"/>
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </Button>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_tagColour_label"/>
+                </Bitmap>
+
+                <GuiElement size="100% 20px" name="sectionHeader"/>
+
+                <!-- 7. Tools & Admin -->
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_exportCSV">
+                    <Button profile="rl_settingsButton" id="rlmenuSetting_exportCSV" text="$l10n_rl_settings_exportCSV_text" onClick="onClickGeneralAction">
+                        <ThreePartBitmap profile="fs25_settingsButtonBg"/>
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </Button>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_exportCSV_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_resetDealer">
+                    <Button profile="rl_settingsButton" id="rlmenuSetting_resetDealer" text="$l10n_rl_settings_resetDealer_text" onClick="onClickGeneralAction">
+                        <ThreePartBitmap profile="fs25_settingsButtonBg"/>
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </Button>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_resetDealer_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_resetAIAnimals">
+                    <Button profile="rl_settingsButton" id="rlmenuSetting_resetAIAnimals" text="$l10n_rl_settings_resetAIAnimals_text" onClick="onClickGeneralAction">
+                        <ThreePartBitmap profile="fs25_settingsButtonBg"/>
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </Button>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_resetAIAnimals_label"/>
+                </Bitmap>
+
+            </ScrollingLayout>
+
+            <!-- Slider docked inside this pane (not at TabbedMenuFrame root)
+                 because [Filters] has its own slider for the filter list.
+                 dataElementId binds it to generalSettingsLayout above. -->
+            <ThreePartBitmap profile="fs25_sliderDockedBg" id="generalSettingsSliderBox">
+                <ThreePartBitmap profile="fs25_sliderDockedBox">
+                    <Slider profile="fs25_sliderDocked" id="generalSettingsSlider" dataElementId="generalSettingsLayout"/>
+                </ThreePartBitmap>
+            </ThreePartBitmap>
+
         </GuiElement>
 
         <!-- Page 2: Filters -->
         <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="subCategoryPages[2]">
+
+            <!-- Right-side detail placeholder. Sibling of filtersListContainer
+                 so it persists regardless of the list's empty-state branching.
+                 Reuses fs25_animalListEmptyText (anchorMiddleCenter), which
+                 lands the text in the empty right portion of the pane (the
+                 410px list container starts at left=0). Will be replaced by
+                 the filter editor in a future phase. -->
+            <Text profile="fs25_animalListEmptyText"
+                  id="filtersInfoPlaceholder"
+                  text="$l10n_rl_menu_filters_detail_placeholder"/>
 
             <!-- 410px sidebar panel, leaves right portion of pane free for P1-3's editor. -->
             <GuiElement profile="fs25_subCategoryContainer" id="filtersListContainer">

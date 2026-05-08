@@ -108,6 +108,11 @@ function RLSettings.onFileExplorerCallback(path)
 end
 
 
+-- Render order is set by setting.index; both the legacy in-game settings
+-- page and the RL Tabbed Menu Settings -> General subtab walk this table
+-- in index order. Sections (1..17): Mortality (1-2), Health & Disease (3-4),
+-- Husbandry & Economy (5-6), Custom Animals (7-8), Message Log (9-10),
+-- Display Preferences (11-14), Tools & Admin (15-17).
 RLSettings.SETTINGS = {
 
 	["deathEnabled"] = {
@@ -133,8 +138,31 @@ RLSettings.SETTINGS = {
 		}
 	},
 
-	["foodScale"] = {
+	["diseasesEnabled"] = {
 		["index"] = 3,
+		["type"] = "BinaryOption",
+		["dynamicTooltip"] = true,
+		["default"] = 2,
+		["binaryType"] = "offOn",
+		["values"] = { false, true },
+		["callback"] = DiseaseManager.onSettingChanged
+	},
+
+	["diseasesChance"] = {
+		["index"] = 4,
+		["type"] = "MultiTextOption",
+		["default"] = 4,
+		["valueType"] = "float",
+		["values"] = { 0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5 },
+		["callback"] = DiseaseManager.onSettingChanged,
+		["dependancy"] = {
+			["name"] = "diseasesEnabled",
+			["state"] = 2
+		}
+	},
+
+	["foodScale"] = {
+		["index"] = 5,
 		["type"] = "MultiTextOption",
 		["default"] = 2,
 		["valueType"] = "float",
@@ -143,7 +171,7 @@ RLSettings.SETTINGS = {
 	},
 
 	["maxDealerAnimals"] = {
-		["index"] = 4,
+		["index"] = 6,
 		["type"] = "MultiTextOption",
 		["default"] = 4,
 		["valueType"] = "int",
@@ -151,43 +179,25 @@ RLSettings.SETTINGS = {
 		["callback"] = AnimalSystem.onSettingChanged
 	},
 
-	["resetDealer"] = {
-		["index"] = 5,
-		["type"] = "Button",
-		["ignore"] = true,
-		["adminOnly"] = true,
-		["callback"] = AnimalSystem.onClickResetDealer
-	},
-
-	["resetAIAnimals"] = {
-		["index"] = 6,
-		["type"] = "Button",
-		["ignore"] = true,
-		["adminOnly"] = true,
-		["callback"] = AnimalSystem.onClickResetAIAnimals
-	},
-
-	["tagColour"] = {
+	["useCustomAnimals"] = {
 		["index"] = 7,
-		["type"] = "Button",
-		["ignore"] = true,
-		["callback"] = RLSettings.onClickTagColour
+		["type"] = "BinaryOption",
+		["dynamicTooltip"] = true,
+		["default"] = 1,
+		["binaryType"] = "offOn",
+		["values"] = { false, true },
+		["callback"] = RLSettings.onSettingChanged
 	},
 
-	["exportCSV"] = {
+	["animalsXML"] = {
 		["index"] = 8,
 		["type"] = "Button",
 		["ignore"] = true,
-		["callback"] = RLSettings.onClickExportCSV
-	},
-
-	["maxNumMessages"] = {
-		["index"] = 8,
-		["type"] = "MultiTextOption",
-		["default"] = 5,
-		["valueType"] = "int",
-		["values"] = { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3500, 4000, 4500, 5000 },
-		["callback"] = RealisticLivestock_PlaceableHusbandryAnimals.onSettingChanged
+		["callback"] = RLSettings.onClickChangeAnimalsXML,
+		["dependancy"] = {
+			["name"] = "useCustomAnimals",
+			["state"] = 2
+		}
 	},
 
 	["messageSummary"] = {
@@ -200,71 +210,66 @@ RLSettings.SETTINGS = {
 		["callback"] = RLMessageAggregator.onSettingChanged
 	},
 
-	["diseasesEnabled"] = {
+	["maxNumMessages"] = {
 		["index"] = 10,
-		["type"] = "BinaryOption",
-		["dynamicTooltip"] = true,
-		["default"] = 2,
-		["binaryType"] = "offOn",
-		["values"] = { false, true },
-		["callback"] = DiseaseManager.onSettingChanged
-	},
-
-	["diseasesChance"] = {
-		["index"] = 11,
 		["type"] = "MultiTextOption",
-		["default"] = 4,
-		["valueType"] = "float",
-		["values"] = { 0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5 },
-		["callback"] = DiseaseManager.onSettingChanged,
-		["dependancy"] = {
-			["name"] = "diseasesEnabled",
-			["state"] = 2
-		}
-	},
-
-	["useCustomAnimals"] = {
-		["index"] = 12,
-		["type"] = "BinaryOption",
-		["dynamicTooltip"] = true,
-		["default"] = 1,
-		["binaryType"] = "offOn",
-		["values"] = { false, true },
-		["callback"] = RLSettings.onSettingChanged
-	},
-
-	["animalsXML"] = {
-		["index"] = 12,
-		["type"] = "Button",
-		["ignore"] = true,
-		["callback"] = RLSettings.onClickChangeAnimalsXML,
-		["dependancy"] = {
-			["name"] = "useCustomAnimals",
-			["state"] = 2
-		}
+		["default"] = 5,
+		["valueType"] = "int",
+		["values"] = { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3500, 4000, 4500, 5000 },
+		["callback"] = RealisticLivestock_PlaceableHusbandryAnimals.onSettingChanged
 	},
 
 	["geneticsDisplay"] = {
-		["index"] = 13,
+		["index"] = 11,
 		["type"] = "MultiTextOption",
 		["default"] = 1,
 		["values"] = { 1, 2, 3 }
 	},
 
 	["geneticsPosition"] = {
-		["index"] = 14,
+		["index"] = 12,
 		["type"] = "BinaryOption",
 		["default"] = 1,
 		["values"] = { 1, 2 }
 	},
 
 	["sortByGenetics"] = {
-		["index"] = 15,
+		["index"] = 13,
 		["type"] = "BinaryOption",
 		["dynamicTooltip"] = true,
 		["default"] = 1,
 		["binaryType"] = "offOn",
 		["values"] = { false, true }
+	},
+
+	["tagColour"] = {
+		["index"] = 14,
+		["type"] = "Button",
+		["ignore"] = true,
+		["callback"] = RLSettings.onClickTagColour
+	},
+
+	["exportCSV"] = {
+		["index"] = 15,
+		["type"] = "Button",
+		["ignore"] = true,
+		["callback"] = RLSettings.onClickExportCSV
+	},
+
+	["resetDealer"] = {
+		["index"] = 16,
+		["type"] = "Button",
+		["ignore"] = true,
+		["adminOnly"] = true,
+		["callback"] = AnimalSystem.onClickResetDealer
+	},
+
+	["resetAIAnimals"] = {
+		["index"] = 17,
+		["type"] = "Button",
+		["ignore"] = true,
+		["adminOnly"] = true,
+		["callback"] = AnimalSystem.onClickResetAIAnimals
 	}
 
 }
@@ -474,6 +479,94 @@ function RLSettings.initialize()
 end
 
 
+--- Apply a state change to a stateful setting.
+--- Single write path shared by the legacy in-game settings page (via
+--- onSettingChanged) and the RL Tabbed Menu Settings -> General subtab
+--- (via RLMenuSettingsFrame's row click handlers). The order is:
+---   (1) run the per-setting callback with the NEW value (callback sees
+---       newState before setting.state has been written - this preserves
+---       legacy onSettingChanged behaviour, where callbacks read the new
+---       value via the second arg, not via setting.state)
+---   (2) write setting.state = newState
+---   (3) cascade-disable children of this setting on legacy element refs
+---   (4) refresh the legacy element's dynamic tooltip if applicable
+---
+--- The new RL menu page maintains its OWN element registry and runs ITS
+--- OWN cascade after this call returns; this function does not know
+--- about the new frame's elements (and must not - setting.element is
+--- legacy-only by design until the systemic single-element coupling is
+--- refactored in a follow-up).
+---
+--- Action rows (setting.ignore == true) skip this path; their callers
+--- invoke setting.callback directly.
+---
+--- Pre-existing dormant MP broadcast + per-setting save lines (kept
+--- commented in onSettingChanged) are NOT activated here. Mid-session
+--- single-setting MP sync remains a follow-up.
+--- @param name string The key of the setting in RLSettings.SETTINGS
+--- @param newState number 1-based state index into setting.values
+--- @return boolean true on successful state write; false if the setting is
+---                 unknown (caller passed a bad name) OR if it is an action
+---                 row (setting.ignore == true) - both failure modes are
+---                 conflated under the same false return because callers
+---                 (legacy onSettingChanged + new onClickGeneralSetting)
+---                 never need to distinguish them.
+function RLSettings.applyChange(name, newState)
+
+	local setting = RLSettings.SETTINGS[name]
+
+	if setting == nil then
+		Log:warning("RLSettings.applyChange: unknown setting '%s'", tostring(name))
+		return false
+	end
+
+	if setting.ignore then
+		Log:trace("RLSettings.applyChange: '%s' is an ignored/action row, skipping state write", name)
+		return false
+	end
+
+	Log:debug("RLSettings.applyChange: name='%s' newState=%s (was=%s)",
+		name, tostring(newState), tostring(setting.state))
+
+	if setting.callback then setting.callback(name, setting.values[newState]) end
+
+	setting.state = newState
+
+	-- Cascade to children whose dependancy parent is this setting.
+	-- Operates on legacy element refs (setting.element); the new RL menu
+	-- page runs an equivalent cascade on its own controls registry.
+	for childName, s in pairs(RLSettings.SETTINGS) do
+		if s.dependancy and s.dependancy.name == name and s.element ~= nil then
+			local shouldDisable = (s.dependancy.state ~= newState)
+			Log:trace("RLSettings.applyChange: cascading -> '%s' setDisabled(%s)",
+				childName, tostring(shouldDisable))
+			s.element:setDisabled(shouldDisable)
+		end
+	end
+
+	if setting.dynamicTooltip and setting.element ~= nil then
+		Log:trace("RLSettings.applyChange: refreshing dynamic tooltip for '%s' state=%d", name, newState)
+		setting.element.elements[1]:setText(g_i18n:getText("rl_settings_" .. name .. "_tooltip_" .. newState))
+	end
+
+	-- Push new state to legacy widget so the in-game settings page reflects
+	-- changes made from the RL Tabbed Menu's General subtab. forceEvent=false
+	-- avoids re-entering RLSettings.onSettingChanged. Harmless redundancy
+	-- when applyChange was called from the legacy click path (the widget
+	-- already advanced itself to newState before its onClickCallback fired);
+	-- necessary when called from RLMenuSettingsFrame:onClickGeneralSetting
+	-- where the legacy widget would otherwise stay at its previous state
+	-- and show stale data on next open of the in-game pause menu Settings tab.
+	if setting.element ~= nil then
+		Log:trace("RLSettings.applyChange: pushing newState=%d to legacy element for '%s'", newState, name)
+		setting.element:setState(newState, false)
+	end
+
+	return true
+
+end
+
+
 function RLSettings.onSettingChanged(_, state, button)
 
 	if button == nil then button = state end
@@ -492,17 +585,7 @@ function RLSettings.onSettingChanged(_, state, button)
 		return
 	end
 
-	if setting.callback then setting.callback(name, setting.values[state]) end
-
-	setting.state = state
-
-	for _, s in pairs(RLSettings.SETTINGS) do
-		if s.dependancy and s.dependancy.name == name then
-			s.element:setDisabled(s.dependancy.state ~= state)
-		end
-	end
-
-	if setting.dynamicTooltip and setting.element ~= nil then setting.element.elements[1]:setText(g_i18n:getText("rl_settings_" .. name .. "_tooltip_" .. setting.state)) end
+	RLSettings.applyChange(name, state)
 
 	if g_server ~= nil then
 
