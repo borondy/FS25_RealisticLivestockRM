@@ -57,7 +57,7 @@ xychart-beta
     line [180, 180, 255, 255, 255, 255, 219, 183, 146, 110]
 ```
 
-*Chart shows Swiss Brown as a representative mid-range breed with average genetics. Holstein produces more, beef breeds produce less - see the table above for per-breed ranges.*
+*Chart shows Swiss Brown as a representative mid-range breed with average genetics. Holstein produces more, beef breeds produce less - see the table above for per-breed ranges. The line is the **age** curve (the cow's lifetime production envelope while lactating); the **lactation-phase** curve within each 10-month nursing window is shown separately in the [Breeding Guide](guide-breeding.md#lactation-phase-curve), and the breed table's "50 - 580" range combines both factors with the genetics multiplier.*
 
 ---
 
