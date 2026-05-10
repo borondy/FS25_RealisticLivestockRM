@@ -24,6 +24,8 @@ Cattle are the most diverse livestock in Realistic Livestock RM, with 7 breeds r
 
 > **Hereford on Witcombe:** When playing on the [Witcombe](map-witcombe.md) map, Hereford uses a heritage profile with 9-month gestation, premium pricing (300 / 3000), an earlier sell-price peak at 24 months (vs 36 months for other beef breeds), and leaner feed/water needs. The values shown above are the standard RLRM Hereford used on every other map.
 
+> **Hereford on Le Mechet:** When playing on the [Le Mechet](map-le-mechet.md) map, Hereford is hidden from the Animal Dealer (the map ships no Hereford 3D model). Existing Hereford pens continue to function. Le Mechet adds four French breeds in the dealer instead - Charolaise, Montbeliarde, Simmental, and Vosgienne - see the map page for their breed character.
+
 ---
 
 ## Milk Production by Breed

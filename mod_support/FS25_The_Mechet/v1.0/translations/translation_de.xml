@@ -13,24 +13,24 @@
 		<text name="fillType_bull_simmental" text="Simmentaler-Bulle"/>
 		<text name="fillType_bull_vosgienne" text="Vogesen-Bulle"/>
 
-		<!-- Charolais-Bulle Beschreibungen (rassen-spezifisches Mindestalter: 15 Monate) -->
-		<text name="rl_bridge_bullCharolaiseCalfDesc" text="Ein junges männliches Charolais-Kalb. Bullen, die gesund und älter als 15 Monate sind, können sich fortpflanzen."/>
-		<text name="rl_bridge_bullCharolaiseKidDesc" text="Ein junger Charolais-Bulle. Bullen, die gesund und älter als 15 Monate sind, können sich fortpflanzen."/>
-		<text name="rl_bridge_bullCharolaiseAdultDesc" text="Ein erwachsener Charolais-Bulle. Bullen, die gesund und älter als 15 Monate sind, können sich fortpflanzen."/>
+		<!-- Charolais-Bulle Beschreibungen (RLRM-Standard-Mindestalter: 12 Monate) -->
+		<text name="rl_bridge_bullCharolaiseCalfDesc" text="Ein junges männliches Charolais-Kalb. Bullen, die gesund und älter als 12 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_bullCharolaiseKidDesc" text="Ein junger Charolais-Bulle. Bullen, die gesund und älter als 12 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_bullCharolaiseAdultDesc" text="Ein erwachsener Charolais-Bulle. Bullen, die gesund und älter als 12 Monate sind, können sich fortpflanzen."/>
 
-		<!-- Montbéliarde-Bulle Beschreibungen (rassen-spezifisches Mindestalter: 18 Monate) -->
-		<text name="rl_bridge_bullMontbeliardeCalfDesc" text="Ein junges männliches Montbéliarde-Kalb. Bullen, die gesund und älter als 18 Monate sind, können sich fortpflanzen."/>
-		<text name="rl_bridge_bullMontbeliardeKidDesc" text="Ein junger Montbéliarde-Bulle. Bullen, die gesund und älter als 18 Monate sind, können sich fortpflanzen."/>
-		<text name="rl_bridge_bullMontbeliardeAdultDesc" text="Ein erwachsener Montbéliarde-Bulle. Bullen, die gesund und älter als 18 Monate sind, können sich fortpflanzen."/>
+		<!-- Montbéliarde-Bulle Beschreibungen (RLRM-Standard-Mindestalter: 12 Monate) -->
+		<text name="rl_bridge_bullMontbeliardeCalfDesc" text="Ein junges männliches Montbéliarde-Kalb. Bullen, die gesund und älter als 12 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_bullMontbeliardeKidDesc" text="Ein junger Montbéliarde-Bulle. Bullen, die gesund und älter als 12 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_bullMontbeliardeAdultDesc" text="Ein erwachsener Montbéliarde-Bulle. Bullen, die gesund und älter als 12 Monate sind, können sich fortpflanzen."/>
 
-		<!-- Simmentaler-Bulle Beschreibungen (rassen-spezifisches Mindestalter: 16 Monate, kürzere Tragzeit) -->
-		<text name="rl_bridge_bullSimmentalCalfDesc" text="Ein junges männliches Simmentaler-Kalb. Bullen, die gesund und älter als 16 Monate sind, können sich fortpflanzen."/>
-		<text name="rl_bridge_bullSimmentalKidDesc" text="Ein junger Simmentaler-Bulle. Bullen, die gesund und älter als 16 Monate sind, können sich fortpflanzen."/>
-		<text name="rl_bridge_bullSimmentalAdultDesc" text="Ein erwachsener Simmentaler-Bulle. Bullen, die gesund und älter als 16 Monate sind, können sich fortpflanzen."/>
+		<!-- Simmentaler-Bulle Beschreibungen (RLRM-Standard-Mindestalter: 12 Monate, kürzere Tragzeit) -->
+		<text name="rl_bridge_bullSimmentalCalfDesc" text="Ein junges männliches Simmentaler-Kalb. Bullen, die gesund und älter als 12 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_bullSimmentalKidDesc" text="Ein junger Simmentaler-Bulle. Bullen, die gesund und älter als 12 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_bullSimmentalAdultDesc" text="Ein erwachsener Simmentaler-Bulle. Bullen, die gesund und älter als 12 Monate sind, können sich fortpflanzen."/>
 
-		<!-- Vogesen-Bulle Beschreibungen (rassen-spezifisches Mindestalter: 18 Monate) -->
-		<text name="rl_bridge_bullVosgienneCalfDesc" text="Ein junges männliches Vogesenrind-Kalb. Bullen, die gesund und älter als 18 Monate sind, können sich fortpflanzen."/>
-		<text name="rl_bridge_bullVosgienneKidDesc" text="Ein junger Vogesen-Bulle. Bullen, die gesund und älter als 18 Monate sind, können sich fortpflanzen."/>
-		<text name="rl_bridge_bullVosgienneAdultDesc" text="Ein erwachsener Vogesen-Bulle. Bullen, die gesund und älter als 18 Monate sind, können sich fortpflanzen."/>
+		<!-- Vogesen-Bulle Beschreibungen (RLRM-Standard-Mindestalter: 12 Monate) -->
+		<text name="rl_bridge_bullVosgienneCalfDesc" text="Ein junges männliches Vogesenrind-Kalb. Bullen, die gesund und älter als 12 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_bullVosgienneKidDesc" text="Ein junger Vogesen-Bulle. Bullen, die gesund und älter als 12 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_bullVosgienneAdultDesc" text="Ein erwachsener Vogesen-Bulle. Bullen, die gesund und älter als 12 Monate sind, können sich fortpflanzen."/>
 	</texts>
 </l10n>

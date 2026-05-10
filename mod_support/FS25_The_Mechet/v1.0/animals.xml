@@ -38,10 +38,17 @@
          d. Author's calf and adult input values for water/food/straw/manure/
             liquidManure are PRESERVED VERBATIM - the deliberately low calf inputs
             are a breed-character signature.
-         e. Author's reproduction signatures preserved verbatim:
-            Charolaise 14m/15m/0.80, Montbeliarde 10m/18m/0.75,
-            Simmental 9m/16m/0.75 (heritage shorter gestation),
-            Vosgienne 10m/18m/0.75.
+         e. Reproduction modernised to RLRM universal cattle maturity gate
+            (minAgeMonth=12) on all four cows + bulls, matching the bundle
+            pattern (every RLRM-bundled cattle subtype uses 12m) and the
+            Witcombe precedent. Heritage gestation values from the source
+            ARE preserved (durationMonth: Charolaise 14m, Simmental 9m
+            heritage shorter, Montbeliarde 10m, Vosgienne 10m) so first-calf
+            timing still differentiates the breeds: Charolaise 26m
+            (slowest, heritage-paired), Simmental 21m (fastest, heritage),
+            Montbeliarde and Vosgienne 22m (matches Holstein). Author's
+            minHealthFactor preserved (Charolaise 0.80 heritage health gate,
+            others 0.75).
          f. Author's buyPrice/sellPrice curves preserved verbatim - heritage premium
             signatures are signal-bearing.
 
@@ -85,11 +92,14 @@
              longer 14m gestation, earlier 15m maturity, higher 0.80 health gate,
              heavy inputs, big outputs.
              RLRM modernisation: milk curve added per beef-breed convention
-             (0/0/190/190/265/265/125), transportPrice modernised to 40/100/200.
-             Author signatures preserved: reproduction, buy/sell prices, all
-             input curves, manure/liquidManure curves.
+             (0/0/190/190/265/265/125), transportPrice modernised to 40/100/200,
+             reproduction.minAgeMonth modernised to 12 (universal RLRM cattle gate).
+             Author signatures preserved: durationMonth=14 (heritage), minHealthFactor=0.80
+             (heritage), buy/sell prices, all input curves, manure/liquidManure curves.
+             First-calf timing: 12+14=26m (slowest of the four, heritage-paired).
              ====================================================================== -->
         <subType subType="COW_CHAROLAISE" breed="CHAROLAISE">
+            <reproduction minAgeMonth="12"/>
             <transportPrice>
                 <key ageMonth="0" value="40"/>
                 <key ageMonth="12" value="100"/>
@@ -109,7 +119,7 @@
         </subType>
 
         <!-- BULL_CHAROLAISE: heavy beef breeding-stock bull.
-             Reproduction gate mirrors COW_CHAROLAISE minAgeMonth=15 (NOT universal 12m).
+             Reproduction gate matches RLRM universal cattle maturity (minAgeMonth=12).
              Pricing 1.25x cow buy ratio (heritage premium). Sell shape 5-key with
              18m young-beef premium and 36m peak typical for heritage beef bulls.
              Transport: heavy-livestock 40/150/500. Adult input/output keyframes
@@ -140,7 +150,7 @@
                     <description>$l10n_rl_bridge_bullCharolaiseAdultDesc</description>
                 </visual>
             </visuals>
-            <reproduction supported="false" minAgeMonth="15"/>
+            <reproduction supported="false" minAgeMonth="12"/>
             <buyPrice>
                 <key ageMonth="0" value="375"/>
                 <key ageMonth="24" value="8250"/>
@@ -188,10 +198,13 @@
              Author intent: dairy with milk peak 140 (admitted realistic=135, +4% bump).
              Standard 10m gestation, 18m maturity, 0.75 health gate. Modest pricing.
              RLRM modernisation: 3-stage milk curve (peak 140 -> floor 99, senescence 60),
-             transportPrice 40/100/200.
-             Author calf/adult inputs preserved verbatim.
+             transportPrice 40/100/200, reproduction.minAgeMonth modernised to 12
+             (universal RLRM cattle gate; author had vanilla 18m, no heritage signal).
+             Author signatures preserved: durationMonth=10, minHealthFactor=0.75,
+             calf/adult inputs verbatim. First-calf timing: 12+10=22m (matches Holstein).
              ====================================================================== -->
         <subType subType="COW_MONTBELIARDE" breed="MONTBELIARDE">
+            <reproduction minAgeMonth="12"/>
             <transportPrice>
                 <key ageMonth="0" value="40"/>
                 <key ageMonth="12" value="100"/>
@@ -211,7 +224,7 @@
         </subType>
 
         <!-- BULL_MONTBELIARDE: dairy breeding-stock bull.
-             Reproduction gate mirrors COW_MONTBELIARDE minAgeMonth=18.
+             Reproduction gate matches RLRM universal cattle maturity (minAgeMonth=12).
              Pricing 1.25x cow buy. Adult input bumps; calf values mirror cow. -->
         <subType subType="BULL_MONTBELIARDE" fillTypeName="BULL_MONTBELIARDE"
                  gender="male" breed="MONTBELIARDE"
@@ -238,7 +251,7 @@
                     <description>$l10n_rl_bridge_bullMontbeliardeAdultDesc</description>
                 </visual>
             </visuals>
-            <reproduction supported="false" minAgeMonth="18"/>
+            <reproduction supported="false" minAgeMonth="12"/>
             <buyPrice>
                 <key ageMonth="0" value="250"/>
                 <key ageMonth="24" value="1812"/>
@@ -286,9 +299,13 @@
              +18% bump). Faster reproduction 9m duration, 16m maturity (heritage).
              Higher pricing than dairy (meat side).
              RLRM modernisation: 3-stage milk (peak 100 -> floor 71, senescence 43),
-             transportPrice 40/100/200.
+             transportPrice 40/100/200, reproduction.minAgeMonth modernised to 12
+             (universal RLRM cattle gate). Author signatures preserved: durationMonth=9
+             (heritage shorter gestation), minHealthFactor=0.75, calf/adult inputs
+             verbatim. First-calf timing: 12+9=21m (fastest of the four, heritage signal).
              ====================================================================== -->
         <subType subType="COW_SIMMENTAL" breed="SIMMENTAL">
+            <reproduction minAgeMonth="12"/>
             <transportPrice>
                 <key ageMonth="0" value="40"/>
                 <key ageMonth="12" value="100"/>
@@ -308,7 +325,7 @@
         </subType>
 
         <!-- BULL_SIMMENTAL: dual-purpose breeding-stock bull.
-             Reproduction gate mirrors COW_SIMMENTAL minAgeMonth=16. -->
+             Reproduction gate matches RLRM universal cattle maturity (minAgeMonth=12). -->
         <subType subType="BULL_SIMMENTAL" fillTypeName="BULL_SIMMENTAL"
                  gender="male" breed="SIMMENTAL"
                  minWeight="45.0" targetWeight="750.0" maxWeight="1400.0">
@@ -334,7 +351,7 @@
                     <description>$l10n_rl_bridge_bullSimmentalAdultDesc</description>
                 </visual>
             </visuals>
-            <reproduction supported="false" minAgeMonth="16"/>
+            <reproduction supported="false" minAgeMonth="12"/>
             <buyPrice>
                 <key ageMonth="0" value="250"/>
                 <key ageMonth="24" value="2562"/>
@@ -381,9 +398,13 @@
              Author intent: smallest of the four, modest pricing, milk peak 85
              (admitted realistic=73, +16% bump). Standard 10m/18m/0.75 reproduction.
              RLRM modernisation: 3-stage milk (peak 85 -> floor 60, senescence 37),
-             transportPrice 40/100/200.
+             transportPrice 40/100/200, reproduction.minAgeMonth modernised to 12
+             (universal RLRM cattle gate; author had vanilla 18m, no heritage signal).
+             Author signatures preserved: durationMonth=10, minHealthFactor=0.75,
+             calf/adult inputs verbatim. First-calf timing: 12+10=22m (matches Holstein).
              ====================================================================== -->
         <subType subType="COW_VOSGIENNE" breed="VOSGIENNE">
+            <reproduction minAgeMonth="12"/>
             <transportPrice>
                 <key ageMonth="0" value="40"/>
                 <key ageMonth="12" value="100"/>
@@ -403,7 +424,7 @@
         </subType>
 
         <!-- BULL_VOSGIENNE: small mountain dairy bull (smallest of the four).
-             Reproduction gate mirrors COW_VOSGIENNE minAgeMonth=18. -->
+             Reproduction gate matches RLRM universal cattle maturity (minAgeMonth=12). -->
         <subType subType="BULL_VOSGIENNE" fillTypeName="BULL_VOSGIENNE"
                  gender="male" breed="VOSGIENNE"
                  minWeight="40.0" targetWeight="600.0" maxWeight="1400.0">
@@ -429,7 +450,7 @@
                     <description>$l10n_rl_bridge_bullVosgienneAdultDesc</description>
                 </visual>
             </visuals>
-            <reproduction supported="false" minAgeMonth="18"/>
+            <reproduction supported="false" minAgeMonth="12"/>
             <buyPrice>
                 <key ageMonth="0" value="237"/>
                 <key ageMonth="24" value="2375"/>
