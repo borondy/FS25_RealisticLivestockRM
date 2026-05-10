@@ -28,6 +28,11 @@ RLMapBridge.SUPPORTED_MAPS = {
         modName = "FS25_Witcombe",
         basePath = "mod_support/FS25_Witcombe/",
         name = "Witcombe"
+    },
+    {
+        modName = "FS25_The_Mechet",
+        basePath = "mod_support/FS25_The_Mechet/",
+        name = "Le Mechet"
     }
 }
 
@@ -47,10 +52,10 @@ RLMapBridge.maxFertilityAgeByGroup = {}
 
 --- Resolve which bridge config to use for a detected map version.
 --- Four-step algorithm:
----   1. Exact match: mapVersion is in a config's supportedVersions list → "confirmed"
----   2. Version spec: supportedVersions entries starting with ><=! are evaluated as specifiers → "confirmed"
----   3. Closest lower: highest config whose max confirmed version ≤ mapVersion → "unknown"
----   4. Lowest overall: if nothing ≤ mapVersion, use the config with the lowest min version → "unknown"
+---   1. Exact match: mapVersion is in a config's supportedVersions list -> "confirmed"
+---   2. Version spec: supportedVersions entries starting with ><=! are evaluated as specifiers -> "confirmed"
+---   3. Closest lower: highest config whose max confirmed version <= mapVersion -> "unknown"
+---   4. Lowest overall: if nothing <= mapVersion, use the config with the lowest min version -> "unknown"
 --- Nil mapVersion is treated as oldest possible (goes to step 4).
 --- @param mapVersion string|nil Detected map version string (e.g. "1.3.0.1")
 --- @param configs table Array of config tables from loadBridgeXml, each with:
@@ -132,7 +137,7 @@ function RLMapBridge.resolveVersionConfig(mapVersion, configs)
         end
     end
 
-    -- Step 3: Highest config whose max confirmed version ≤ mapVersion
+    -- Step 3: Highest config whose max confirmed version <= mapVersion
     if mapParsed ~= nil then
         local bestConfig = nil
         local bestMaxVersion = nil
@@ -152,7 +157,7 @@ function RLMapBridge.resolveVersionConfig(mapVersion, configs)
         end
     end
 
-    -- Step 4: Nothing ≤ mapVersion (or nil mapVersion) - use lowest min version config
+    -- Step 4: Nothing <= mapVersion (or nil mapVersion) - use lowest min version config
     local lowestConfig = nil
     local lowestMinVersion = nil
 

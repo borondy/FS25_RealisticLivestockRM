@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<l10n>
+	<texts>
+		<!-- Breed display names -->
+		<text name="breed_charolaise" text="Charolais"/>
+		<text name="breed_montbeliarde" text="Montbeliarde"/>
+		<text name="breed_simmental" text="Simmental"/>
+		<text name="breed_vosgienne" text="Vosgienne"/>
+
+		<!-- Fill types for bridge-added male subtypes -->
+		<text name="fillType_bull_charolaise" text="Charolais Bull"/>
+		<text name="fillType_bull_montbeliarde" text="Montbeliarde Bull"/>
+		<text name="fillType_bull_simmental" text="Simmental Bull"/>
+		<text name="fillType_bull_vosgienne" text="Vosgienne Bull"/>
+
+		<!-- Bull Charolais visual descriptions (breed-specific minAgeMonth=15) -->
+		<text name="rl_bridge_bullCharolaiseCalfDesc" text="A young male Charolais calf. Bulls that are healthy and older than 15 months can reproduce."/>
+		<text name="rl_bridge_bullCharolaiseKidDesc" text="A young Charolais bull. Bulls that are healthy and older than 15 months can reproduce."/>
+		<text name="rl_bridge_bullCharolaiseAdultDesc" text="An adult Charolais bull. Bulls that are healthy and older than 15 months can reproduce."/>
+
+		<!-- Bull Montbeliarde visual descriptions (breed-specific minAgeMonth=18) -->
+		<text name="rl_bridge_bullMontbeliardeCalfDesc" text="A young male Montbeliarde calf. Bulls that are healthy and older than 18 months can reproduce."/>
+		<text name="rl_bridge_bullMontbeliardeKidDesc" text="A young Montbeliarde bull. Bulls that are healthy and older than 18 months can reproduce."/>
+		<text name="rl_bridge_bullMontbeliardeAdultDesc" text="An adult Montbeliarde bull. Bulls that are healthy and older than 18 months can reproduce."/>
+
+		<!-- Bull Simmental visual descriptions (breed-specific minAgeMonth=16, heritage shorter gestation) -->
+		<text name="rl_bridge_bullSimmentalCalfDesc" text="A young male Simmental calf. Bulls that are healthy and older than 16 months can reproduce."/>
+		<text name="rl_bridge_bullSimmentalKidDesc" text="A young Simmental bull. Bulls that are healthy and older than 16 months can reproduce."/>
+		<text name="rl_bridge_bullSimmentalAdultDesc" text="An adult Simmental bull. Bulls that are healthy and older than 16 months can reproduce."/>
+
+		<!-- Bull Vosgienne visual descriptions (breed-specific minAgeMonth=18) -->
+		<text name="rl_bridge_bullVosgienneCalfDesc" text="A young male Vosgienne calf. Bulls that are healthy and older than 18 months can reproduce."/>
+		<text name="rl_bridge_bullVosgienneKidDesc" text="A young Vosgienne bull. Bulls that are healthy and older than 18 months can reproduce."/>
+		<text name="rl_bridge_bullVosgienneAdultDesc" text="An adult Vosgienne bull. Bulls that are healthy and older than 18 months can reproduce."/>
+	</texts>
+</l10n>

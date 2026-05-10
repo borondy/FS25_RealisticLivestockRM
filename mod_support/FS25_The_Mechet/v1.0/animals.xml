@@ -1,0 +1,533 @@
+<!--
+    Bridge animals for Le Mechet map (FS25_The_Mechet) by MA7Studio.
+
+    The map adds four French cow breeds with custom 3D models:
+      - COW_CHAROLAISE   (heavy beef; visualAnimalIndex 19/20/21 = adult/kid/baby)
+      - COW_MONTBELIARDE (PDO Comte dairy; visualAnimalIndex 22/23/24)
+      - COW_SIMMENTAL    (dual-purpose Fleckvieh; visualAnimalIndex 25/26/27)
+      - COW_VOSGIENNE    (small mountain dairy; visualAnimalIndex 28/29/30)
+
+    The map registers these subtypes in maps/animals/animals.xml at lines 500/579/663/747.
+    The custom 3D models live in maps/animals/cow/{CharolaiseEtSimmental,MontbeliardeEtVosgienne}/
+    referenced from maps/animals/cow/animals.xml at indices 19-30 (note: 1-based).
+
+    This bridge file:
+
+      1. CONFIG OVERRIDE: points the engine at Mechet's own cow husbandry XML so the
+         C++ side loads the 30-entry animals[] array (vs RLRM bundle's 21 entries).
+         This is necessary because i3d files cannot be reached from inside RLRM
+         (FS25 has no cross-mod path substitution). Side effect: RLRM's deliberate
+         Hereford-via-Angus-mesh-with-tile pattern at idx 16-18 and Highland-shifted-
+         to-19-21 layout breaks under Mechet's base-game-aligned layout. We repair
+         this for the new pens via property overrides on Hereford (hide from buy
+         menu) and Highland (remap to Mechet's 16/17/18 = native Highland models).
+
+      2. NEW SUBTYPES: Adds four bull subtypes (BULL_CHAROLAISE / BULL_MONTBELIARDE /
+         BULL_SIMMENTAL / BULL_VOSGIENNE) for full RLRM reproduction.
+
+      3. PROPERTY OVERRIDES on the four new cow subtypes:
+         a. Modernised milk curve - 3-stage 7-key shape scaled to author's bumped peak.
+            Author admitted in source comments (`valeur realiste = X` at lines 651/735/
+            819) that milk peaks are bumped above realism for game balance; we keep
+            those peaks and apply RLRM's 3-stage modernisation.
+         b. RLRM universal cattle transportPrice 40/100/200 (vs Mechet's 50/80/100
+            signature) - cattle modernisation consistency.
+         c. Charolaise gets RLRM's modest beef-breed milk curve 0/0/190/190/265/265/125
+            even though source has none - per project_rl_beef_cattle_milk_intentional
+            memory and Witcombe Hereford precedent.
+         d. Author's calf and adult input values for water/food/straw/manure/
+            liquidManure are PRESERVED VERBATIM - the deliberately low calf inputs
+            are a breed-character signature.
+         e. Author's reproduction signatures preserved verbatim:
+            Charolaise 14m/15m/0.80, Montbeliarde 10m/18m/0.75,
+            Simmental 9m/16m/0.75 (heritage shorter gestation),
+            Vosgienne 10m/18m/0.75.
+         f. Author's buyPrice/sellPrice curves preserved verbatim - heritage premium
+            signatures are signal-bearing.
+
+      4. HEREFORD REGRESSION REPAIR (decision 1 = hide-on-Mechet): canBeBought=false
+         on all four COW_HEREFORD/BULL_HEREFORD visual stages. Existing Hereford
+         pens degrade visually but do not crash; no new Hereford appears in dealer.
+
+      5. HIGHLAND VISUAL REMAP: COW_HIGHLAND_CATTLE/BULL_HIGHLAND_CATTLE point at
+         Mechet's idx 16=baby / 17=kid / 18=adult (matches base-game Highland layout).
+         RLRM bundle had Highland at 19/20/21; configOverride flipped these to
+         Charolaise, so we remap.
+
+    Property override rules (from RLMapBridge.applyPropertyOverrides):
+      - Only explicitly defined properties are overridden (omitted = keep current value)
+      - Works for both type-level and subtype-level properties
+      - Same XML structure as animals.xml - no special tags needed
+-->
+<animals>
+
+    <!-- Breed display names + marker colours for in-pen breed marker tags. -->
+    <breeds>
+        <breed name="CHAROLAISE"   displayName="$l10n_breed_charolaise"   markerColour="0.92 0.88 0.78"/>
+        <breed name="MONTBELIARDE" displayName="$l10n_breed_montbeliarde" markerColour="0.78 0.55 0.42"/>
+        <breed name="SIMMENTAL"    displayName="$l10n_breed_simmental"    markerColour="0.85 0.65 0.45"/>
+        <breed name="VOSGIENNE"    displayName="$l10n_breed_vosgienne"    markerColour="0.45 0.45 0.45"/>
+    </breeds>
+
+    <!-- Replace COW configFilename with Mechet's 30-entry husbandry config so the
+         engine loads the four custom breed models at indices 19-30. Path is
+         relative to the map mod directory (g_modNameToDirectory["FS25_The_Mechet"])
+         per RLMapBridge.loadConfigOverrides. -->
+    <configOverrides>
+        <override type="COW" configFilename="maps/animals/cow/animals.xml"/>
+    </configOverrides>
+
+    <animal type="COW">
+
+        <!-- ======================================================================
+             COW_CHAROLAISE: heavy French beef breed.
+             Author intent: BEEF (no milk in source), heritage premium pricing,
+             longer 14m gestation, earlier 15m maturity, higher 0.80 health gate,
+             heavy inputs, big outputs.
+             RLRM modernisation: milk curve added per beef-breed convention
+             (0/0/190/190/265/265/125), transportPrice modernised to 40/100/200.
+             Author signatures preserved: reproduction, buy/sell prices, all
+             input curves, manure/liquidManure curves.
+             ====================================================================== -->
+        <subType subType="COW_CHAROLAISE" breed="CHAROLAISE">
+            <transportPrice>
+                <key ageMonth="0" value="40"/>
+                <key ageMonth="12" value="100"/>
+                <key ageMonth="18" value="200"/>
+            </transportPrice>
+            <output>
+                <milk fillType="MILK">
+                    <key ageMonth="0"   value="0"/>
+                    <key ageMonth="12"  value="0"/>
+                    <key ageMonth="12"  value="190"/>
+                    <key ageMonth="36"  value="190"/>
+                    <key ageMonth="36"  value="265"/>
+                    <key ageMonth="72"  value="265"/>
+                    <key ageMonth="120" value="125"/>
+                </milk>
+            </output>
+        </subType>
+
+        <!-- BULL_CHAROLAISE: heavy beef breeding-stock bull.
+             Reproduction gate mirrors COW_CHAROLAISE minAgeMonth=15 (NOT universal 12m).
+             Pricing 1.25x cow buy ratio (heritage premium). Sell shape 5-key with
+             18m young-beef premium and 36m peak typical for heritage beef bulls.
+             Transport: heavy-livestock 40/150/500. Adult input/output keyframes
+             include small bull-side bumps (~+5-10%) over cow side; calf values
+             mirror cow exactly per Witcombe BULL_HEREFORD pattern. -->
+        <subType subType="BULL_CHAROLAISE" fillTypeName="BULL_CHAROLAISE"
+                 gender="male" breed="CHAROLAISE"
+                 minWeight="45.0" targetWeight="750.0" maxWeight="1400.0">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="19" name="$l10n_animal_visual_baby"
+                        image="maps/animals/cow/store_cowCharolaiseBaby.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_bullCharolaiseCalfDesc</description>
+                </visual>
+                <visual minAge="5" visualAnimalIndex="20" name="$l10n_animal_visual_kid"
+                        image="maps/animals/cow/store_cowCharolaiseKid.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_bullCharolaiseKidDesc</description>
+                </visual>
+                <visual minAge="9" visualAnimalIndex="21" name="$l10n_animal_visual_adult"
+                        image="maps/animals/cow/store_cowCharolaise.png"
+                        canBeBought="false">
+                    <description>$l10n_rl_bridge_bullCharolaiseAdultDesc</description>
+                </visual>
+                <visual minAge="15" visualAnimalIndex="21" name="$l10n_animal_visual_adult"
+                        image="maps/animals/cow/store_cowCharolaise.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_bullCharolaiseAdultDesc</description>
+                </visual>
+            </visuals>
+            <reproduction supported="false" minAgeMonth="15"/>
+            <buyPrice>
+                <key ageMonth="0" value="375"/>
+                <key ageMonth="24" value="8250"/>
+            </buyPrice>
+            <sellPrice>
+                <key ageMonth="0" value="290"/>
+                <key ageMonth="18" value="5650"/>
+                <key ageMonth="24" value="9750"/>
+                <key ageMonth="36" value="6875"/>
+                <key ageMonth="60" value="3500"/>
+            </sellPrice>
+            <transportPrice>
+                <key ageMonth="0" value="40"/>
+                <key ageMonth="12" value="150"/>
+                <key ageMonth="18" value="500"/>
+            </transportPrice>
+            <input>
+                <straw>
+                    <key ageMonth="0" value="20"/>
+                    <key ageMonth="18" value="148"/>
+                </straw>
+                <water>
+                    <key ageMonth="0" value="25"/>
+                    <key ageMonth="18" value="170"/>
+                </water>
+                <food>
+                    <key ageMonth="0" value="90"/>
+                    <key ageMonth="18" value="660"/>
+                </food>
+            </input>
+            <output>
+                <manure>
+                    <key ageMonth="0" value="30"/>
+                    <key ageMonth="18" value="378"/>
+                </manure>
+                <liquidManure>
+                    <key ageMonth="0" value="45"/>
+                    <key ageMonth="18" value="300"/>
+                </liquidManure>
+            </output>
+        </subType>
+
+        <!-- ======================================================================
+             COW_MONTBELIARDE: PDO Comte dairy breed.
+             Author intent: dairy with milk peak 140 (admitted realistic=135, +4% bump).
+             Standard 10m gestation, 18m maturity, 0.75 health gate. Modest pricing.
+             RLRM modernisation: 3-stage milk curve (peak 140 -> floor 99, senescence 60),
+             transportPrice 40/100/200.
+             Author calf/adult inputs preserved verbatim.
+             ====================================================================== -->
+        <subType subType="COW_MONTBELIARDE" breed="MONTBELIARDE">
+            <transportPrice>
+                <key ageMonth="0" value="40"/>
+                <key ageMonth="12" value="100"/>
+                <key ageMonth="18" value="200"/>
+            </transportPrice>
+            <output>
+                <milk fillType="MILK">
+                    <key ageMonth="0"   value="0"/>
+                    <key ageMonth="12"  value="0"/>
+                    <key ageMonth="12"  value="99"/>
+                    <key ageMonth="36"  value="99"/>
+                    <key ageMonth="36"  value="140"/>
+                    <key ageMonth="72"  value="140"/>
+                    <key ageMonth="120" value="60"/>
+                </milk>
+            </output>
+        </subType>
+
+        <!-- BULL_MONTBELIARDE: dairy breeding-stock bull.
+             Reproduction gate mirrors COW_MONTBELIARDE minAgeMonth=18.
+             Pricing 1.25x cow buy. Adult input bumps; calf values mirror cow. -->
+        <subType subType="BULL_MONTBELIARDE" fillTypeName="BULL_MONTBELIARDE"
+                 gender="male" breed="MONTBELIARDE"
+                 minWeight="45.0" targetWeight="700.0" maxWeight="1400.0">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="22" name="$l10n_animal_visual_baby"
+                        image="maps/animals/cow/store_cowMontbeliardeBaby.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_bullMontbeliardeCalfDesc</description>
+                </visual>
+                <visual minAge="6" visualAnimalIndex="23" name="$l10n_animal_visual_kid"
+                        image="maps/animals/cow/store_cowMontbeliardeKid.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_bullMontbeliardeKidDesc</description>
+                </visual>
+                <visual minAge="12" visualAnimalIndex="24" name="$l10n_animal_visual_adult"
+                        image="maps/animals/cow/store_cowMontbeliarde.png"
+                        canBeBought="false">
+                    <description>$l10n_rl_bridge_bullMontbeliardeAdultDesc</description>
+                </visual>
+                <visual minAge="18" visualAnimalIndex="24" name="$l10n_animal_visual_adult"
+                        image="maps/animals/cow/store_cowMontbeliarde.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_bullMontbeliardeAdultDesc</description>
+                </visual>
+            </visuals>
+            <reproduction supported="false" minAgeMonth="18"/>
+            <buyPrice>
+                <key ageMonth="0" value="250"/>
+                <key ageMonth="24" value="1812"/>
+            </buyPrice>
+            <sellPrice>
+                <key ageMonth="0" value="187"/>
+                <key ageMonth="24" value="1687"/>
+                <key ageMonth="36" value="1875"/>
+                <key ageMonth="60" value="1250"/>
+            </sellPrice>
+            <transportPrice>
+                <key ageMonth="0" value="40"/>
+                <key ageMonth="12" value="150"/>
+                <key ageMonth="18" value="500"/>
+            </transportPrice>
+            <input>
+                <straw>
+                    <key ageMonth="0" value="10"/>
+                    <key ageMonth="18" value="100"/>
+                </straw>
+                <water>
+                    <key ageMonth="0" value="20"/>
+                    <key ageMonth="18" value="148"/>
+                </water>
+                <food>
+                    <key ageMonth="0" value="30"/>
+                    <key ageMonth="18" value="315"/>
+                </food>
+            </input>
+            <output>
+                <manure>
+                    <key ageMonth="0" value="18"/>
+                    <key ageMonth="18" value="195"/>
+                </manure>
+                <liquidManure>
+                    <key ageMonth="0" value="36"/>
+                    <key ageMonth="18" value="220"/>
+                </liquidManure>
+            </output>
+        </subType>
+
+        <!-- ======================================================================
+             COW_SIMMENTAL: dual-purpose Fleckvieh, heritage shorter gestation.
+             Author intent: dual-purpose with milk peak 100 (admitted realistic=85,
+             +18% bump). Faster reproduction 9m duration, 16m maturity (heritage).
+             Higher pricing than dairy (meat side).
+             RLRM modernisation: 3-stage milk (peak 100 -> floor 71, senescence 43),
+             transportPrice 40/100/200.
+             ====================================================================== -->
+        <subType subType="COW_SIMMENTAL" breed="SIMMENTAL">
+            <transportPrice>
+                <key ageMonth="0" value="40"/>
+                <key ageMonth="12" value="100"/>
+                <key ageMonth="18" value="200"/>
+            </transportPrice>
+            <output>
+                <milk fillType="MILK">
+                    <key ageMonth="0"   value="0"/>
+                    <key ageMonth="12"  value="0"/>
+                    <key ageMonth="12"  value="71"/>
+                    <key ageMonth="36"  value="71"/>
+                    <key ageMonth="36"  value="100"/>
+                    <key ageMonth="72"  value="100"/>
+                    <key ageMonth="120" value="43"/>
+                </milk>
+            </output>
+        </subType>
+
+        <!-- BULL_SIMMENTAL: dual-purpose breeding-stock bull.
+             Reproduction gate mirrors COW_SIMMENTAL minAgeMonth=16. -->
+        <subType subType="BULL_SIMMENTAL" fillTypeName="BULL_SIMMENTAL"
+                 gender="male" breed="SIMMENTAL"
+                 minWeight="45.0" targetWeight="750.0" maxWeight="1400.0">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="25" name="$l10n_animal_visual_baby"
+                        image="maps/animals/cow/store_cowSimmentalBaby.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_bullSimmentalCalfDesc</description>
+                </visual>
+                <visual minAge="5" visualAnimalIndex="26" name="$l10n_animal_visual_kid"
+                        image="maps/animals/cow/store_cowSimmentalKid.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_bullSimmentalKidDesc</description>
+                </visual>
+                <visual minAge="13" visualAnimalIndex="27" name="$l10n_animal_visual_adult"
+                        image="maps/animals/cow/store_cowSimmental.png"
+                        canBeBought="false">
+                    <description>$l10n_rl_bridge_bullSimmentalAdultDesc</description>
+                </visual>
+                <visual minAge="16" visualAnimalIndex="27" name="$l10n_animal_visual_adult"
+                        image="maps/animals/cow/store_cowSimmental.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_bullSimmentalAdultDesc</description>
+                </visual>
+            </visuals>
+            <reproduction supported="false" minAgeMonth="16"/>
+            <buyPrice>
+                <key ageMonth="0" value="250"/>
+                <key ageMonth="24" value="2562"/>
+            </buyPrice>
+            <sellPrice>
+                <key ageMonth="0" value="187"/>
+                <key ageMonth="24" value="2375"/>
+                <key ageMonth="36" value="3125"/>
+                <key ageMonth="60" value="2500"/>
+            </sellPrice>
+            <transportPrice>
+                <key ageMonth="0" value="40"/>
+                <key ageMonth="12" value="150"/>
+                <key ageMonth="18" value="500"/>
+            </transportPrice>
+            <input>
+                <straw>
+                    <key ageMonth="0" value="12"/>
+                    <key ageMonth="18" value="115"/>
+                </straw>
+                <water>
+                    <key ageMonth="0" value="22"/>
+                    <key ageMonth="18" value="158"/>
+                </water>
+                <food>
+                    <key ageMonth="0" value="60"/>
+                    <key ageMonth="18" value="441"/>
+                </food>
+            </input>
+            <output>
+                <manure>
+                    <key ageMonth="0" value="23"/>
+                    <key ageMonth="18" value="241"/>
+                </manure>
+                <liquidManure>
+                    <key ageMonth="0" value="45"/>
+                    <key ageMonth="18" value="294"/>
+                </liquidManure>
+            </output>
+        </subType>
+
+        <!-- ======================================================================
+             COW_VOSGIENNE: small mountain dairy (rare endangered Vosges breed).
+             Author intent: smallest of the four, modest pricing, milk peak 85
+             (admitted realistic=73, +16% bump). Standard 10m/18m/0.75 reproduction.
+             RLRM modernisation: 3-stage milk (peak 85 -> floor 60, senescence 37),
+             transportPrice 40/100/200.
+             ====================================================================== -->
+        <subType subType="COW_VOSGIENNE" breed="VOSGIENNE">
+            <transportPrice>
+                <key ageMonth="0" value="40"/>
+                <key ageMonth="12" value="100"/>
+                <key ageMonth="18" value="200"/>
+            </transportPrice>
+            <output>
+                <milk fillType="MILK">
+                    <key ageMonth="0"   value="0"/>
+                    <key ageMonth="12"  value="0"/>
+                    <key ageMonth="12"  value="60"/>
+                    <key ageMonth="36"  value="60"/>
+                    <key ageMonth="36"  value="85"/>
+                    <key ageMonth="72"  value="85"/>
+                    <key ageMonth="120" value="37"/>
+                </milk>
+            </output>
+        </subType>
+
+        <!-- BULL_VOSGIENNE: small mountain dairy bull (smallest of the four).
+             Reproduction gate mirrors COW_VOSGIENNE minAgeMonth=18. -->
+        <subType subType="BULL_VOSGIENNE" fillTypeName="BULL_VOSGIENNE"
+                 gender="male" breed="VOSGIENNE"
+                 minWeight="40.0" targetWeight="600.0" maxWeight="1400.0">
+            <visuals>
+                <visual minAge="0" visualAnimalIndex="28" name="$l10n_animal_visual_baby"
+                        image="maps/animals/cow/store_cowVosgienneBaby.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_bullVosgienneCalfDesc</description>
+                </visual>
+                <visual minAge="6" visualAnimalIndex="29" name="$l10n_animal_visual_kid"
+                        image="maps/animals/cow/store_cowVosgienneKid.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_bullVosgienneKidDesc</description>
+                </visual>
+                <visual minAge="12" visualAnimalIndex="30" name="$l10n_animal_visual_adult"
+                        image="maps/animals/cow/store_cowVosgienne.png"
+                        canBeBought="false">
+                    <description>$l10n_rl_bridge_bullVosgienneAdultDesc</description>
+                </visual>
+                <visual minAge="18" visualAnimalIndex="30" name="$l10n_animal_visual_adult"
+                        image="maps/animals/cow/store_cowVosgienne.png"
+                        canBeBought="true">
+                    <description>$l10n_rl_bridge_bullVosgienneAdultDesc</description>
+                </visual>
+            </visuals>
+            <reproduction supported="false" minAgeMonth="18"/>
+            <buyPrice>
+                <key ageMonth="0" value="237"/>
+                <key ageMonth="24" value="2375"/>
+            </buyPrice>
+            <sellPrice>
+                <key ageMonth="0" value="175"/>
+                <key ageMonth="24" value="2375"/>
+                <key ageMonth="36" value="2812"/>
+                <key ageMonth="60" value="2125"/>
+            </sellPrice>
+            <transportPrice>
+                <key ageMonth="0" value="40"/>
+                <key ageMonth="12" value="150"/>
+                <key ageMonth="18" value="500"/>
+            </transportPrice>
+            <input>
+                <straw>
+                    <key ageMonth="0" value="10"/>
+                    <key ageMonth="18" value="105"/>
+                </straw>
+                <water>
+                    <key ageMonth="0" value="22"/>
+                    <key ageMonth="18" value="148"/>
+                </water>
+                <food>
+                    <key ageMonth="0" value="55"/>
+                    <key ageMonth="18" value="400"/>
+                </food>
+            </input>
+            <output>
+                <manure>
+                    <key ageMonth="0" value="15"/>
+                    <key ageMonth="18" value="200"/>
+                </manure>
+                <liquidManure>
+                    <key ageMonth="0" value="39"/>
+                    <key ageMonth="18" value="232"/>
+                </liquidManure>
+            </output>
+        </subType>
+
+        <!-- ======================================================================
+             COW_HEREFORD / BULL_HEREFORD: HIDE on Mechet maps.
+             Decision 1 chose hide-from-buy-menu over Angus visual fallback.
+             configOverride to Mechet's husbandry breaks RLRM's Angus-mesh-with-
+             Hereford-tile pattern (RLRM bundle had idx 16-18 = Hereford via tile;
+             Mechet's idx 16-18 = Highland models). canBeBought=false on all four
+             visual stages hides Hereford from the dealer; existing Hereford pens
+             continue to live but render scrambled (cosmetic regression accepted).
+             visualAnimalIndex intentionally NOT touched - keeping the original
+             values lets RLRM-bundle saves switching to Mechet still find a model
+             (Highland fallback) rather than nil.
+             ====================================================================== -->
+        <subType subType="COW_HEREFORD">
+            <visuals>
+                <visual minAge="0"  canBeBought="false"/>
+                <visual minAge="6"  canBeBought="false"/>
+                <visual minAge="12" canBeBought="false"/>
+                <visual minAge="18" canBeBought="false"/>
+            </visuals>
+        </subType>
+
+        <subType subType="BULL_HEREFORD">
+            <visuals>
+                <visual minAge="0"  canBeBought="false"/>
+                <visual minAge="6"  canBeBought="false"/>
+                <visual minAge="12" canBeBought="false"/>
+                <visual minAge="18" canBeBought="false"/>
+            </visuals>
+        </subType>
+
+        <!-- ======================================================================
+             COW_HIGHLAND_CATTLE / BULL_HIGHLAND_CATTLE: REMAP visuals to Mechet's
+             native Highland indices (16=baby, 17=kid, 18=adult).
+             RLRM bundle had Highland at 19/20/21; configOverride flipped these to
+             Charolaise (Mechet's 19=Charolaise baby, 20=kid, 21=adult). Without
+             this remap, Highland would render as Charolaise.
+             Mechet's 16/17/18 = base-game-aligned Highland baby/kid/adult, so the
+             remap restores correct visuals.
+             ====================================================================== -->
+        <subType subType="COW_HIGHLAND_CATTLE">
+            <visuals>
+                <visual minAge="0"  visualAnimalIndex="16"/>
+                <visual minAge="6"  visualAnimalIndex="17"/>
+                <visual minAge="12" visualAnimalIndex="18"/>
+                <visual minAge="18" visualAnimalIndex="18"/>
+            </visuals>
+        </subType>
+
+        <subType subType="BULL_HIGHLAND_CATTLE">
+            <visuals>
+                <visual minAge="0"  visualAnimalIndex="16"/>
+                <visual minAge="6"  visualAnimalIndex="17"/>
+                <visual minAge="12" visualAnimalIndex="18"/>
+                <visual minAge="18" visualAnimalIndex="18"/>
+            </visuals>
+        </subType>
+
+    </animal>
+
+</animals>
