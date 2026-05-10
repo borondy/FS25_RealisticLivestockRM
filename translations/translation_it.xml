@@ -670,6 +670,10 @@
         <!-- BRIDGE -->
 
         <text name="rl_bridge_version_unknown" text="Realistic Livestock: la versione %s di %s non è stata testata con la versione %s di Realistic Livestock. Utilizzo della configurazione &apos;%s&apos;. Se riscontri problemi con animali esotici, segnalali su %s."/>
+        <!-- TODO: localise -->
+        <text name="rl_bridge_configoverride_conflict_header" text="Realistic Livestock: Conflict detected. Two or more bridges/packs replaced configuration for the same animal type. Last-loaded mod wins. If you continue you will have visual glitches and ghost animals."/>
+        <!-- TODO: localise -->
+        <text name="rl_bridge_configoverride_conflict_line" text="%s: applied by %s"/>
 
         <!-- MIGRATION -->
 

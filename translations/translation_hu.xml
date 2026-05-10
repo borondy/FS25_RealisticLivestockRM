@@ -719,6 +719,10 @@
 		<text name="rm_rl_migration_quit" text="Kilépés"/>
 
 		<text name="rl_bridge_version_unknown" text="Realistic Livestock: A(z) %s verzió (%s) még nem lett tesztelve a Realistic Livestock %s verziójával. A(z) '%s' konfiguráció használatban. Ha problémát tapasztalsz az egzotikus állatokkal, kérjük, jelentsd itt: %s."/>
+		<!-- TODO: localise -->
+		<text name="rl_bridge_configoverride_conflict_header" text="Realistic Livestock: Conflict detected. Two or more bridges/packs replaced configuration for the same animal type. Last-loaded mod wins. If you continue you will have visual glitches and ghost animals."/>
+		<!-- TODO: localise -->
+		<text name="rl_bridge_configoverride_conflict_line" text="%s: applied by %s"/>
 
 
 		<!-- Missing keys (English fallback) -->

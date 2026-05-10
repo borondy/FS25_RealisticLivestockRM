@@ -699,6 +699,10 @@
         <text name="input_RL_RENAME" text="Rename"/>
         <text name="input_RL_CYCLE_FILTER" text="Cycle Saved Filter"/>
         <text name="rl_bridge_version_unknown" text="Realistic Livestock: %s version %s has not been tested with version %s of Realistic Livestock. Using config '%s'. If you experience issues with exotic animals, please report them at %s."/>
+        <!-- TODO: localise -->
+        <text name="rl_bridge_configoverride_conflict_header" text="Realistic Livestock: Conflict detected. Two or more bridges/packs replaced configuration for the same animal type. Last-loaded mod wins. If you continue you will have visual glitches and ghost animals."/>
+        <!-- TODO: localise -->
+        <text name="rl_bridge_configoverride_conflict_line" text="%s: applied by %s"/>
         <text name="rl_menu_info_children" text="Children"/>
         <text name="rl_menu_info_diseases_header" text="Diseases"/>
         <text name="rl_menu_info_empty_no_animals" text="No animals in this husbandry"/>

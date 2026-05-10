@@ -715,6 +715,10 @@
 		<text name="rm_rl_migration_quit" text="Ukončit"/>
 
 		<text name="rl_bridge_version_unknown" text="Realistic Livestock: %s verze %s nebyla testována s verzí %s modifikace Realistic Livestock. Používá se konfigurace '%s'. Pokud narazíte na problémy s exotickými zvířaty, nahlaste je na %s."/>
+		<!-- TODO: localise -->
+		<text name="rl_bridge_configoverride_conflict_header" text="Realistic Livestock: Conflict detected. Two or more bridges/packs replaced configuration for the same animal type. Last-loaded mod wins. If you continue you will have visual glitches and ghost animals."/>
+		<!-- TODO: localise -->
+		<text name="rl_bridge_configoverride_conflict_line" text="%s: applied by %s"/>
 
 
 		<!-- Missing keys (English fallback) -->

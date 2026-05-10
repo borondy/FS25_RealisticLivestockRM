@@ -719,6 +719,8 @@
 		<text name="rm_rl_migration_quit" text="Quit"/>
 
 		<text name="rl_bridge_version_unknown" text="Realistic Livestock: %s version %s has not been tested with version %s of Realistic Livestock. Using config '%s'. If you experience issues with exotic animals, please report them at %s."/>
+		<text name="rl_bridge_configoverride_conflict_header" text="Realistic Livestock: Conflict detected. Two or more bridges/packs replaced configuration for the same animal type. Last-loaded mod wins. If you continue you will have visual glitches and ghost animals."/>
+		<text name="rl_bridge_configoverride_conflict_line" text="%s: applied by %s"/>
 
 		<!-- RL Tabbed Menu -->
 		<text name="input_RL_MENU" text="Open RL Menu (new)"/>

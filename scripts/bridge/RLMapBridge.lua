@@ -42,6 +42,20 @@ RLMapBridge.activeBridges = {}
 --- Queued warning text to display via InfoDialog in onStartMission (nil = no warning)
 RLMapBridge.pendingVersionWarning = nil
 
+--- Per-type configOverride application history.
+--- typeName -> ordered list of { bridgeName, atSubtypeCount } entries, one per
+--- successful loadConfigOverrides append. Used by _summariseConfigOverrideConflicts
+--- to detect collisions where >=2 distinct bridges have overridden the same type
+--- (last-loaded wins; earlier-bridge subtypes can render as ghost animals).
+--- Cleared at the start of loadBridgeAnimals.
+RLMapBridge.configOverrideHistory = {}
+
+--- Queued configOverride conflict warning text for InfoDialog in onStartMission (nil = no warning).
+--- Set by _summariseConfigOverrideConflicts when collisions are detected; consumed
+--- (atomic capture-and-clear) by RealisticLivestock_FSBaseMission._showStartupDialogs
+--- under the bridge-conflict queue kind, mirroring pendingVersionWarning's pattern.
+RLMapBridge.pendingConfigOverrideConflictWarning = nil
+
 --- Breeding group data: subTypeName -> groupName
 RLMapBridge.breedingGroupBySubType = {}
 
@@ -561,6 +575,13 @@ end
 --- Only adds subtypes to EXISTING types (does not create new types).
 ---@param animalSystem table The AnimalSystem instance
 function RLMapBridge.loadBridgeAnimals(animalSystem)
+    -- Reset configOverride tracking BEFORE the early-return so a reload path
+    -- with zero active bridges still clears stale state from a previous run.
+    -- The summary slot must be re-evaluated on every load; never carry over.
+    RLMapBridge.configOverrideHistory = {}
+    RLMapBridge.pendingConfigOverrideConflictWarning = nil
+    Log:trace("MapBridge: loadBridgeAnimals: reset configOverrideHistory and pendingConfigOverrideConflictWarning")
+
     if #RLMapBridge.activeBridges == 0 then
         Log:info("MapBridge: No active bridges, skipping animal loading")
         return
@@ -684,6 +705,88 @@ function RLMapBridge.loadBridgeAnimals(animalSystem)
             end
         end
     end
+
+    -- Post-loop: scan the complete configOverrideHistory for cross-bridge collisions.
+    -- Wrapped in safeCall so a future schema change in the helper cannot abort the
+    -- bridge loader's tail. safeCall provides TRACE enter/exit; do NOT add duplicate
+    -- Log:debug enter/exit around this call.
+    RmSafeUtils.safeCall("RLMapBridge._summariseConfigOverrideConflicts", function()
+        RLMapBridge._summariseConfigOverrideConflicts(animalSystem)
+    end)
+end
+
+
+--- Scan the per-type configOverride history for cross-bridge collisions.
+--- Collision predicate: a single type appears in >=2 distinct bridgeName values.
+--- For each colliding type, emits one summary Log:warning naming the bridges in
+--- load order and contributes one localised line to the player-facing dialog body.
+--- Sets RLMapBridge.pendingConfigOverrideConflictWarning to a header + per-type
+--- lines string when one or more collisions are detected; leaves it nil otherwise.
+--- Multi-bridge only - same-bridge duplicate <override> entries are diagnosed
+--- separately inside loadConfigOverrides and do NOT count toward the predicate.
+---@param animalSystem table The AnimalSystem instance, used to resolve type display names
+function RLMapBridge._summariseConfigOverrideConflicts(animalSystem)
+    Log:trace("MapBridge: _summariseConfigOverrideConflicts: scanning %d type entries",
+        RLMapBridge._countHistoryTypes())
+
+    local lines = {}
+    local collisionCount = 0
+
+    for typeName, history in pairs(RLMapBridge.configOverrideHistory) do
+        -- Compute the set of distinct bridgeNames in load order.
+        local distinctNames = {}
+        local seen = {}
+        for _, entry in ipairs(history) do
+            if not seen[entry.bridgeName] then
+                seen[entry.bridgeName] = true
+                table.insert(distinctNames, entry.bridgeName)
+            end
+        end
+
+        if #distinctNames >= 2 then
+            collisionCount = collisionCount + 1
+
+            local joined = table.concat(distinctNames, "', '")
+            Log:warning("MapBridge: type '%s' had configOverride applied by %d bridges in this order: '%s'. Only the last one's husbandry is active. Subtypes registered against earlier indices may render as ghost animals.",
+                typeName, #distinctNames, joined)
+
+            -- Resolve a player-readable type label via the centralised util so log
+            -- and dialog stay aligned with what the GUI shows.
+            local animalType = animalSystem and animalSystem.nameToType and animalSystem.nameToType[typeName]
+            local typeLabel = RLAnimalUtil.getAnimalTypeDisplayName(animalType)
+
+            local lineTemplate = g_i18n:getText("rl_bridge_configoverride_conflict_line")
+            local bridgeJoined = table.concat(distinctNames, ", ")
+            table.insert(lines, string.format(lineTemplate, typeLabel, bridgeJoined))
+        else
+            Log:trace("MapBridge: type '%s' configOverride history has %d distinct bridge(s); no collision", typeName, #distinctNames)
+        end
+    end
+
+    if collisionCount == 0 then
+        Log:trace("MapBridge: no configOverride collisions detected")
+        return
+    end
+
+    Log:warning("MapBridge: %d configOverride collision(s) detected; queueing player-facing warning", collisionCount)
+
+    -- Header has no placeholder - it is a known-conflict, opinionated message
+    -- (no URL: we deliberately do not solicit reports for a documented limitation).
+    local header = g_i18n:getText("rl_bridge_configoverride_conflict_header")
+
+    RLMapBridge.pendingConfigOverrideConflictWarning = header .. "\n" .. table.concat(lines, "\n")
+end
+
+
+--- Count distinct types currently tracked in configOverrideHistory.
+--- Used only by the trace-log line in _summariseConfigOverrideConflicts.
+---@return number count
+function RLMapBridge._countHistoryTypes()
+    local n = 0
+    for _ in pairs(RLMapBridge.configOverrideHistory) do
+        n = n + 1
+    end
+    return n
 end
 
 
@@ -809,6 +912,40 @@ function RLMapBridge.loadConfigOverrides(animalSystem, xmlFile, mapModDir, bridg
                 overrideCount = overrideCount + 1
 
                 Log:info("MapBridge: Config override for '%s': '%s' -> '%s'", typeName, oldPath, resolvedPath)
+
+                -- Track this override for collision detection. History is built
+                -- incrementally as each bridge runs; the summary helper at the
+                -- end of loadBridgeAnimals walks it once over the complete dataset.
+                local history = RLMapBridge.configOverrideHistory[typeName]
+                if history == nil then
+                    history = {}
+                    RLMapBridge.configOverrideHistory[typeName] = history
+                end
+
+                -- Detect duplicate <override> entries from THE SAME bridge in this pass.
+                -- This is a free per-bridge XML-config diagnostic - it does NOT count
+                -- toward the cross-bridge collision predicate (which uses distinct
+                -- bridgeName values). Warn ONCE per (bridge, type) pair regardless
+                -- of how many duplicates the XML contains: the first dup is
+                -- diagnostic; the third+ would just be noise.
+                local priorMatches = 0
+                for _, prior in ipairs(history) do
+                    if prior.bridgeName == bridgeName then
+                        priorMatches = priorMatches + 1
+                    end
+                end
+                if priorMatches == 1 then
+                    Log:warning("MapBridge: bridge '%s' declared override for type '%s' more than once; only the last config takes effect",
+                        bridgeName, typeName)
+                end
+
+                table.insert(history, {
+                    bridgeName     = bridgeName,
+                    atSubtypeCount = #animalSystem.subTypes,
+                })
+
+                Log:info("MapBridge: configOverrideHistory['%s'] += {bridge='%s', atSubtypeCount=%d} (history size=%d)",
+                    typeName, bridgeName, #animalSystem.subTypes, #history)
             end
         end
     end

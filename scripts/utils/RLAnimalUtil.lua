@@ -223,6 +223,40 @@ function RLAnimalUtil.readStreamIdentifiers(streamId, connection)
 end
 
 
+--- Resolve a player-readable display name for an AnimalType.
+--- Used by GUI selectors and the bridge configOverride conflict warning so
+--- log/dialog text matches what the player sees in the shop / AI screens.
+--- Lookup order:
+---   1. animalType.groupTitle - already-localised label (e.g. "Cows" / "Vaches").
+---   2. animalType.title - rare; some third-party mods may set it.
+---   3. g_i18n:getText("ui_<lowername>s") - i18n fallback for types without groupTitle.
+---   4. raw animalType.name - last-ditch readable fallback.
+---   5. "?" - animalType nil.
+---@param animalType table|nil AnimalType from g_currentMission.animalSystem.types
+---@return string label Localised display name, raw type name, or "?" when both unavailable
+function RLAnimalUtil.getAnimalTypeDisplayName(animalType)
+    if animalType == nil then return "?" end
+
+    if animalType.groupTitle ~= nil and animalType.groupTitle ~= "" then
+        return animalType.groupTitle
+    end
+
+    if animalType.title ~= nil and animalType.title ~= "" then
+        return animalType.title
+    end
+
+    if animalType.name ~= nil and g_i18n ~= nil then
+        local key = "ui_" .. string.lower(animalType.name) .. "s"
+        if g_i18n:hasText(key) then
+            return g_i18n:getText(key)
+        end
+        return animalType.name
+    end
+
+    return "?"
+end
+
+
 --- Serialize animal identity to a network stream.
 --- Write order: uniqueId (string), farmId (string), birthday.country (UInt8), animalTypeIndex (UInt8).
 --- WARNING: This is the per-animal event protocol. The cluster system uses a DIFFERENT order.

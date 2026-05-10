@@ -268,7 +268,7 @@ function RLMenuAIFrame:refreshSpecies()
 
     local names = {}
     for index, animalType in ipairs(self.sortedSpecies) do
-        names[index] = RLMenuAIFrame._formatSpeciesLabel(animalType)
+        names[index] = RLAnimalUtil.getAnimalTypeDisplayName(animalType)
 
         if self.subCategoryDotTemplate ~= nil and self.subCategoryDotBox ~= nil then
             local dot = self.subCategoryDotTemplate:clone(self.subCategoryDotBox)
@@ -294,27 +294,6 @@ function RLMenuAIFrame:refreshSpecies()
     else
         self:onSpeciesChanged(initialState)
     end
-end
-
-
---- Format an animal species for the cycler label. Legacy uses
---- animalType.groupTitle (AnimalScreen.lua:512) - prefer that first; fall
---- back to a derived i18n key; finally the internal name.
---- @param animalType table
---- @return string
-function RLMenuAIFrame._formatSpeciesLabel(animalType)
-    if animalType == nil then return "?" end
-    if animalType.groupTitle ~= nil and animalType.groupTitle ~= "" then
-        return animalType.groupTitle
-    end
-    if animalType.name ~= nil and g_i18n ~= nil then
-        local key = "ui_" .. string.lower(animalType.name) .. "s"
-        if g_i18n:hasText(key) then
-            return g_i18n:getText(key)
-        end
-        return animalType.name
-    end
-    return "?"
 end
 
 

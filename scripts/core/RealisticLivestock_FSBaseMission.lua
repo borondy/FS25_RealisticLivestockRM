@@ -26,7 +26,8 @@ local Log = RmLogging.getLogger("RLRM")
     directly with a synthetic ctx and assert on queue shape.
 
     @param ctx table {isServer, isDedicatedServer, hasConflict, hasMigration,
-        hasWarn, hasBridgeWarning, bridgeText}
+        hasWarn, hasBridgeWarning, bridgeText, hasConfigOverrideConflict,
+        configOverrideConflictText}
     @return table Ordered array of queue items.
 ]]
 function RealisticLivestock_FSBaseMission._buildStartupQueue(ctx)
@@ -44,6 +45,14 @@ function RealisticLivestock_FSBaseMission._buildStartupQueue(ctx)
 
     if ctx.hasBridgeWarning and not ctx.isDedicatedServer then
         table.insert(q, { kind = "bridge", text = ctx.bridgeText })
+    end
+
+    -- bridge-conflict sits AFTER bridge so a player hitting both warnings sees
+    -- the version-unknown notice first, then the configOverride collision notice.
+    -- Same dediserver-suppression rule as bridge: no GUI on a headless host;
+    -- the summary Log:warning emitted in RLMapBridge is the admin-visible surface.
+    if ctx.hasConfigOverrideConflict and not ctx.isDedicatedServer then
+        table.insert(q, { kind = "bridge-conflict", text = ctx.configOverrideConflictText })
     end
 
     return q
@@ -68,23 +77,33 @@ local function _showStartupDialogs(self)
     local bridgeText = RLMapBridge.pendingVersionWarning
     RLMapBridge.pendingVersionWarning = nil
 
+    -- Atomic capture-and-clear of bridge configOverride conflict warning,
+    -- mirroring the bridge-version slot above. Separate slot per spec - the
+    -- two warnings render as two sequential InfoDialogs.
+    local conflictText = RLMapBridge.pendingConfigOverrideConflictWarning
+    RLMapBridge.pendingConfigOverrideConflictWarning = nil
+
     local queue = RealisticLivestock_FSBaseMission._buildStartupQueue({
-        isServer            = self:getIsServer(),
-        isDedicatedServer   = (g_dedicatedServer ~= nil),
-        hasConflict         = g_rmMigrationConflict,
-        hasMigration        = g_rmPendingMigration,
-        hasWarn             = g_rmPendingModWarning,
+        isServer                     = self:getIsServer(),
+        isDedicatedServer            = (g_dedicatedServer ~= nil),
+        hasConflict                  = g_rmMigrationConflict,
+        hasMigration                 = g_rmPendingMigration,
+        hasWarn                      = g_rmPendingModWarning,
         -- Filter empty string in addition to nil; an empty bridge warning
         -- would otherwise enqueue a bridge-kind item with empty body, rendering
         -- a blank InfoDialog. Defensive against future producers - RLMapBridge
         -- itself only writes string.format results today.
-        hasBridgeWarning    = (bridgeText ~= nil and bridgeText ~= ""),
-        bridgeText          = bridgeText,
+        hasBridgeWarning             = (bridgeText ~= nil and bridgeText ~= ""),
+        bridgeText                   = bridgeText,
+        -- Same nil-and-empty filter as bridgeText for the same reason.
+        hasConfigOverrideConflict    = (conflictText ~= nil and conflictText ~= ""),
+        configOverrideConflictText   = conflictText,
     })
 
-    Log:debug("startup dialog queue: %d items (conflict=%s migration=%s warn=%s bridge=%s)",
+    Log:debug("startup dialog queue: %d items (conflict=%s migration=%s warn=%s bridge=%s bridgeConflict=%s)",
         #queue, tostring(g_rmMigrationConflict), tostring(g_rmPendingMigration),
-        tostring(g_rmPendingModWarning), tostring(bridgeText ~= nil))
+        tostring(g_rmPendingModWarning), tostring(bridgeText ~= nil),
+        tostring(conflictText ~= nil))
 
     if #queue == 0 then return end
 
@@ -121,6 +140,23 @@ local function _showStartupDialogs(self)
                 Log:info("Showing bridge version warning dialog")
                 InfoDialog.show(item.text, function()
                     Log:info("User dismissed bridge version warning")
+                    showNext()
+                end)
+            end)
+        elseif item.kind == "bridge-conflict" then
+            -- bridge-conflict presenter mirrors the bridge presenter exactly:
+            -- 100ms Timer, mid-startup unload guard, InfoDialog with showNext
+            -- as close-callback. Separate kind so the two warnings sequence
+            -- correctly when both fire in the same load.
+            Timer.createOneshot(100, function()
+                if g_currentMission == nil or g_gui == nil then
+                    Log:debug("bridge-conflict presenter timer fired post-unload; advancing queue")
+                    showNext()
+                    return
+                end
+                Log:info("Showing bridge configOverride conflict warning dialog")
+                InfoDialog.show(item.text, function()
+                    Log:info("User dismissed bridge configOverride conflict warning")
                     showNext()
                 end)
             end)
