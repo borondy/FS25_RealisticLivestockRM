@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.2.4.0-dev.2
+
+### Added
+- Map support: Le Mechet by MA7Studio (https://farming-simulator.com/mod.php?mod_id=357964) - four French cow breeds (Charolaise, Montbeliarde, Simmental, Vosgienne) with bull variants; full breeding, genetics, and reproduction; per-breed pricing, milk curves, and reproduction signatures preserved from the map's source XML.
+- In-game warning when two map bridges or animal packs replace the same animal type's husbandry. The second one wins and the first one's animals can become invisible (ghost animals); RLRM now shows a dismissible warning at mission start so the cause is visible instead of silent.
+
+### Compatibility
+- Le Mechet is NOT compatible with the Cow Breeds Pack for RLRM (FS25_CowBreedsRLRM) - both replace the cow husbandry config and only one can win. Use one or the other. The new in-game warning will fire if you load both together.
+- Hereford is removed from the dealer when Le Mechet is the active map.
+
+### Improved
+- User guide cattle milk chart now reconciles with the breed-range table; footnote spells out which factors compose into the table range (chart is the lifetime age envelope; the table folds in lactation-phase factor and genetics multiplier).
+
 ## v1.2.4.0-dev.1
 
 ### Improved

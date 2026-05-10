@@ -1,6 +1,6 @@
 <modDesc descVersion="107">
     <author>Ritter</author>
-    <version>1.2.4.0-dev.1</version>
+    <version>1.2.4.0-dev.2</version>
     <title>
         <en>Realistic Livestock - Ritter version</en>
         <it>Allevamento Realistico - Versione Ritter</it>
@@ -23,6 +23,19 @@ Documentation: https://rittermod.github.io/FS25_RealisticLivestockRM
 Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivestockRM
 
 Changelog
+
+1.2.4.0-dev.2:
+
+Added:
+- Map support: Le Mechet by MA7Studio (https://farming-simulator.com/mod.php?mod_id=357964) - four French cow breeds (Charolaise, Montbeliarde, Simmental, Vosgienne) with bull variants; full breeding, genetics, and reproduction; per-breed pricing, milk curves, and reproduction signatures preserved from the map's source XML.
+- In-game warning when two map bridges or animal packs replace the same animal type's husbandry. The second one wins and the first one's animals can become invisible (ghost animals); RLRM now shows a dismissible warning at mission start so the cause is visible instead of silent.
+
+Compatibility:
+- Le Mechet is NOT compatible with the Cow Breeds Pack for RLRM (FS25_CowBreedsRLRM) - both replace the cow husbandry config and only one can win. Use one or the other. The new in-game warning will fire if you load both together.
+- Hereford is removed from the dealer when Le Mechet is the active map.
+
+Improved:
+- User guide cattle milk chart now reconciles with the breed-range table; footnote spells out which factors compose into the table range (chart is the lifetime age envelope; the table folds in lactation-phase factor and genetics multiplier).
 
 1.2.4.0-dev.1:
 
@@ -60,19 +73,6 @@ Fixed:
 - RL Menu Messages tab not clearing the per-pen unread flag on open; existing saves with stuck unread flags will auto-heal the first time you open the Messages tab.
 - Redundant "animals changed" notifications firing multiple times per mutation.
 - User guide accuracy: Witcombe Hereford peak (the value at 18 months is not the peak; the peak is at 24 months), PED disease fatality framing (time-since-infection rather than age-when-infected), and lactation-bonus wording.
-
-1.2.2.0:
-- Added Witcombe map support: new UK breeds (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) with full breeding, genetics, and reproduction; rabbits get viable weights, litter sizes, and consumption rates; automatic version-aware compatibility
-- Hereford on Witcombe now uses a heritage breed profile: 9-month gestation, premium pricing (300/3000), and an 18-month sell-price peak
-- Info tab genetics now show a 0-99 score next to each label (e.g. "97 - Extremely high") so animals within the same bucket can be compared at a glance
-- Fixed singleplayer: RL Messages tab now shows "Bought/Sold N animal(s) for €X" entries after buying or selling (previously these entries only appeared in multiplayer)
-- Fixed potential multiplayer crash when changing monitor, name, or disease treatment on an animal while the husbandry is being sold or demolished
-- Fixed multiplayer: insemination result notification to clients no longer reports success when the insemination actually failed
-
-RL Menu (preview - work in progress):
-- Added Buy tab: browse dealer animals, see per-row prices and a running cart total, then buy one or many at a time via a destination-picker flow
-- Added Artificial Insemination tab: browse dealer bulls by species, pick a straw quantity with live price preview, favourite bulls, and buy straws without leaving the menu
-- Fixed multiplayer: Sell and Info tabs now refresh the farm balance display immediately instead of showing a stale value until the next action
 
 
 ]]>
