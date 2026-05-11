@@ -32,6 +32,17 @@ RLMenuSettingsFrame.SUB_CATEGORY = {
     FILTERS = 2,
 }
 
+--- Sentinel marking an explicit "clear to Any" in the pendingChanges overlay
+--- for the animalType field. Lua removes nil values from tables, so
+--- pendingChanges[id].animalType = nil is indistinguishable from "no pending
+--- change". A unique-table marker lets overlayPending distinguish three states:
+---   (a) no pending change          (overlay.animalType == nil)
+---   (b) pending change to concrete (overlay.animalType is an integer typeIndex)
+---   (c) pending change to Any      (overlay.animalType == ANIMAL_TYPE_ANY)
+--- Flush converts the sentinel back to nil before service:update so storage
+--- + wire never see it. Mirrors Fresh's MAXBENEFIT_CLEAR pattern.
+RLMenuSettingsFrame.ANIMAL_TYPE_ANY = {}
+
 --- Construct a new RLMenuSettingsFrame instance.
 --- Called once by setupGui() during mod load.
 --- @return table self The new frame instance
@@ -62,25 +73,59 @@ function RLMenuSettingsFrame.new()
     -- paging lifecycle; see RLMenu:setupMenuPages).
     self.didMeasureFiltersPane = false
 
-    -- Custom footer buttons: Back always, New filter only on [Filters] with
-    -- a farm and tradeAnimals permission. hasCustomMenuButtons=true forces
-    -- the first page-switch to use self.menuButtonInfo rather than RLMenu's
-    -- default back-only set, preventing a one-frame flicker.
+    -- P1-3 editor pane measure log flag. Once-per-process (NOT once-per-open):
+    -- RLMenuSettingsFrame.new() runs once at setupGui() time and the clone is
+    -- reused across every menu open (RLMenu.lua:88-138). Pane geometry doesn't
+    -- change after first measurement so measuring once is sufficient.
+    self.didMeasureEditorPane = false
+
+    -- Pending-changes overlay keyed by filter id. Each value is a partial
+    -- table {name?=string, animalType?=integer|ANIMAL_TYPE_ANY, op?="AND"|"OR"}.
+    -- Widget callbacks write into this; service:update is NOT called per
+    -- keystroke. flushPendingChanges drains the table on onFrameClose. The
+    -- per-id sub-table is created lazily on first write.
+    self.pendingChanges = {}
+
+    -- AnimalType selector state cache. Populated by seedAnimalTypeStates on
+    -- every renderEditor call (cheap, ~5-10 types). Each entry is
+    -- {label=string, typeIndex=integer|nil}; index 1 is always the "Any" row
+    -- with typeIndex=nil.
+    self.animalTypeStates = {}
+
+    -- Custom footer buttons: Back always; New filter + Duplicate + Delete
+    -- conditionally appended by updateButtonVisibility.
+    -- hasCustomMenuButtons=true forces the first page-switch to use
+    -- self.menuButtonInfo rather than RLMenu's default back-only set,
+    -- preventing a one-frame flicker.
     self.hasCustomMenuButtons = true
 
     self.backButtonInfo = {
         inputAction = InputAction.MENU_BACK,
     }
-    -- [New filter] is parked (visible-but-greyed) until the filter editor
-    -- ships in a future phase. Setting `disabled = true` greys the button
-    -- in the footer; nulling the callback is defense-in-depth so the action
-    -- is fully inert. The onClickNewFilter method is retained for the
-    -- unparking restore later.
+    -- [New filter] unparked in P1-3. Callback wired to the live handler
+    -- shipped in P1-2 (onClickNewFilter). Visibility gated by
+    -- updateButtonVisibility on tradeAnimals permission + farmId presence.
     self.newFilterButtonInfo = {
         inputAction = InputAction.MENU_EXTRA_1,
         text = g_i18n:getText("rl_menu_filters_new_button"),
-        callback = nil,
-        disabled = true,
+        callback = function() self:onClickNewFilter() end,
+    }
+    -- [Duplicate] clones the currently selected filter (overlay-merged so
+    -- in-flight edits are duplicated too). MENU_EXTRA_2 is the conventional
+    -- second extra slot; mirrors RLMenuMessagesFrame's deleteAllButtonInfo
+    -- usage pattern.
+    self.duplicateButtonInfo = {
+        inputAction = InputAction.MENU_EXTRA_2,
+        text = g_i18n:getText("rl_menu_filters_duplicate_button"),
+        callback = function() self:onClickDuplicate() end,
+    }
+    -- [Delete] prompts YesNoDialog then dispatches service:delete on Yes.
+    -- MENU_CANCEL keeps the destructive action on the cancel/red slot,
+    -- matching RLMenuMessagesFrame.lua:41 convention.
+    self.deleteButtonInfo = {
+        inputAction = InputAction.MENU_CANCEL,
+        text = g_i18n:getText("rl_menu_filters_delete_button"),
+        callback = function() self:onClickDelete() end,
     }
     self.menuButtonInfo = { self.backButtonInfo }
 
@@ -131,6 +176,45 @@ function RLMenuSettingsFrame:onGuiSetupFinished()
         Log:trace("RLMenuSettingsFrame:onGuiSetupFinished: filtersList bound")
     else
         Log:warning("RLMenuSettingsFrame:onGuiSetupFinished: filtersList missing from XML")
+    end
+
+    -- Cache editor widget refs (P1-3). getDescendantById walks the tree once
+    -- here so renderEditor / flushPendingChanges / widget callbacks can hit
+    -- direct field references without repeating the descend on every call.
+    -- Per-widget nil-guards downstream: any missing ref logs Log:warning and
+    -- skips that widget rather than crashing the frame.
+    self.filterEditorContainer  = self:getDescendantById("filterEditorContainer")
+    self.filterEditorEmpty      = self:getDescendantById("filterEditorEmpty")
+    self.filterEditorLayout     = self:getDescendantById("filterEditorLayout")
+    self.filterEditorSliderBox  = self:getDescendantById("filterEditorSliderBox")
+    self.filterNameInput        = self:getDescendantById("filterNameInput")
+    self.filterAnimalTypeSelector = self:getDescendantById("filterAnimalTypeSelector")
+    self.filterOpSelector       = self:getDescendantById("filterOpSelector")
+
+    local missing = {}
+    if self.filterEditorContainer  == nil then table.insert(missing, "filterEditorContainer")  end
+    if self.filterEditorEmpty      == nil then table.insert(missing, "filterEditorEmpty")      end
+    if self.filterEditorLayout     == nil then table.insert(missing, "filterEditorLayout")     end
+    if self.filterEditorSliderBox  == nil then table.insert(missing, "filterEditorSliderBox")  end
+    if self.filterNameInput        == nil then table.insert(missing, "filterNameInput")        end
+    if self.filterAnimalTypeSelector == nil then table.insert(missing, "filterAnimalTypeSelector") end
+    if self.filterOpSelector       == nil then table.insert(missing, "filterOpSelector")       end
+    if #missing > 0 then
+        Log:warning("RLMenuSettingsFrame:onGuiSetupFinished: editor widget(s) missing: %s",
+            table.concat(missing, ", "))
+    else
+        Log:trace("RLMenuSettingsFrame:onGuiSetupFinished: editor widgets cached (7/7)")
+    end
+
+    -- Seed the AND/OR op selector texts once at setup (static, locale-baked
+    -- at l10n load time). AnimalType selector is reseeded per renderEditor
+    -- because it depends on animal-system state.
+    if self.filterOpSelector ~= nil then
+        self.filterOpSelector:setTexts({
+            g_i18n:getText("rl_menu_filters_op_and"),
+            g_i18n:getText("rl_menu_filters_op_or"),
+        })
+        Log:trace("RLMenuSettingsFrame:onGuiSetupFinished: filterOpSelector texts set (AND/OR)")
     end
 end
 
@@ -211,6 +295,25 @@ function RLMenuSettingsFrame:onFrameOpen()
         FocusManager:linkElements(self.filtersList, FocusManager.TOP, self.subCategoryPaging)
     end
 
+    -- P1-3 editor focus chain: list -> editor row 1 -> row 2 -> row 3 and back.
+    -- DPAD-right from the list enters the Name input; DPAD-down chains
+    -- Name -> AnimalType -> Op; reverse keys traverse back. Each link is
+    -- nil-guarded so a missing widget downgrades cleanly to the partial
+    -- chain (warning already logged in onGuiSetupFinished).
+    if self.filtersList ~= nil and self.filterNameInput ~= nil then
+        FocusManager:linkElements(self.filtersList,    FocusManager.RIGHT, self.filterNameInput)
+        FocusManager:linkElements(self.filterNameInput, FocusManager.LEFT,  self.filtersList)
+    end
+    if self.filterNameInput ~= nil and self.filterAnimalTypeSelector ~= nil then
+        FocusManager:linkElements(self.filterNameInput,         FocusManager.BOTTOM, self.filterAnimalTypeSelector)
+        FocusManager:linkElements(self.filterAnimalTypeSelector, FocusManager.TOP,   self.filterNameInput)
+    end
+    if self.filterAnimalTypeSelector ~= nil and self.filterOpSelector ~= nil then
+        FocusManager:linkElements(self.filterAnimalTypeSelector, FocusManager.BOTTOM, self.filterOpSelector)
+        FocusManager:linkElements(self.filterOpSelector,         FocusManager.TOP,   self.filterAnimalTypeSelector)
+    end
+    Log:trace("RLMenuSettingsFrame:onFrameOpen: editor focus chain linked")
+
     -- Initial focus on the tab bar - [General] is the active pane and has
     -- no content to focus. updateSubCategoryPages shifts focus to the list
     -- when the user switches to [Filters].
@@ -270,12 +373,20 @@ function RLMenuSettingsFrame:updateAlternatingElements(layout)
 end
 
 --- Called by the Paging element when this tab is deactivated.
---- Clears isFrameOpen so refreshIfOpen becomes a no-op until the tab
---- reopens; matches the Messages frame convention.
+--- Clears isFrameOpen so refreshIfOpen becomes a no-op, then drains the
+--- pendingChanges overlay to service:update.
+---
+--- Ordering invariant: isFrameOpen=false BEFORE flushPendingChanges. The
+--- service dispatches RLFilterUpdateEvent on the server side after each
+--- update; a remote rebroadcast arriving mid-flush would re-enter our
+--- frame via refreshIfOpen and call refreshData() recursively, fighting
+--- the flush loop. Clearing the flag first makes refreshIfOpen early-return
+--- and closes the re-entry window.
 function RLMenuSettingsFrame:onFrameClose()
     RLMenuSettingsFrame:superClass().onFrameClose(self)
     self.isFrameOpen = false
     Log:debug("RLMenuSettingsFrame:onFrameClose")
+    self:flushPendingChanges()
 end
 
 --- Seed the subcategory tab bar: bind getIsSelected closures on each tab
@@ -358,6 +469,25 @@ function RLMenuSettingsFrame:updateSubCategoryPages(state)
         self.didMeasureFiltersPane = true
     end
 
+    -- P1-3 editor pane measure log. Once-per-process (NOT once-per-open) per
+    -- spec F3 fix - frame instance is reused across reopens. Target dimensions
+    -- ~1088 x 783 px (parent pane width minus the 410px left list). If the
+    -- runtime measurement diverges materially from that target, the inline
+    -- size="100% 100%" absoluteSizeOffset="-410px 0px" override on the
+    -- filterEditorContainer isn't producing the expected stretch and the
+    -- layout needs investigation (see Ask First in the spec).
+    if idx == RLMenuSettingsFrame.SUB_CATEGORY.FILTERS
+       and not self.didMeasureEditorPane
+       and self.filterEditorContainer ~= nil
+       and self.filterEditorContainer.size ~= nil
+       and self.filterEditorContainer.size[1] ~= nil
+       and self.filterEditorContainer.size[2] ~= nil then
+        Log:debug("RLMenuSettingsFrame: filterEditorContainer measured: %.2fpx x %.2fpx",
+            self.filterEditorContainer.size[1] * 1920,
+            self.filterEditorContainer.size[2] * 1080)
+        self.didMeasureEditorPane = true
+    end
+
     -- Rebuild the footer menu buttons so New filter appears only on
     -- [Filters] with farm + tradeAnimals; [General] collapses to Back.
     self:updateButtonVisibility()
@@ -410,6 +540,20 @@ function RLMenuSettingsFrame:refreshData()
         self.rows = {}
     end
 
+    -- Alphabetical case-insensitive sort with stable id tie-break (RLRM-197).
+    -- Sort here on refreshData boundaries only; mid-edit name callbacks do
+    -- NOT re-sort (writes go to pendingChanges + reloadData reads the overlay
+    -- in populateCellForItemInSection, keeping row positions stable while
+    -- the user is typing).
+    table.sort(self.rows, function(a, b)
+        local an = (a.name or ""):lower()
+        local bn = (b.name or ""):lower()
+        if an == bn then
+            return (a.id or "") < (b.id or "")
+        end
+        return an < bn
+    end)
+
     Log:debug("RLMenuSettingsFrame:refreshData: farmId=%s rows=%d",
         tostring(farmId), #self.rows)
 
@@ -426,6 +570,12 @@ function RLMenuSettingsFrame:refreshData()
 
     self:updateEmptyState()
     self:updateButtonVisibility()
+
+    -- Tail renderEditor so the right pane reflects the new selection (or
+    -- the empty-state branch) every time the list refreshes. resolveSelectionById
+    -- may have cleared self.selectedFilterId for an orphaned id; renderEditor
+    -- handles that branch.
+    self:renderEditor()
 end
 
 --- Refresh only when the frame is currently open. Called by the three
@@ -521,18 +671,26 @@ function RLMenuSettingsFrame:updateButtonVisibility()
     Log:debug("RLMenuSettingsFrame:updateButtonVisibility: subtab=%s hasFarm=%s hasPerm=%s",
         tostring(activeSubtab), tostring(hasFarm), tostring(hasPerm))
 
-    -- [New filter] is parked: visible-but-greyed on Filters subtab regardless
-    -- of farm / tradeAnimals permission. The button info already has
-    -- disabled=true + callback=nil set at construction, so the gate that
-    -- previously skipped the append for non-permitted players is dropped
-    -- here. hasFarm / hasPerm are still computed and logged so an unparking
-    -- restore (re-introducing the gate) lands trivially.
+    -- P1-3 unpark: [New filter] gate restored. Only appended on [Filters]
+    -- when the player has a farm AND the tradeAnimals permission. Duplicate
+    -- and Delete additionally require a selection.
+    local hasSelection = (self.selectedFilterId ~= nil)
+    local appended = {}
+
     self.menuButtonInfo = { self.backButtonInfo }
-    if activeSubtab == RLMenuSettingsFrame.SUB_CATEGORY.FILTERS then
-        Log:trace("RLMenuSettingsFrame:updateButtonVisibility: appending parked [New filter] button (disabled=true) hasFarm=%s hasPerm=%s",
-            tostring(hasFarm), tostring(hasPerm))
+    if activeSubtab == RLMenuSettingsFrame.SUB_CATEGORY.FILTERS
+       and hasFarm and hasPerm then
         table.insert(self.menuButtonInfo, self.newFilterButtonInfo)
+        table.insert(appended, "New")
+        if hasSelection then
+            table.insert(self.menuButtonInfo, self.duplicateButtonInfo)
+            table.insert(self.menuButtonInfo, self.deleteButtonInfo)
+            table.insert(appended, "Duplicate")
+            table.insert(appended, "Delete")
+        end
     end
+    Log:debug("RLMenuSettingsFrame:updateButtonVisibility: appended=[%s] (hasFarm=%s hasPerm=%s hasSelection=%s)",
+        table.concat(appended, ","), tostring(hasFarm), tostring(hasPerm), tostring(hasSelection))
     self:setMenuButtonInfoDirty()
 end
 
@@ -627,6 +785,526 @@ function RLMenuSettingsFrame:onClickNewFilter()
     self:refreshData()
 end
 
+-- =============================================================================
+-- Filter editor: helpers (file-local)
+-- =============================================================================
+
+--- Resolve a localized label for an animal type, falling back to the type's
+--- own title/name when the portfolio-wide animalType_<name> l10n key is
+--- absent. FS25's g_i18n:getText returns the input key verbatim on miss, so
+--- a "label == key" comparison detects the miss. The fallback covers
+--- map-bridge exotic types (Hof Bergmann donkeys, etc.) that lack the
+--- standard l10n entries and would otherwise render as raw "animalType_X"
+--- strings in the picker.
+---@param at table animalType entry from animalSystem:getTypes()
+---@return string label
+local function resolveAnimalTypeLabel(at)
+    local key = "animalType_" .. (at.name or ""):lower()
+    local label = g_i18n:getText(key)
+    if label == key then
+        label = at.title or at.name or key
+        Log:trace("resolveAnimalTypeLabel: l10n miss for %s, fallback=%s", key, tostring(label))
+    end
+    return label
+end
+
+--- Apply a pending overlay onto a stored filter, producing a merged snapshot.
+--- Immutable fields (id, farmId, version) are copied from stored unchanged so
+--- service:update never sees a divergence. animalType has three-state semantics
+--- via the ANIMAL_TYPE_ANY sentinel (see module head).
+---@param stored table cloned snapshot from getById (never nil at this point)
+---@param overlay table|nil per-id partial overlay or nil for "no pending"
+---@return table merged shallow-cloned filter with overlay applied
+local function overlayPending(stored, overlay)
+    local merged = {
+        id         = stored.id,
+        farmId     = stored.farmId,
+        version    = stored.version,
+        name       = stored.name,
+        animalType = stored.animalType,
+        expression = stored.expression,
+    }
+    if overlay == nil then
+        return merged
+    end
+    if overlay.name ~= nil then
+        merged.name = overlay.name
+    end
+    if overlay.animalType == RLMenuSettingsFrame.ANIMAL_TYPE_ANY then
+        -- Sentinel marks an explicit "clear to Any"; converts to nil for
+        -- service:update + storage + wire.
+        merged.animalType = nil
+    elseif overlay.animalType ~= nil then
+        merged.animalType = overlay.animalType
+    end
+    if overlay.op ~= nil then
+        -- Build a fresh root group with the new op; preserve any nested
+        -- children so a filter authored with sub-groups (Phase 2 / API /
+        -- peer) keeps its structure when the user flips the root match
+        -- mode in P1-3's UI.
+        local stored_children = (stored.expression and stored.expression.children) or {}
+        local copied = {}
+        for i, child in ipairs(stored_children) do copied[i] = child end
+        merged.expression = { op = overlay.op, children = copied }
+    end
+    return merged
+end
+
+--- Populate self.animalTypeStates with the canonical "Any" row at index 1 and
+--- one row per type returned by animalSystem:getTypes(). Reseeded on every
+--- renderEditor call (cheap, ~5-10 types). g_currentMission is guaranteed
+--- non-nil here: every settings page is registered behind basePredicate at
+--- RLMenu.lua:89, so this code path is unreachable pre-mission.
+---@param self table frame instance
+local function seedAnimalTypeStates(self)
+    local entries = {
+        { label = g_i18n:getText("rl_menu_filters_animal_type_any"), typeIndex = nil },
+    }
+    if g_currentMission ~= nil and g_currentMission.animalSystem ~= nil then
+        local types = g_currentMission.animalSystem:getTypes()
+        if types ~= nil then
+            for _, at in ipairs(types) do
+                table.insert(entries, {
+                    label = resolveAnimalTypeLabel(at),
+                    typeIndex = at.typeIndex,
+                })
+            end
+        end
+    end
+    self.animalTypeStates = entries
+
+    -- Push labels into the selector. setTexts clamps state to #texts so an
+    -- earlier setState(largeIndex) survives a shrink (defense-in-depth).
+    if self.filterAnimalTypeSelector ~= nil then
+        local labels = {}
+        for i, entry in ipairs(entries) do labels[i] = entry.label end
+        self.filterAnimalTypeSelector:setTexts(labels)
+    end
+    Log:trace("seedAnimalTypeStates: %d state(s) seeded", #entries)
+end
+
+-- =============================================================================
+-- Filter editor: render + widget callbacks
+-- =============================================================================
+
+--- Drive the right-pane editor widgets from the current selection + pending
+--- overlay. Called from refreshData (tail), onListSelectionChanged (tail), and
+--- after Duplicate/Delete-Yes mutations. Empty-state branch hides the layout
+--- and slider; selected branch builds a merged snapshot via overlayPending
+--- and pushes values into the three widgets with callback-suppress flags so
+--- the programmatic push doesn't re-enter the click handlers.
+function RLMenuSettingsFrame:renderEditor()
+    if self.selectedFilterId == nil then
+        if self.filterEditorEmpty     ~= nil then self.filterEditorEmpty:setVisible(true) end
+        if self.filterEditorLayout    ~= nil then self.filterEditorLayout:setVisible(false) end
+        if self.filterEditorSliderBox ~= nil then self.filterEditorSliderBox:setVisible(false) end
+        Log:debug("RLMenuSettingsFrame:renderEditor: no selection")
+        return
+    end
+
+    -- Hydrate AnimalType selector states first so the index resolution below
+    -- maps against the live label set.
+    seedAnimalTypeStates(self)
+
+    if g_rlFilterService == nil then
+        Log:warning("RLMenuSettingsFrame:renderEditor: g_rlFilterService is nil; aborting render")
+        return
+    end
+
+    local stored = g_rlFilterService:getById(self.selectedFilterId)
+    if stored == nil then
+        -- Selected id no longer present (race with remote delete, or a
+        -- pending edit reference that survived a refresh). Drop the
+        -- selection and fall back to the empty-state branch on the next
+        -- render pass. resolveSelectionById will catch this on the next
+        -- refreshData but we guard here too.
+        Log:debug("RLMenuSettingsFrame:renderEditor: id=%s not in service, falling back to empty",
+            tostring(self.selectedFilterId))
+        self.selectedFilterId = nil
+        if self.filterEditorEmpty     ~= nil then self.filterEditorEmpty:setVisible(true) end
+        if self.filterEditorLayout    ~= nil then self.filterEditorLayout:setVisible(false) end
+        if self.filterEditorSliderBox ~= nil then self.filterEditorSliderBox:setVisible(false) end
+        return
+    end
+
+    local merged = overlayPending(stored, self.pendingChanges[self.selectedFilterId])
+
+    if self.filterEditorEmpty     ~= nil then self.filterEditorEmpty:setVisible(false) end
+    if self.filterEditorLayout    ~= nil then self.filterEditorLayout:setVisible(true)  end
+    if self.filterEditorSliderBox ~= nil then self.filterEditorSliderBox:setVisible(true) end
+
+    -- Name: programmatic setText is callback-safe (the onTextChanged
+    -- callback fires only on actual user keystrokes, not on this push).
+    if self.filterNameInput ~= nil then
+        self.filterNameInput:setText(merged.name or "")
+    end
+
+    -- AnimalType: walk animalTypeStates to find the entry matching the
+    -- merged animalType (nil for Any). Fallback to state 1 = Any when no
+    -- match (covers a stored type the local mission doesn't define, e.g.
+    -- a peer save-game with a bridge mod we don't have loaded).
+    local atStateIndex = 1
+    for i, entry in ipairs(self.animalTypeStates) do
+        if entry.typeIndex == merged.animalType then
+            atStateIndex = i
+            break
+        end
+    end
+    if self.filterAnimalTypeSelector ~= nil then
+        self.filterAnimalTypeSelector:setState(atStateIndex, false)
+    end
+
+    -- Op: 1 = AND, 2 = OR. Default to AND when expression has no root op.
+    local opStateIndex = 1
+    if merged.expression ~= nil and merged.expression.op == "OR" then
+        opStateIndex = 2
+    end
+    if self.filterOpSelector ~= nil then
+        self.filterOpSelector:setState(opStateIndex, false)
+    end
+
+    Log:debug("RLMenuSettingsFrame:renderEditor: id=%s name=%s animalType=%s op=%s",
+        tostring(merged.id), tostring(merged.name),
+        tostring(merged.animalType),
+        tostring(merged.expression and merged.expression.op))
+end
+
+--- TextInput onTextChanged callback. The widget raises this with
+--- (target, element, text); with colon-bound `self` absorbing the
+--- target, our explicit args are (element, text).
+---
+--- Per-keystroke flow:
+---   1. Stash the typed value into pendingChanges[id].name (lazy sub-table).
+---   2. reloadData on the SmoothList so the left-pane cell text reflects
+---      the live edit (populateCellForItemInSection reads the overlay).
+---   3. Wrap reloadData in isReconciling so the synchronous selection
+---      delegate fired by SmoothList:reloadData doesn't tail-call
+---      renderEditor and stomp the caret mid-typing (P1-3 spec F6 fix).
+--- @param element table The TextInput element
+--- @param _text string The new text (read from element for consistency)
+function RLMenuSettingsFrame:onFilterNameChanged(element, _text)
+    if self.selectedFilterId == nil then
+        Log:trace("RLMenuSettingsFrame:onFilterNameChanged: no selection, ignoring")
+        return
+    end
+    if element == nil then
+        Log:trace("RLMenuSettingsFrame:onFilterNameChanged: nil element, ignoring")
+        return
+    end
+    local typed = element:getText() or ""
+    local id = self.selectedFilterId
+    if self.pendingChanges[id] == nil then self.pendingChanges[id] = {} end
+    self.pendingChanges[id].name = typed
+    Log:debug("RLMenuSettingsFrame:onFilterNameChanged: id=%s value='%s'", tostring(id), typed)
+
+    -- Reload the left list so the cell shows the pending name. isReconciling
+    -- gate prevents the synchronous onListSelectionChanged from re-entering
+    -- renderEditor (which would call setText and stomp the caret).
+    if self.filtersList ~= nil then
+        self.isReconciling = true
+        self.filtersList:reloadData()
+        self.isReconciling = false
+    end
+end
+
+--- MultiTextOption onClick callback. The widget raises this with
+--- (target, state, widget, isLeftButtonEvent); with colon-bound `self`
+--- absorbing the target, our explicit args are (state, widget).
+---
+--- state == 1 maps to the "Any" row (typeIndex = nil), persisted into the
+--- overlay as the ANIMAL_TYPE_ANY sentinel so flush can distinguish
+--- "explicit clear" from "no pending change".
+--- @param state number 1-based selector state
+--- @param _widget table The widget that was clicked
+function RLMenuSettingsFrame:onAnimalTypeChanged(state, _widget)
+    if self.selectedFilterId == nil then
+        Log:trace("RLMenuSettingsFrame:onAnimalTypeChanged: no selection, ignoring (state=%s)",
+            tostring(state))
+        return
+    end
+    local entry = self.animalTypeStates[state]
+    if entry == nil then
+        Log:warning("RLMenuSettingsFrame:onAnimalTypeChanged: state=%s out of range (%d state(s) seeded); ignoring",
+            tostring(state), #self.animalTypeStates)
+        return
+    end
+    local id = self.selectedFilterId
+    if self.pendingChanges[id] == nil then self.pendingChanges[id] = {} end
+    if entry.typeIndex == nil then
+        self.pendingChanges[id].animalType = RLMenuSettingsFrame.ANIMAL_TYPE_ANY
+    else
+        self.pendingChanges[id].animalType = entry.typeIndex
+    end
+    Log:debug("RLMenuSettingsFrame:onAnimalTypeChanged: id=%s state=%d typeIndex=%s",
+        tostring(id), state, tostring(entry.typeIndex))
+end
+
+--- MultiTextOption onClick callback for the AND/OR root op selector.
+--- state == 1 -> AND, state == 2 -> OR.
+--- @param state number 1-based selector state
+--- @param _widget table The widget that was clicked
+function RLMenuSettingsFrame:onOpChanged(state, _widget)
+    if self.selectedFilterId == nil then
+        Log:trace("RLMenuSettingsFrame:onOpChanged: no selection, ignoring (state=%s)",
+            tostring(state))
+        return
+    end
+    local id = self.selectedFilterId
+    if self.pendingChanges[id] == nil then self.pendingChanges[id] = {} end
+    local op = (state == 2) and "OR" or "AND"
+    self.pendingChanges[id].op = op
+    Log:debug("RLMenuSettingsFrame:onOpChanged: id=%s state=%d op=%s",
+        tostring(id), state, op)
+end
+
+-- =============================================================================
+-- Filter editor: flush
+-- =============================================================================
+
+--- Drain self.pendingChanges to service:update. Called from onFrameClose AFTER
+--- isFrameOpen is cleared (so a mid-flush remote RLFilterUpdateEvent rebroadcast
+--- early-returns through refreshIfOpen, closing the re-entry window).
+---
+--- For each pending id:
+---   - fetch stored via getById; skip + DEBUG-log if nil (orphan id, e.g.
+---     deleted by another client while we held an edit)
+---   - overlay pending onto stored to produce the merged record
+---   - enforce flush-time name boundary: trim whitespace; revert to stored
+---     name + WARNING if the trimmed result is empty (widget callbacks are
+---     permissive mid-typing; flush is the enforcement point)
+---   - call service:update(id, merged); WARNING on nil return
+---
+--- service:update dispatches RLFilterUpdateEvent (Pattern A); MP convergence
+--- is the service's responsibility.
+function RLMenuSettingsFrame:flushPendingChanges()
+    local idsIn = 0
+    for _ in pairs(self.pendingChanges) do idsIn = idsIn + 1 end
+    if idsIn == 0 then
+        Log:debug("RLMenuSettingsFrame:flushPendingChanges: count=0")
+        return
+    end
+    if g_rlFilterService == nil then
+        Log:warning("RLMenuSettingsFrame:flushPendingChanges: g_rlFilterService is nil; %d pending change(s) dropped",
+            idsIn)
+        self.pendingChanges = {}
+        return
+    end
+
+    local updated, skipped = 0, 0
+    for id, overlay in pairs(self.pendingChanges) do
+        local stored = g_rlFilterService:getById(id)
+        if stored == nil then
+            Log:debug("RLMenuSettingsFrame:flushPendingChanges: skipped orphan id=%s", tostring(id))
+            skipped = skipped + 1
+        else
+            local merged = overlayPending(stored, overlay)
+            -- Flush-time name boundary enforcement (spec F9 fix).
+            local trimmed = (merged.name or ""):match("^%s*(.-)%s*$")
+            if trimmed == "" then
+                merged.name = stored.name
+                Log:warning("RLMenuSettingsFrame:flushPendingChanges: empty/whitespace name for id=%s reverted to stored '%s'",
+                    tostring(id), tostring(stored.name))
+            else
+                merged.name = trimmed
+            end
+            local result = g_rlFilterService:update(id, merged)
+            if result == nil then
+                Log:warning("RLMenuSettingsFrame:flushPendingChanges: service:update returned nil for id=%s (validation rejection?)",
+                    tostring(id))
+            else
+                Log:debug("RLMenuSettingsFrame:flushPendingChanges: applied id=%s name='%s' animalType=%s op=%s",
+                    tostring(id), tostring(merged.name),
+                    tostring(merged.animalType),
+                    tostring(merged.expression and merged.expression.op))
+                updated = updated + 1
+            end
+        end
+    end
+    Log:debug("RLMenuSettingsFrame:flushPendingChanges: count=%d updated=%d skipped=%d",
+        idsIn, updated, skipped)
+    self.pendingChanges = {}
+end
+
+-- =============================================================================
+-- Filter editor: Duplicate
+-- =============================================================================
+
+--- Compute a non-colliding duplicate name. Walks self.rows resolving each
+--- row's display name via the pending overlay (so renames in flight on
+--- OTHER rows still count toward the collision check). Appends " (copy)"
+--- on first dup, " (copy 2)" / " (copy 3)" / ... thereafter.
+--- @param baseName string Source filter's merged name
+--- @return string
+function RLMenuSettingsFrame:computeDuplicateName(baseName)
+    local base = baseName or ""
+    local suffix = g_i18n:getText("rl_menu_filters_duplicate_suffix")
+    local first = base .. suffix
+    -- Pattern matches "<base><suffix-without-trailing-paren> N)" -> captures N.
+    -- suffix is " (copy)" so the count form is " (copy 2)" / " (copy 3)" / ...
+    -- Strip the closing ) from suffix to build the count-form prefix.
+    local suffixOpen = suffix:gsub("%)%s*$", "") -- " (copy"
+    local pattern = "^" .. base:gsub("(%W)", "%%%1") .. suffixOpen:gsub("(%W)", "%%%1") .. " (%d+)%)$"
+    local count = 0
+    for _, row in ipairs(self.rows) do
+        local pending = self.pendingChanges[row.id]
+        local name = (pending and pending.name) or row.name or ""
+        if name == first or name:match(pattern) then
+            count = count + 1
+        end
+    end
+    local result
+    if count == 0 then
+        result = first
+    else
+        result = string.format("%s%s %d)", base, suffixOpen, count + 1)
+    end
+    Log:trace("RLMenuSettingsFrame:computeDuplicateName: base='%s' count=%d result='%s'",
+        base, count, result)
+    return result
+end
+
+--- Footer Duplicate handler. Gated on selection + permission + farm.
+--- Clones the source filter (overlay-merged so in-flight edits are
+--- duplicated too), assigns a non-colliding name, and creates via the
+--- same g_rlFilterService:create call onClickNewFilter uses. Auto-selects
+--- the new id via the existing resolveSelectionById path on refreshData.
+function RLMenuSettingsFrame:onClickDuplicate()
+    if self.selectedFilterId == nil then
+        Log:trace("RLMenuSettingsFrame:onClickDuplicate: no selection, aborting")
+        return
+    end
+    if not self:hasCreatePermission() then
+        Log:trace("RLMenuSettingsFrame:onClickDuplicate: no tradeAnimals permission, aborting")
+        return
+    end
+    if self.farmId == nil or self.farmId == 0 then
+        Log:trace("RLMenuSettingsFrame:onClickDuplicate: no farm, aborting")
+        return
+    end
+    if g_rlFilterService == nil then
+        Log:warning("RLMenuSettingsFrame:onClickDuplicate: g_rlFilterService is nil; aborting")
+        return
+    end
+
+    local stored = g_rlFilterService:getById(self.selectedFilterId)
+    if stored == nil then
+        Log:warning("RLMenuSettingsFrame:onClickDuplicate: getById returned nil for id=%s; aborting",
+            tostring(self.selectedFilterId))
+        return
+    end
+
+    local merged = overlayPending(stored, self.pendingChanges[self.selectedFilterId])
+    local dupName = self:computeDuplicateName(merged.name)
+
+    -- _cloneFilter deep-clones the expression (P2 carryover ownership
+    -- contract). The service ALSO deep-clones internally; double-clone is
+    -- a correctness belt-and-suspenders honoured throughout Phase 0.
+    local cloned = RLFilterService._cloneFilter(merged)
+    local newFilter = g_rlFilterService:create({
+        name       = dupName,
+        animalType = merged.animalType,
+        farmId     = self.farmId,
+        expression = cloned.expression,
+    })
+    if newFilter == nil then
+        Log:warning("RLMenuSettingsFrame:onClickDuplicate: service rejected create (nil return) for source id=%s",
+            tostring(self.selectedFilterId))
+        return
+    end
+
+    Log:debug("RLMenuSettingsFrame:onClickDuplicate: source=%s name='%s' -> new id=%s",
+        tostring(self.selectedFilterId), tostring(dupName), tostring(newFilter.id))
+    self.selectedFilterId = newFilter.id
+    self:refreshData()
+end
+
+-- =============================================================================
+-- Filter editor: Delete
+-- =============================================================================
+
+--- Footer Delete handler. Opens a YesNoDialog with the selected filter's
+--- name; on Yes calls service:delete via onDeleteConfirmed. No state
+--- mutation until the user confirms (mirrors RLMenuMessagesFrame:onClickDeleteAll
+--- at lines 301-338).
+function RLMenuSettingsFrame:onClickDelete()
+    if self.selectedFilterId == nil then
+        Log:trace("RLMenuSettingsFrame:onClickDelete: no selection, aborting")
+        return
+    end
+    if not self:hasCreatePermission() then
+        Log:trace("RLMenuSettingsFrame:onClickDelete: no tradeAnimals permission, aborting")
+        return
+    end
+    if self.farmId == nil or self.farmId == 0 then
+        Log:trace("RLMenuSettingsFrame:onClickDelete: no farm, aborting")
+        return
+    end
+    if g_rlFilterService == nil then
+        Log:warning("RLMenuSettingsFrame:onClickDelete: g_rlFilterService is nil; aborting")
+        return
+    end
+
+    if g_gui:getIsDialogVisible() then
+        Log:trace("RLMenuSettingsFrame:onClickDelete: dialog already open, ignoring re-entry")
+        return
+    end
+
+    local stored = g_rlFilterService:getById(self.selectedFilterId)
+    if stored == nil then
+        Log:warning("RLMenuSettingsFrame:onClickDelete: getById returned nil for id=%s; aborting",
+            tostring(self.selectedFilterId))
+        return
+    end
+
+    local confirmText = string.format(
+        g_i18n:getText("rl_menu_filters_delete_confirm_text"),
+        tostring(stored.name or ""))
+
+    Log:debug("RLMenuSettingsFrame:onClickDelete: opening YesNoDialog for id=%s name='%s'",
+        tostring(stored.id), tostring(stored.name))
+
+    -- YesNoDialog passes (target, yesValue, callbackArgs) to its callback;
+    -- with target=self the colon-bound `self` absorbs it and we receive
+    -- (yes, id) explicitly. Mirrors RLMenuMessagesFrame's onDeleteAll flow.
+    YesNoDialog.show(
+        self.onDeleteConfirmed,
+        self,
+        confirmText,
+        nil, nil, nil, nil, nil, nil,
+        stored.id
+    )
+end
+
+--- YesNoDialog confirmation callback for Delete. Yields when the user
+--- clicked No. On Yes: call service:delete FIRST and only react on its
+--- return - on ok=true clear pending edits + selection; on ok=false
+--- (stale id / race with another client) preserve pending edits + selection
+--- and log WARNING so the user can retry / observe the next refresh event
+--- resolving the divergence. No destructive local cleanup before confirming
+--- the service applied the mutation.
+--- @param yes boolean True when the user clicked Yes
+--- @param id string The filter id captured at click time
+function RLMenuSettingsFrame:onDeleteConfirmed(yes, id)
+    Log:trace("RLMenuSettingsFrame:onDeleteConfirmed: yes=%s id=%s", tostring(yes), tostring(id))
+    if not yes then return end
+    if g_rlFilterService == nil then
+        Log:warning("RLMenuSettingsFrame:onDeleteConfirmed: g_rlFilterService is nil; aborting")
+        return
+    end
+    local ok = g_rlFilterService:delete(id)
+    if ok then
+        self.pendingChanges[id] = nil
+        if self.selectedFilterId == id then
+            self.selectedFilterId = nil
+        end
+        Log:debug("RLMenuSettingsFrame:onDeleteConfirmed: deleted id=%s", tostring(id))
+        self:refreshData()
+    else
+        Log:warning("RLMenuSettingsFrame:onDeleteConfirmed: service:delete returned false for id=%s; preserving pending edits + selection (stale id or race with another client)",
+            tostring(id))
+    end
+end
+
 --- SmoothList delegate: fired when the user picks a different row. Gated
 --- on the list identity so we don't confuse other SmoothLists in the host
 --- TabbedMenu. Caches the row's filter id so P1-3's editor reads a stable
@@ -660,6 +1338,11 @@ function RLMenuSettingsFrame:onListSelectionChanged(list, _section, index)
     self.selectedFilterId = row.id
     Log:debug("RLMenuSettingsFrame:onListSelectionChanged: index=%d id=%s",
         index, tostring(row.id))
+
+    -- Selection changed: rerender the right pane against the new id and
+    -- rebuild the footer so Duplicate/Delete toggle with selection.
+    self:renderEditor()
+    self:updateButtonVisibility()
 end
 
 -- =============================================================================
@@ -692,9 +1375,15 @@ function RLMenuSettingsFrame:populateCellForItemInSection(list, _section, index,
     local row = self.rows[index]
     if row == nil then return end
 
+    -- Resolve display name through the pending overlay so live edits show
+    -- in the left list immediately. Sort key (row.name) stays untouched so
+    -- row position remains stable mid-edit.
+    local pending = self.pendingChanges[row.id]
+    local displayName = (pending and pending.name) or row.name or ""
+
     local nameCell = cell:getAttribute("filterName")
     if nameCell ~= nil then
-        nameCell:setText(row.name or "")
+        nameCell:setText(displayName)
     end
 end
 

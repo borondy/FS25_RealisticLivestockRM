@@ -779,6 +779,18 @@
 		<text name="rl_menu_filters_new_button" text="New filter"/>
 		<text name="rl_menu_filters_default_name" text="New filter"/>
 		<text name="rl_menu_filters_detail_placeholder" text="To be implemented"/>
+		<!-- Phase 1 P1-3: Editor + Duplicate/Delete (English fallback) -->
+		<text name="rl_menu_filters_empty_editor" text="Select a filter to edit"/>
+		<text name="rl_menu_filters_editor_title_name" text="Name"/>
+		<text name="rl_menu_filters_editor_title_animal_type" text="Animal type"/>
+		<text name="rl_menu_filters_editor_title_op" text="Top-level match"/>
+		<text name="rl_menu_filters_animal_type_any" text="Any"/>
+		<text name="rl_menu_filters_op_and" text="AND"/>
+		<text name="rl_menu_filters_op_or" text="OR"/>
+		<text name="rl_menu_filters_duplicate_button" text="Duplicate"/>
+		<text name="rl_menu_filters_delete_button" text="Delete"/>
+		<text name="rl_menu_filters_duplicate_suffix" text=" (copy)"/>
+		<text name="rl_menu_filters_delete_confirm_text" text="Delete filter &quot;%s&quot;? This cannot be undone."/>
 
 		<!-- Filter cycle + chip MVP -->
 		<text name="rl_menu_filter_chip_none" text="No filter"/>

@@ -188,17 +188,7 @@
         <!-- Page 2: Filters -->
         <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="subCategoryPages[2]">
 
-            <!-- Right-side detail placeholder. Sibling of filtersListContainer
-                 so it persists regardless of the list's empty-state branching.
-                 Reuses fs25_animalListEmptyText (anchorMiddleCenter), which
-                 lands the text in the empty right portion of the pane (the
-                 410px list container starts at left=0). Will be replaced by
-                 the filter editor in a future phase. -->
-            <Text profile="fs25_animalListEmptyText"
-                  id="filtersInfoPlaceholder"
-                  text="$l10n_rl_menu_filters_detail_placeholder"/>
-
-            <!-- 410px sidebar panel, leaves right portion of pane free for P1-3's editor. -->
+            <!-- 410px sidebar panel, leaves right portion of pane free for the editor. -->
             <GuiElement profile="fs25_subCategoryContainer" id="filtersListContainer">
                 <Bitmap profile="fs25_subCategoryStartClipper" name="filtersStartClipper"/>
                 <Bitmap profile="fs25_subCategoryStopClipper" name="filtersEndClipper"/>
@@ -219,6 +209,56 @@
                 <ThreePartBitmap profile="fs25_subCategoryListSliderBox" id="filtersSliderBox">
                     <Slider profile="fs25_listSlider" dataElementId="filtersList" id="filtersSlider"/>
                 </ThreePartBitmap>
+            </GuiElement>
+
+            <!-- P1-3 editor pane: right-side sibling of filtersListContainer.
+                 Explicit position="410px 0px" inherits P1-2's measured left-pane
+                 width (~410.00 x 783.00 px, see spec-filters-phase-1-p2 Spec
+                 Change Log). Same fs25_subCategoryContainer profile P1-2 uses
+                 for filtersListContainer; profile's width=410px is overridden
+                 inline via size="100% 100%" + absoluteSizeOffset="-410px 0px"
+                 (FS25 stretch idiom: fill parent minus the 410px left list).
+                 No new profile in rlMenuProfiles.xml. Empty-state Text +
+                 three-row ScrollingLayout (Name / AnimalType / AND-OR) + docked
+                 slider column. Visibility toggle goes through this wrapper. -->
+            <GuiElement profile="fs25_subCategoryContainer"
+                        id="filterEditorContainer"
+                        position="410px 0px"
+                        size="100% 100%"
+                        absoluteSizeOffset="-410px 0px">
+
+                <Text profile="fs25_animalListEmptyText"
+                      id="filterEditorEmpty"
+                      text="$l10n_rl_menu_filters_empty_editor"/>
+
+                <ScrollingLayout profile="fs25_settingsLayout" id="filterEditorLayout">
+
+                    <!-- Row 1: Name -->
+                    <Bitmap profile="fs25_multiTextOptionContainer">
+                        <TextInput profile="fs25_textInput" id="filterNameInput" onTextChanged="onFilterNameChanged"/>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_name"/>
+                    </Bitmap>
+
+                    <!-- Row 2: Animal type scope hint -->
+                    <Bitmap profile="fs25_multiTextOptionContainer">
+                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="filterAnimalTypeSelector" onClick="onAnimalTypeChanged"/>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_animal_type"/>
+                    </Bitmap>
+
+                    <!-- Row 3: Top-level match (AND/OR) -->
+                    <Bitmap profile="fs25_multiTextOptionContainer">
+                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="filterOpSelector" onClick="onOpChanged"/>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_op"/>
+                    </Bitmap>
+
+                </ScrollingLayout>
+
+                <ThreePartBitmap profile="fs25_sliderDockedBg" id="filterEditorSliderBox">
+                    <ThreePartBitmap profile="fs25_sliderDockedBox">
+                        <Slider profile="fs25_sliderDocked" id="filterEditorSlider" dataElementId="filterEditorLayout"/>
+                    </ThreePartBitmap>
+                </ThreePartBitmap>
+
             </GuiElement>
 
         </GuiElement>
