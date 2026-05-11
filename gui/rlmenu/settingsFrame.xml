@@ -212,20 +212,17 @@
             </GuiElement>
 
             <!-- P1-3 editor pane: right-side sibling of filtersListContainer.
-                 Explicit position="410px 0px" inherits P1-2's measured left-pane
-                 width (~410.00 x 783.00 px, see spec-filters-phase-1-p2 Spec
-                 Change Log). Same fs25_subCategoryContainer profile P1-2 uses
-                 for filtersListContainer; profile's width=410px is overridden
-                 inline via size="100% 100%" + absoluteSizeOffset="-410px 0px"
-                 (FS25 stretch idiom: fill parent minus the 410px left list).
-                 No new profile in rlMenuProfiles.xml. Empty-state Text +
-                 three-row ScrollingLayout (Name / AnimalType / AND-OR) + docked
-                 slider column. Visibility toggle goes through this wrapper. -->
-            <GuiElement profile="fs25_subCategoryContainer"
-                        id="filterEditorContainer"
-                        position="410px 0px"
-                        size="100% 100%"
-                        absoluteSizeOffset="-410px 0px">
+                 Uses RL-local profile rlMenu_filterEditorContainer (defined
+                 in rlMenuProfiles.xml) which stretches both axes inside the
+                 parent subCategoryPages[2] and trims width by 410px to leave
+                 the left list its sidebar space. Reusing fs25_subCategoryContainer
+                 was attempted first but failed: that profile's anchorStretchingYLeft
+                 pins width to 410px regardless of inline size overrides,
+                 leaving the editor at 410px wide (runtime-verified by the
+                 measure log on the first try). Empty-state Text + three-row
+                 ScrollingLayout (Name / AnimalType / AND-OR) + docked slider
+                 column. Visibility toggle goes through this wrapper. -->
+            <GuiElement profile="rlMenu_filterEditorContainer" id="filterEditorContainer">
 
                 <Text profile="fs25_animalListEmptyText"
                       id="filterEditorEmpty"
@@ -233,9 +230,25 @@
 
                 <ScrollingLayout profile="fs25_settingsLayout" id="filterEditorLayout">
 
-                    <!-- Row 1: Name -->
+                    <!-- Row 1: Name. Canonical settings-row TextInput pattern:
+                         fs25_settingsTextInput profile (anchorMiddleRight so
+                         the input lands on the right of the row like the
+                         MultiTextOption widgets below) plus the three required
+                         children (bg ThreePartBitmap, icon box with edit
+                         pencil). imeDescription / imeTitle drive the on-screen
+                         keyboard for controller users. -->
                     <Bitmap profile="fs25_multiTextOptionContainer">
-                        <TextInput profile="fs25_textInput" id="filterNameInput" onTextChanged="onFilterNameChanged"/>
+                        <TextInput profile="fs25_settingsTextInput" id="filterNameInput"
+                                   onTextChanged="onFilterNameChanged"
+                                   focusOnHighlight="true"
+                                   imeDescription="$l10n_rl_menu_filters_editor_title_name"
+                                   imePlaceholder="$l10n_rl_menu_filters_editor_title_name"
+                                   imeTitle="$l10n_rl_menu_filters_editor_title_name">
+                            <ThreePartBitmap profile="fs25_textInputBg"/>
+                            <Bitmap profile="fs25_textInputIconBox">
+                                <Bitmap profile="fs25_textInputIcon"/>
+                            </Bitmap>
+                        </TextInput>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_name"/>
                     </Bitmap>
 

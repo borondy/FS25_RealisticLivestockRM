@@ -295,14 +295,18 @@ function RLMenuSettingsFrame:onFrameOpen()
         FocusManager:linkElements(self.filtersList, FocusManager.TOP, self.subCategoryPaging)
     end
 
-    -- P1-3 editor focus chain: list -> editor row 1 -> row 2 -> row 3 and back.
-    -- DPAD-right from the list enters the Name input; DPAD-down chains
-    -- Name -> AnimalType -> Op; reverse keys traverse back. Each link is
-    -- nil-guarded so a missing widget downgrades cleanly to the partial
-    -- chain (warning already logged in onGuiSetupFinished).
+    -- P1-3 editor focus chain: list <-> editor row 1 <-> row 2 <-> row 3.
+    -- RIGHT/LEFT crosses the list-editor boundary; DOWN/UP chains within
+    -- the editor AND falls through from list-bottom into the editor's
+    -- Name input (so the full path tab -> list -> name -> animalType -> op
+    -- works with DOWN arrow alone). Each link is nil-guarded so a missing
+    -- widget downgrades cleanly to the partial chain (warning already
+    -- logged in onGuiSetupFinished).
     if self.filtersList ~= nil and self.filterNameInput ~= nil then
-        FocusManager:linkElements(self.filtersList,    FocusManager.RIGHT, self.filterNameInput)
+        FocusManager:linkElements(self.filtersList,    FocusManager.RIGHT,  self.filterNameInput)
         FocusManager:linkElements(self.filterNameInput, FocusManager.LEFT,  self.filtersList)
+        FocusManager:linkElements(self.filtersList,    FocusManager.BOTTOM, self.filterNameInput)
+        FocusManager:linkElements(self.filterNameInput, FocusManager.TOP,   self.filtersList)
     end
     if self.filterNameInput ~= nil and self.filterAnimalTypeSelector ~= nil then
         FocusManager:linkElements(self.filterNameInput,         FocusManager.BOTTOM, self.filterAnimalTypeSelector)
@@ -789,23 +793,21 @@ end
 -- Filter editor: helpers (file-local)
 -- =============================================================================
 
---- Resolve a localized label for an animal type, falling back to the type's
---- own title/name when the portfolio-wide animalType_<name> l10n key is
---- absent. FS25's g_i18n:getText returns the input key verbatim on miss, so
---- a "label == key" comparison detects the miss. The fallback covers
---- map-bridge exotic types (Hof Bergmann donkeys, etc.) that lack the
---- standard l10n entries and would otherwise render as raw "animalType_X"
---- strings in the picker.
+--- Resolve a localized label for an animal type. Delegates to the canonical
+--- helper RLAnimalUtil.getAnimalTypeDisplayName which already handles the
+--- groupTitle -> title -> ui_<name>s -> name -> "?" cascade, including the
+--- hasText guard that distinguishes a real l10n hit from FS25's
+--- "Missing '<key>' in l10n.xml" miss-stringification.
 ---@param at table animalType entry from animalSystem:getTypes()
 ---@return string label
 local function resolveAnimalTypeLabel(at)
-    local key = "animalType_" .. (at.name or ""):lower()
-    local label = g_i18n:getText(key)
-    if label == key then
-        label = at.title or at.name or key
-        Log:trace("resolveAnimalTypeLabel: l10n miss for %s, fallback=%s", key, tostring(label))
+    if RLAnimalUtil ~= nil and RLAnimalUtil.getAnimalTypeDisplayName ~= nil then
+        return RLAnimalUtil.getAnimalTypeDisplayName(at)
     end
-    return label
+    -- Defensive fallback if RLAnimalUtil is unavailable for any reason.
+    Log:warning("resolveAnimalTypeLabel: RLAnimalUtil.getAnimalTypeDisplayName unavailable; using local fallback")
+    if at == nil then return "?" end
+    return at.groupTitle or at.name or "?"
 end
 
 --- Apply a pending overlay onto a stored filter, producing a merged snapshot.
@@ -863,7 +865,21 @@ local function seedAnimalTypeStates(self)
     if g_currentMission ~= nil and g_currentMission.animalSystem ~= nil then
         local types = g_currentMission.animalSystem:getTypes()
         if types ~= nil then
-            for _, at in ipairs(types) do
+            -- getTypes() is keyed by typeIndex (sparse-map shape), not a dense
+            -- 1-N array. ipairs would stop at the first gap and silently drop
+            -- exotic / map-bridge types. Mirror RLDealerQuery.listDealerTypes:
+            -- collect with pairs(), guard against nil entries / missing
+            -- typeIndex, then sort by typeIndex for stable ordering.
+            local collected = {}
+            for _, at in pairs(types) do
+                if at ~= nil and at.typeIndex ~= nil then
+                    table.insert(collected, at)
+                end
+            end
+            table.sort(collected, function(a, b)
+                return (a.typeIndex or 0) < (b.typeIndex or 0)
+            end)
+            for _, at in ipairs(collected) do
                 table.insert(entries, {
                     label = resolveAnimalTypeLabel(at),
                     typeIndex = at.typeIndex,
@@ -933,10 +949,38 @@ function RLMenuSettingsFrame:renderEditor()
     if self.filterEditorLayout    ~= nil then self.filterEditorLayout:setVisible(true)  end
     if self.filterEditorSliderBox ~= nil then self.filterEditorSliderBox:setVisible(true) end
 
+    -- Tint the editor rows so the cream title text reads against a dark
+    -- backing. Same fix P1-1 applied to the General subtab rows -
+    -- without it, rows fall back to the default white tint of
+    -- gui.colorPreset from baseReference and titles are invisible on the
+    -- new menu chrome. updateAlternatingElements skips hidden rows, so
+    -- this MUST run after the setVisible(true) above. Idempotent / cheap
+    -- to re-run on every render.
+    if self.filterEditorLayout ~= nil then
+        self:updateAlternatingElements(self.filterEditorLayout)
+    end
+
     -- Name: programmatic setText is callback-safe (the onTextChanged
     -- callback fires only on actual user keystrokes, not on this push).
+    -- HOWEVER, the input control resets the caret to text-end on every
+    -- programmatic value push - including no-ops. When a remote
+    -- RLFilterUpdateEvent triggers refreshIfOpen -> refreshData ->
+    -- renderEditor while the user is editing in the middle of the field,
+    -- that setText stomps the caret. Skip the push when the input owns
+    -- focus AND the text is unchanged (the user is editing it now and
+    -- the overlay already captures their pending edits).
     if self.filterNameInput ~= nil then
-        self.filterNameInput:setText(merged.name or "")
+        local desired = merged.name or ""
+        local isFocused = self.filterNameInput.getIsFocused ~= nil
+            and self.filterNameInput:getIsFocused()
+        local current = self.filterNameInput.getText ~= nil
+            and self.filterNameInput:getText() or nil
+        if isFocused and current == desired then
+            Log:trace("RLMenuSettingsFrame:renderEditor: skipping setText (focused + unchanged) for id=%s",
+                tostring(merged.id))
+        else
+            self.filterNameInput:setText(desired)
+        end
     end
 
     -- AnimalType: walk animalTypeStates to find the entry matching the
@@ -1270,7 +1314,8 @@ function RLMenuSettingsFrame:onClickDelete()
         self.onDeleteConfirmed,
         self,
         confirmText,
-        nil, nil, nil, nil, nil, nil,
+        g_i18n:getText("ui_attention"),
+        nil, nil, nil, nil, nil,
         stored.id
     )
 end
@@ -1332,6 +1377,12 @@ function RLMenuSettingsFrame:onListSelectionChanged(list, _section, index)
         self.selectedFilterId = nil
         Log:debug("RLMenuSettingsFrame:onListSelectionChanged: index=%s out of range, cleared",
             tostring(index))
+        -- Rerender the editor (-> empty state) + rebuild footer so Duplicate
+        -- and Delete drop with the now-cleared selection. Without these the
+        -- right pane keeps showing the previous filter's content and the
+        -- destructive buttons stay live until some later refresh reconciles.
+        self:renderEditor()
+        self:updateButtonVisibility()
         return
     end
 

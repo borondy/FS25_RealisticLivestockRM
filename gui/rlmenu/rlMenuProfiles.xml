@@ -481,4 +481,28 @@
     <!-- =========================================================== -->
     <Profile name="rlMenu_filterChip" extends="fs25_textDefault" with="anchorTopLeft"/>
 
+    <!--
+        Right-pane container for the Saveable Filters editor (P1-3). Sits
+        as sibling to filtersListContainer (fs25_subCategoryContainer, 410px
+        fixed width) inside subCategoryPages[2].
+
+        Cannot reuse fs25_subCategoryContainer: that profile uses
+        anchorStretchingYLeft which only Y-stretches and pins X to the
+        profile's fixed width=410px - inline size/absoluteSizeOffset cannot
+        override the anchor's width-pin (runtime-measured 410x783px instead
+        of expected 1088x783px).
+
+        Mirrors the rlMenu_animalScrollLayout pattern in this file:
+        anchorStretchingYStretchingX + size 100% 100% + pivotTopLeft to
+        fill the parent both axes. Then position="410px 0px" + negative
+        absoluteSizeOffset shifts the start right and trims the width by
+        the sidebar's 410px so the right edge aligns with the parent's
+        right edge.
+    -->
+    <Profile name="rlMenu_filterEditorContainer" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
+        <size value="100% 100%"/>
+        <position value="410px 0px"/>
+        <absoluteSizeOffset value="410px 0px"/>
+    </Profile>
+
 </GUIProfiles>
