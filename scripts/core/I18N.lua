@@ -2,9 +2,35 @@ RL_I18N = {}
 local modName = g_currentModName
 local isGithubVersion = true
 
+-- Keys that come in with `modEnv == nil` even though they belong to this
+-- mod's translation environment. Routing them through `modName` lets the
+-- caller's lookup resolve from our texts table.
+--
+-- Two flavours per custom finance category:
+--   * `rl_ui_<stat>`   - the user-facing key passed to `MoneyType.register`.
+--   * `finance_<stat>` - what the Finance overview queries for each
+--                        registered stat name.
+-- Both must appear here for every entry added to `FinanceStats.statNames`
+-- (see `scripts/core/RealisticLivestock.lua` and
+-- `scripts/animals/husbandry/RealisticLivestock_AnimalSystem.lua`) or the
+-- Finance row renders the `Missing '<key>' in l10n_en.xml` fallback.
+local MOD_ROUTED_KEYS = {
+    rl_ui_monitorSubscriptions = true,
+    finance_monitorSubscriptions = true,
+    rl_ui_herdsmanWages = true,
+    finance_herdsmanWages = true,
+    rl_ui_semenPurchase = true,
+    finance_semenPurchase = true,
+    rl_ui_medicine = true,
+    finance_medicine = true,
+}
+
+-- I18N is a singleton overwrite (not a spec-chain method), so the
+-- `Utils.overwrittenFunction` superFunc-arg-drop gotcha does not apply here.
 function RL_I18N:getText(superFunc, text, modEnv)
 
-    if (text == "rl_ui_monitorSubscriptions" or text == "finance_monitorSubscriptions" or text == "rl_ui_herdsmanWages" or text == "finance_herdsmanWages" or text == "rl_ui_semenPurchase" or text == "finance_semenPurchase") and modEnv == nil then
+    if modEnv == nil and MOD_ROUTED_KEYS[text] then
+        Log:trace("I18N: routing modless lookup '%s' through mod env", text)
         return superFunc(self, text, modName)
     end
 
