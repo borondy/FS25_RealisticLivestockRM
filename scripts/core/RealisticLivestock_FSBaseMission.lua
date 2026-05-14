@@ -1,6 +1,137 @@
 RealisticLivestock_FSBaseMission = {}
 local modDirectory = g_currentModDirectory
 local modSettingsDirectory = g_currentModSettingsDirectory
+local Log = RmLogging.getLogger("RLRM")
+
+
+--[[
+    Pure builder for the startup dialog queue. No globals read, no side effects.
+    Takes a context table (assembled by the caller from globals + RLMapBridge state)
+    and returns an ordered array of {kind=..., text?=...} items.
+
+    Ordering and rules:
+    - conflict (block-tier) wins over migration when both flags are set, because
+      doRestart will reload everything anyway and the user must address the blocker
+      first. Conflict has NO isServer guard - a joining client with a bad host
+      modlist needs to fire its own dialog and doRestart out of the broken session
+      (FS25 enforces identical mod sets in MP). On a headless dedicated server the
+      InfoDialog primitive no-ops; the Log:error in checkModCompatibility is the
+      admin-visible surface.
+    - migration is server-only because RmMigrationDialog references the savegame.
+    - warn and bridge are suppressed on dedicated servers because there is no GUI
+      to render them; their log lines (in checkModCompatibility / RLMapBridge)
+      are the dediserver-visible surfaces.
+
+    Exposed as a module-table field (not local) so the test suite can call it
+    directly with a synthetic ctx and assert on queue shape.
+
+    @param ctx table {isServer, isDedicatedServer, hasConflict, hasMigration,
+        hasWarn, hasBridgeWarning, bridgeText}
+    @return table Ordered array of queue items.
+]]
+function RealisticLivestock_FSBaseMission._buildStartupQueue(ctx)
+    local q = {}
+
+    if ctx.hasConflict then
+        table.insert(q, { kind = "conflict" })
+    elseif ctx.isServer and ctx.hasMigration then
+        table.insert(q, { kind = "migration" })
+    end
+
+    if ctx.hasWarn and not ctx.isDedicatedServer then
+        table.insert(q, { kind = "warn" })
+    end
+
+    if ctx.hasBridgeWarning and not ctx.isDedicatedServer then
+        table.insert(q, { kind = "bridge", text = ctx.bridgeText })
+    end
+
+    return q
+end
+
+
+--[[
+    Assemble queue, log it, and dispatch the first item. Each presenter takes
+    `showNext` as its close callback so the chain advances on dismissal. The
+    conflict path's callback is intentionally never invoked - doRestart ends
+    the Lua state, and the queue is abandoned at that point.
+
+    Each presenter is responsible for its own Timer.createOneshot(100, ...) -
+    the 100ms guards against the loading->gameplay transition swallowing the
+    dialog. RmMigrationDialog's onClickContinue closes BEFORE invoking the
+    callback,
+    so two startup dialogs are never on screen simultaneously.
+]]
+local function _showStartupDialogs(self)
+    -- Atomic capture-and-clear of bridge warning (mirrors prior pattern that
+    -- sat at this exact location pre-refactor).
+    local bridgeText = RLMapBridge.pendingVersionWarning
+    RLMapBridge.pendingVersionWarning = nil
+
+    local queue = RealisticLivestock_FSBaseMission._buildStartupQueue({
+        isServer            = self:getIsServer(),
+        isDedicatedServer   = (g_dedicatedServer ~= nil),
+        hasConflict         = g_rmMigrationConflict,
+        hasMigration        = g_rmPendingMigration,
+        hasWarn             = g_rmPendingModWarning,
+        -- Filter empty string in addition to nil; an empty bridge warning
+        -- would otherwise enqueue a bridge-kind item with empty body, rendering
+        -- a blank InfoDialog. Defensive against future producers - RLMapBridge
+        -- itself only writes string.format results today.
+        hasBridgeWarning    = (bridgeText ~= nil and bridgeText ~= ""),
+        bridgeText          = bridgeText,
+    })
+
+    Log:debug("startup dialog queue: %d items (conflict=%s migration=%s warn=%s bridge=%s)",
+        #queue, tostring(g_rmMigrationConflict), tostring(g_rmPendingMigration),
+        tostring(g_rmPendingModWarning), tostring(bridgeText ~= nil))
+
+    if #queue == 0 then return end
+
+    local function showNext()
+        local item = table.remove(queue, 1)
+        if item == nil then
+            Log:debug("startup dialog queue: drained")
+            return
+        end
+        Log:debug("startup dialog queue: presenting kind=%s (remaining=%d)",
+            item.kind, #queue)
+        if item.kind == "conflict" then
+            -- callback never fires; doRestart ends the chain
+            g_rmMigrationManager:showConflictDialog(showNext)
+        elseif item.kind == "migration" then
+            g_rmMigrationManager:showMigrationDialog(showNext)
+        elseif item.kind == "warn" then
+            g_rmMigrationManager:showWarningDialog(showNext)
+        elseif item.kind == "bridge" then
+            -- Bridge presenter wraps its own 100ms Timer here (the other
+            -- presenter kinds wrap inside their own RmMigrationManager methods).
+            -- The 100ms guard preserves the loading->gameplay transition behaviour
+            -- the pre-refactor inline block had at this site.
+            Timer.createOneshot(100, function()
+                -- Mid-startup unload guard (symmetric with RmMigrationManager
+                -- presenters): if the user backed out during the 100ms window,
+                -- advance the queue rather than calling InfoDialog against a
+                -- torn-down GUI.
+                if g_currentMission == nil or g_gui == nil then
+                    Log:debug("bridge presenter timer fired post-unload; advancing queue")
+                    showNext()
+                    return
+                end
+                Log:info("Showing bridge version warning dialog")
+                InfoDialog.show(item.text, function()
+                    Log:info("User dismissed bridge version warning")
+                    showNext()
+                end)
+            end)
+        else
+            Log:warning("startup dialog queue: unknown kind '%s', skipping", tostring(item.kind))
+            showNext()
+        end
+    end
+
+    showNext()
+end
 
 
 local function fixInGameMenu(frame, pageName, uvs, position, predicateFunc)
@@ -90,29 +221,22 @@ function RealisticLivestock_FSBaseMission:onStartMission()
     AnimalMoveDestinationDialog.register()
     RmMigrationDialog.register()
 
-    -- Handle migration conflict or pending migration (server only)
-    if self:getIsServer() then
-        if g_rmMigrationConflict then
-            if g_rmMigrationManager ~= nil then
-                g_rmMigrationManager:showConflictDialog()
-            end
-        elseif g_rmPendingMigration then
-            if g_rmMigrationManager ~= nil then
-                g_rmMigrationManager:showMigrationDialog()
-            end
-        end
+    -- Mod-compatibility detection runs on every peer (g_modIsLoaded is authoritative
+    -- per peer). The lazy-create is idempotent with FarmManager.lua:15's existing
+    -- nil-check; on a server the singleton is already created with savegameDir set,
+    -- on a pure client it's a thin singleton with savegameDir=nil - safe because
+    -- the methods reachable via the queue (showConflictDialog / showWarningDialog /
+    -- checkModCompatibility) never touch savegameDir.
+    if g_rmMigrationManager == nil then
+        Log:debug("FSBaseMission: lazy-creating RmMigrationManager (client path)")
+        g_rmMigrationManager = RmMigrationManager.new()
     end
+    g_rmMigrationManager:checkModCompatibility()
 
-    -- Show bridge version warning dialog (non-blocking) if an untested map version was detected.
-    -- Uses Timer delay to ensure game has fully transitioned to gameplay state before showing
-    -- (same pattern as migration dialogs - dialog gets lost without the delay).
-    if RLMapBridge.pendingVersionWarning ~= nil and g_dedicatedServer == nil then
-        local warningText = RLMapBridge.pendingVersionWarning
-        RLMapBridge.pendingVersionWarning = nil
-        Timer.createOneshot(100, function()
-            InfoDialog.show(warningText)
-        end)
-    end
+    -- Build and dispatch the startup-dialog queue (migration / mod-warning / bridge).
+    -- Replaces three previously-independent if-blocks that could race for
+    -- g_gui:showDialog. The pure _buildStartupQueue is exposed for unit tests.
+    _showStartupDialogs(self)
 
     RLSettings.applyDefaultSettings()
     RLDebugUtils.dumpSettingsOnce()

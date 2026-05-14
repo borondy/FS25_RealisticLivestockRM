@@ -12,10 +12,10 @@ Sheep and goats share a husbandry but have different production types. Sheep pro
 
 | Breed | Target Weight (ewe / ram) | Wool Range (peak) | Sell Value |
 |-------|--------------------------|-------------------|------------|
-| **Black Welsh** | 42 / 57.5 kg | 24 – 166 | Lowest |
-| **Landrace** | 45 / 60 kg | 21 – 149 | Below average |
-| **Steinschaf** | 50 / 67.5 kg | 18 – 123 | Above average |
-| **Swiss Mountain** | 80 / 105 kg | 14 – 96 | Highest |
+| **Black Welsh** | 42 / 57.5 kg | 24 - 166 | Lowest |
+| **Landrace** | 45 / 60 kg | 21 - 149 | Below average |
+| **Steinschaf** | 50 / 67.5 kg | 18 - 123 | Above average |
+| **Swiss Mountain** | 80 / 105 kg | 14 - 96 | Highest |
 
 *Black Welsh produce the most wool by far, but Swiss Mountain sell for double the price. Wool range shows the full span from poor to excellent genetics.*
 
@@ -23,7 +23,7 @@ Sheep and goats share a husbandry but have different production types. Sheep pro
 
 | Breed | Target Weight (doe / ram) | Goat Milk Range (peak, lactating) | Sell Value |
 |-------|--------------------------|----------------------------------|------------|
-| **Goat** | 30 / 35 kg | 5 – 57 L/day | High |
+| **Goat** | 30 / 35 kg | 5 - 57 L/day | High |
 
 *Rams are heavier than ewes/does.*
 
@@ -39,10 +39,10 @@ Both ewes and rams produce wool - identical output per breed. **Wool is only pro
 
 | Breed | 6 mo | 18 mo (peak) |
 |-------|------|--------------|
-| **Black Welsh** | 5 – 35 | **24 – 166** |
-| **Landrace** | 4 – 26 | **21 – 149** |
-| **Steinschaf** | 3 – 21 | **18 – 123** |
-| **Swiss Mountain** | 2 – 14 | **14 – 96** |
+| **Black Welsh** | 5 - 35 | **24 - 166** |
+| **Landrace** | 4 - 26 | **21 - 149** |
+| **Steinschaf** | 3 - 21 | **18 - 123** |
+| **Swiss Mountain** | 2 - 14 | **14 - 96** |
 
 *Genetics cause large variation between individual animals. Most sheep produce somewhere in the middle of these ranges. Mastitis stops all wool production.*
 
@@ -56,9 +56,9 @@ Goats produce milk **only while lactating** (10 months after giving birth). Goat
 
 | Age | Range |
 |-----|-------|
-| 6 mo | 1 – 11 |
-| 12 mo | 3 – 34 |
-| 18+ mo (peak) | **5 – 57** |
+| 6 mo | 1 - 11 |
+| 12 mo | 3 - 34 |
+| 18+ mo (peak) | **5 - 57** |
 
 *Genetics and lactation phase cause large variation between individual animals. Non-lactating goats produce zero milk.*
 
@@ -89,11 +89,12 @@ Sheep and goat prices peak at 36 months and stay at that level for older animals
 
 | Factor | Effect |
 |--------|--------|
-| Quality genetics | Better genetics → noticeably higher price |
+| Quality genetics | Better genetics -> noticeably higher price |
 | Weight | Well-fed animals near target weight are worth more |
 | Health | Healthy animals sell for significantly more |
 | Lactating (goats only) | Moderate price bonus |
 | Pregnant | Moderate price bonus |
+| Castrated | Moderate price bonus |
 | Diseases | Can substantially reduce price |
 
 ### Buy Prices
@@ -110,34 +111,34 @@ Sheep and goat prices peak at 36 months and stay at that level for older animals
 
 ## Food & Water by Breed
 
-Genetics significantly affect how much each animal eats - some are naturally much more efficient than others. Lactating females eat considerably more, and the Food Scale setting also adjusts consumption.
+Genetics significantly affect how much each animal eats - some are naturally much more efficient than others. Lactating goats eat noticeably more, and the Food Scale setting also adjusts consumption.
 
 ### Food Consumption Range (L/day)
 
 | Breed | | Newborn | 18+ mo (adult) |
 |-------|---|---------|-----------------|
-| **Black Welsh** | Ewe | 1 – 5 | 22 – 154 |
-| | Ram | 1 – 5 | 23 – 163 |
-| **Landrace** | Ewe | 1 – 7 | 25 – 175 |
-| | Ram | 1 – 7 | 28 – 193 |
-| **Steinschaf** | Ewe | 2 – 12 | 28 – 193 |
-| | Ram | 2 – 12 | 30 – 210 |
-| **Swiss Mountain** | Ewe | 3 – 18 | 30 – 210 |
-| | Ram | 3 – 18 | 33 – 228 |
-| **Goat** | Doe | 1 – 9 | 13 – 88 |
-| | Ram Goat | 1 – 9 | 14 – 95 |
+| **Black Welsh** | Ewe | 1 - 5 | 22 - 154 |
+| | Ram | 1 - 5 | 23 - 163 |
+| **Landrace** | Ewe | 1 - 7 | 25 - 175 |
+| | Ram | 1 - 7 | 28 - 193 |
+| **Steinschaf** | Ewe | 2 - 12 | 28 - 193 |
+| | Ram | 2 - 12 | 30 - 210 |
+| **Swiss Mountain** | Ewe | 3 - 18 | 30 - 210 |
+| | Ram | 3 - 18 | 33 - 228 |
+| **Goat** | Doe | 1 - 9 | 13 - 88 |
+| | Ram Goat | 1 - 9 | 14 - 95 |
 
 *Black Welsh are the cheapest to feed. Swiss Mountain eat the most. Goats are very efficient. Ranges show the span from the most efficient to the hungriest animals.*
 
-### Water Consumption (L/day, newborn → adult)
+### Water Consumption (L/day, newborn -> adult)
 
 | Breed | Female | Male |
 |-------|--------|------|
-| **Black Welsh** | 3 → 54 | 3 → 58 |
-| **Landrace** | 3 → 60 | 3 → 70 |
-| **Steinschaf** | 4 → 70 | 4 → 76 |
-| **Swiss Mountain** | 5 → 85 | 5 → 89 |
-| **Goat** | 2 → 20 | 2 → 23 |
+| **Black Welsh** | 3 -> 54 | 3 -> 58 |
+| **Landrace** | 3 -> 60 | 3 -> 70 |
+| **Steinschaf** | 4 -> 70 | 4 -> 76 |
+| **Swiss Mountain** | 5 -> 85 | 5 -> 89 |
+| **Goat** | 2 -> 20 | 2 -> 23 |
 
 *Goats drink very little water compared to sheep. Lactating females drink considerably more water than usual.*
 
@@ -183,12 +184,12 @@ Sheep have a high rate of twins, especially at prime age. First-time mothers usu
 
 | Ewe Age | Singles | Twins | Triplets |
 |---------|---------|-------|----------|
-| 8–18 mo (first-time) | Most likely | Uncommon | Rare |
-| 18–36 mo | Common | Common | Rare |
-| 36–72 mo (prime) | Less common | **Most likely** | Uncommon |
-| 72–120 mo (old) | Uncommon | Most common | Rare |
+| 8-18 mo (first-time) | Most likely | Uncommon | Rare |
+| 18-36 mo | Common | Common | Rare |
+| 36-72 mo (prime) | Less common | **Most likely** | Uncommon |
+| 72-120 mo (old) | Uncommon | Most common | Rare |
 
-*At prime age (3–6 years), twins are the most likely outcome. Low health increases the chance of no birth.*
+*At prime age (3-6 years), twins are the most likely outcome. Low health increases the chance of no birth.*
 
 ### Offspring per Birth (Goat)
 
@@ -196,10 +197,10 @@ Goats follow the same offspring pattern as sheep - twins become common at prime 
 
 | Doe Age | Singles | Twins | Triplets |
 |---------|---------|-------|----------|
-| 16–18 mo (first-time) | Most likely | Uncommon | Rare |
-| 18–36 mo | Common | Common | Rare |
-| 36–72 mo (prime) | Less common | **Most likely** | Uncommon |
-| 72–120 mo (old) | Uncommon | Most common | Rare |
+| 16-18 mo (first-time) | Most likely | Uncommon | Rare |
+| 18-36 mo | Common | Common | Rare |
+| 36-72 mo (prime) | Less common | **Most likely** | Uncommon |
+| 72-120 mo (old) | Uncommon | Most common | Rare |
 
 *Goats start breeding later (16 months) but have the same twin/triplet rates as sheep at equivalent ages.*
 

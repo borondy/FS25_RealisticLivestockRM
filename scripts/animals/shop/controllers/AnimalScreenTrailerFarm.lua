@@ -242,7 +242,9 @@ function RL_AnimalScreenTrailerFarm:applyTarget(_, _, animalIndex)
 
     self.actionTypeCallback(AnimalScreenBase.ACTION_TYPE_TARGET, g_i18n:getText(AnimalScreenTrailerFarm.L10N_SYMBOL.MOVE_TO_TRAILER))
 	g_messageCenter:subscribe(AnimalMoveEvent, self.onAnimalMovedToTrailer, self)
-	g_client:getServerConnection():sendEvent(AnimalMoveEvent.new(husbandry, trailer, self.targetAnimals))
+	-- moveType "SOURCE" mirrors applyTargetBulk. Nil crashes the client at streamWriteString
+	-- and corrupts the in-flight packet for the server's readStream.
+	g_client:getServerConnection():sendEvent(AnimalMoveEvent.new(husbandry, trailer, self.targetAnimals, "SOURCE"))
 
     if husbandry.addRLMessage ~= nil then
         husbandry:addRLMessage("MOVED_ANIMALS_SOURCE_SINGLE", nil, { trailer:getName() })
@@ -278,7 +280,9 @@ function RL_AnimalScreenTrailerFarm:applySource(_, animalTypeIndex, animalIndex)
 
     self.actionTypeCallback(AnimalScreenBase.ACTION_TYPE_SOURCE, g_i18n:getText(AnimalScreenTrailerFarm.L10N_SYMBOL.MOVE_TO_FARM))
 	g_messageCenter:subscribe(AnimalMoveEvent, self.onAnimalMovedToFarm, self)
-	g_client:getServerConnection():sendEvent(AnimalMoveEvent.new(trailer, husbandry, self.sourceAnimals))
+	-- moveType "TARGET" mirrors applySourceBulk. Nil crashes the client at streamWriteString
+	-- and corrupts the in-flight packet for the server's readStream.
+	g_client:getServerConnection():sendEvent(AnimalMoveEvent.new(trailer, husbandry, self.sourceAnimals, "TARGET"))
 
     if husbandry.addRLMessage ~= nil then
         husbandry:addRLMessage("MOVED_ANIMALS_TARGET_SINGLE", nil, { trailer:getName() })

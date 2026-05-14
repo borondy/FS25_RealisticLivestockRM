@@ -1225,6 +1225,16 @@ function AnimalSystem:saveToXMLFile(_)
 end
 
 
+--- Build a new sale animal for the dealer of the given animal type.
+--- Selects a buyable subtype (respecting bridge `canBeBought` overrides), assigns
+--- random genetics + age, and may create an in-progress pregnancy. If the
+--- pregnancy block produces no children, the orphaned-state cleanup at the
+--- tail of this function delegates to AnimalReproduction._clearOrphanedPregnancy
+--- so the canonical four-field clear runs (pregnancy + impregnatedBy +
+--- isPregnant + reproduction) - mirrors the in-game pen-side cleanup so the
+--- invariant `isPregnant <=> pregnancy ~= nil` holds for sale animals too.
+--- @param animalTypeIndex number Index into the animal-type registry
+--- @return table|nil animal Newly built sale animal, or nil if the animal-type lookup fails
 function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
 
     local animalType = self:getTypeByIndex(animalTypeIndex)
@@ -1543,9 +1553,20 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
         ["day"] = environment.currentMonotonicDay
     }
 
-    if animal.reproduction > 0 and (animal.pregnancy == nil or #animal.pregnancy.pregnancies == 0) then
-        animal.reproduction = 0
-        animal.pregnancy = nil
+    -- Orphaned pregnancy state cleanup for sale animals: the children
+    -- generation block produced no usable children, so the pregnancy table
+    -- assignment was skipped while animal.isPregnant was set true earlier
+    -- in this function. Delegate to the shared helper so the canonical
+    -- four-field clear runs (pregnancy + impregnatedBy + isPregnant +
+    -- reproduction).
+    --
+    -- Guard differs from site 1 (advancePregnancy) on purpose: this flow
+    -- never assigns animal.reproduction, so the pen-side `reproduction > 0`
+    -- precondition would be unreachable here (Animal.new defaults
+    -- reproduction to 0). Gate on the actual invariant violation instead:
+    -- isPregnant=true paired with no usable pregnancy data.
+    if animal.isPregnant and (animal.pregnancy == nil or #animal.pregnancy.pregnancies == 0) then
+        AnimalReproduction._clearOrphanedPregnancy(animal, "pregnancy-nil")
     end
 
     return animal

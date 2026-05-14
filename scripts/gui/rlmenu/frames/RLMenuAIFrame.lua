@@ -479,8 +479,8 @@ function RLMenuAIFrame:onBullSelectionChanged()
     -- AI bulls have no source husbandry; the helper tolerates nil.
     RLDetailPaneHelper.updateAnimalDisplay(self, animal, nil)
 
-    -- Middle column (Phase 2 routes price through onQuantityStateChanged so
-    -- bull change + stepper click share one render path).
+    -- Middle column. Price flows through onQuantityStateChanged so bull-change
+    -- and stepper-click share a single render path.
     self:updateMiddleColumn(animal)
 
     -- Favourite button label (legacy parity at AnimalScreen.lua:645).
