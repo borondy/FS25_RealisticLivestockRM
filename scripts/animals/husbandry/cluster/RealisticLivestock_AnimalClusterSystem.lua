@@ -305,20 +305,42 @@ AnimalClusterSystem.getClusterById = Utils.overwrittenFunction(AnimalClusterSyst
 
 
 
+--- Add an animal to self.animals (local-only). External callers MUST go
+--- through addPendingAddCluster + updateNow; the only callers of this method are now
+--- updateClusters' queue-processing (lines 423/476/486/537) and readStream (line 222).
+--- Includes the invalid-uniqueId early-return guard before the table insert.
+--- @param superFunc function Overwritten-function predecessor (unused; replaced wholesale)
+--- @param animal table Animal entity to add (must have valid uniqueId)
 function RealisticLivestock_AnimalClusterSystem:addCluster(superFunc, animal)
 
     if animal.uniqueId == nil or animal.uniqueId == "1-1" or animal.uniqueId == "0-0" then return end
     animal:setClusterSystem(self)
     table.insert(self.animals, animal)
 
-    self:updateIdMapping()
-
+    Log:trace("AnimalClusterSystem:addCluster: husbandry=%s animal uniqueId=%s farmId=%s",
+        tostring(self.owner and self.owner.getName and self.owner:getName() or self.owner),
+        tostring(animal.uniqueId), tostring(animal.farmId))
 end
 
 AnimalClusterSystem.addCluster = Utils.overwrittenFunction(AnimalClusterSystem.addCluster, RealisticLivestock_AnimalClusterSystem.addCluster)
 
 
+--- Remove an animal from self.animals by numeric index (local-only, private primitive).
+--- Visual-counter side effects (clusterHusbandry.husbandryIdsToVisualAnimalCount,
+--- visualAnimalCount, removeHusbandryAnimal callback) still run per-animal and are
+--- order-independent (per-animal increments). External callers MUST go through
+--- addPendingRemoveCluster + updateNow; the only callers of this method are now
+--- updateClusters' queue-processing (line 585) and readStream (line 233).
+--- Numeric out-of-range is a silent no-op. Non-numeric keys
+--- log Log:warning with stack trace for telemetry and no-op - the legacy string-key
+--- linear-scan branch was deleted (no remaining callers).
+--- @param _ function Overwritten-function predecessor (unused; replaced wholesale)
+--- @param animalIndex number Numeric index into self.animals
 function RealisticLivestock_AnimalClusterSystem:removeCluster(_, animalIndex)
+
+    Log:trace("AnimalClusterSystem:removeCluster: husbandry=%s animalIndex=%s",
+        tostring(self.owner and self.owner.getName and self.owner:getName() or self.owner),
+        tostring(animalIndex))
 
     if self.animals[animalIndex] ~= nil then
         local animal = self.animals[animalIndex]
@@ -361,57 +383,40 @@ function RealisticLivestock_AnimalClusterSystem:removeCluster(_, animalIndex)
 
         table.remove(self.animals, animalIndex)
         animal:setClusterSystem(nil)
-    else
-        for i, animal in pairs(self.animals) do
-            if RLAnimalUtil.toKey(animal.farmId, animal.uniqueId, animal.birthday.country) == animalIndex then
-
-                local spec = self.owner.spec_husbandryAnimals
-
-                if animal.idFull ~= nil and animal.idFull ~= "1-1" and spec ~= nil then
-
-                    local sep = string.find(animal.idFull, "-")
-                    local husbandry = tonumber(string.sub(animal.idFull, 1, sep - 1))
-                    local animalId = tonumber(string.sub(animal.idFull, sep + 1))
-
-                    if husbandry ~= 0 and animalId ~= 0 then
-
-                        removeHusbandryAnimal(husbandry, animalId)
-
-                        local clusterHusbandry = spec.clusterHusbandry
-                        local count = clusterHusbandry.husbandryIdsToVisualAnimalCount[husbandry]
-                        if count ~= nil then
-                            clusterHusbandry.husbandryIdsToVisualAnimalCount[husbandry] = math.max(count - 1, 0)
-                            clusterHusbandry.visualAnimalCount = math.max(clusterHusbandry.visualAnimalCount - 1, 0)
-                        else
-                            Log:warning("removeCluster: visual count missing for husbandryId=%s idFull=%s", tostring(husbandry), tostring(animal.idFull))
-                        end
-
-                        for husbandryIndex, animalIds in pairs(clusterHusbandry.animalIdToCluster) do
-                            if clusterHusbandry.husbandryIds[husbandryIndex] == husbandry then
-                                animalIds[animalId] = nil
-                                break
-                            end
-                        end
-
-                    end
-
-                end
-
-                table.remove(self.animals, i)
-                animal:setClusterSystem(nil)
-                break
-            end
-        end
+    elseif type(animalIndex) ~= "number" then
+        -- No printCallstack here - it always emits an engine [ERROR] line; this
+        -- "should never happen" branch must not surface as ERROR in support logs.
+        Log:warning("removeCluster: non-numeric key '%s'; ignored. Direct removeCluster is private - use addPendingRemoveCluster(cluster).",
+            tostring(animalIndex))
     end
-
-    self:updateIdMapping()
 
 end
 
 AnimalClusterSystem.removeCluster = Utils.overwrittenFunction(AnimalClusterSystem.removeCluster, RealisticLivestock_AnimalClusterSystem.removeCluster)
 
 
+--- Process pending add/remove queues, rebuild idToIndex, and fire one
+--- AnimalClusterUpdateEvent broadcast + g_messageCenter publish per call gated on the
+--- local isDirty accumulator. isDirty starts false at line 416 and is set to true when
+--- work happens (queue processing at 424/477/487/538, per-animal animal.isDirty
+--- consumption at 548-549, removal pass at 558); publish/broadcast tail runs after the
+--- existing trailing self:updateIdMapping() at line 567 only when isDirty is true.
+--- @param superFunc function Overwritten-function predecessor (unused; replaced wholesale)
 function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
+
+    -- Phase timing: localise where flush time is spent
+    -- (queue / dirty / remove / idmap / broadcast / publish / visual).
+    -- The post-publish "flushed isDirty=" line below acts as the failure-path
+    -- observability anchor when updateVisualAnimals() throws and the tail
+    -- summary doesn't fire. Timer cost: ~7 getTimeSec calls per flush.
+    local tStart = getTimeSec()
+    local tPhase = tStart
+    local function phaseDoneMs()
+        local now = getTimeSec()
+        local ms = (now - tPhase) * 1000
+        tPhase = now
+        return ms
+    end
 
     local isDirty = false
     local removedClusterIndices = {}
@@ -543,6 +548,8 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
 
     end
 
+    local tQueueMs = phaseDoneMs()
+
 
     for animalIndex, animal in pairs(self.animals) do
         if animal.isDirty then
@@ -552,6 +559,8 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
 
         if self.clustersToRemove[animal] ~= nil or (animal.beingRidden ~= nil and animal.beingRidden) or animal:getNumAnimals() == 0 or animal.uniqueId == "1-1" or animal.uniqueId == "0-0" then table.insert(removedClusterIndices, animalIndex) end
     end
+
+    local tDirtyMs = phaseDoneMs()
 
 
     for i = #removedClusterIndices, 1, -1 do
@@ -564,8 +573,50 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
     self.clustersToAdd = {}
     self.clustersToRemove = {}
 
+    local tRemoveMs = phaseDoneMs()
+
     self:updateIdMapping()
+
+    local tIdMapMs = phaseDoneMs()
+
+    -- Publish + broadcast tail. Gated on the local isDirty accumulator
+    -- (line 416) which captures per-animal animal.isDirty work plus add/remove
+    -- activity. The direct self.owner:updatedClusters(...) call previously inside
+    -- updateIdMapping is removed; the publish below triggers the existing
+    -- AnimalClusterUpdateEvent subscriber installed by the husbandry placeable, so
+    -- updatedClusters fires exactly once per flush. Fixes the pre-existing
+    -- double-fire (server) / triple-fire (client receive via readStream) of
+    -- updatedClusters that the per-call updateIdMapping path produced.
+    if isDirty and g_server ~= nil then
+        g_server:broadcastEvent(AnimalClusterUpdateEvent.new(self.owner, self.animals))
+    end
+
+    local tBroadcastMs = phaseDoneMs()
+
+    if isDirty then
+        g_messageCenter:publish(AnimalClusterUpdateEvent, self.owner, self.animals)
+    end
+
+    local tPublishMs = phaseDoneMs()
+
+    -- Failure-path observability anchor: this fires before updateVisualAnimals().
+    -- If updateVisualAnimals() throws, the tail summary below doesn't fire, but
+    -- this line still does - so support logs always carry the flush outcome.
+    Log:debug("AnimalClusterSystem:updateClusters: husbandry=%s flushed isDirty=%s animals=%d",
+        tostring(self.owner and self.owner.getName and self.owner:getName() or self.owner),
+        tostring(isDirty),
+        #self.animals)
+
     if self.owner.spec_husbandryAnimals ~= nil then self.owner.spec_husbandryAnimals:updateVisualAnimals() end
+
+    local tVisualMs = phaseDoneMs()
+    local tTotalMs = (getTimeSec() - tStart) * 1000
+
+    Log:debug("updateClusters phases [%s isDirty=%s anim=%d]: queue=%.2fms dirty=%.2fms remove=%.2fms idmap=%.2fms broadcast=%.2fms publish=%.2fms visual=%.2fms total=%.2fms",
+        tostring(self.owner and self.owner.getName and self.owner:getName() or "?"),
+        tostring(isDirty),
+        #self.animals,
+        tQueueMs, tDirtyMs, tRemoveMs, tIdMapMs, tBroadcastMs, tPublishMs, tVisualMs, tTotalMs)
 
 
 end
@@ -573,6 +624,12 @@ end
 AnimalClusterSystem.updateClusters = Utils.overwrittenFunction(AnimalClusterSystem.updateClusters, RealisticLivestock_AnimalClusterSystem.updateClusters)
 
 
+--- Rebuild self.idToIndex from self.animals. Pure index rebuild:
+--- the publish + broadcast + direct owner.updatedClusters call previously embedded
+--- here moved to the tail of updateClusters (gated on the local isDirty accumulator).
+--- Removing the direct call also fixes the pre-existing double-fire of updatedClusters
+--- server-side and triple-fire client-side that the per-call path produced.
+--- @param superFunc function Overwritten-function predecessor (unused; replaced wholesale)
 function RealisticLivestock_AnimalClusterSystem:updateIdMapping(superFunc)
     self.idToIndex = {}
 
@@ -580,12 +637,10 @@ function RealisticLivestock_AnimalClusterSystem:updateIdMapping(superFunc)
         if index == nil then continue end
         self.idToIndex[RLAnimalUtil.toShortKey(animal.farmId, animal.uniqueId)] = index
     end
-        
-    if self.owner.updatedClusters ~= nil then self.owner:updatedClusters(self.owner, self.animals) end
 
-    if g_server ~= nil then g_server:broadcastEvent(AnimalClusterUpdateEvent.new(self.owner, self.animals)) end
-    g_messageCenter:publish(AnimalClusterUpdateEvent, self.owner, self.animals)
-    
+    Log:trace("AnimalClusterSystem:updateIdMapping: husbandry=%s rebuilt idToIndex over %d animals",
+        tostring(self.owner and self.owner.getName and self.owner:getName() or self.owner),
+        #self.animals)
 end
 
 AnimalClusterSystem.updateIdMapping = Utils.overwrittenFunction(AnimalClusterSystem.updateIdMapping, RealisticLivestock_AnimalClusterSystem.updateIdMapping)

@@ -185,55 +185,57 @@ end
 
 
 function RLMessageAggregator.consolidateDay()
-    for _, pending in pairs(RLMessageAggregator.pending) do
-        local husbandry = pending.husbandry
+    RmSafeUtils.safeCall("RLMessageAggregator.consolidateDay", function()
+        for _, pending in pairs(RLMessageAggregator.pending) do
+            local husbandry = pending.husbandry
 
-        -- Verify husbandry is still valid
-        if husbandry ~= nil and husbandry.addRLMessageDirect ~= nil then
-            local husbandryName = husbandry:getName() or "Unknown"
+            -- Verify husbandry is still valid
+            if husbandry ~= nil and husbandry.addRLMessageDirect ~= nil then
+                local husbandryName = husbandry:getName() or "Unknown"
 
-            -- Args order matches translation format: "%s [action] at %s [details]"
-            -- Format: [count, husbandryName, ...]
-            if pending.births.count > 0 then
-                husbandry:addRLMessageDirect("DAILY_BIRTHS_SUMMARY", nil,
-                    { tostring(pending.births.count), husbandryName })
-            end
-
-            if pending.deaths.count > 0 then
-                -- Format reasons string: "2 from old age, 1 from disease"
-                local reasonParts = {}
-                for reason, count in pairs(pending.deaths.reasons) do
-                    local reasonText = g_i18n:getText(reason) or reason
-                    table.insert(reasonParts, tostring(count) .. " from " .. reasonText)
+                -- Args order matches translation format: "%s [action] at %s [details]"
+                -- Format: [count, husbandryName, ...]
+                if pending.births.count > 0 then
+                    husbandry:addRLMessageDirect("DAILY_BIRTHS_SUMMARY", nil,
+                        { tostring(pending.births.count), husbandryName })
                 end
-                local reasonsStr = table.concat(reasonParts, ", ")
 
-                husbandry:addRLMessageDirect("DAILY_DEATHS_SUMMARY", nil,
-                    { tostring(pending.deaths.count), husbandryName, reasonsStr })
-            end
+                if pending.deaths.count > 0 then
+                    -- Format reasons string: "2 from old age, 1 from disease"
+                    local reasonParts = {}
+                    for reason, count in pairs(pending.deaths.reasons) do
+                        local reasonText = g_i18n:getText(reason) or reason
+                        table.insert(reasonParts, tostring(count) .. " from " .. reasonText)
+                    end
+                    local reasonsStr = table.concat(reasonParts, ", ")
 
-            if pending.sales.count > 0 then
-                local moneyStr = g_i18n:formatMoney(pending.sales.totalValue, 2, true, true)
-                husbandry:addRLMessageDirect("DAILY_SALES_SUMMARY", nil,
-                    { tostring(pending.sales.count), husbandryName, moneyStr })
-            end
+                    husbandry:addRLMessageDirect("DAILY_DEATHS_SUMMARY", nil,
+                        { tostring(pending.deaths.count), husbandryName, reasonsStr })
+                end
 
-            if pending.overcrowding.count > 0 then
-                local moneyStr = g_i18n:formatMoney(pending.overcrowding.totalValue, 2, true, true)
-                husbandry:addRLMessageDirect("DAILY_OVERCROWDING_SUMMARY", nil,
-                    { tostring(pending.overcrowding.count), husbandryName, moneyStr })
-            end
+                if pending.sales.count > 0 then
+                    local moneyStr = g_i18n:formatMoney(pending.sales.totalValue, 2, true, true)
+                    husbandry:addRLMessageDirect("DAILY_SALES_SUMMARY", nil,
+                        { tostring(pending.sales.count), husbandryName, moneyStr })
+                end
 
-            if pending.purchases.count > 0 then
-                local moneyStr = g_i18n:formatMoney(pending.purchases.totalValue, 2, true, true)
-                husbandry:addRLMessageDirect("DAILY_PURCHASES_SUMMARY", nil,
-                    { tostring(pending.purchases.count), husbandryName, moneyStr })
+                if pending.overcrowding.count > 0 then
+                    local moneyStr = g_i18n:formatMoney(pending.overcrowding.totalValue, 2, true, true)
+                    husbandry:addRLMessageDirect("DAILY_OVERCROWDING_SUMMARY", nil,
+                        { tostring(pending.overcrowding.count), husbandryName, moneyStr })
+                end
+
+                if pending.purchases.count > 0 then
+                    local moneyStr = g_i18n:formatMoney(pending.purchases.totalValue, 2, true, true)
+                    husbandry:addRLMessageDirect("DAILY_PURCHASES_SUMMARY", nil,
+                        { tostring(pending.purchases.count), husbandryName, moneyStr })
+                end
             end
         end
-    end
 
-    -- Clear pending for next day
-    RLMessageAggregator.pending = {}
+        -- Clear pending for next day
+        RLMessageAggregator.pending = {}
+    end)
 end
 
 

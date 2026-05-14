@@ -333,7 +333,16 @@ function RLDetailPaneHelper.updateAnimalDisplay(frame, animal, husbandry)
                     frame.geneticsLabel[index]:setText(g_i18n:getText(data.labelKey))
                 end
                 if frame.geneticsValue and frame.geneticsValue[index] then
-                    frame.geneticsValue[index]:setText(g_i18n:getText(data.valueKey))
+                    local bucketText = g_i18n:getText(data.valueKey)
+                    local valueText
+                    if data.numericValue ~= nil then
+                        valueText = string.format("%d - %s", data.numericValue, bucketText)
+                    else
+                        valueText = bucketText
+                    end
+                    frame.geneticsValue[index]:setText(valueText)
+                    Log:trace("RLDetailPaneHelper.updateAnimalDisplay: genetics row %d label=%s rendered=\"%s\"",
+                        index, tostring(data.labelKey), valueText)
                 end
                 local color = RLDetailPaneHelper.GENETICS_COLOR[data.colorKey]
                     or RLDetailPaneHelper.GENETICS_COLOR_NEUTRAL

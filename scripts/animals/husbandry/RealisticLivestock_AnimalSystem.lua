@@ -69,7 +69,8 @@ AnimalSystem.BREED_TO_MARKER_COLOUR = {
     ["ANGUS"] = { 1, 1, 1 },
     ["LIMOUSIN"] = { 0, 0, 1 },
     ["HEREFORD"] = { 0, 0, 1 },
-    ["WATER_BUFFALO"] = { 1, 1, 1 }
+    ["WATER_BUFFALO"] = { 1, 1, 1 },
+    ["HIGHLAND"] = { 0.6, 0.3, 0.1 }
 }
 
 
@@ -87,6 +88,18 @@ function RealisticLivestock_AnimalSystem:loadMapData(_, mapXml, mission, baseDir
         ["earTagRight_text"] = { 0, 0, 0 }
     }
 
+    -- Visual node-path defaults harvested from RL's authoritative bundle XML during Phase 1.
+    -- Keyed by [animalType.name][visualAnimalIndex] -> { marker, monitor, earTagLeft, earTagRight, noseRing, bumId }.
+    -- Map and bridge subtypes (Phase 2/3) that reuse an RL visualAnimalIndex without these
+    -- attributes get their nil paths filled from this registry, so RL's i3d marker/monitor/
+    -- earTag/noseRing/bumId meshes hide correctly instead of staying at default visibility.
+    -- Reset every loadMapData so save reloads start fresh.
+    self.defaultVisualPathsByIndex = {}
+    -- Snapshot of animalType.configFilename per type at end of Phase 1. If a later phase
+    -- replaces the husbandry config (non-dataS map config), live config != snapshot and
+    -- defaults are skipped to avoid resolving paths against an unknown i3d.
+    self.configFilenameSnapshot = {}
+
     local path = RLSettings.getAnimalsXMLPath() or (modDirectory .. "xml/animals.xml")
 
     Log:info("AnimalSystem: Using animals XML path '%s'", path)
@@ -100,13 +113,26 @@ function RealisticLivestock_AnimalSystem:loadMapData(_, mapXml, mission, baseDir
 
         Log:info("AnimalSystem: Using animals base path '%s'", basePath)
 
+        -- Scope flag: true ONLY around Phase 1 loadAnimals. loadVisualData uses it to
+        -- distinguish "populate registry from RL bundle" (true) from "fill nil paths
+        -- from registry" (false). Works regardless of where the bundle lives on disk
+        -- (default modDirectory or RLSettings.customAnimals override).
+        self.isLoadingRLBundle = true
         self:loadAnimals(xmlFile, basePath)
+        self.isLoadingRLBundle = false
         xmlFile:delete()
 
     end
 
     Log:info("AnimalSystem: === PHASE 1 END === %d types, %d subtypes registered", #self.types, #self.subTypes)
     logSubTypeRegistry(self, "Phase 1")
+
+    -- Snapshot per-type configFilename so Phase 2/3 fill can detect when a later phase
+    -- replaced the husbandry config (e.g. a future map shipping a non-dataS cow config).
+    for _, animalType in pairs(self.types) do
+        self.configFilenameSnapshot[animalType.name] = animalType.configFilename
+        Log:trace("AnimalSystem: snapshot configFilename type=%s '%s'", animalType.name, tostring(animalType.configFilename))
+    end
 
     self.customEnvironment = mission.customEnvironment
 
@@ -581,12 +607,26 @@ end
 AnimalSystem.loadSubType = Utils.overwrittenFunction(AnimalSystem.loadSubType, RealisticLivestock_AnimalSystem.loadSubType)
 
 
+--- Visual node-path attributes that the registry tracks. Order matches the order
+--- VisualAnimal:load reads them in. Treated uniformly by the populate/fill code.
+local VISUAL_PATH_KEYS = { "earTagLeft", "earTagRight", "noseRing", "bumId", "monitor", "marker" }
+
+
+--- Returns true when a and b are both non-nil strings and equal.
+local function pathEquals(a, b)
+    return a ~= nil and b ~= nil and a == b
+end
+
+
 function RealisticLivestock_AnimalSystem:loadVisualData(superFunc, animalType, xmlFile, key, baseDirectory)
 
     local visualData = superFunc(self, animalType, xmlFile, key, baseDirectory)
 
     if visualData == nil then return nil end
 
+    -- xmlFile:getString returns nil for both missing AND empty attributes, so an
+    -- explicit `marker=""` map override is treated identically to a missing attribute
+    -- (no fill, no resolve).
     local earTagLeft = xmlFile:getString(key .. "#earTagLeft", nil)
     local earTagRight = xmlFile:getString(key .. "#earTagRight", nil)
     local noseRing = xmlFile:getString(key .. "#noseRing", nil)
@@ -600,6 +640,22 @@ function RealisticLivestock_AnimalSystem:loadVisualData(superFunc, animalType, x
     if bumId ~= nil then visualData.bumId = bumId end
     if monitor ~= nil then visualData.monitor = monitor end
     if marker ~= nil then visualData.marker = marker end
+
+    -- Registry populate (Phase 1: RL bundle) or fill (Phase 2/3: map / bridge).
+    -- The scope flag captures Phase-1 semantics regardless of where the bundle lives
+    -- on disk, so RLSettings.customAnimals power-users get the same fix as default users.
+    local typeName = animalType ~= nil and animalType.name or nil
+    local idx = visualData.visualAnimalIndex
+    if typeName ~= nil and idx ~= nil then
+        if self.isLoadingRLBundle then
+            self:rlrmStoreVisualDefaults(typeName, idx, visualData)
+        else
+            self:rlrmFillVisualDefaults(typeName, idx, visualData, animalType)
+        end
+    elseif self.isLoadingRLBundle then
+        Log:trace("loadVisualData: skipping registry insert (typeName=%s idx=%s)",
+            tostring(typeName), tostring(idx))
+    end
 
     if xmlFile:hasProperty(key .. ".textureIndexes") then
 
@@ -618,6 +674,86 @@ function RealisticLivestock_AnimalSystem:loadVisualData(superFunc, animalType, x
 end
 
 AnimalSystem.loadVisualData = Utils.overwrittenFunction(AnimalSystem.loadVisualData, RealisticLivestock_AnimalSystem.loadVisualData)
+
+
+--- Store this Phase-1 visualData's node paths into the registry under (typeName, idx).
+--- Called only when self.isLoadingRLBundle is true.
+--- Idempotent for equal-value re-inserts; emits Log:warning when a re-insert disagrees
+--- with an existing stored value (catches XML drift between same-index <visual> entries).
+function AnimalSystem:rlrmStoreVisualDefaults(typeName, idx, visualData)
+    if self.defaultVisualPathsByIndex[typeName] == nil then
+        self.defaultVisualPathsByIndex[typeName] = {}
+    end
+    local existing = self.defaultVisualPathsByIndex[typeName][idx]
+    local stored = {}
+    local storedKeys = {}
+    for _, k in ipairs(VISUAL_PATH_KEYS) do
+        local v = visualData[k]
+        if v ~= nil then
+            stored[k] = v
+            table.insert(storedKeys, k)
+            if existing ~= nil and existing[k] ~= nil and not pathEquals(existing[k], v) then
+                Log:warning("registry: conflicting write type=%s index=%d key=%s existing='%s' new='%s'",
+                    typeName, idx, k, tostring(existing[k]), tostring(v))
+            end
+        end
+    end
+    if existing == nil then
+        self.defaultVisualPathsByIndex[typeName][idx] = stored
+        Log:trace("registry: type=%s index=%d stored {%s}", typeName, idx, table.concat(storedKeys, ","))
+    else
+        -- Merge: keep existing keys; add any new keys this entry has that the existing one didn't.
+        local addedKeys = {}
+        for _, k in ipairs(VISUAL_PATH_KEYS) do
+            if existing[k] == nil and stored[k] ~= nil then
+                existing[k] = stored[k]
+                table.insert(addedKeys, k)
+            end
+        end
+        if #addedKeys > 0 then
+            Log:trace("registry: type=%s index=%d merged {%s}", typeName, idx, table.concat(addedKeys, ","))
+        end
+    end
+end
+
+
+--- Fill nil paths in visualData from the registry entry at (typeName, idx).
+--- Called only when self.isLoadingRLBundle is false (Phase 2/3).
+--- Skips entirely when animalType.configFilename != Phase-1 snapshot (a later phase
+--- replaced the husbandry config; live i3d node tree is no longer guaranteed to match
+--- registry paths, so leave paths nil and let the visual setters early-return rather
+--- than resolve against wrong nodes).
+function AnimalSystem:rlrmFillVisualDefaults(typeName, idx, visualData, animalType)
+    local snapshot = self.configFilenameSnapshot[typeName]
+    local live = animalType ~= nil and animalType.configFilename or nil
+    if snapshot ~= nil and live ~= nil and snapshot ~= live then
+        Log:debug("defaults skipped: configFilename mismatch type=%s snapshot='%s' live='%s'",
+            typeName, tostring(snapshot), tostring(live))
+        return
+    end
+    local typeRegistry = self.defaultVisualPathsByIndex[typeName]
+    if typeRegistry == nil then
+        Log:debug("defaults skipped: no registry entries for type=%s (Phase 1 didn't run or this species had no <visual> with paths)",
+            typeName)
+        return
+    end
+    local entry = typeRegistry[idx]
+    if entry == nil then
+        Log:debug("defaults skipped: no registry entry for type=%s index=%d", typeName, idx)
+        return
+    end
+    local filledKeys = {}
+    for _, k in ipairs(VISUAL_PATH_KEYS) do
+        if visualData[k] == nil and entry[k] ~= nil then
+            visualData[k] = entry[k]
+            table.insert(filledKeys, k)
+        end
+    end
+    if #filledKeys > 0 then
+        Log:trace("defaults: type=%s index=%d minAge=%s filled {%s}",
+            typeName, idx, tostring(visualData.minAge), table.concat(filledKeys, ","))
+    end
+end
 
 
 function AnimalSystem:initialiseCountries()
@@ -1516,87 +1652,89 @@ end
 
 
 function AnimalSystem:onHourChanged()
+    RmSafeUtils.safeCall("AnimalSystem:onHourChanged", function()
 
-    local day = g_currentMission.environment.currentMonotonicDay
-    local hasChanges = false
+        local day = g_currentMission.environment.currentMonotonicDay
+        local hasChanges = false
 
-    for animalTypeIndex, animals in pairs(self.animals) do
+        for animalTypeIndex, animals in pairs(self.animals) do
 
-        local indexesToRemove = {}
+            local indexesToRemove = {}
 
-        for i, animal in pairs(animals) do
+            for i, animal in pairs(animals) do
 
-            if animal.sale ~= nil then
+                if animal.sale ~= nil then
 
-                local saleDay = animal.sale.day
+                    local saleDay = animal.sale.day
 
-                if saleDay == day then continue end
+                    if saleDay == day then continue end
 
-                local geneticQuality = 0
-                local totalGenetics = 0
+                    local geneticQuality = 0
+                    local totalGenetics = 0
 
-                for _, value in pairs(animal.genetics) do
-                    if value ~= nil then
-                        totalGenetics = totalGenetics + 1
-                        geneticQuality = geneticQuality + value
+                    for _, value in pairs(animal.genetics) do
+                        if value ~= nil then
+                            totalGenetics = totalGenetics + 1
+                            geneticQuality = geneticQuality + value
+                        end
                     end
+
+                    local averageGenetics = geneticQuality / totalGenetics
+
+                    if math.random() >= (saleDay / day) / (averageGenetics * 1.45) then
+                        table.insert(indexesToRemove, i)
+                        hasChanges = true
+                    end
+
                 end
 
-                local averageGenetics = geneticQuality / totalGenetics
+            end
 
-                if math.random() >= (saleDay / day) / (averageGenetics * 1.45) then
-                    table.insert(indexesToRemove, i)
-                    hasChanges = true
+            for i = #indexesToRemove, 1, -1 do
+                table.remove(animals, indexesToRemove[i])
+            end
+
+            local threshold = math.random(10, self.maxDealerAnimals)
+
+            if #animals < threshold then
+
+                for i = #animals + 1, threshold do
+
+                    local animal = self:createNewSaleAnimal(animalTypeIndex)
+
+                    if animal ~= nil then
+                        table.insert(animals, animal)
+                        hasChanges = true
+                    end
+
                 end
 
             end
 
         end
 
-        for i = #indexesToRemove, 1, -1 do
-            table.remove(animals, indexesToRemove[i])
-        end
+        for animalTypeIndex, animals in pairs(self.aiAnimals) do
 
-        local threshold = math.random(10, self.maxDealerAnimals)
+            if #animals < 15 then
 
-        if #animals < threshold then
+                for i = #animals + 1, 15 do
 
-            for i = #animals + 1, threshold do
+                    local animal = self:createNewAIAnimal(animalTypeIndex)
 
-                local animal = self:createNewSaleAnimal(animalTypeIndex)
+                    if animal ~= nil then
+                        table.insert(animals, animal)
+                        hasChanges = true
+                    end
 
-                if animal ~= nil then
-                    table.insert(animals, animal)
-                    hasChanges = true
                 end
 
             end
 
         end
-    
-    end
 
-    for animalTypeIndex, animals in pairs(self.aiAnimals) do
+        if hasChanges then g_server:broadcastEvent(AnimalSystemStateEvent.new(self.countries, self.animals, self.aiAnimals)) end
 
-        if #animals < 15 then
-
-            for i = #animals + 1, 15 do
-
-                local animal = self:createNewAIAnimal(animalTypeIndex)
-
-                if animal ~= nil then
-                    table.insert(animals, animal)
-                    hasChanges = true
-                end
-
-            end
-
-        end
-    
-    end
-
-    if hasChanges then g_server:broadcastEvent(AnimalSystemStateEvent.new(self.countries, self.animals, self.aiAnimals)) end
-
+    end)
 end
 
 

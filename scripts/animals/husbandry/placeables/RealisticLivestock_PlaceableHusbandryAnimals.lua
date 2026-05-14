@@ -1,6 +1,12 @@
 RealisticLivestock_PlaceableHusbandryAnimals = {}
 
 
+-- Per-animal onDayChanged outlier threshold. Animals exceeding this elapsed
+-- cost during the per-pen day-change loop emit a TRACE line. Module scope so
+-- the value is allocated once and visible to any future helper.
+local SLOW_ANIMAL_MS = 50.0
+
+
 function RealisticLivestock_PlaceableHusbandryAnimals.registerFunctions(placeable)
 	SpecializationUtil.registerFunction(placeable, "setHasUnreadRLMessages", PlaceableHusbandryAnimals.setHasUnreadRLMessages)
 	SpecializationUtil.registerFunction(placeable, "getHasUnreadRLMessages", PlaceableHusbandryAnimals.getHasUnreadRLMessages)
@@ -11,6 +17,7 @@ function RealisticLivestock_PlaceableHusbandryAnimals.registerFunctions(placeabl
 	SpecializationUtil.registerFunction(placeable, "getNextRLMessageUniqueId", PlaceableHusbandryAnimals.getNextRLMessageUniqueId)
 	SpecializationUtil.registerFunction(placeable, "setNextRLMessageUniqueId", PlaceableHusbandryAnimals.setNextRLMessageUniqueId)
 	SpecializationUtil.registerFunction(placeable, "getAIManager", PlaceableHusbandryAnimals.getAIManager)
+	SpecializationUtil.registerFunction(placeable, "_flushPenDayChange", PlaceableHusbandryAnimals._flushPenDayChange)
 end
 
 PlaceableHusbandryAnimals.registerFunctions = Utils.appendedFunction(PlaceableHusbandryAnimals.registerFunctions, RealisticLivestock_PlaceableHusbandryAnimals.registerFunctions)
@@ -225,8 +232,22 @@ function RealisticLivestock_PlaceableHusbandryAnimals:updateVisualAnimals(_)
     local spec = self.spec_husbandryAnimals
     local animals = spec.clusterSystem:getAnimals()
 
+    -- Phase timing: setClusters just stores the next cluster set (cheap);
+    -- updateVisuals does the engine work. Splitting them lets us pair this
+    -- log with the matching updateVisuals 4-phase summary.
+    local tStart = getTimeSec()
     spec.clusterHusbandry:setClusters(animals)
+    local tSetMs = (getTimeSec() - tStart) * 1000
+
+    local tUpdateStart = getTimeSec()
     spec.clusterHusbandry:updateVisuals()
+    local tUpdateMs = (getTimeSec() - tUpdateStart) * 1000
+
+    Log:debug("updateVisualAnimals [%s anim=%d]: setClusters=%.2fms updateVisuals=%.2fms total=%.2fms",
+        tostring(self.getName and self:getName() or self),
+        #animals,
+        tSetMs, tUpdateMs, tSetMs + tUpdateMs)
+
     self:raiseActive()
 end
 
@@ -234,17 +255,32 @@ PlaceableHusbandryAnimals.updateVisualAnimals = Utils.overwrittenFunction(Placea
 
 
 
---- Handle both RLRM internal calls (table of Animal objects) and base game API calls
---- (subTypeIndex, numAnimals, age) used by external mods like HB's CFTA incubator system.
+--- Handle both RLRM internal calls (table of Animal objects) and external API calls
+--- (subTypeIndex, numAnimals, age) used by other mods like HB's CFTA incubator system.
+--- The RLRM path queues every animal via the cluster system's pending API and flushes
+--- once at the end. The external-signature path delegates to superFunc which lands
+--- in RealisticLivestock.addAnimals (also queue-based).
 function RealisticLivestock_PlaceableHusbandryAnimals:addAnimals(superFunc, animals, ...)
 
     if type(animals) == "table" then
         Log:trace("addAnimals: RLRM path - %d animal(s) in table", #animals)
-        for _, animal in pairs(animals) do self:addCluster(animal) end
+        local clusterSystem = self.spec_husbandryAnimals.clusterSystem
+
+        local ok, err = pcall(function()
+            for _, animal in pairs(animals) do
+                clusterSystem:addPendingAddCluster(animal)
+            end
+        end)
+        local ok2, err2 = pcall(function() clusterSystem:updateNow() end)
+
+        if not (ok and ok2) then
+            Log:error("addAnimals: RLRM path batch failed N=%d queue=%s flush=%s",
+                #animals, tostring(err), tostring(err2))
+        end
     else
-        -- Base game signature: addAnimals(subTypeIndex, numAnimals, age)
+        -- External API signature: addAnimals(subTypeIndex, numAnimals, age)
         local numAnimals, age = ...
-        Log:trace("addAnimals: base game path - subTypeIndex=%s numAnimals=%s age=%s",
+        Log:trace("addAnimals: external path - subTypeIndex=%s numAnimals=%s age=%s",
             tostring(animals), tostring(numAnimals), tostring(age))
         superFunc(self, animals, numAnimals, age)
     end
@@ -254,6 +290,65 @@ end
 PlaceableHusbandryAnimals.addAnimals = Utils.overwrittenFunction(PlaceableHusbandryAnimals.addAnimals, RealisticLivestock_PlaceableHusbandryAnimals.addAnimals)
 
 
+
+
+--- Tail flush at the end of a pen-day-change.
+---
+--- Births and deaths during the per-animal loop in `onDayChanged` queue mutations
+--- via `addPendingAddCluster` / `addPendingRemoveCluster` but do NOT call
+--- `updateNow` per-animal. Flushing here once per pen-day-change collapses what
+--- would be N publish chains (one per pregnant mother and one per dying animal)
+--- into 1 - so `HUSBANDRY_ANIMALS_CHANGED` listeners (food calculators, the
+--- in-game menu, third-party mods) recompute once instead of N times per pen-day.
+---
+--- `pcall` isolates per-pen failure: an exception in `updateNow` would otherwise
+--- kill the day-change loop and skip downstream pens. With the wrap, ERROR is
+--- logged with pen name + (births, deaths) and execution continues.
+---
+--- Failure-recovery model: our `updateClusters` override commits queue mutations
+--- into `self.animals` before the publish / broadcast / visual tail. So if
+--- `updateNow` raises later in the tail (e.g. a foreign-mod listener throwing
+--- on the `HUSBANDRY_ANIMALS_CHANGED` publish, or `updateVisualAnimals` throwing):
+---   - cluster contents are correct (committed before the failure point)
+---   - the publish chain may have only partially fired
+---   - `updateVisualAnimals` may not have fired
+---   - listeners and visuals resync at the next cluster mutation that runs a
+---     fresh flush (sale, move, manual edit, next day-change with deltas)
+---
+--- Caller must skip `spec.clusterHusbandry:updateVisuals()` when this returns
+--- false, to avoid rendering against a partially-published state.
+---
+--- Atomicity tradeoff vs prior per-mother flush: money commits in `onDayChanged`
+--- (auto-sold offspring, dead-animal cash) happen during the per-animal loop and
+--- commit per-mother regardless of the tail flush. On flush failure, farm balance
+--- is correct but listeners may be momentarily stale. This is a deliberate
+--- semantic change vs the prior flush-per-mother behaviour, justified by the
+--- N-to-1 reduction in publish-chain firings on heavy mod loadouts. Listener
+--- desync window closes at the next cluster mutation. Cluster contents stay
+--- correct in either case.
+---
+--- @param spec table The husbandryAnimals spec (provides `clusterSystem`)
+--- @param totalChildren number Count of newborns kept in the pen (excludes auto-sold)
+--- @param totalDeaths number `randomDeaths + oldAgeDeaths + lowHealthDeaths + deadParents`
+--- @return boolean okFlush True if `updateNow` succeeded (or no-deltas no-op); false on pcall failure
+function PlaceableHusbandryAnimals:_flushPenDayChange(spec, totalChildren, totalDeaths)
+    if totalChildren == 0 and totalDeaths == 0 then return true end
+
+    local penName = tostring(self.getName and self:getName() or self)
+    local tFlushStart = getTimeSec()
+    local okFlush, errFlush = pcall(function() spec.clusterSystem:updateNow() end)
+    local tFlushMs = (getTimeSec() - tFlushStart) * 1000
+
+    if okFlush then
+        Log:debug("onDayChanged tail flush [%s]: updateNow took %.2fms (births=%d deaths=%d)",
+            penName, tFlushMs, totalChildren, totalDeaths)
+    else
+        Log:error("onDayChanged tail flush [%s]: updateNow FAILED after %.2fms: %s (births=%d deaths=%d)",
+            penName, tFlushMs, tostring(errFlush), totalChildren, totalDeaths)
+    end
+
+    return okFlush
+end
 
 
 function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
@@ -276,6 +371,13 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
 
         local totalChildren, deadParents, childrenToSell, childrenToSellMoney, lowHealthDeaths, oldAgeDeaths, randomDeaths, randomDeathsMoney = 0, 0, 0, 0, 0, 0, 0, 0
 
+        -- Per-pen day-change instrumentation: per-iteration timer feeds
+        -- nIterated/nSlow/maxAnimal* trackers; outliers (>SLOW_ANIMAL_MS) emit
+        -- a TRACE line; per-pen DEBUG summary fires unconditionally at the tail.
+        local tLoopStart = getTimeSec()
+        local nIterated, nSlow, maxAnimalMs = 0, 0, 0
+        local maxAnimalUid, maxAnimalSubType = nil, nil
+
         for _, animal in ipairs(animals) do
 
             if self.isServer and RealisticLivestock.testAnimalPrefix ~= nil then
@@ -292,9 +394,33 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
                 animal.isParent = false
             end
 
+            local tAnimalStart = getTimeSec()
             local a, b, c, d, e, f, g, h = RmSafeUtils.safeAnimalCall(animal, "onDayChanged", function()
                 return animal:onDayChanged(spec, self.isServer, day, month, year, currentDayInPeriod, daysPerPeriod)
             end, {0, 0, 0, 0, 0, 0, 0, 0})
+            local tAnimalMs = (getTimeSec() - tAnimalStart) * 1000
+
+            nIterated = nIterated + 1
+            -- pcall-guard the subType lookup: telemetry must NOT break the per-animal
+            -- isolation that safeAnimalCall provides above. On lookup failure we fall
+            -- back to subTypeIndex (still uniquely identifying for support reports).
+            local function _safeSubTypeName()
+                local ok, subType = pcall(function() return animal.getSubType ~= nil and animal:getSubType() or nil end)
+                return (ok and subType ~= nil) and subType.name or tostring(animal.subTypeIndex)
+            end
+            if tAnimalMs > maxAnimalMs then
+                maxAnimalMs = tAnimalMs
+                maxAnimalUid = animal.uniqueId
+                maxAnimalSubType = _safeSubTypeName()
+            end
+            if tAnimalMs > SLOW_ANIMAL_MS then
+                nSlow = nSlow + 1
+                Log:trace("onDayChanged SLOW animal: husbandry=%s uniqueId=%s subType=%s took %.2fms",
+                    tostring(self.getName and self:getName() or self),
+                    tostring(animal.uniqueId),
+                    _safeSubTypeName(),
+                    tAnimalMs)
+            end
 
             totalChildren = totalChildren + (a or 0)
             deadParents = deadParents + (b or 0)
@@ -306,6 +432,9 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
             randomDeathsMoney = randomDeathsMoney + (h or 0)
 
         end
+
+        local tLoopMs = (getTimeSec() - tLoopStart) * 1000
+        local tPostStart = getTimeSec()
 
         if self.isServer then
 
@@ -343,7 +472,10 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
 
         spec.minTemp = minTemp
 
-        if randomDeaths > 0 or oldAgeDeaths > 0 or lowHealthDeaths > 0 or deadParents > 0 or totalChildren > 0 then spec.clusterHusbandry:updateVisuals() end
+        local totalDeaths = randomDeaths + oldAgeDeaths + lowHealthDeaths + deadParents
+        local okFlush = self:_flushPenDayChange(spec, totalChildren, totalDeaths)
+
+        if okFlush and (totalChildren > 0 or totalDeaths > 0) then spec.clusterHusbandry:updateVisuals() end
 
         self:raiseActive()
 
@@ -352,6 +484,20 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
             g_currentMission:addIngameNotification(FSBaseMission.INGAME_NOTIFICATION_CRITICAL, string.format(g_i18n:getText("rl_ui_unreadMessages"), self:getName()))
 
         end
+
+        local tPostMs = (getTimeSec() - tPostStart) * 1000
+        local meanLoopMs = (nIterated > 0) and (tLoopMs / nIterated) or 0
+
+        Log:debug("onDayChanged summary [%s nAnim=%d]: ms_loop=%.2f ms_post=%.2f mean_per_animal=%.3fms slowAnimals=%d worst=%s(%s)@%.2fms births=%d deadParents=%d childrenToSell=%d lowHealth=%d oldAge=%d randomDeaths=%d",
+            tostring(self.getName and self:getName() or self),
+            nIterated,
+            tLoopMs, tPostMs, meanLoopMs,
+            nSlow,
+            tostring(maxAnimalUid),
+            tostring(maxAnimalSubType),
+            maxAnimalMs,
+            totalChildren, deadParents, childrenToSell,
+            lowHealthDeaths, oldAgeDeaths, randomDeaths)
 
     end)
 end

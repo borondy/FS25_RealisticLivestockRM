@@ -18,8 +18,20 @@ function RLConsoleCommandManager.new()
         addConsoleCommand("rlSetAnimalOutput", "Set the output of the targeted animal", "setOutput", self, "[outputType] [value]")
     end
 
+    -- Read-only debug commands - safe on SP, MP host, and MP client.
+    addConsoleCommand("rlDumpSettings", "Dump effective RL settings to the log", "dumpSettings", self, "")
+
 	return self
 
+end
+
+
+--- Console handler for rlDumpSettings. Read-only; safe in any context.
+---@return string  confirmation message printed to the console
+function RLConsoleCommandManager:dumpSettings()
+    Log:debug("rlDumpSettings: invoked")
+    RLDebugUtils.dumpSettings()
+    return "rlDumpSettings: see log.txt"
 end
 
 

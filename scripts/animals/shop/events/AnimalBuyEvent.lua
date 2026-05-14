@@ -71,42 +71,68 @@ function AnimalBuyEvent:run(connection)
 
 	end
 
-	if not g_currentMission:getHasPlayerPermission("tradeAnimals", connection) then
+	RmSafeUtils.safeCall("AnimalBuyEvent:run", function()
 
-		connection:sendEvent(AnimalBuyEvent.newServerToClient(AnimalBuyEvent.BUY_ERROR_NO_PERMISSION))
-		return
+		-- Phase timing: per-phase TRACE lines (setup / validate / removeSale /
+		-- addAnimals / addMoney+sendEvent) so a slow buy can be localised to one phase.
+		-- TRACE-only because the surrounding safeCall enter/exit (also TRACE) gives the
+		-- elapsed-ms total via its own log.
+		local phaseStart = getTimeSec()
+		local function phaseDoneMs() return (getTimeSec() - phaseStart) * 1000 end
+		local function phaseReset() phaseStart = getTimeSec() end
 
-	end
+		if not g_currentMission:getHasPlayerPermission("tradeAnimals", connection) then
 
-	local userId = g_currentMission.userManager:getUniqueUserIdByConnection(connection)
-	local farmId = g_farmManager:getFarmForUniqueUserId(userId).farmId
-
-	for _, animal in pairs(self.animals) do
-
-		local errorCode = AnimalBuyEvent.validate(self.object, animal.subTypeIndex, animal.age, #self.animals, self.buyPrice, self.transportPrice, farmId)
-
-		if errorCode ~= nil then
-			connection:sendEvent(AnimalBuyEvent.newServerToClient(errorCode))
+			connection:sendEvent(AnimalBuyEvent.newServerToClient(AnimalBuyEvent.BUY_ERROR_NO_PERMISSION))
 			return
+
 		end
-	
-	end
 
-	for _, animal in pairs(self.animals) do
+		local userId = g_currentMission.userManager:getUniqueUserIdByConnection(connection)
+		local farmId = g_farmManager:getFarmForUniqueUserId(userId).farmId
 
-		g_currentMission.animalSystem:removeSaleAnimal(animal.animalTypeIndex, animal.birthday.country, animal.farmId, animal.uniqueId)
+		Log:trace("AnimalBuyEvent:run phase: setup took %.2fms (N=%d, dest=%s)",
+			phaseDoneMs(),
+			#self.animals,
+			tostring(self.object and self.object.getName and self.object:getName() or self.object))
 
-	end
+		phaseReset()
+		for _, animal in pairs(self.animals) do
 
-	self.object:addAnimals(self.animals)
+			local errorCode = AnimalBuyEvent.validate(self.object, animal.subTypeIndex, animal.age, #self.animals, self.buyPrice, self.transportPrice, farmId)
 
-	g_currentMission:addMoney(self.buyPrice + self.transportPrice, farmId, MoneyType.NEW_ANIMALS_COST, true, true)
-	connection:sendEvent(AnimalBuyEvent.newServerToClient(AnimalBuyEvent.BUY_SUCCESS))
+			if errorCode ~= nil then
+				Log:trace("AnimalBuyEvent:run phase: validate FAILED took %.2fms errorCode=%d", phaseDoneMs(), errorCode)
+				connection:sendEvent(AnimalBuyEvent.newServerToClient(errorCode))
+				return
+			end
 
-	if #self.animals == 1 then
-        self.object:addRLMessage("BOUGHT_ANIMALS_SINGLE", nil, { g_i18n:formatMoney(math.abs(self.buyPrice + self.transportPrice), 2, true, true) })
-    elseif #self.animals > 0 then
-        self.object:addRLMessage("BOUGHT_ANIMALS_MULTIPLE", nil, { #self.animals, g_i18n:formatMoney(math.abs(self.buyPrice + self.transportPrice), 2, true, true) })
-    end
+		end
+		Log:trace("AnimalBuyEvent:run phase: validate took %.2fms", phaseDoneMs())
+
+		phaseReset()
+		for _, animal in pairs(self.animals) do
+
+			g_currentMission.animalSystem:removeSaleAnimal(animal.animalTypeIndex, animal.birthday.country, animal.farmId, animal.uniqueId)
+
+		end
+		Log:trace("AnimalBuyEvent:run phase: removeSale took %.2fms", phaseDoneMs())
+
+		phaseReset()
+		self.object:addAnimals(self.animals)
+		Log:trace("AnimalBuyEvent:run phase: addAnimals took %.2fms", phaseDoneMs())
+
+		phaseReset()
+		g_currentMission:addMoney(self.buyPrice + self.transportPrice, farmId, MoneyType.NEW_ANIMALS_COST, true, true)
+		connection:sendEvent(AnimalBuyEvent.newServerToClient(AnimalBuyEvent.BUY_SUCCESS))
+
+		if #self.animals == 1 then
+			self.object:addRLMessage("BOUGHT_ANIMALS_SINGLE", nil, { g_i18n:formatMoney(math.abs(self.buyPrice + self.transportPrice), 2, true, true) })
+		elseif #self.animals > 0 then
+			self.object:addRLMessage("BOUGHT_ANIMALS_MULTIPLE", nil, { #self.animals, g_i18n:formatMoney(math.abs(self.buyPrice + self.transportPrice), 2, true, true) })
+		end
+		Log:trace("AnimalBuyEvent:run phase: addMoney+sendEvent+addRLMessage took %.2fms", phaseDoneMs())
+
+	end)
 
 end

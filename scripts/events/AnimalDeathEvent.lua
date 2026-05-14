@@ -45,8 +45,11 @@ function AnimalDeathEvent:writeStream(streamId, connection)
 end
 
 
---- Remove dead animal from herd. Uses findAndRemove for non-cluster path (animalSystem)
---- or removeCluster with toKeyFromIdentifiers for cluster path (husbandry).
+--- Remove dead animal from herd. Uses findAndRemove for non-cluster path (animalSystem,
+--- runs on every machine) or addPendingRemoveCluster + updateNow for cluster path
+--- (server-only; clients sync via the AnimalClusterUpdateEvent broadcast
+--- that fires from the server's flush). Without the server guard, addPendingRemoveCluster
+--- would assert(self.isServer) and crash clients on every animal death.
 function AnimalDeathEvent:run(connection)
 
     local identifiers = self.animal
@@ -54,10 +57,24 @@ function AnimalDeathEvent:run(connection)
     if self.object == nil then
         local animals = g_currentMission.animalSystem.animals[identifiers.animalTypeIndex]
         RLAnimalUtil.findAndRemove(animals, identifiers.farmId, identifiers.uniqueId, identifiers.country or identifiers.birthday.country)
-    else
-        self.object:getClusterSystem():removeCluster(RLAnimalUtil.toKeyFromIdentifiers(identifiers))
+    elseif g_server ~= nil then
+        local clusterSystem = self.object:getClusterSystem()
+        local key = RLAnimalUtil.toKeyFromIdentifiers(identifiers)
+        local cluster = clusterSystem:getClusterById(key)
+
+        if cluster ~= nil then
+            local ok, err = pcall(function() clusterSystem:addPendingRemoveCluster(cluster) end)
+            local ok2, err2 = pcall(function() clusterSystem:updateNow() end)
+            if not (ok and ok2) then
+                Log:error("DeathEvent:run: cluster removal failed key=%s queue=%s flush=%s",
+                    tostring(key), tostring(err), tostring(err2))
+            end
+        else
+            Log:warning("DeathEvent:run: cluster not found for key=%s", tostring(key))
+        end
     end
 
-    Log:trace("DeathEvent:run removed uniqueId=%s cluster=%s", tostring(identifiers.uniqueId), tostring(self.object ~= nil))
+    Log:trace("DeathEvent:run removed uniqueId=%s cluster=%s server=%s",
+        tostring(identifiers.uniqueId), tostring(self.object ~= nil), tostring(g_server ~= nil))
 
 end

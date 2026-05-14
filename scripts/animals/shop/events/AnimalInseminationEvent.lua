@@ -81,16 +81,20 @@ end
 
 function AnimalInseminationEvent:run(connection)
 
-	local clusterSystem = self.object:getClusterSystem()
-	local identifiers = self.animal
+	RmSafeUtils.safeCall("AnimalInseminationEvent:run", function()
 
-	local animal = RLAnimalUtil.find(clusterSystem.animals, identifiers.farmId, identifiers.uniqueId, identifiers.country or identifiers.birthday.country)
+		local clusterSystem = self.object:getClusterSystem()
+		local identifiers = self.animal
 
-	if animal ~= nil then
-		animal:setInsemination(self.semen)
-		Log:trace("InseminationEvent:run applied to %s", tostring(identifiers.uniqueId))
-	else
-		Log:trace("InseminationEvent:run animal not found uniqueId=%s", tostring(identifiers.uniqueId))
-	end
+		local animal = RLAnimalUtil.find(clusterSystem.animals, identifiers.farmId, identifiers.uniqueId, identifiers.country or identifiers.birthday.country)
+
+		if animal ~= nil then
+			animal:setInsemination(self.semen)
+			Log:trace("InseminationEvent:run applied to %s", tostring(identifiers.uniqueId))
+		else
+			Log:trace("InseminationEvent:run animal not found uniqueId=%s", tostring(identifiers.uniqueId))
+		end
+
+	end)
 
 end

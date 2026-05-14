@@ -1348,7 +1348,7 @@ function Animal:updateInput()
             if self.isLactating then litersPerDay = litersPerDay * 1.25 end
 
             if self.reproduction ~= nil and self.reproduction > 0 and self.pregnancy ~= nil and self.pregnancy.pregnancies ~= nil then
-                litersPerDay = litersPerDay * math.pow(1 + ((self.reproduction / 100) / 5), math.min(#self.pregnancy.pregnancies, 3))
+                litersPerDay = litersPerDay * math.min(math.pow(1 + ((self.reproduction / 100) / 5), #self.pregnancy.pregnancies), 2.0)
             end
 
             if self.genetics.metabolism ~= nil then litersPerDay = litersPerDay * self.genetics.metabolism end
@@ -1357,16 +1357,21 @@ function Animal:updateInput()
         end
 
         if fillType == "water" then
-            local litersPerDay = input:get(self.age)
-
             if self.isLactating then litersPerDay = litersPerDay * 1.5 end
 
             if self.reproduction ~= nil and self.reproduction > 0 and self.pregnancy ~= nil and self.pregnancy.pregnancies ~= nil then
-                litersPerDay = litersPerDay * math.pow(1 + ((self.reproduction / 100) / 5), math.min(#self.pregnancy.pregnancies, 3))
+                litersPerDay = litersPerDay * math.min(math.pow(1 + ((self.reproduction / 100) / 5), #self.pregnancy.pregnancies), 2.0)
             end
         end
 
         self.input[fillType] = litersPerDay / 24
+    end
+
+    if self.isLactating or self.isPregnant then
+        local pregCount = (self.pregnancy ~= nil and self.pregnancy.pregnancies ~= nil) and #self.pregnancy.pregnancies or 0
+        Log:trace("updateInput: animal=%s food/h=%.4f water/h=%.4f isLactating=%s isPregnant=%s reproduction=%d pregnancies=%d",
+            tostring(self.uniqueId), self.input.food or 0, self.input.water or 0,
+            tostring(self.isLactating), tostring(self.isPregnant), self.reproduction or 0, pregCount)
     end
 end
 

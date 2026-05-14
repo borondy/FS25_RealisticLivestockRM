@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<l10n>
+	<texts>
+		<!-- Breed display names -->
+		<text name="breed_jersey" text="Jersey"/>
+		<text name="breed_gloucestershire_old_spot" text="Gloucestershire Old Spot"/>
+		<text name="breed_texel" text="Texel"/>
+		<text name="breed_suffolk" text="Suffolk"/>
+		<text name="breed_blue_faced_leicester" text="Blue Faced Leicester"/>
+		<text name="breed_rabbit" text="Kaninchen"/>
+
+		<!-- Fill types for bridge-added male subtypes -->
+		<text name="fillType_bull_jersey" text="Jersey Bulle"/>
+		<text name="fillType_boar_gloucestershire_old_spot" text="Gloucestershire Old Spot Eber"/>
+		<text name="fillType_ram_texel" text="Texel Widder"/>
+		<text name="fillType_ram_suffolk" text="Suffolk Widder"/>
+		<text name="fillType_ram_blue_faced_leicester" text="Blue Faced Leicester Widder"/>
+		<text name="fillType_rabbit_male" text="Rammler"/>
+
+		<!-- Bull Jersey visual descriptions -->
+		<text name="rl_bridge_bullJerseyCalfDesc" text="Ein junges männliches Jersey Kalb. Bullen, die gesund und älter als 12 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_bullJerseyYoungDesc" text="Ein junger Jersey Bulle. Bullen, die gesund und älter als 12 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_bullJerseyAdultDesc" text="Ein erwachsener Jersey Bulle. Bullen, die gesund und älter als 12 Monate sind, können sich fortpflanzen."/>
+
+		<!-- Boar Gloucestershire Old Spot visual descriptions -->
+		<text name="rl_bridge_boarGOSPigletDesc" text="Ein junges Gloucestershire Old Spot Ferkel. Eber, die gesund und älter als 8 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_boarGOSYoungDesc" text="Ein junger Gloucestershire Old Spot Eber. Eber, die gesund und älter als 8 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_boarGOSAdultDesc" text="Ein erwachsener Gloucestershire Old Spot Eber. Eber, die gesund und älter als 8 Monate sind, können sich fortpflanzen."/>
+
+		<!-- Ram Texel visual descriptions -->
+		<text name="rl_bridge_ramTexelLambDesc" text="Ein junges männliches Texel Lamm. Widder, die gesund und älter als 5 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_ramTexelYoungDesc" text="Ein junger Texel Widder. Widder, die gesund und älter als 5 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_ramTexelAdultDesc" text="Ein erwachsener Texel Widder. Widder, die gesund und älter als 5 Monate sind, können sich fortpflanzen."/>
+
+		<!-- Ram Suffolk visual descriptions -->
+		<text name="rl_bridge_ramSuffolkLambDesc" text="Ein junges männliches Suffolk Lamm. Widder, die gesund und älter als 5 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_ramSuffolkYoungDesc" text="Ein junger Suffolk Widder. Widder, die gesund und älter als 5 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_ramSuffolkAdultDesc" text="Ein erwachsener Suffolk Widder. Widder, die gesund und älter als 5 Monate sind, können sich fortpflanzen."/>
+
+		<!-- Ram Blue Faced Leicester visual descriptions -->
+		<text name="rl_bridge_ramBFLLambDesc" text="Ein junges männliches Blue Faced Leicester Lamm. Widder, die gesund und älter als 5 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_ramBFLYoungDesc" text="Ein junger Blue Faced Leicester Widder. Widder, die gesund und älter als 5 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_ramBFLAdultDesc" text="Ein erwachsener Blue Faced Leicester Widder. Widder, die gesund und älter als 5 Monate sind, können sich fortpflanzen."/>
+
+		<!-- Rabbit Male visual descriptions -->
+		<text name="rl_bridge_rabbitMaleBabyDesc" text="Ein junger männlicher Rammler. Rammler, die gesund und älter als 4 Monate sind, können sich fortpflanzen."/>
+		<text name="rl_bridge_rabbitMaleDesc" text="Ein männliches Kaninchen (Rammler). Rammler, die gesund und älter als 4 Monate sind, können sich fortpflanzen."/>
+	</texts>
+</l10n>

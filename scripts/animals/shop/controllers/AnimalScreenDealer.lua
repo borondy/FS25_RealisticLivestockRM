@@ -199,13 +199,34 @@ function RL_AnimalScreenDealer:applyTarget(_, animalTypeIndex, animalIndex)
 	end
 
     local animal = item.animal or item.cluster
-    husbandry:getClusterSystem():removeCluster(RLAnimalUtil.toKey(animal.farmId, animal.uniqueId, animal.birthday.country))
+    local clusterSystem = husbandry:getClusterSystem()
+    local key = RLAnimalUtil.toKey(animal.farmId, animal.uniqueId, animal.birthday.country)
+    local cluster = clusterSystem:getClusterById(key)
+
+    if cluster == nil then
+        Log:warning("AnimalScreenDealer:applyTarget: cluster not found for key=%s", tostring(key))
+        self.errorCallback("Sale failed")
+        return false
+    end
+
+    local ok, err = pcall(function() clusterSystem:addPendingRemoveCluster(cluster) end)
+    local ok2, err2 = pcall(function() clusterSystem:updateNow() end)
+
+    if not (ok and ok2) then
+        Log:error("AnimalScreenDealer:applyTarget: removal failed key=%s queue=%s flush=%s",
+            tostring(key), tostring(err), tostring(err2))
+        self.errorCallback("Sale failed")
+        return false
+    end
+
     g_currentMission:addMoney(price + transportationFee, ownerFarmId, MoneyType.NEW_ANIMALS_COST, true, true)
-    
     g_currentMission.animalSystem:removeSaleAnimal(animalTypeIndex, animal.birthday.country, animal.farmId, animal.uniqueId)
     table.remove(self.targetItems, animalIndex)
 
     self.targetActionFinished(nil, "Animal sold successfully")
+
+    Log:debug("AnimalScreenDealer:applyTarget: sold animal uniqueId=%s farmId=%s price=%s",
+        tostring(animal.uniqueId), tostring(animal.farmId), tostring(price + transportationFee))
 
     return true
 

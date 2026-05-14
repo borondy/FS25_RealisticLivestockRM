@@ -22,6 +22,10 @@ function AnimalPregnancyEvent.new(object, animal)
 end
 
 
+--- Read a pregnancy event from the network stream.
+--- Reconstructs the pregnancy state and impregnatedBy snapshot, then dispatches via :run(connection).
+--- @param streamId number Network stream identifier
+--- @param connection Connection|nil Network connection sending this event
 function AnimalPregnancyEvent:readStream(streamId, connection)
 
     local hasObject = streamReadBool(streamId)
@@ -63,6 +67,12 @@ function AnimalPregnancyEvent:readStream(streamId, connection)
 end
 
 
+--- Write a pregnancy event to the network stream.
+--- Serializes pregnancy state and impregnatedBy snapshot. Productivity is coalesced to 1.0
+--- on write to match AnimalSerialization.lua's same-field convention; pigs/horses do not
+--- track productivity in genetics, so the snapshot field can legitimately be nil.
+--- @param streamId number Network stream identifier
+--- @param connection Connection|nil Network connection receiving this event
 function AnimalPregnancyEvent:writeStream(streamId, connection)
 
     streamWriteBool(streamId, self.object ~= nil)
@@ -96,7 +106,7 @@ function AnimalPregnancyEvent:writeStream(streamId, connection)
     streamWriteFloat32(streamId, impregnatedBy.health)
     streamWriteFloat32(streamId, impregnatedBy.fertility)
     streamWriteFloat32(streamId, impregnatedBy.quality)
-    streamWriteFloat32(streamId, impregnatedBy.productivity)
+    streamWriteFloat32(streamId, impregnatedBy.productivity or 1)
 
 end
 
