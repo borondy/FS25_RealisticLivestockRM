@@ -1,6 +1,6 @@
 <modDesc descVersion="107">
     <author>Ritter</author>
-    <version>1.2.4.0-dev.2</version>
+    <version>1.2.4.0-dev.4</version>
     <title>
         <en>Realistic Livestock - Ritter version</en>
         <it>Allevamento Realistico - Versione Ritter</it>
@@ -23,6 +23,16 @@ Documentation: https://rittermod.github.io/FS25_RealisticLivestockRM
 Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivestockRM
 
 Changelog
+
+1.2.4.0-dev.4:
+
+Improved:
+- Hereford adult cow and bull skin updated to a more breed-accurate red-and-white coat. Texture contributed by [MA] BavarianRedneck.
+
+1.2.4.0-dev.3:
+
+Fixed:
+- Finance overview now shows "Medicine" for animal medicine costs instead of the `Missing 'finance_medicine' in l10n_en.xml` fallback.
 
 1.2.4.0-dev.2:
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.2.4.0-dev.4
+
+### Improved
+- Hereford adult cow and bull skin updated to a more breed-accurate red-and-white coat. Texture contributed by [MA] BavarianRedneck.
+
+## v1.2.4.0-dev.3
+
+### Fixed
+- Finance overview now shows "Medicine" for animal medicine costs instead of the `Missing 'finance_medicine' in l10n_en.xml` fallback.
+
 ## v1.2.4.0-dev.2
 
 ### Added
