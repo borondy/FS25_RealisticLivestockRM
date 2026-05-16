@@ -1,6 +1,9 @@
 <!--
     Bridge animals for Witcombe map (FS25_Witcombe).
 
+    Tested against Witcombe Park Farm 1.2.0.0 (v3) and 1.3.0.0 (v4) - both ship
+    a byte-identical map/config/animals.xml, so the same overrides apply.
+
     This file serves three purposes:
     1. NEW SUBTYPES: Adds male subtypes (BULL_JERSEY, BOAR_GLOUCESTERSHIRE_OLD_SPOT,
        RAM_TEXEL, RAM_SUFFOLK, RAM_BLUE_FACED_LEICESTER, RABBIT_MALE) for full RLRM

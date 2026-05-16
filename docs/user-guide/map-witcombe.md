@@ -16,7 +16,9 @@ You don't need to do anything - the detection and configuration loading is fully
 
 | Map Version | Config | Status |
 |-------------|--------|--------|
-| 1.0.x | v1.0 | Tested |
+| 1.0.0.0 | v1.0 | Tested |
+| 1.2.0.0 | v1.0 | Tested |
+| 1.3.0.0 | v1.0 | Tested |
 
 If your version isn't listed and you see a warning dialog, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues) so support can be added.
 
