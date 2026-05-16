@@ -735,7 +735,7 @@
 		<text name="rl_menu_messages_col_husbandry" text="Husbandry"/>
 		<text name="rl_menu_messages_col_date" text="Date"/>
 		<text name="rl_menu_messages_unknown" text="Unknown: %s"/>
-		<!-- Phase 1.1: Messages delete -->
+		<!-- Messages delete -->
 		<text name="rl_menu_messages_delete_button" text="Delete"/>
 		<text name="rl_menu_messages_delete_all_button" text="Delete all"/>
 		<text name="rl_menu_messages_confirm_delete_all" text="Delete all %s messages? This cannot be undone."/>
@@ -778,12 +778,12 @@
 		<text name="rl_menu_ai_empty_no_stock" text="No bulls available at the dealer for this species"/>
 		<text name="rl_menu_ai_empty_no_species" text="No animal species registered"/>
 
-		<!-- Phase 1 P1-1: Settings tab shell -->
+		<!-- Settings tab shell -->
 		<text name="rl_menu_settings_title" text="Settings"/>
 		<text name="rl_menu_settings_tab_general" text="General"/>
 		<text name="rl_menu_settings_tab_filters" text="Filters"/>
 
-		<!-- Phase 1 P1-2: Filters tab list -->
+		<!-- Filters tab list -->
 		<text name="rl_menu_filters_empty" text="No saved filters yet"/>
 		<text name="rl_menu_filters_empty_no_farm" text="You need a farm to save filters"/>
 		<text name="rl_menu_filters_new_button" text="New filter"/>

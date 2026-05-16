@@ -731,7 +731,7 @@
 <text name="rl_menu_messages_col_date" text="Date"/>
 <text name="rl_menu_messages_unknown" text="Inconnu : %s"/>
 
-<!-- Phase 1.1 : Suppression des messages -->
+<!-- Suppression des messages -->
 <text name="rl_menu_messages_delete_button" text="Supprimer"/>
 <text name="rl_menu_messages_delete_all_button" text="Tout supprimer"/>
 <text name="rl_menu_messages_confirm_delete_all" text="Supprimer les %s messages ? Cette action est irréversible."/>
@@ -783,12 +783,12 @@
 <text name="rl_mod_compat_url" text="https://rittermod.github.io/FS25_RealisticLivestockRM/user-guide/reference-mod-compatibility"/>
 <text name="rl_mod_warn_FS25_AnimalFoodCalculator" text="FS25_AnimalFoodCalculator: significant performance impact that grows with herd size."/>
 
-<!-- Phase 1 P1-1: Settings tab shell (English fallback) -->
+<!-- Settings tab shell (English fallback) -->
 <text name="rl_menu_settings_title" text="Settings"/>
 <text name="rl_menu_settings_tab_general" text="General"/>
 <text name="rl_menu_settings_tab_filters" text="Filters"/>
 
-<!-- Phase 1 P1-2: Filters tab list -->
+<!-- Filters tab list -->
 <text name="rl_menu_filters_empty" text="No saved filters yet"/>
 <text name="rl_menu_filters_empty_no_farm" text="You need a farm to save filters"/>
 <text name="rl_menu_filters_new_button" text="New filter"/>

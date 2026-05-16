@@ -1,5 +1,5 @@
 -- RLFilterService.lua
--- Singleton CRUD service for saveable filter records (Phase 0 P2 + P3).
+-- Singleton CRUD service for saveable filter records.
 --
 -- Owns the in-memory filter registry `self.filtersById`, assigns stable
 -- ids on create via base-game `Utils.getUniqueId`, and handles the XML
@@ -11,7 +11,7 @@
 -- RLSettings save/load hooks call `:saveToXMLFile` / `:loadFromXMLFile`
 -- with the canonical base key `rm_RlSettings.filters`.
 --
--- Immutability (plan §4.6):
+-- Immutability:
 --   * `id`, `farmId`, `version` are frozen after create.
 --   * `name`, `animalType`, `expression` are mutable via `update`.
 --   * Violations are rejected with `:warning` and leave state unchanged.
@@ -21,7 +21,7 @@
 --     `farmId = nil` is global and appears for every farm; a filter with
 --     `animalType = nil` appears for every animal type.
 --
--- P3 additions (MP events):
+-- MP events:
 --   * `create`/`update`/`delete` dispatch RLFilter{Create,Update,Delete}Event
 --     AFTER the local mutation (Pattern A caller-mutates-first).
 --   * Events land back through `applyIncoming{Create,Update,Delete}` which
@@ -30,7 +30,7 @@
 --     so tests can capture payloads without a real network (mirrors
 --     RLMessageService._sendDeleteEvent at [RLMessageService.lua:218]).
 --
--- Ownership contract (P2 review carryover, tightened in P3):
+-- Ownership contract:
 --   * Every boundary into/out of the registry performs a defensive deep
 --     copy of the filter record (top-level shallow + recursive deep clone
 --     of the `expression` AST). Callers cannot mutate stored state by
@@ -47,17 +47,17 @@ RLFilterService = {}
 local RLFilterService_mt = { __index = RLFilterService }
 
 --- Prefix used by `Utils.getUniqueId` for filter ids. Follows the base-game
---- `UNIQUE_ID_PREFIX` convention (plan §4.7).
+--- `UNIQUE_ID_PREFIX` convention.
 RLFilterService.UNIQUE_ID_PREFIX = "rlFilter_"
 
 --- Canonical XML base key for the filters block inside `rm_RlSettings.xml`.
 --- Both the RLSettings load hook and save hook MUST reference this constant
 --- rather than hardcoding the literal so load/save paths stay in sync across
---- future refactors (plan §4.4 / P2 review P1).
+--- future refactors.
 RLFilterService.XML_BASE_KEY = "rm_RlSettings.filters"
 
 -- =============================================================================
--- Deep copy (P2 review carryover / P3 ownership hardening)
+-- Deep copy
 -- =============================================================================
 
 --- Recursively clone an AST node (`group` or `condition`). Group children
@@ -67,8 +67,8 @@ RLFilterService.XML_BASE_KEY = "rm_RlSettings.filters"
 --- Group classification: any node with non-nil `op` is treated as a group,
 --- with `children = node.children or {}`. Protects against a degenerate
 --- `{op="AND", children=nil}` being mis-classified as a condition and
---- silently destroyed (review finding). A bare-condition node (no `op`)
---- falls through to the condition branch.
+--- silently destroyed. A bare-condition node (no `op`) falls through to
+--- the condition branch.
 ---@param node any
 ---@return any clone
 local function cloneNode(node)
@@ -93,7 +93,7 @@ local function cloneNode(node)
 end
 
 --- Shallow-clone the filter's top-level scalars and deep-clone its
---- expression. Matches the P2 review carryover ownership contract.
+--- expression. Matches the ownership contract.
 ---@param f table|nil
 ---@return table|nil clone
 local function cloneFilter(f)
@@ -148,13 +148,13 @@ end
 --- with the shared mapping table so collisions are retried. Sets
 --- `version = 1` when caller did not supply one. The caller's table is
 --- not stored; a defensive clone is inserted into the registry instead
---- (P2 review carryover -- callers cannot tamper with stored state by
---- retaining a reference to their input).
+--- (callers cannot tamper with stored state by retaining a reference to
+--- their input).
 ---
 --- Returns a cloned snapshot of the stored record on success (with `id`
 --- populated) or nil when the input was nil.
 ---
---- P3: after the local mutation, dispatches `RLFilterCreateEvent` via the
+--- After the local mutation, dispatches `RLFilterCreateEvent` via the
 --- `_sendCreateEvent` hook so other peers converge. SP / offline paths
 --- are safe because the hook itself nil-guards on `g_server` / `g_client`.
 ---@param filter table filter record (without id)
@@ -177,15 +177,14 @@ function RLFilterService:create(filter)
         tostring(stored.id), tostring(stored.name),
         tostring(stored.animalType), tostring(stored.farmId))
 
-    -- P3: dispatch the Create event AFTER local mutation (Pattern A).
+    -- Dispatch the Create event AFTER local mutation (Pattern A).
     RLFilterService._sendCreateEvent(stored)
 
     return cloneFilter(stored)
 end
 
 --- Look up a filter by id. Returns a cloned snapshot of the stored
---- record (P2 review carryover) so callers cannot mutate state via
---- the returned reference.
+--- record so callers cannot mutate state via the returned reference.
 ---@param id string
 ---@return table|nil
 function RLFilterService:getById(id)
@@ -198,10 +197,10 @@ end
 --- Rejects the call (and logs `:warning`) when id is unknown, when
 --- `payload.id ~= id`, or when `payload.farmId` / `payload.version`
 --- differ from the stored record -- those fields are immutable
---- post-create (plan §4.6). Returns a cloned snapshot of the new stored
---- record on success.
+--- post-create. Returns a cloned snapshot of the new stored record
+--- on success.
 ---
---- P3: after successful local mutation, dispatches `RLFilterUpdateEvent`
+--- After successful local mutation, dispatches `RLFilterUpdateEvent`
 --- via the `_sendUpdateEvent` hook.
 ---@param id string lookup id
 ---@param payload table whole-object replacement payload
@@ -236,8 +235,8 @@ function RLFilterService:update(id, payload)
         return nil
     end
 
-    -- Completeness guard (P2 review P3): `update` is whole-object replacement
-    -- per plan §4.1 (mutable fields = name, animalType, expression). A partial
+    -- Completeness guard: `update` is whole-object replacement
+    -- (mutable fields = name, animalType, expression). A partial
     -- payload that omits `name` or `expression` would silently nil those fields
     -- and collapse the filter into a nameless, match-everything record on the
     -- next evaluate. `animalType` is allowed to be nil (global-scope filter).
@@ -266,7 +265,7 @@ function RLFilterService:update(id, payload)
     Log:debug("RLFilterService:update: id=%s applied (name=%s animalType=%s)",
         id, tostring(stored.name), tostring(stored.animalType))
 
-    -- P3: dispatch the Update event AFTER local mutation (Pattern A).
+    -- Dispatch the Update event AFTER local mutation (Pattern A).
     RLFilterService._sendUpdateEvent(stored)
 
     return cloneFilter(stored)
@@ -275,7 +274,7 @@ end
 --- Remove the filter with the given id. Returns true on success,
 --- false when the id was unknown (logged at `:warning`).
 ---
---- P3: after successful local mutation, dispatches `RLFilterDeleteEvent`
+--- After successful local mutation, dispatches `RLFilterDeleteEvent`
 --- via the `_sendDeleteEvent` hook.
 ---@param id string
 ---@return boolean removed
@@ -288,7 +287,7 @@ function RLFilterService:delete(id)
     self.filtersById[id] = nil
     Log:debug("RLFilterService:delete: id=%s removed", tostring(id))
 
-    -- P3: dispatch the Delete event AFTER local mutation (Pattern A).
+    -- Dispatch the Delete event AFTER local mutation (Pattern A).
     RLFilterService._sendDeleteEvent(id)
 
     return true
@@ -299,8 +298,8 @@ end
 -- =============================================================================
 
 --- All stored filters as an array. Order is undefined (Lua `pairs`).
---- Returned records are defensive clones (P2 review carryover) -- callers
---- may freely mutate them without affecting stored state.
+--- Returned records are defensive clones -- callers may freely mutate
+--- them without affecting stored state.
 ---@return table[] filters cloned snapshots
 function RLFilterService:list()
     local out = {}
@@ -312,13 +311,12 @@ function RLFilterService:list()
 end
 
 --- Filters that match the given scope via nil-or-equal rules on both
---- `animalType` and `farmId` (plan §4 overall rule). A filter is
---- "available" for a given call when:
+--- `animalType` and `farmId`. A filter is "available" for a given call when:
 ---   * filter.animalType is nil (any type) OR equals the passed type
 ---   * filter.farmId     is nil (global)   OR equals the passed farmId
 ---
 --- Passing nil for a scope parameter means "I don't care" for that axis.
---- Returned records are defensive clones (P2 review carryover).
+--- Returned records are defensive clones.
 ---@param animalType integer|nil AnimalType int index to match against
 ---@param farmId integer|nil farm id to match against
 ---@return table[] filters cloned snapshots
@@ -337,16 +335,15 @@ function RLFilterService:listAvailable(animalType, farmId)
 end
 
 -- =============================================================================
--- P3: Incoming-event apply paths
+-- Incoming-event apply paths
 -- =============================================================================
 --
 -- These methods land wire-decoded payloads into the registry WITHOUT firing
 -- another event. Used by RLFilter{Create,Update,Delete}Event:run() after
--- permission + farm-scope + immutability validation (plan §4.10).
+-- permission + farm-scope + immutability validation.
 --
--- Each method defensive-copies the payload (P2 review carryover) so the
--- event object's reference to the wire-decoded table cannot mutate stored
--- state after apply.
+-- Each method defensive-copies the payload so the event object's reference
+-- to the wire-decoded table cannot mutate stored state after apply.
 --
 -- Contrast with :create / :update / :delete which take a TRUSTED caller
 -- path, mutate locally, AND dispatch.
@@ -364,9 +361,9 @@ function RLFilterService:applyIncomingCreate(filter)
         return false
     end
 
-    -- Review finding (P5): surface silent-clobber. Server-authoritative state
-    -- wins, but an unexpected existing record means something is wrong
-    -- upstream (id collision, duplicate rebroadcast, state event after create).
+    -- Surface silent-clobber. Server-authoritative state wins, but an
+    -- unexpected existing record means something is wrong upstream
+    -- (id collision, duplicate rebroadcast, state event after create).
     if self.filtersById[filter.id] ~= nil then
         Log:warning("RLFilterService:applyIncomingCreate: id=%s already present locally; overwriting with authoritative payload (possible id collision or duplicate broadcast)",
             tostring(filter.id))
@@ -380,8 +377,8 @@ function RLFilterService:applyIncomingCreate(filter)
 end
 
 --- Replace a stored record with the wire-decoded payload (whole-object
---- replace per plan §4.6). Server has already enforced immutability on
---- id/farmId/version; client receivers trust the rebroadcast.
+--- replace). Server has already enforced immutability on id/farmId/version;
+--- client receivers trust the rebroadcast.
 ---@param filter table wire-decoded filter record
 ---@return boolean applied
 function RLFilterService:applyIncomingUpdate(filter)
@@ -391,9 +388,9 @@ function RLFilterService:applyIncomingUpdate(filter)
         return false
     end
 
-    -- Review finding (P5): surface update-acting-as-upsert. Server logic
-    -- rejects updates on unknown ids, so a client applying one means the
-    -- client missed the original create. Audible in logs.
+    -- Surface update-acting-as-upsert. Server logic rejects updates on
+    -- unknown ids, so a client applying one means the client missed the
+    -- original create. Audible in logs.
     if self.filtersById[filter.id] == nil then
         Log:warning("RLFilterService:applyIncomingUpdate: id=%s unknown locally; acting as upsert (possible missed create)",
             tostring(filter.id))
@@ -429,7 +426,7 @@ end
 
 --- Empty the registry. Called explicitly by `loadFromXMLFile` before
 --- reading so successive save loads in the same process cannot leak
---- state across games (plan §8 P0 exit criterion).
+--- state across games.
 function RLFilterService:clear()
     self.filtersById = {}
     Log:debug("RLFilterService:clear: state emptied")
@@ -444,8 +441,7 @@ end
 --- (defensive; the RLSettings caller already guards).
 ---
 --- Filters are sorted by id before writing so the on-disk key order
---- (`filter(0)`, `filter(1)`, ...) is deterministic across save cycles
---- (P2 review P8).
+--- (`filter(0)`, `filter(1)`, ...) is deterministic across save cycles.
 ---@param xmlFile table XMLFile handle
 ---@param baseKey string e.g. `"rm_RlSettings.filters"`
 function RLFilterService:saveToXMLFile(xmlFile, baseKey)
@@ -469,10 +465,10 @@ end
 --- via `RLFilterSerialization.readFilter`. Filters missing their id
 --- are skipped (the serializer logs the warning).
 ---
---- Iterate is wrapped in `pcall` (P2 review P7): a malformed filter that
---- crashes deep inside the serializer must not propagate out and abort
---- the surrounding `RLSettings.loadFromXMLFile`. Partial state is
---- preserved; the warning surfaces the specific failure.
+--- Iterate is wrapped in `pcall`: a malformed filter that crashes deep
+--- inside the serializer must not propagate out and abort the surrounding
+--- `RLSettings.loadFromXMLFile`. Partial state is preserved; the warning
+--- surfaces the specific failure.
 ---@param xmlFile table XMLFile handle
 ---@param baseKey string e.g. `"rm_RlSettings.filters"`
 function RLFilterService:loadFromXMLFile(xmlFile, baseKey)
@@ -503,7 +499,7 @@ function RLFilterService:loadFromXMLFile(xmlFile, baseKey)
 end
 
 -- =============================================================================
--- P3: Dispatch hooks (swappable for tests)
+-- Dispatch hooks (swappable for tests)
 -- =============================================================================
 --
 -- Production paths fire the corresponding RLFilter{Create,Update,Delete}Event

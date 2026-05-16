@@ -16,9 +16,9 @@ function RLConsoleCommandManager.new()
         addConsoleCommand("rlSetAnimalGenetics", "Set the genetics of the targeted animal", "setGenetics", self, "[geneticType] [value]")
         addConsoleCommand("rlSetAnimalInput", "Set the input of the targeted animal", "setInput", self, "[inputType] [value]")
         addConsoleCommand("rlSetAnimalOutput", "Set the output of the targeted animal", "setOutput", self, "[outputType] [value]")
-        -- Saveable filters (Phase 0 P2) -- dev commands for manual save/load verification.
+        -- Saveable filters -- dev commands for manual save/load verification.
         -- Scope hardcoded to COW/farm 1 because the goal is round-trip smoke testing,
-        -- not real-world filter authoring (Phase 1 UI).
+        -- not real-world filter authoring (the UI lives in the Settings tab).
         addConsoleCommand("rlFilterCreate", "Create a sample saveable filter (age>=48 AND isPregnant==false, COW/farm 1)", "createFilter", self, "[name]")
         addConsoleCommand("rlFilterList", "List all saveable filters currently in memory", "listFilters", self, "")
         addConsoleCommand("rlFilterClear", "Clear all saveable filters (SP diagnostic only)", "clearFilters", self, "")
@@ -468,11 +468,11 @@ end
 
 
 -- =============================================================================
--- Saveable filters (Phase 0 P2) -- dev commands for manual save/load verification.
+-- Saveable filters -- dev commands for manual save/load verification.
 -- These are intentionally minimal: the goal is to smoke-test the save file
 -- round-trip by creating a filter in one game session, saving, quitting,
 -- reloading, and confirming the filter is still there. The UI path lives
--- in Phase 1.
+-- in the Settings tab.
 -- =============================================================================
 
 

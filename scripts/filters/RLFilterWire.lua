@@ -1,7 +1,7 @@
 -- RLFilterWire.lua
--- Byte-level wire codec shared by the filter MP events (Phase 0 P3).
+-- Byte-level wire codec shared by the filter MP events.
 --
--- Implements the saveable-filters-plan.md §4.5 contract, literally:
+-- Stream layout:
 --
 --   writeByType(streamId, v, type):
 --     number      -> streamWriteFloat32
@@ -31,7 +31,7 @@
 --     streamWriteUInt16 f.version      (widened from UInt8 to survive long-lived filters)
 --     writeGroup(streamId, f.expression)
 --
--- Sentinel -1 for optional ints avoids an extra bool per field (plan §4.5).
+-- Sentinel -1 for optional ints avoids an extra bool per field.
 -- A malformed condition is emitted as two empty strings (empty field is the
 -- reader's sentinel marker; the reader skips and moves on).
 --
@@ -113,7 +113,7 @@ end
 
 --- True when the cmp token selects a list-valued condition (`in` / `notin`).
 --- Used by both writer and reader to frame list vs scalar payloads without
---- a leading wire discriminant (plan §4.5 literal).
+--- a leading wire discriminant.
 ---@param cmp string
 ---@return boolean
 local function isListCmp(cmp)
@@ -236,10 +236,10 @@ local function readCondition(streamId)
     if field == nil then
         Log:warning("RLFilterWire.readCondition: unknown field '%s' (catalog drift); stream may desync, dropping condition",
             tostring(fieldKey))
-        -- Cannot drain safely without field.type (plan §4.5 requires catalog
-        -- lookup to decode the value). Pattern A acceptable failure mode:
-        -- calling group reader will misinterpret subsequent bytes, the event
-        -- will be dropped at receiver, server logs :warning.
+        -- Cannot drain safely without field.type (catalog lookup is required
+        -- to decode the value). Pattern A acceptable failure mode: calling
+        -- group reader will misinterpret subsequent bytes, the event will be
+        -- dropped at receiver, server logs :warning.
         return nil
     end
 
@@ -288,7 +288,7 @@ local function isGroup(node)
 end
 
 --- Partition children into (conditions, groups) lists preserving input order
---- within each bucket. Matches the §4.4 on-reload ordering convention.
+--- within each bucket. Matches the on-reload ordering convention.
 ---@param children table
 ---@return table conditions, table groups
 local function partitionChildren(children)
@@ -328,7 +328,7 @@ local function writeGroup(streamId, group)
 end
 
 --- Read a group (recursive). Children order on the wire is
---- `conditions[] ++ groups[]` per plan §4.4 contract.
+--- `conditions[] ++ groups[]` per the contract.
 ---@param streamId number
 ---@return table group { op, children }
 local function readGroup(streamId)
@@ -360,7 +360,7 @@ RLFilterWire.NIL_INT_SENTINEL = -1
 
 --- Write a whole filter record. Optional scope ints use -1 as the nil sentinel.
 --- A bare-condition `expression` is wrapped in a single-child AND group so the
---- wire always carries exactly one root group (matches plan §4.4/§4.5).
+--- wire always carries exactly one root group.
 ---@param streamId number
 ---@param filter table
 function RLFilterWire.writeFilter(streamId, filter)
@@ -373,8 +373,8 @@ function RLFilterWire.writeFilter(streamId, filter)
     local fid = filter.farmId
     streamWriteInt32(streamId, fid ~= nil and fid or RLFilterWire.NIL_INT_SENTINEL)
 
-    -- UInt16 version (P3 review: UInt8 saturates at 255, unusable ceiling
-    -- for long-lived filters if a future phase ever bumps the version).
+    -- UInt16 version: UInt8 saturates at 255, unusable ceiling for long-lived
+    -- filters if a future cycle ever bumps the version.
     streamWriteUInt16(streamId, filter.version or 1)
 
     local expression = filter.expression

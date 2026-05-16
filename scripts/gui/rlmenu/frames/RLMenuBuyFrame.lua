@@ -368,7 +368,7 @@ function RLMenuBuyFrame:reloadAnimalList()
         end
 
         -- Saved-filter narrowing (AND with ad-hoc). Dealer animals may fail
-        -- monitor-gated catalog fields per plan §4.8 (expected fail-closed).
+        -- monitor-gated catalog fields (expected fail-closed).
         if self.activeFilter ~= nil then
             self.items = RLFilterCycleHelper.applyFilter(self.items, self.activeFilter)
         end

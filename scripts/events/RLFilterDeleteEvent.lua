@@ -1,11 +1,11 @@
 --[[
     RLFilterDeleteEvent.lua
-    Network event for deleting a saveable filter by id (Phase 0 P3).
+    Network event for deleting a saveable filter by id.
 
     Pattern A (caller-mutates-first). Caller (RLFilterService:delete) mutates
     local state BEFORE calling sendEvent.
 
-    Server-side validation (plan §4.10):
+    Server-side validation:
       1. getHasPlayerPermission("tradeAnimals", connection)
       2. stored = g_rlFilterService:getById(id) on SERVER. If unknown -> log
          :warning + drop (no mutation, no rebroadcast); I/O matrix row

@@ -537,8 +537,8 @@ function RLMenuSettingsFrame:updateButtonVisibility()
 end
 
 --- UX-side permission gate for New filter. The authoritative boundary is
---- the server-side validation inside RLFilter{Create,Update,Delete}Event:run
---- (plan §4.10); this check only controls button visibility and the early
+--- the server-side validation inside RLFilter{Create,Update,Delete}Event:run;
+--- this check only controls button visibility and the early
 --- abort in onClickNewFilter. Mirrors RLMenuMessagesFrame:hasDeletePermission
 --- with "updateFarm" swapped for "tradeAnimals".
 function RLMenuSettingsFrame:hasCreatePermission()
@@ -553,7 +553,7 @@ end
 -- =============================================================================
 
 --- Disambiguated default name so repeated [New filter] clicks don't produce
---- N identical rows while the P1-3 editor is still in flight. Base is the
+--- N identical rows while the inline editor is still in flight. Base is the
 --- localized "New filter" string; the " (N)" suffix is numeric so locales
 --- can keep the base and get a universal index. "New filter", "New filter (2)",
 --- "New filter (3)" in English.
@@ -582,7 +582,7 @@ function RLMenuSettingsFrame:computeDefaultFilterName()
 end
 
 --- Footer New filter handler. Creates a placeholder filter scoped to the
---- local farm with an empty AND expression (vacuous-true per plan §4.3),
+--- local farm with an empty AND expression (vacuous-true),
 --- sets selectedFilterId so refreshData auto-selects the new row via
 --- resolveSelectionById, then refreshes.
 ---

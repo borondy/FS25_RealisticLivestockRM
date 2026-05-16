@@ -2,14 +2,13 @@
     RLMenu.lua
     Root controller for the RL Tabbed Menu (standalone TabbedMenu subclass).
 
-    Phase 1: ships the Messages tab as the first real tab. Opened via the
-    unbound RL_MENU input action (user assigns a key in Settings -> Controls).
-    ESC closes via the standard FS25 back-button pattern; the menu does NOT
-    implement toggle-to-close (Fresh's quick-view pattern is unsuitable for a
-    destination menu).
+    Opened via the unbound RL_MENU input action (user assigns a key in
+    Settings -> Controls). ESC closes via the standard FS25 back-button
+    pattern; the menu does NOT implement toggle-to-close (Fresh's
+    quick-view pattern is unsuitable for a destination menu).
 
-    Phase 2+ adds the remaining tabs (Herdsman, Info, Move, Buy, Sell, AI) with
-    dedicated frame files under frames/ and service files under services/.
+    Tabs (Buy, Sell, Move, Manage, AI, Messages, Settings) live under
+    frames/ with shared logic under services/.
 ]]
 
 RLMenu = RLMenu or {}
@@ -51,7 +50,7 @@ function RLMenu.setupGui()
     -- 1. Load RL menu profiles (separate file from gui/guiProfiles.xml)
     g_gui:loadProfiles(Utils.getFilename("gui/rlmenu/rlMenuProfiles.xml", modDirectory))
 
-    -- 2. Register frames (Phase 1: Messages; Phase 2a: Info; Phase 3: Move; Phase 4: Sell; Phase 5: Buy; Phase 6: AI; Phase 7: Settings)
+    -- 2. Register frames
     RLMenuMessagesFrame.setupGui()
     RLMenuInfoFrame.setupGui()
     RLMenuMoveFrame.setupGui()
@@ -130,7 +129,7 @@ function RLMenu:setupMenuPages()
         self.messagesFrame:initialize()
     end
 
-    -- Settings tab (tail - hosts the saveable-filters editor from P1-2 onward)
+    -- Settings tab (tail - hosts the saveable-filters editor)
     self:registerPage(self.settingsFrame, 7, basePredicate)
     self:addPageTab(self.settingsFrame, nil, nil, "gui.icon_options_generalSettings")
     if self.settingsFrame ~= nil and self.settingsFrame.initialize ~= nil then
@@ -141,7 +140,7 @@ function RLMenu:setupMenuPages()
 end
 
 --- Configure the bottom button bar.
---- Phase 0: ESC-only Back button; no toggle-to-close action. The footer shows
+--- ESC-only Back button; no toggle-to-close action. The footer shows
 --- "ESC - Back" while the menu is open, matching every other FS25 tabbed menu.
 function RLMenu:setupMenuButtonInfo()
     Log:debug("RLMenu:setupMenuButtonInfo: wiring back button")

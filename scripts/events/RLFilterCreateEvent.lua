@@ -1,13 +1,13 @@
 --[[
     RLFilterCreateEvent.lua
-    Network event for creating a saveable filter record (Phase 0 P3).
+    Network event for creating a saveable filter record.
 
     Pattern A (caller-mutates-first + rebroadcast-from-run with
     ignoreConnection=sender). The caller (RLFilterService:create) MUST mutate
     local state BEFORE calling sendEvent. This event's run() applies the
     mutation on every receiver that is NOT the original sender.
 
-    Server-side validation (plan §4.10):
+    Server-side validation:
       1. getHasPlayerPermission("tradeAnimals", connection)
       2. If filter.farmId ~= nil: sender's farm must match filter.farmId
       3. Reject if a filter with the same id already exists (pathological)
@@ -41,7 +41,7 @@ function RLFilterCreateEvent.new(filter)
     return self
 end
 
---- Serialize via the shared §4.5 codec.
+--- Serialize via the shared RLFilterWire codec.
 function RLFilterCreateEvent:writeStream(streamId, connection)
     if self.filter == nil then
         Log:warning("RLFilterCreateEvent:writeStream: nil filter payload (nothing to write)")

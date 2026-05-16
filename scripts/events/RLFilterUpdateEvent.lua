@@ -1,16 +1,16 @@
 --[[
     RLFilterUpdateEvent.lua
-    Network event for whole-object replacement of a saveable filter (Phase 0 P3).
+    Network event for whole-object replacement of a saveable filter.
 
     Pattern A (caller-mutates-first). Caller (RLFilterService:update) mutates
     local state BEFORE calling sendEvent.
 
-    Server-side validation (plan §4.10 + §4.6 immutability):
+    Server-side validation:
       1. getHasPlayerPermission("tradeAnimals", connection)
       2. stored = g_rlFilterService:getById(payload.id); reject unknown id
       3. Farm scope: payload.farmId ~= nil -> sender's farmId must match
       4. Immutability: payload.id / payload.farmId / payload.version must
-         equal the stored record. Server rejects any divergence (plan §4.6).
+         equal the stored record. Server rejects any divergence.
 
     Pattern reference: HusbandryMessageDeleteEvent.lua:27-167.
 ]]
@@ -87,7 +87,7 @@ function RLFilterUpdateEvent:run(connection)
             return
         end
 
-        -- Immutability guard (plan §4.6): reject divergence on id/farmId/version.
+        -- Immutability guard: reject divergence on id/farmId/version.
         if filter.farmId ~= stored.farmId then
             Log:warning("RLFilterUpdateEvent:run: farmId tamper attempt on id=%s (payload=%s stored=%s) user='%s'",
                 tostring(filter.id), tostring(filter.farmId), tostring(stored.farmId), tostring(userName))

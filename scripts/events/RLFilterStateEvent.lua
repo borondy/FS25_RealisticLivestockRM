@@ -1,6 +1,6 @@
 --[[
     RLFilterStateEvent.lua
-    Full-state filter snapshot (Phase 0 P4).
+    Full-state filter snapshot.
 
     Server -> client only. Dispatched from `sendInitialClientState` for every
     connecting client so late-joiners converge with the authoritative server
@@ -8,7 +8,7 @@
     mutation is rejected server-side -- the next state event
     wipes and re-applies, which reconciles divergent local state.
 
-    Wire format (recursive §4.5 codec via RLFilterWire):
+    Wire format (recursive codec via RLFilterWire):
         streamWriteUInt16(count)
         for i = 1, count do writeFilter(streamId, filter) end
 
@@ -17,7 +17,7 @@
       2. For each received filter, invoke `applyIncomingCreate` which does
          NOT dispatch further events (the receiver apply is not a local
          mutation that should re-broadcast) AND deep-clones the wire payload
-         (P2 carryover ownership contract).
+         (ownership contract).
 
     Empty-set (count=0) is a valid state event -- a server with zero filters
     still sends, giving clients a deterministic "clear-to-empty" signal.
@@ -25,7 +25,7 @@
     Pattern references:
       - AnimalSystemStateEvent.lua (send-per-connection state snapshot)
       - HusbandryMessageStateEvent.lua (wiring site in sendInitialClientState)
-      - RLFilterCreateEvent.lua (§4.5 wire conventions + validation style)
+      - RLFilterCreateEvent.lua (wire conventions + validation style)
 ]]
 
 RLFilterStateEvent = {}
@@ -62,7 +62,7 @@ end
 --- event and leaves the receiver in its prior state.
 RLFilterStateEvent.MAX_FILTER_COUNT = 10000
 
---- Serialize via the shared §4.5 codec with a UInt16 count prefix.
+--- Serialize via the shared RLFilterWire codec with a UInt16 count prefix.
 ---
 --- Counts contiguous 1..N entries via `ipairs` rather than `#self.filters`
 --- so a future `list()` refactor that yields a sparse / map-shaped table
@@ -169,7 +169,7 @@ function RLFilterStateEvent:run(connection)
 end
 
 --- Server-only dispatcher. Sends the full filter state to a single target
---- connection. Clients that call this get a `:warning` drop per plan §4.10
+--- connection. Clients that call this get a `:warning` drop
 --- (server-authoritative). This is the SINGLE dispatch path -- both the
 --- primary wiring in `RealisticLivestock_FSBaseMission:sendInitialClientState`
 --- and any future admin-triggered resend route through here, so the

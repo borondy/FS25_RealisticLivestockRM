@@ -1,7 +1,7 @@
 -- RLFilterSerialization.lua
--- Recursive XML writer/reader for saveable filter records (Phase 0 P2).
+-- Recursive XML writer/reader for saveable filter records.
 --
--- Canonical XML key contract (saveable-filters-plan.md §4.4):
+-- Canonical XML key contract:
 --
 --   rm_RlSettings.filters.filter(i)
 --     @id, @name, @animalType, @farmId, @version
@@ -22,21 +22,19 @@
 -- not the runtime int index -- matches the persistence contract used for
 -- subType elsewhere (see AnimalPersistence.lua) and survives AnimalType
 -- reordering across game versions or mod sets. MP wire format still uses
--- the int index (plan §4.5).
+-- the int index.
 --
--- Defensive contracts (P2 review triage):
---  * P2: nil resolution of animalType name<->index emits `:warning` so silent
---    scope drops on reload are diagnosable (reviewer: blind hunter #3 + edge
---    case hunter #2).
---  * P4: missing `.group` subtree at read time emits `:warning` and returns
+-- Defensive contracts:
+--  * nil resolution of animalType name<->index emits `:warning` so silent
+--    scope drops on reload are diagnosable.
+--  * missing `.group` subtree at read time emits `:warning` and returns
 --    nil (filter is skipped) rather than fabricating an empty-AND that would
---    match every animal (reviewer: blind hunter #7).
---  * P6: scalar condition with nil `value` is rejected with `:warning` at
---    write time instead of passing nil to `setXMLFloat/Bool/String` C bindings
---    (reviewer: edge case hunter #1).
---  * P9: condition `cmp` is validated against the catalog field's `cmps`
+--    match every animal.
+--  * scalar condition with nil `value` is rejected with `:warning` at
+--    write time instead of passing nil to `setXMLFloat/Bool/String` C bindings.
+--  * condition `cmp` is validated against the catalog field's `cmps`
 --    whitelist on both read and write; invalid tokens are skipped with a
---    warning (reviewer: edge case hunter #8).
+--    warning.
 
 local Log = RmLogging.getLogger("RLRM")
 
@@ -68,7 +66,7 @@ local TYPE_CODECS = {
 }
 
 -- =============================================================================
--- AnimalType int <-> stable name (P2 patch: warn on silent drops)
+-- AnimalType int <-> stable name (warn on silent drops)
 -- =============================================================================
 
 --- Per-process dedup for type-name / type-index resolution warnings. Emitting
@@ -83,7 +81,7 @@ local _warnedTypeName  = {}
 ---
 --- When the caller supplied a non-nil idx but resolution fails, emit a
 --- one-shot `:warning` keyed on that idx. Silent nil returns would let
---- a typed filter silently demote to global scope on re-save (P2 review P2).
+--- a typed filter silently demote to global scope on re-save.
 ---@param idx integer|nil
 ---@return string|nil name
 local function animalTypeIndexToName(idx)
@@ -113,7 +111,7 @@ end
 --- Emits a one-shot `:warning` when a non-nil name fails to resolve
 --- (e.g. the mod that registered a custom type was uninstalled between
 --- save cycles). Without this warning a COW-scoped filter would silently
---- become global on reload (P2 review P2).
+--- become global on reload.
 ---@param name string|nil
 ---@return integer|nil index
 local function animalTypeNameToIndex(name)
@@ -136,13 +134,13 @@ local function animalTypeNameToIndex(name)
 end
 
 -- =============================================================================
--- cmp validation (P9 patch: whitelist against catalog field.cmps)
+-- cmp validation (whitelist against catalog field.cmps)
 -- =============================================================================
 
 --- True when `cmp` appears in `field.cmps`. Used to fail-closed on invalid
 --- comparators at the I/O boundary rather than deferring the error to the
 --- evaluator where it'd silently return false for every animal with no
---- diagnostic trail (P2 review P9).
+--- diagnostic trail.
 ---@param field table catalog entry
 ---@param cmp string
 ---@return boolean
@@ -180,7 +178,7 @@ local function writeCondition(xmlFile, condKey, cond)
         return false
     end
 
-    -- P9: reject unknown / not-allowed comparators at the I/O boundary so a
+    -- Reject unknown / not-allowed comparators at the I/O boundary so a
     -- future deprecated `cmp` does not silently persist into saves.
     if not isCmpAllowed(field, cond.cmp) then
         Log:warning("RLFilterSerialization.writeCondition: cmp '%s' is not in whitelist for field '%s' at %s; skipping",
@@ -195,7 +193,7 @@ local function writeCondition(xmlFile, condKey, cond)
         return false
     end
 
-    -- P2 rlrm-181 review F2: validate value shape BEFORE emitting any XML.
+    -- Validate value shape BEFORE emitting any XML.
     -- Previous ordering wrote @field and @cmp first, and only then checked
     -- the value - if the value was malformed, the @field/@cmp attrs were
     -- already on disk. When this happened to the *trailing* condition of
@@ -210,7 +208,7 @@ local function writeCondition(xmlFile, condKey, cond)
             return false
         end
     else
-        -- P6: nil scalar value reaching setXMLFloat/Bool/String via the C
+        -- Nil scalar value reaching setXMLFloat/Bool/String via the C
         -- binding is unsafe (undefined behavior / crash). Fail-closed here
         -- so one malformed condition can't abort the entire AnimalSystem save.
         if cond.value == nil then
@@ -262,7 +260,7 @@ local function readCondition(xmlFile, condKey)
         return nil
     end
 
-    -- P9: reject unknown / not-allowed comparators at the I/O boundary.
+    -- Reject unknown / not-allowed comparators at the I/O boundary.
     if not isCmpAllowed(field, cmp) then
         Log:warning("RLFilterSerialization.readCondition: cmp '%s' is not in whitelist for field '%s' at %s; skipping",
             tostring(cmp), tostring(fieldKey), tostring(condKey))
@@ -310,7 +308,7 @@ end
 
 --- Write a group node (recursive).
 --- Children are serialized conditions-first then groups, matching the
---- plan §4.4 "collapse-ordering" rule: cross-type order is not preserved
+--- "collapse-ordering" rule: cross-type order is not preserved
 --- because AND/OR are commutative/associative.
 ---@param xmlFile table
 ---@param groupKey string
@@ -346,7 +344,7 @@ local function writeGroup(xmlFile, groupKey, group)
 end
 
 --- Read a group node (recursive). Children ordering on load is
---- `conditions[] ++ groups[]` per plan §4.4 contract.
+--- `conditions[] ++ groups[]` per the contract.
 ---@param xmlFile table
 ---@param groupKey string
 ---@return table group { op, children }
@@ -420,7 +418,7 @@ end
 
 --- Read one filter record from `filterKey`. Returns nil when the record
 --- is missing required identity (id) or when the mandatory `.group`
---- subtree is absent (P2 review P4): fabricating a match-all filter from
+--- subtree is absent: fabricating a match-all filter from
 --- a truncated save is worse than skipping the record, because on the
 --- next save the empty-AND would be written back and silently persist.
 --- Caller is responsible for storing the returned record.
@@ -441,7 +439,7 @@ function RLFilterSerialization.readFilter(xmlFile, filterKey)
     local farmId = xmlFile:getInt(filterKey .. "#farmId")
     local version = xmlFile:getInt(filterKey .. "#version", 1)
 
-    -- P4: a filter without a `.group` subtree is malformed XML (truncated
+    -- A filter without a `.group` subtree is malformed XML (truncated
     -- save, incompatible mod version, etc.). Skip + warn so the corruption
     -- is visible in logs and does not silently persist as a match-all.
     local groupKey = filterKey .. ".group"
