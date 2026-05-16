@@ -131,14 +131,14 @@ function RLMenu:setupMenuPages()
 
     -- Buy tab (leftmost - most frequent commerce entry point)
     self:registerPage(self.buyFrame, 1, traced("buy", basePredicate))
-    self:addPageTab(self.buyFrame, nil, nil, "rlExtra.buy_animal")
+    self:addPageTab(self.buyFrame, nil, nil, "rlMenu.buy_animal")
     if self.buyFrame ~= nil and self.buyFrame.initialize ~= nil then
         self.buyFrame:initialize()
     end
 
     -- Sell tab
     self:registerPage(self.sellFrame, 2, traced("sell", basePredicate))
-    self:addPageTab(self.sellFrame, nil, nil, "rlExtra.sell_animal")
+    self:addPageTab(self.sellFrame, nil, nil, "rlMenu.sell_animal")
     if self.sellFrame ~= nil and self.sellFrame.initialize ~= nil then
         self.sellFrame:initialize()
     end
@@ -147,21 +147,21 @@ function RLMenu:setupMenuPages()
     self:registerPage(self.moveFrame, 3, traced("move", function()
         return basePredicate() and not isDealerMode()
     end))
-    self:addPageTab(self.moveFrame, nil, nil, "rlExtra.move_animal")
+    self:addPageTab(self.moveFrame, nil, nil, "rlMenu.move_animal")
     if self.moveFrame ~= nil and self.moveFrame.initialize ~= nil then
         self.moveFrame:initialize()
     end
 
     -- Manage tab
     self:registerPage(self.infoFrame, 4, traced("info", basePredicate))
-    self:addPageTab(self.infoFrame, nil, nil, "rlExtra.info_animal")
+    self:addPageTab(self.infoFrame, nil, nil, "rlMenu.info_animal")
     if self.infoFrame ~= nil and self.infoFrame.initialize ~= nil then
         self.infoFrame:initialize()
     end
 
     -- AI tab
     self:registerPage(self.aiFrame, 5, traced("ai", basePredicate))
-    self:addPageTab(self.aiFrame, nil, nil, "rlExtra.manage_animal")
+    self:addPageTab(self.aiFrame, nil, nil, "rlMenu.manage_animal")
     if self.aiFrame ~= nil and self.aiFrame.initialize ~= nil then
         self.aiFrame:initialize()
     end
@@ -170,7 +170,7 @@ function RLMenu:setupMenuPages()
     self:registerPage(self.messagesFrame, 6, traced("messages", function()
         return basePredicate() and not isDealerMode()
     end))
-    self:addPageTab(self.messagesFrame, nil, nil, "rlExtra.notify_animal")
+    self:addPageTab(self.messagesFrame, nil, nil, "rlMenu.notify_animal")
     if self.messagesFrame ~= nil and self.messagesFrame.initialize ~= nil then
         self.messagesFrame:initialize()
     end
@@ -417,10 +417,10 @@ end
 ---   1. PlayerInputComponent.registerGlobalPlayerActionEvents - so `RL_MENU` is
 ---      registered whenever a player input context is created.
 ---   2. RealisticLivestock.loadMap - defers `RLMenu.setupGui()` until AFTER
----      RealisticLivestock.loadMap has registered the `rlExtra` texture
+---      RealisticLivestock.loadMap has registered the `rlMenu` texture
 ---      config. Without this hook ordering, setupGui parses rlMenu.xml's
----      `imageSliceId="rlExtra.buy_animal"` before the texture namespace
----      exists, emitting `Warning: No texture config with prefix 'rlExtra'
+---      `imageSliceId="rlMenu.buy_animal"` before the texture namespace
+---      exists, emitting `Warning: No texture config with prefix 'rlMenu'
 ---      found` at mod load. The warning was harmless in practice but noisy.
 ---      Hooking into loadMap resolves the ordering cleanly.
 ---

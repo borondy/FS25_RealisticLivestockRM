@@ -9,7 +9,7 @@
 
     Differences from infoFrame.xml:
       - defaultCell includes checkbox + check elements for multi-select
-      - Header icon is rlExtra.move_animal (not info_animal)
+      - Header icon is rlMenu.move_animal (not info_animal)
       - Header title is rl_menu_move_title (not info_title)
 
     FS25 GUI XML has no Include mechanism, so pen + animal column XML is
@@ -103,7 +103,7 @@
         <!-- Header panel (Move icon + title + balance box) -->
         <GuiElement profile="fs25_menuHeaderPanel" position="0px 74px">
             <Bitmap profile="fs25_menuHeaderIconBg">
-                <Bitmap profile="fs25_menuHeaderIcon" imageSliceId="rlExtra.move_animal"/>
+                <Bitmap profile="fs25_menuHeaderIcon" imageSliceId="rlMenu.move_animal"/>
             </Bitmap>
             <Text profile="fs25_menuHeaderTitle" text="$l10n_rl_menu_move_title"/>
             <RoundCorner profile="fs25_shopMoneyBoxBg" id="moneyBoxBg"/>
