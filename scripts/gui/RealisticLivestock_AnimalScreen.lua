@@ -31,6 +31,20 @@ AnimalScreen.DEWAR_QUANTITIES = {
 
 function RealisticLivestock_AnimalScreen.show(husbandry, vehicle, isDealer)
 
+    -- Dealer-only redirect: shop "Buy Animals" + walk-up dealer trigger
+    -- without a trailer. RLMenu Buy tab routes the same AnimalBuyEvent via
+    -- RLAnimalBuyService - mutation parity preserved (see
+    -- spec-rlrm-261-rlmenu-dealer-redirect.md).
+    -- Trailer flavors and husbandry walk-up fall through to legacy unchanged.
+    if husbandry == nil and vehicle == nil and isDealer == true then
+        if g_rlMenu ~= nil then
+            Log:info("AnimalScreen.show: dealer-shape -> RLMenu (page=1 mode=dealer)")
+            RLMenu.openFromBridge(1, RLMenu.MODE_DEALER)
+            return
+        end
+        Log:warning("AnimalScreen.show: dealer-shape matched but g_rlMenu nil, falling through to legacy")
+    end
+
     g_animalScreen.isTrailerFarm = husbandry ~= nil and vehicle ~= nil
     g_animalScreen.filters = nil
     g_animalScreen.filteredItems = nil
@@ -1399,7 +1413,7 @@ function AnimalScreen:onClickMoveMode()
 end
 
 
--- Page navigation cycle: Buy → Sell → Move → Info → AI → Log → Herdsman → Buy
+-- Page navigation cycle: Buy -> Sell -> Move -> Info -> AI -> Log -> Herdsman -> Buy
 function RealisticLivestock_AnimalScreen:onPageNext(superFunc)
     if self.isBuyMode then
         self:onClickSellMode()
@@ -1426,7 +1440,7 @@ end
 AnimalScreen.onPageNext = Utils.overwrittenFunction(AnimalScreen.onPageNext, RealisticLivestock_AnimalScreen.onPageNext)
 
 
--- Page navigation reverse: Buy ← Sell ← Move ← Info ← AI ← Log ← Herdsman ← Buy
+-- Page navigation reverse: Buy <- Sell <- Move <- Info <- AI <- Log <- Herdsman <- Buy
 function RealisticLivestock_AnimalScreen:onPagePrevious(superFunc)
     if self.isBuyMode then
         self:onClickHerdsmanMode()

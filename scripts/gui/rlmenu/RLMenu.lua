@@ -20,6 +20,19 @@ local modDirectory = g_currentModDirectory
 -- Input action name for opening the menu. Declared in modDesc.xml, unbound by default.
 RLMenu.ACTION_NAME = "RL_MENU"
 
+-- Open-mode constants. MODE_FULL is the default; MODE_DEALER hides Move/
+-- Messages/Settings tabs via predicate gating so the menu acts as the new
+-- entry for shop "Buy Animals" and walk-up dealer triggers.
+-- See spec-rlrm-261-rlmenu-dealer-redirect.md for the entry-point taxonomy.
+RLMenu.MODE_FULL = "full"
+RLMenu.MODE_DEALER = "dealer"
+
+-- Highest page id registered in setupMenuPages. Used as the upper bound for
+-- openFromBridge's startPageId validation. If a tab is added/removed, bump
+-- this and renumber setupMenuPages in lockstep -- the spec ASKS to halt on
+-- such changes.
+RLMenu.PAGE_COUNT = 7
+
 --- Construct a new RLMenu instance. Called once from setupGui() during mod load.
 --- @param target table|nil
 --- @param custom_mt table|nil
@@ -34,7 +47,13 @@ function RLMenu.new(target, custom_mt)
     -- { husbandry = placeable ref, animalIdentity = { farmId, uniqueId, country } }
     self.sharedSelection = nil
 
-    Log:trace("RLMenu.new: instance created")
+    -- Open mode: MODE_FULL exposes all 7 tabs (keyboard-shortcut path);
+    -- MODE_DEALER hides Move/Messages/Settings via predicate gating
+    -- (set by RLMenu.openFromBridge for the AnimalScreen dealer-shape redirect).
+    -- Reset to MODE_FULL on every onClose so the next keyboard open is unaffected.
+    self.openMode = RLMenu.MODE_FULL
+
+    Log:trace("RLMenu.new: instance created (openMode=%s)", tostring(self.openMode))
     return self
 end
 
@@ -87,56 +106,85 @@ end
 function RLMenu:setupMenuPages()
     local basePredicate = function() return g_currentMission ~= nil end
 
+    -- Closure-captured instance reference for the dealer-mode predicates.
+    -- We read self.openMode through this upvalue (NOT g_rlMenu) so the gating
+    -- stays bound to the instance and tests can mock without touching globals.
+    -- TabbedMenu:updatePages() re-runs predicates on every onOpen, so this is
+    -- a pure function of openMode - no leaks across opens.
+    local rlMenu = self
+    local function isDealerMode()
+        return rlMenu.openMode == RLMenu.MODE_DEALER
+    end
+
+    -- Wrap each registered predicate so its final per-tab decision is logged at
+    -- TRACE. The spec invariant ("every predicate decision logs Log:trace")
+    -- means the discriminator alone is insufficient -- each tab's pass/fail
+    -- needs an observable trail at TabbedMenu:updatePages() time.
+    local function traced(name, fn)
+        return function()
+            local result = fn()
+            Log:trace("RLMenu predicate %s: %s (openMode=%s)",
+                name, tostring(result), tostring(rlMenu.openMode))
+            return result
+        end
+    end
+
     -- Buy tab (leftmost - most frequent commerce entry point)
-    self:registerPage(self.buyFrame, 1, basePredicate)
+    self:registerPage(self.buyFrame, 1, traced("buy", basePredicate))
     self:addPageTab(self.buyFrame, nil, nil, "rlExtra.buy_animal")
     if self.buyFrame ~= nil and self.buyFrame.initialize ~= nil then
         self.buyFrame:initialize()
     end
 
     -- Sell tab
-    self:registerPage(self.sellFrame, 2, basePredicate)
+    self:registerPage(self.sellFrame, 2, traced("sell", basePredicate))
     self:addPageTab(self.sellFrame, nil, nil, "rlExtra.sell_animal")
     if self.sellFrame ~= nil and self.sellFrame.initialize ~= nil then
         self.sellFrame:initialize()
     end
 
-    -- Move tab
-    self:registerPage(self.moveFrame, 3, basePredicate)
+    -- Move tab (hidden in dealer mode)
+    self:registerPage(self.moveFrame, 3, traced("move", function()
+        return basePredicate() and not isDealerMode()
+    end))
     self:addPageTab(self.moveFrame, nil, nil, "rlExtra.move_animal")
     if self.moveFrame ~= nil and self.moveFrame.initialize ~= nil then
         self.moveFrame:initialize()
     end
 
     -- Manage tab
-    self:registerPage(self.infoFrame, 4, basePredicate)
+    self:registerPage(self.infoFrame, 4, traced("info", basePredicate))
     self:addPageTab(self.infoFrame, nil, nil, "rlExtra.info_animal")
     if self.infoFrame ~= nil and self.infoFrame.initialize ~= nil then
         self.infoFrame:initialize()
     end
 
     -- AI tab
-    self:registerPage(self.aiFrame, 5, basePredicate)
+    self:registerPage(self.aiFrame, 5, traced("ai", basePredicate))
     self:addPageTab(self.aiFrame, nil, nil, "rlExtra.manage_animal")
     if self.aiFrame ~= nil and self.aiFrame.initialize ~= nil then
         self.aiFrame:initialize()
     end
 
-    -- Messages tab
-    self:registerPage(self.messagesFrame, 6, basePredicate)
+    -- Messages tab (hidden in dealer mode)
+    self:registerPage(self.messagesFrame, 6, traced("messages", function()
+        return basePredicate() and not isDealerMode()
+    end))
     self:addPageTab(self.messagesFrame, nil, nil, "rlExtra.notify_animal")
     if self.messagesFrame ~= nil and self.messagesFrame.initialize ~= nil then
         self.messagesFrame:initialize()
     end
 
-    -- Settings tab (tail - hosts the saveable-filters editor)
-    self:registerPage(self.settingsFrame, 7, basePredicate)
+    -- Settings tab (tail - hosts the saveable-filters editor; hidden in dealer mode)
+    self:registerPage(self.settingsFrame, 7, traced("settings", function()
+        return basePredicate() and not isDealerMode()
+    end))
     self:addPageTab(self.settingsFrame, nil, nil, "gui.icon_options_generalSettings")
     if self.settingsFrame ~= nil and self.settingsFrame.initialize ~= nil then
         self.settingsFrame:initialize()
     end
 
-    Log:debug("RLMenu:setupMenuPages: 7 pages registered (buy, sell, move, manage, ai, messages, settings)")
+    Log:debug("RLMenu:setupMenuPages: 7 pages registered (buy, sell, move, manage, ai, messages, settings); move/messages/settings dealer-mode gated")
 end
 
 --- Configure the bottom button bar.
@@ -205,7 +253,39 @@ function RLMenu:onClose()
         self.sharedSelection.activeFilterId = nil
     end
 
-    RLMenu:superClass().onClose(self)
+    -- Capture dealer-mode state BEFORE super onClose so we can decide whether
+    -- to force a Buy-tab anchor on next open. Reset openMode here too so any
+    -- frame close hooks invoked by super see MODE_FULL (predicate-gated tabs
+    -- that may run logic on close should not see leaked dealer state).
+    local wasDealer = (self.openMode == RLMenu.MODE_DEALER)
+    self.openMode = RLMenu.MODE_FULL
+
+    -- Wrap super-onClose in pcall: base TabbedMenu.onClose touches
+    -- currentPage:onFrameClose(), g_inputBinding, pageSelector:getState(),
+    -- and g_currentMission:resetGameState() (TabbedMenu.lua:78-97). Any one
+    -- of those can nil-deref in a torn-down session and would skip the
+    -- wasDealer force-reset below, leaking dealer-mode page anchoring into
+    -- the next open. pcall makes the force-reset unconditional.
+    local superOk, superErr = pcall(function() RLMenu:superClass().onClose(self) end)
+    if not superOk then
+        Log:warning("RLMenu:onClose: super-onClose threw (err=%s); continuing close",
+            tostring(superErr))
+    end
+
+    -- Force restorePageIndex = 1 AFTER super onClose: TabbedMenu:onClose
+    -- (base/TabbedMenu.lua:88-89) overwrites self.restorePageIndex with
+    -- self.pageSelector:getState() (a VISIBLE-tab index). Dealer-mode visible
+    -- indices differ from full-mode (e.g. dealer AI sits at visible index 4
+    -- where full-mode index 4 is Info), so a naive snapshot would mode-cross
+    -- the next shortcut-open onto the wrong tab. Anchoring at 1 (Buy) is
+    -- predictable for both modes.
+    if wasDealer then
+        self.restorePageIndex = 1
+        self.restorePage = nil
+    end
+    Log:debug("RLMenu:onClose: openMode reset (wasDealer=%s, restorePageIndex=%s, superOk=%s)",
+        tostring(wasDealer), tostring(self.restorePageIndex), tostring(superOk))
+
     self.isOpen = false
     Log:info("RLMenu closed")
 end
@@ -219,6 +299,71 @@ function RLMenu.open()
     end
     Log:debug("RLMenu.open: showing menu")
     g_gui:showGui("RLMenu")
+end
+
+--- Open the RL Menu from another GUI surface (the AnimalScreen.show dealer
+--- redirect). Mirrors the legacy `AnimalScreen.show` pattern of calling
+--- `g_gui:showGui` directly to REPLACE a non-dialog screen (e.g. the shop
+--- menu). Dialog gating still applies: if a modal dialog (YesNoDialog,
+--- AnimalFilterDialog, etc.) is up, the bridge bails -- replacing the
+--- underlying screen would leave the dialog floating over RLMenu with no
+--- owner. State mutations to g_rlMenu happen ONLY after we've decided to
+--- show, and are rolled back if showGui throws (so a partial show does not
+--- poison the next legitimate open).
+---
+--- @param startPageId number Page index in [1, RLMenu.PAGE_COUNT] to land on (Buy=1).
+--- @param mode string RLMenu.MODE_FULL or RLMenu.MODE_DEALER.
+function RLMenu.openFromBridge(startPageId, mode)
+    -- Mod load order regression: setupGui() not yet completed when bridge
+    -- fires. Caller is expected to fall through to legacy if we early-out.
+    if g_rlMenu == nil then
+        Log:warning("openFromBridge: g_rlMenu nil, falling back to legacy")
+        return
+    end
+
+    local validMode = (mode == RLMenu.MODE_FULL or mode == RLMenu.MODE_DEALER)
+    local validPage = (type(startPageId) == "number"
+        and startPageId >= 1 and startPageId <= RLMenu.PAGE_COUNT)
+
+    if not validMode or not validPage then
+        Log:warning("openFromBridge: bad args mode=%s page=%s",
+            tostring(mode), tostring(startPageId))
+        return
+    end
+
+    -- Dialog gate: replacing the underlying screen via showGui leaves any
+    -- active dialog floating, with input focus stuck on the dialog and no
+    -- valid owner-screen. Bail to legacy AnimalScreen path (caller can
+    -- fall through) rather than paint RLMenu under a stale dialog.
+    if g_gui.getIsDialogVisible ~= nil and g_gui:getIsDialogVisible() then
+        Log:warning("openFromBridge: a dialog is visible, skipping RLMenu redirect")
+        return
+    end
+
+    -- Snapshot prior state so we can roll back if showGui throws. Without
+    -- this, a failed open leaves g_rlMenu poisoned -- the next keyboard
+    -- open would inherit dealer-mode tab gating and page-1 anchor.
+    local priorOpenMode = g_rlMenu.openMode
+    local priorRestorePageIndex = g_rlMenu.restorePageIndex
+    local priorRestorePage = g_rlMenu.restorePage
+
+    -- Force restorePageIndex over restorePage: TabbedMenu:onOpen reads
+    -- restorePage first (TabbedMenu.lua:67-74). Clearing it makes
+    -- pageSelector:setState(restorePageIndex, true) the authoritative path.
+    g_rlMenu.openMode = mode
+    g_rlMenu.restorePageIndex = startPageId
+    g_rlMenu.restorePage = nil
+
+    Log:info("openFromBridge: page=%d mode=%s", startPageId, tostring(mode))
+
+    local ok, err = pcall(function() g_gui:showGui("RLMenu") end)
+    if not ok then
+        Log:warning("openFromBridge: showGui threw, rolling back state (err=%s)",
+            tostring(err))
+        g_rlMenu.openMode = priorOpenMode
+        g_rlMenu.restorePageIndex = priorRestorePageIndex
+        g_rlMenu.restorePage = priorRestorePage
+    end
 end
 
 -- =============================================================================
