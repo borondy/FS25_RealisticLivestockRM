@@ -34,8 +34,10 @@ This is a maintained version of the original mod by Arrow-kb, who has discontinu
 - Animal pack system: third-party mods can add new breeds or adjust animal balance
 - Map support: Hof Bergmann (ducks, geese, cats, rabbits, alpacas, quail) with automatic version-aware compatibility
 - Map support: Witcombe (UK breeds - Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester, plus Hereford heritage profile) with automatic version-aware compatibility
+- Map support: Le Mechet (French breeds - Charolaise, Montbeliarde, Simmental, Vosgienne) with automatic version-aware compatibility
 - Simple support for butchers using Extended Production Point (EPP) mod
 - Mod compatibility checks at startup: hard-block dialog for incompatible mods, plus a dismissible warning tier for mods known to degrade gameplay
+- In-game warning when two map bridges or animal packs replace the same animal type's husbandry config (last-loaded wins; first one's animals can render as ghosts)
 - Multiplayer support (server-authoritative)
 
 ## Supported Maps & Packs
@@ -43,6 +45,7 @@ This is a maintained version of the original mod by Arrow-kb, who has discontinu
 **Maps:**
 - [Hof Bergmann](https://www.lsfarming-mods.com/) - ducks, geese, cats, rabbits, alpacas, quail with full breeding support
 - [Witcombe](https://oxygendavid.itch.io/witcombe-park-farm) - UK breeds (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) with full breeding support; Hereford heritage profile
+- [Le Mechet](https://farming-simulator.com/mod.php?mod_id=357964) - French breeds (Charolaise, Montbeliarde, Simmental, Vosgienne) with full breeding support (NOT compatible with Cow Breeds Pack unless you use the latest development version - both replace the cow husbandry config)
 
 **Animal Packs:**
 - [Cow Breeds Pack for RLRM](https://github.com/ConGan98/FS25_CowBreedsRLRM) by ConGan98 - additional cattle breeds

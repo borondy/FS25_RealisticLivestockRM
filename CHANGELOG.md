@@ -1,38 +1,29 @@
 # Changelog
 
-## v1.2.4.0-dev.4
-
-### Improved
-- Hereford adult cow and bull skin updated to a more breed-accurate red-and-white coat. Texture contributed by [MA] BavarianRedneck.
-
-## v1.2.4.0-dev.3
-
-### Fixed
-- Finance overview now shows "Medicine" for animal medicine costs instead of the `Missing 'finance_medicine' in l10n_en.xml` fallback.
-
-## v1.2.4.0-dev.2
+## v1.2.4.0
 
 ### Added
 - Map support: Le Mechet by MA7Studio (https://farming-simulator.com/mod.php?mod_id=357964) - four French cow breeds (Charolaise, Montbeliarde, Simmental, Vosgienne) with bull variants; full breeding, genetics, and reproduction; per-breed pricing, milk curves, and reproduction signatures preserved from the map's source XML.
 - In-game warning when two map bridges or animal packs replace the same animal type's husbandry. The second one wins and the first one's animals can become invisible (ghost animals); RLRM now shows a dismissible warning at mission start so the cause is visible instead of silent.
-
-### Compatibility
-- Le Mechet is NOT compatible with the Cow Breeds Pack for RLRM (FS25_CowBreedsRLRM) - both replace the cow husbandry config and only one can win. Use one or the other. The new in-game warning will fire if you load both together.
-- Hereford is removed from the dealer when Le Mechet is the active map.
+- Witcombe Park Farm 1.3.0.0 (v4) now loads cleanly with the existing map bridge.
 
 ### Improved
+- Hereford adult cow and bull skin updated to a more breed-accurate red-and-white coat. Texture contributed by [MA] BavarianRedneck.
+- French translation refreshed by community contributor @squall39 (PR #83): native-speaker corrections to existing strings and translations for the new RL Tabbed Menu strings (Messages, Info, Move, Sell, Buy, AI tabs).
 - User guide cattle milk chart now reconciles with the breed-range table; footnote spells out which factors compose into the table range (chart is the lifetime age envelope; the table folds in lactation-phase factor and genetics multiplier).
 
-## v1.2.4.0-dev.1
+### Fixed
+- Finance overview now shows "Medicine" for animal medicine costs instead of the `Missing 'finance_medicine' in l10n_en.xml` fallback.
 
-### Improved
-- French translation refreshed by community contributor @squall39 (PR #83): native-speaker corrections to existing strings (e.g. `Brune des Alpes`, `pie`, expansion of `TMR` to "ration totale mélangée") and translations for the new RL Tabbed Menu strings (Messages, Info, Move, Sell, Buy, AI tabs).
+### Compatibility
+- Le Mechet is NOT compatible with the Cow Breeds Pack for RLRM (FS25_CowBreedsRLRM) unless you use the latest development version of the Cow Breeds Pack - both replace the cow husbandry config and only one can win. Use Le Mechet alone, or pair it with the latest dev Cow Breeds Pack. The new in-game warning will fire if you load both together.
+- Hereford is removed from the dealer when Le Mechet is the active map.
 
 ### RL Menu (preview - work in progress)
-- Added saveable animal filters: define filters that match on age, gender, pregnancy, lactation, genetics, subtype, weight, health, marks, and name, nested with AND/OR groups; filters persist across sessions in the savegame. For now filters are authored by hand-editing rm_RlSettings.xml - the in-game editor ships in a future phase.
+- Added saveable animal filters: define filters that match on age, gender, pregnancy, lactation, genetics, subtype, weight, health, marks, and name, nested with AND/OR groups; filters persist across sessions in the savegame. For now filters are authored by hand-editing rm_RlSettings.xml - the in-game editor ships in a future release.
 - Press F on Info / Buy / Sell / Move tabs to cycle through saved filters; the active filter shows as a chip on the tab. Filter selection is shared across Info / Move / Sell; Buy keeps its own selection per dealer flow.
 - Multiplayer: filter create / update / delete sync across all connected players (admin or tradeAnimals permission required); late-joining clients receive the full filter set on connect.
-- Added Settings tab with two subtabs: [General] surfaces the existing RL settings (now editable from both the new menu and the legacy GAME SETTINGS page, reordered into thematic groups - Mortality, Health & Disease, Husbandry & Economy, Custom Animals, Message Log, Display Preferences, Tools & Admin), and [Filters] lists your saved filters (read-only view today; in-game editor in a future phase). Toggling a setting on either General page reflects on the other when re-opened.
+- Added Settings tab with two subtabs: [General] surfaces the existing RL settings (now editable from both the new menu and the legacy GAME SETTINGS page, reordered into thematic groups - Mortality, Health & Disease, Husbandry & Economy, Custom Animals, Message Log, Display Preferences, Tools & Admin), and [Filters] lists your saved filters (read-only view today; in-game editor in a future release). Toggling a setting on either General page reflects on the other when re-opened.
 - Added Filter Hand-Crafting reference page in the user guide for power users authoring saveable filters in rm_RlSettings.xml until the in-game editor lands.
 
 ## v1.2.3.0
