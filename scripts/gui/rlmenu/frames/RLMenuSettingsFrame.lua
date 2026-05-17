@@ -544,9 +544,9 @@ function RLMenuSettingsFrame:refreshData()
         self.rows = {}
     end
 
-    -- Alphabetical case-insensitive sort with stable id tie-break (RLRM-197).
-    -- Sort here on refreshData boundaries only; mid-edit name callbacks do
-    -- NOT re-sort (writes go to pendingChanges + reloadData reads the overlay
+    -- Alphabetical case-insensitive sort with stable id tie-break. Sort
+    -- runs on refreshData boundaries only; mid-edit name callbacks do NOT
+    -- re-sort (writes go to pendingChanges + reloadData reads the overlay
     -- in populateCellForItemInSection, keeping row positions stable while
     -- the user is typing).
     table.sort(self.rows, function(a, b)
@@ -1175,24 +1175,40 @@ end
 
 --- Compute a non-colliding duplicate name. Walks self.rows resolving each
 --- row's display name via the pending overlay (so renames in flight on
---- OTHER rows still count toward the collision check). Appends " (copy)"
---- on first dup, " (copy 2)" / " (copy 3)" / ... thereafter.
+--- OTHER rows still count toward the collision check). Appends the
+--- localized `rl_menu_filters_duplicate_suffix` on the first duplicate;
+--- subsequent duplicates use `rl_menu_filters_duplicate_suffix_n`, a
+--- format string carrying the language's own word order / punctuation
+--- around `%d` (e.g. " (copy %d)" in EN). Detection of existing dupes
+--- builds a Lua pattern from the same localized template so the count
+--- form is recognized regardless of how the translator phrased it.
 --- @param baseName string Source filter's merged name
 --- @return string
 function RLMenuSettingsFrame:computeDuplicateName(baseName)
     local base = baseName or ""
-    local suffix = g_i18n:getText("rl_menu_filters_duplicate_suffix")
-    local first = base .. suffix
-    -- Pattern matches "<base><suffix-without-trailing-paren> N)" -> captures N.
-    -- suffix is " (copy)" so the count form is " (copy 2)" / " (copy 3)" / ...
-    -- Strip the closing ) from suffix to build the count-form prefix.
-    local suffixOpen = suffix:gsub("%)%s*$", "") -- " (copy"
-    local pattern = "^" .. base:gsub("(%W)", "%%%1") .. suffixOpen:gsub("(%W)", "%%%1") .. " (%d+)%)$"
+    local suffixFirst = g_i18n:getText("rl_menu_filters_duplicate_suffix")
+    local suffixNFmt  = g_i18n:getText("rl_menu_filters_duplicate_suffix_n")
+    local first = base .. suffixFirst
+
+    -- Build a detection pattern from the localized numbered template.
+    -- Swap the %d placeholder for a sentinel byte first, escape all Lua
+    -- pattern specials in the surrounding literal text, then swap the
+    -- sentinel back for the (%d+) capture. Escaping `%` is required - it
+    -- is Lua's pattern escape char - which is why we cannot escape the
+    -- raw format string directly without first lifting the placeholder.
+    local function escapePattern(s)
+        return (s:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1"))
+    end
+    local placeholder = "\1"
+    local templatePat = escapePattern((suffixNFmt:gsub("%%d", placeholder)))
+        :gsub(placeholder, "(%%d+)")
+    local countPattern = "^" .. escapePattern(base) .. templatePat .. "$"
+
     local count = 0
     for _, row in ipairs(self.rows) do
         local pending = self.pendingChanges[row.id]
         local name = (pending and pending.name) or row.name or ""
-        if name == first or name:match(pattern) then
+        if name == first or name:match(countPattern) then
             count = count + 1
         end
     end
@@ -1200,7 +1216,7 @@ function RLMenuSettingsFrame:computeDuplicateName(baseName)
     if count == 0 then
         result = first
     else
-        result = string.format("%s%s %d)", base, suffixOpen, count + 1)
+        result = base .. suffixNFmt:format(count + 1)
     end
     Log:trace("RLMenuSettingsFrame:computeDuplicateName: base='%s' count=%d result='%s'",
         base, count, result)
@@ -1243,11 +1259,15 @@ function RLMenuSettingsFrame:onClickDuplicate()
     -- _cloneFilter deep-clones the expression (P2 carryover ownership
     -- contract). The service ALSO deep-clones internally; double-clone is
     -- a correctness belt-and-suspenders honoured throughout Phase 0.
+    -- Preserve the source filter's scope. A global filter (farmId == nil)
+    -- stays global; a farm-scoped filter keeps its farmId. Using
+    -- self.farmId here would narrow a global copy down to the active
+    -- farm.
     local cloned = RLFilterService._cloneFilter(merged)
     local newFilter = g_rlFilterService:create({
         name       = dupName,
         animalType = merged.animalType,
-        farmId     = self.farmId,
+        farmId     = merged.farmId,
         expression = cloned.expression,
     })
     if newFilter == nil then
@@ -1256,8 +1276,8 @@ function RLMenuSettingsFrame:onClickDuplicate()
         return
     end
 
-    Log:debug("RLMenuSettingsFrame:onClickDuplicate: source=%s name='%s' -> new id=%s",
-        tostring(self.selectedFilterId), tostring(dupName), tostring(newFilter.id))
+    Log:debug("RLMenuSettingsFrame:onClickDuplicate: source=%s name='%s' farmId=%s -> new id=%s",
+        tostring(self.selectedFilterId), tostring(dupName), tostring(merged.farmId), tostring(newFilter.id))
     self.selectedFilterId = newFilter.id
     self:refreshData()
 end

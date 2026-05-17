@@ -770,6 +770,7 @@
 		<text name="rl_menu_filters_duplicate_button" text="Duplicate"/>
 		<text name="rl_menu_filters_delete_button" text="Delete"/>
 		<text name="rl_menu_filters_duplicate_suffix" text=" (copy)"/>
+		<text name="rl_menu_filters_duplicate_suffix_n" text=" (copy %d)"/>
 		<text name="rl_menu_filters_delete_confirm_text" text="Delete filter &quot;%s&quot;? This cannot be undone."/>
 
 		<!-- Filter cycle + chip MVP -->
