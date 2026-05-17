@@ -13,13 +13,15 @@
 --
 -- Immutability:
 --   * `id`, `farmId`, `version` are frozen after create.
---   * `name`, `animalType`, `expression` are mutable via `update`.
+--   * `name`, `animalType`, `expression`, `usage` are mutable via `update`.
 --   * Violations are rejected with `:warning` and leave state unchanged.
 --
 -- Scope matching (`listAvailable`):
---   * `nil-or-equal` on both `animalType` and `farmId` -- a filter with
+--   * `nil-or-equal` on `animalType`, `farmId`, AND `usage` -- a filter with
 --     `farmId = nil` is global and appears for every farm; a filter with
---     `animalType = nil` appears for every animal type.
+--     `animalType = nil` appears for every animal type; a filter with
+--     `usage = ANY` (or nil-from-legacy-load) appears on every consumer
+--     frame regardless of which bucket constant is queried.
 --
 -- MP events:
 --   * `create`/`update`/`delete` dispatch RLFilter{Create,Update,Delete}Event
@@ -103,6 +105,7 @@ local function cloneFilter(f)
         name       = f.name,
         animalType = f.animalType,
         farmId     = f.farmId,
+        usage      = f.usage,
         version    = f.version,
         expression = cloneNode(f.expression),
     }
@@ -170,12 +173,21 @@ function RLFilterService:create(filter)
     filter.id = Utils.getUniqueId(filter, self.filtersById, RLFilterService.UNIQUE_ID_PREFIX)
     filter.version = filter.version or 1
 
+    -- Usage axis default: nil -> silent ANY (Locked Decision #3); non-nil ->
+    -- coerce-and-validate via RLFilterUsage.coerce (loud WARN on unknown
+    -- per #14 inbound-boundary policy).
+    if filter.usage == nil then
+        filter.usage = RLFilterUsage.ANY
+    else
+        filter.usage = RLFilterUsage.coerce(filter.usage)
+    end
+
     local stored = cloneFilter(filter)
     self.filtersById[stored.id] = stored
 
-    Log:debug("RLFilterService:create: id=%s name=%s animalType=%s farmId=%s",
+    Log:debug("RLFilterService:create: id=%s name=%s animalType=%s farmId=%s usage=%s",
         tostring(stored.id), tostring(stored.name),
-        tostring(stored.animalType), tostring(stored.farmId))
+        tostring(stored.animalType), tostring(stored.farmId), tostring(stored.usage))
 
     -- Dispatch the Create event AFTER local mutation (Pattern A).
     RLFilterService._sendCreateEvent(stored)
@@ -193,12 +205,17 @@ function RLFilterService:getById(id)
     return cloneFilter(f)
 end
 
---- Apply an update. Mutates only `name`, `animalType`, `expression`.
+--- Apply an update. Mutates only `name`, `animalType`, `expression`, `usage`.
 --- Rejects the call (and logs `:warning`) when id is unknown, when
 --- `payload.id ~= id`, or when `payload.farmId` / `payload.version`
 --- differ from the stored record -- those fields are immutable
 --- post-create. Returns a cloned snapshot of the new stored record
 --- on success.
+---
+--- Whole-object replacement contract: missing `payload.name`, `payload.expression`,
+--- or `payload.usage` is rejected (per Locked Decision #14 renegotiated
+--- 2026-05-17). Non-nil `payload.usage` with an unknown value is coerced
+--- to `RLFilterUsage.ANY` with a WARNING (inbound-boundary semantics).
 ---
 --- After successful local mutation, dispatches `RLFilterUpdateEvent`
 --- via the `_sendUpdateEvent` hook.
@@ -250,6 +267,15 @@ function RLFilterService:update(id, payload)
             tostring(id))
         return nil
     end
+    if payload.usage == nil then
+        Log:warning("RLFilterService:update: payload.usage is nil for id=%s; rejecting (whole-object replacement requires usage per Locked Decision #14 - silent widening on a scoping axis is data loss)",
+            tostring(id))
+        return nil
+    end
+
+    -- Inbound-boundary coerce on non-nil usage. Unknown values fail-open to
+    -- ANY + WARN (#14). Canonical values pass through unchanged.
+    payload.usage = RLFilterUsage.coerce(payload.usage)
 
     -- Build the new stored record. `cloneFilter(payload)` handles the
     -- expression deep-clone; immutable fields are re-pinned from the
@@ -262,8 +288,8 @@ function RLFilterService:update(id, payload)
 
     self.filtersById[id] = stored
 
-    Log:debug("RLFilterService:update: id=%s applied (name=%s animalType=%s)",
-        id, tostring(stored.name), tostring(stored.animalType))
+    Log:debug("RLFilterService:update: id=%s applied (name=%s animalType=%s usage=%s)",
+        id, tostring(stored.name), tostring(stored.animalType), tostring(stored.usage))
 
     -- Dispatch the Update event AFTER local mutation (Pattern A).
     RLFilterService._sendUpdateEvent(stored)
@@ -310,27 +336,34 @@ function RLFilterService:list()
     return out
 end
 
---- Filters that match the given scope via nil-or-equal rules on both
---- `animalType` and `farmId`. A filter is "available" for a given call when:
----   * filter.animalType is nil (any type) OR equals the passed type
----   * filter.farmId     is nil (global)   OR equals the passed farmId
+--- Filters that match the given scope via nil-or-equal rules on `animalType`,
+--- `farmId`, AND `usage`. A filter is "available" for a given call when:
+---   * filter.animalType is nil (any type)              OR equals the passed type
+---   * filter.farmId     is nil (global)                OR equals the passed farmId
+---   * filter.usage      is nil OR == RLFilterUsage.ANY OR equals the passed usage
 ---
 --- Passing nil for a scope parameter means "I don't care" for that axis.
+--- The `f.usage == nil` arm is defensive against un-normalised in-memory
+--- records (legacy load + serialization coerce + service:create defaulting
+--- all normalise to ANY, so nil should not occur post-load) and pairs with
+--- `f.usage == RLFilterUsage.ANY` so both shapes match the same set.
 --- Returned records are defensive clones.
 ---@param animalType integer|nil AnimalType int index to match against
 ---@param farmId integer|nil farm id to match against
+---@param usage string|nil canonical usage string (ANY/OWNED/DEALER) or nil for "any bucket"
 ---@return table[] filters cloned snapshots
-function RLFilterService:listAvailable(animalType, farmId)
+function RLFilterService:listAvailable(animalType, farmId, usage)
     local out = {}
     for _, f in pairs(self.filtersById) do
-        local typeMatch = f.animalType == nil or animalType == nil or f.animalType == animalType
-        local farmMatch = f.farmId == nil or farmId == nil or f.farmId == farmId
-        if typeMatch and farmMatch then
+        local typeMatch  = f.animalType == nil or animalType == nil or f.animalType == animalType
+        local farmMatch  = f.farmId     == nil or farmId     == nil or f.farmId     == farmId
+        local usageMatch = f.usage      == nil or f.usage    == RLFilterUsage.ANY or usage == nil or f.usage == usage
+        if typeMatch and farmMatch and usageMatch then
             table.insert(out, cloneFilter(f))
         end
     end
-    Log:trace("RLFilterService:listAvailable: animalType=%s farmId=%s #=%d",
-        tostring(animalType), tostring(farmId), #out)
+    Log:trace("RLFilterService:listAvailable: animalType=%s farmId=%s usage=%s #=%d",
+        tostring(animalType), tostring(farmId), tostring(usage), #out)
     return out
 end
 
@@ -369,10 +402,22 @@ function RLFilterService:applyIncomingCreate(filter)
             tostring(filter.id))
     end
 
+    -- Defense-in-depth on the usage axis (P1-3b code-review patch). The wire
+    -- decoder already coerces unknown bytes, so today this is redundant; the
+    -- guard exists so a future non-wire caller (state-event replay path,
+    -- savegame-import hook, debug command) inherits the same boundary policy
+    -- that :create + :update enforce.
+    if filter.usage == nil then
+        filter.usage = RLFilterUsage.ANY
+    else
+        filter.usage = RLFilterUsage.coerce(filter.usage)
+    end
+
     self.filtersById[filter.id] = cloneFilter(filter)
-    Log:debug("RLFilterService:applyIncomingCreate: id=%s name=%s animalType=%s farmId=%s",
+    Log:debug("RLFilterService:applyIncomingCreate: id=%s name=%s animalType=%s farmId=%s usage=%s",
         tostring(filter.id), tostring(filter.name),
-        tostring(filter.animalType), tostring(filter.farmId))
+        tostring(filter.animalType), tostring(filter.farmId),
+        tostring(filter.usage))
     return true
 end
 
@@ -396,9 +441,20 @@ function RLFilterService:applyIncomingUpdate(filter)
             tostring(filter.id))
     end
 
+    -- Defense-in-depth on the usage axis (P1-3b code-review patch). Mirrors
+    -- applyIncomingCreate; see the comment there for rationale. Unlike the
+    -- caller-side :update which REJECTS nil-usage, the wire-receive path is
+    -- a defensive coerce because rejecting here would silently drop a server-
+    -- authoritative broadcast and leave the client diverged from the server.
+    if filter.usage == nil then
+        filter.usage = RLFilterUsage.ANY
+    else
+        filter.usage = RLFilterUsage.coerce(filter.usage)
+    end
+
     self.filtersById[filter.id] = cloneFilter(filter)
-    Log:debug("RLFilterService:applyIncomingUpdate: id=%s name=%s",
-        tostring(filter.id), tostring(filter.name))
+    Log:debug("RLFilterService:applyIncomingUpdate: id=%s name=%s usage=%s",
+        tostring(filter.id), tostring(filter.name), tostring(filter.usage))
     return true
 end
 

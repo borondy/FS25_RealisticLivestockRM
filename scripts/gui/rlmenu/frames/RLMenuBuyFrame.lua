@@ -1185,7 +1185,7 @@ function RLMenuBuyFrame:onCycleFilter()
         return
     end
 
-    local filters = RLFilterCycleHelper.getAvailableFilters(self.activeAnimalTypeIndex, self.farmId)
+    local filters = RLFilterCycleHelper.getAvailableFilters(self.activeAnimalTypeIndex, self.farmId, RLFilterCycleHelper.USAGE.DEALER)
     if #filters == 0 then
         if self.activeFilterId ~= nil then
             self.activeFilterId = nil
@@ -1243,7 +1243,7 @@ function RLMenuBuyFrame:revalidateActiveFilter()
         return
     end
 
-    local available = RLFilterCycleHelper.getAvailableFilters(self.activeAnimalTypeIndex, self.farmId)
+    local available = RLFilterCycleHelper.getAvailableFilters(self.activeAnimalTypeIndex, self.farmId, RLFilterCycleHelper.USAGE.DEALER)
     local stillInScope = false
     for _, f in ipairs(available) do
         if f.id == self.activeFilterId then

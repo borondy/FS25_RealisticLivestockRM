@@ -9,20 +9,26 @@ local Log = RmLogging.getLogger("RLRM")
 -- once per call so catalog-getter surprises are visible without spam.
 local UNWRAP_MISS_TRACE_PREFIX = "RLFilterCycleHelper.applyFilter: item without .animal or .cluster dropped"
 
+--- Alias to the canonical usage-axis enum. Consumer frames reference
+--- `RLFilterCycleHelper.USAGE.OWNED` / `.DEALER` instead of hardcoding
+--- strings so the bucket constant remains a single source of truth.
+RLFilterCycleHelper.USAGE = RLFilterUsage
+
 --- Return saved filters visible in the caller's scope, sorted alphabetically
 --- (case-insensitive) with a stable id tie-break. Wraps the service's nil-or-
---- equal rule for animalType + farmId.
+--- equal rule for animalType, farmId, AND usage.
 ---
 ---@param animalTypeIndex number|nil AnimalType int to scope-filter; nil = any
 ---@param farmId number|nil farm id to scope-filter; nil = global
+---@param usage string|nil bucket constant (RLFilterUsage.OWNED / .DEALER) or nil for "any bucket"
 ---@return table array of filter clones, alphabetical by name
-function RLFilterCycleHelper.getAvailableFilters(animalTypeIndex, farmId)
+function RLFilterCycleHelper.getAvailableFilters(animalTypeIndex, farmId, usage)
     if g_rlFilterService == nil then
         Log:warning("RLFilterCycleHelper.getAvailableFilters: g_rlFilterService unavailable")
         return {}
     end
 
-    local result = g_rlFilterService:listAvailable(animalTypeIndex, farmId) or {}
+    local result = g_rlFilterService:listAvailable(animalTypeIndex, farmId, usage) or {}
 
     table.sort(result, function(a, b)
         local an = (a.name or ""):lower()
@@ -33,8 +39,8 @@ function RLFilterCycleHelper.getAvailableFilters(animalTypeIndex, farmId)
         return an < bn
     end)
 
-    Log:trace("RLFilterCycleHelper.getAvailableFilters: animalType=%s farmId=%s count=%d",
-        tostring(animalTypeIndex), tostring(farmId), #result)
+    Log:trace("RLFilterCycleHelper.getAvailableFilters: animalType=%s farmId=%s usage=%s count=%d",
+        tostring(animalTypeIndex), tostring(farmId), tostring(usage), #result)
     return result
 end
 

@@ -803,6 +803,11 @@
 		<text name="rl_menu_filters_duplicate_suffix" text=" (copy)"/>
 		<text name="rl_menu_filters_duplicate_suffix_n" text=" (copy %d)"/>
 		<text name="rl_menu_filters_delete_confirm_text" text="Delete filter &quot;%s&quot;? This cannot be undone."/>
+		<!-- Phase 1 P1-3b: Usage scope axis -->
+		<text name="rl_menu_filters_editor_title_usage" text="Show on"/>
+		<text name="rl_menu_filters_usage_any" text="All screens"/>
+		<text name="rl_menu_filters_usage_owned" text="Owned-herd screens"/>
+		<text name="rl_menu_filters_usage_dealer" text="Dealer screens"/>
 
 		<!-- Filter cycle + chip MVP -->
 		<text name="rl_menu_filter_chip_none" text="No filter"/>

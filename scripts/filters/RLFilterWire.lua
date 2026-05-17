@@ -377,6 +377,13 @@ function RLFilterWire.writeFilter(streamId, filter)
     -- filters if a future cycle ever bumps the version.
     streamWriteUInt16(streamId, filter.version or 1)
 
+    -- 1-byte usage scope axis (#15: 0=ANY, 1=OWNED, 2=DEALER; reserved 3-255).
+    -- `or 0` fallback is defensive against an un-normalised in-memory filter
+    -- with nil usage (should not occur post-service-create/update normalisation
+    -- + serialization coerce). Defaulting to byte 0 (ANY) keeps the receiver's
+    -- decode path on a safe path even if a future caller bypasses normalisation.
+    streamWriteUInt8(streamId, RLFilterUsage.BYTE[filter.usage] or 0)
+
     local expression = filter.expression
     if expression == nil then
         Log:warning("RLFilterWire.writeFilter: filter %s has nil expression; writing empty AND group",
@@ -390,9 +397,9 @@ function RLFilterWire.writeFilter(streamId, filter)
 
     writeGroup(streamId, expression)
 
-    Log:trace("RLFilterWire.writeFilter: id=%s name=%s animalType=%s farmId=%s version=%s",
+    Log:trace("RLFilterWire.writeFilter: id=%s name=%s animalType=%s farmId=%s usage=%s version=%s",
         tostring(filter.id), tostring(filter.name),
-        tostring(atype), tostring(fid), tostring(filter.version))
+        tostring(atype), tostring(fid), tostring(filter.usage), tostring(filter.version))
 end
 
 --- Read a whole filter record. Returns the reconstructed filter table. On
@@ -412,16 +419,29 @@ function RLFilterWire.readFilter(streamId)
 
     local version = streamReadUInt16(streamId)
 
+    -- 1-byte usage scope axis (#15 / #14): known bytes 0/1/2 decode via the
+    -- FROM_BYTE map; reserved 3-255 coerce to ANY + WARN per the inbound-
+    -- boundary policy. The decoded canonical string lands in the returned
+    -- filter table so downstream `service:applyIncoming*` callers see a
+    -- pre-normalised value.
+    local usageByte = streamReadUInt8(streamId)
+    local usage = RLFilterUsage.FROM_BYTE[usageByte]
+    if usage == nil then
+        Log:warning("RLFilterWire.readFilter: unknown usage byte %d coerced to ANY", usageByte)
+        usage = RLFilterUsage.ANY
+    end
+
     local expression = readGroup(streamId)
 
-    Log:trace("RLFilterWire.readFilter: id=%s name=%s animalType=%s farmId=%s version=%s",
-        tostring(id), tostring(name), tostring(atype), tostring(fid), tostring(version))
+    Log:trace("RLFilterWire.readFilter: id=%s name=%s animalType=%s farmId=%s usage=%s version=%s",
+        tostring(id), tostring(name), tostring(atype), tostring(fid), tostring(usage), tostring(version))
 
     return {
         id = id,
         name = name,
         animalType = atype,
         farmId = fid,
+        usage = usage,
         expression = expression,
         version = version,
     }

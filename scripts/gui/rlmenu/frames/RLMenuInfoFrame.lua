@@ -976,7 +976,7 @@ function RLMenuInfoFrame:onCycleFilter()
         animalTypeIndex = self.selectedHusbandry:getAnimalTypeIndex()
     end
 
-    local filters = RLFilterCycleHelper.getAvailableFilters(animalTypeIndex, self.farmId)
+    local filters = RLFilterCycleHelper.getAvailableFilters(animalTypeIndex, self.farmId, RLFilterCycleHelper.USAGE.OWNED)
     if #filters == 0 then
         if self.activeFilterId ~= nil then
             self.activeFilterId = nil
@@ -1049,7 +1049,7 @@ function RLMenuInfoFrame:revalidateActiveFilter()
         animalTypeIndex = self.selectedHusbandry:getAnimalTypeIndex()
     end
 
-    local available = RLFilterCycleHelper.getAvailableFilters(animalTypeIndex, self.farmId)
+    local available = RLFilterCycleHelper.getAvailableFilters(animalTypeIndex, self.farmId, RLFilterCycleHelper.USAGE.OWNED)
     local stillInScope = false
     for _, f in ipairs(available) do
         if f.id == self.activeFilterId then

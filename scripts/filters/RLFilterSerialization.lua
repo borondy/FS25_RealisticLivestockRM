@@ -396,6 +396,15 @@ function RLFilterSerialization.writeFilter(xmlFile, filterKey, filter)
         xmlFile:setInt(filterKey .. "#farmId", filter.farmId)
     end
 
+    -- usage axis is always written when present in-memory. Service-side
+    -- normalisation (create-default + update-coerce) means stored records
+    -- carry a canonical string. We still defensively check for nil so a
+    -- service-bypass call site (tests, future direct callers) cannot blow
+    -- up the writer.
+    if filter.usage ~= nil then
+        xmlFile:setString(filterKey .. "#usage", filter.usage)
+    end
+
     xmlFile:setInt(filterKey .. "#version", filter.version or 1)
 
     local expression = filter.expression
@@ -411,9 +420,9 @@ function RLFilterSerialization.writeFilter(xmlFile, filterKey, filter)
 
     writeGroup(xmlFile, filterKey .. ".group", expression)
 
-    Log:trace("RLFilterSerialization.writeFilter: %s id=%s name=%s animalType=%s farmId=%s version=%s",
+    Log:trace("RLFilterSerialization.writeFilter: %s id=%s name=%s animalType=%s farmId=%s usage=%s version=%s",
         filterKey, tostring(filter.id), tostring(filter.name),
-        tostring(typeName), tostring(filter.farmId), tostring(filter.version))
+        tostring(typeName), tostring(filter.farmId), tostring(filter.usage), tostring(filter.version))
 end
 
 --- Read one filter record from `filterKey`. Returns nil when the record
@@ -439,6 +448,17 @@ function RLFilterSerialization.readFilter(xmlFile, filterKey)
     local farmId = xmlFile:getInt(filterKey .. "#farmId")
     local version = xmlFile:getInt(filterKey .. "#version", 1)
 
+    -- usage axis: absent attr is the legacy-save case (#4) - silent default
+    -- to ANY. Present-but-unknown attr is a corrupt-save or version-skew
+    -- case (#14 inbound boundary) - coerce to ANY + WARN via the validator.
+    local usageRaw = xmlFile:getString(filterKey .. "#usage")
+    local usage
+    if usageRaw == nil then
+        usage = RLFilterUsage.ANY
+    else
+        usage = RLFilterUsage.coerce(usageRaw)
+    end
+
     -- A filter without a `.group` subtree is malformed XML (truncated
     -- save, incompatible mod version, etc.). Skip + warn so the corruption
     -- is visible in logs and does not silently persist as a match-all.
@@ -451,14 +471,15 @@ function RLFilterSerialization.readFilter(xmlFile, filterKey)
 
     local expression = readGroup(xmlFile, groupKey)
 
-    Log:trace("RLFilterSerialization.readFilter: %s id=%s name=%s animalType=%s farmId=%s version=%d",
-        filterKey, id, tostring(name), tostring(typeName), tostring(farmId), version)
+    Log:trace("RLFilterSerialization.readFilter: %s id=%s name=%s animalType=%s farmId=%s usage=%s version=%d",
+        filterKey, id, tostring(name), tostring(typeName), tostring(farmId), tostring(usage), version)
 
     return {
         id = id,
         name = name,
         animalType = animalType,
         farmId = farmId,
+        usage = usage,
         expression = expression,
         version = version,
     }

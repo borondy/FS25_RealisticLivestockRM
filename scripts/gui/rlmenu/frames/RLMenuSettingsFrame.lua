@@ -80,10 +80,14 @@ function RLMenuSettingsFrame.new()
     self.didMeasureEditorPane = false
 
     -- Pending-changes overlay keyed by filter id. Each value is a partial
-    -- table {name?=string, animalType?=integer|ANIMAL_TYPE_ANY, op?="AND"|"OR"}.
-    -- Widget callbacks write into this; service:update is NOT called per
-    -- keystroke. flushPendingChanges drains the table on onFrameClose. The
-    -- per-id sub-table is created lazily on first write.
+    -- table {name?=string, animalType?=integer|ANIMAL_TYPE_ANY, op?="AND"|"OR",
+    -- usage?=string (canonical RLFilterUsage value)}. Widget callbacks write
+    -- into this; service:update is NOT called per keystroke.
+    -- flushPendingChanges drains the table on onFrameClose. The per-id
+    -- sub-table is created lazily on first write. Unlike animalType, the
+    -- usage axis is a 3-state enum where every state has a canonical string
+    -- value, so no sentinel is needed - absence-of-key means "no change",
+    -- presence means "change to this value".
     self.pendingChanges = {}
 
     -- AnimalType selector state cache. Populated by seedAnimalTypeStates on
@@ -190,6 +194,7 @@ function RLMenuSettingsFrame:onGuiSetupFinished()
     self.filterNameInput        = self:getDescendantById("filterNameInput")
     self.filterAnimalTypeSelector = self:getDescendantById("filterAnimalTypeSelector")
     self.filterOpSelector       = self:getDescendantById("filterOpSelector")
+    self.filterUsageSelector    = self:getDescendantById("filterUsageSelector")
 
     local missing = {}
     if self.filterEditorContainer  == nil then table.insert(missing, "filterEditorContainer")  end
@@ -199,11 +204,12 @@ function RLMenuSettingsFrame:onGuiSetupFinished()
     if self.filterNameInput        == nil then table.insert(missing, "filterNameInput")        end
     if self.filterAnimalTypeSelector == nil then table.insert(missing, "filterAnimalTypeSelector") end
     if self.filterOpSelector       == nil then table.insert(missing, "filterOpSelector")       end
+    if self.filterUsageSelector    == nil then table.insert(missing, "filterUsageSelector")    end
     if #missing > 0 then
         Log:warning("RLMenuSettingsFrame:onGuiSetupFinished: editor widget(s) missing: %s",
             table.concat(missing, ", "))
     else
-        Log:trace("RLMenuSettingsFrame:onGuiSetupFinished: editor widgets cached (7/7)")
+        Log:trace("RLMenuSettingsFrame:onGuiSetupFinished: editor widgets cached (8/8)")
     end
 
     -- Seed the AND/OR op selector texts once at setup (static, locale-baked
@@ -315,6 +321,10 @@ function RLMenuSettingsFrame:onFrameOpen()
     if self.filterAnimalTypeSelector ~= nil and self.filterOpSelector ~= nil then
         FocusManager:linkElements(self.filterAnimalTypeSelector, FocusManager.BOTTOM, self.filterOpSelector)
         FocusManager:linkElements(self.filterOpSelector,         FocusManager.TOP,   self.filterAnimalTypeSelector)
+    end
+    if self.filterOpSelector ~= nil and self.filterUsageSelector ~= nil then
+        FocusManager:linkElements(self.filterOpSelector,    FocusManager.BOTTOM, self.filterUsageSelector)
+        FocusManager:linkElements(self.filterUsageSelector, FocusManager.TOP,    self.filterOpSelector)
     end
     Log:trace("RLMenuSettingsFrame:onFrameOpen: editor focus chain linked")
 
@@ -773,6 +783,7 @@ function RLMenuSettingsFrame:onClickNewFilter()
         name       = name,
         animalType = nil,
         farmId     = self.farmId,
+        usage      = RLFilterUsage.ANY,
         expression = { op = "AND", children = {} },
     })
     if created == nil then
@@ -818,12 +829,21 @@ end
 ---@param overlay table|nil per-id partial overlay or nil for "no pending"
 ---@return table merged shallow-cloned filter with overlay applied
 local function overlayPending(stored, overlay)
+    -- Stale stored.usage = nil defense (P1-3b code-review patch). Every
+    -- normal entry point (create/update/serialization/wire/applyIncoming)
+    -- normalises to a canonical string post-2026-05-17. Defending here
+    -- ensures that if a stale record ever slips through (test fixture,
+    -- future direct hand-built record), the editor's flush degrades to a
+    -- successful service:update instead of triggering #14 nil-rejection
+    -- which would silently drop every other pending edit on that filter.
+    local mergedUsage = stored.usage or RLFilterUsage.ANY
     local merged = {
         id         = stored.id,
         farmId     = stored.farmId,
         version    = stored.version,
         name       = stored.name,
         animalType = stored.animalType,
+        usage      = mergedUsage,
         expression = stored.expression,
     }
     if overlay == nil then
@@ -838,6 +858,11 @@ local function overlayPending(stored, overlay)
         merged.animalType = nil
     elseif overlay.animalType ~= nil then
         merged.animalType = overlay.animalType
+    end
+    if overlay.usage ~= nil then
+        -- 3-state enum, no sentinel needed; presence means "change to this
+        -- canonical value" (one of RLFilterUsage.ANY/OWNED/DEALER).
+        merged.usage = overlay.usage
     end
     if overlay.op ~= nil then
         -- Build a fresh root group with the new op; preserve any nested
@@ -899,6 +924,24 @@ local function seedAnimalTypeStates(self)
     Log:trace("seedAnimalTypeStates: %d state(s) seeded", #entries)
 end
 
+--- Push the 3-state Usage selector labels (Any / Owned / Dealer) into the
+--- MultiTextOption widget. State 1 = ANY, state 2 = OWNED, state 3 = DEALER.
+--- Idempotent and cheap; called from renderEditor on every render to mirror
+--- seedAnimalTypeStates. No state cache needed because the mapping is
+--- constant (3 fixed strings, no runtime variation).
+---@param self table frame instance
+local function seedUsageSelector(self)
+    if self.filterUsageSelector == nil then
+        return
+    end
+    self.filterUsageSelector:setTexts({
+        g_i18n:getText("rl_menu_filters_usage_any"),
+        g_i18n:getText("rl_menu_filters_usage_owned"),
+        g_i18n:getText("rl_menu_filters_usage_dealer"),
+    })
+    Log:trace("seedUsageSelector: 3 state(s) seeded")
+end
+
 -- =============================================================================
 -- Filter editor: render + widget callbacks
 -- =============================================================================
@@ -921,6 +964,10 @@ function RLMenuSettingsFrame:renderEditor()
     -- Hydrate AnimalType selector states first so the index resolution below
     -- maps against the live label set.
     seedAnimalTypeStates(self)
+
+    -- Seed the 3-state Usage selector labels. Constant mapping (Any/Owned/
+    -- Dealer); idempotent re-seed is cheap.
+    seedUsageSelector(self)
 
     if g_rlFilterService == nil then
         Log:warning("RLMenuSettingsFrame:renderEditor: g_rlFilterService is nil; aborting render")
@@ -1007,10 +1054,24 @@ function RLMenuSettingsFrame:renderEditor()
         self.filterOpSelector:setState(opStateIndex, false)
     end
 
-    Log:debug("RLMenuSettingsFrame:renderEditor: id=%s name=%s animalType=%s op=%s",
+    -- Usage: 1 = ANY, 2 = OWNED, 3 = DEALER. Default to state 1 for any value
+    -- that doesn't match OWNED or DEALER (covers ANY, nil-from-legacy, and
+    -- defensive against an un-normalised in-memory record).
+    local usageStateIndex = 1
+    if merged.usage == RLFilterUsage.OWNED then
+        usageStateIndex = 2
+    elseif merged.usage == RLFilterUsage.DEALER then
+        usageStateIndex = 3
+    end
+    if self.filterUsageSelector ~= nil then
+        self.filterUsageSelector:setState(usageStateIndex, false)
+    end
+
+    Log:debug("RLMenuSettingsFrame:renderEditor: id=%s name=%s animalType=%s op=%s usage=%s",
         tostring(merged.id), tostring(merged.name),
         tostring(merged.animalType),
-        tostring(merged.expression and merged.expression.op))
+        tostring(merged.expression and merged.expression.op),
+        tostring(merged.usage))
 end
 
 --- TextInput onTextChanged callback. The widget raises this with
@@ -1101,6 +1162,40 @@ function RLMenuSettingsFrame:onOpChanged(state, _widget)
         tostring(id), state, op)
 end
 
+--- MultiTextOption onClick callback for the Usage scope selector.
+--- state 1 -> ANY, state 2 -> OWNED, state 3 -> DEALER (matches the wire-byte
+--- order 0/1/2 minus one for cognitive parity with the codec).
+---
+--- Out-of-range states (4+) are unreachable in practice because the widget
+--- is seeded with exactly 3 labels; we log at TRACE and no-op as defence
+--- against future label changes.
+--- @param state number 1-based selector state
+--- @param _widget table The widget that was clicked
+function RLMenuSettingsFrame:onUsageChanged(state, _widget)
+    if self.selectedFilterId == nil then
+        Log:trace("RLMenuSettingsFrame:onUsageChanged: no selection, ignoring (state=%s)",
+            tostring(state))
+        return
+    end
+    local newUsage
+    if state == 1 then
+        newUsage = RLFilterUsage.ANY
+    elseif state == 2 then
+        newUsage = RLFilterUsage.OWNED
+    elseif state == 3 then
+        newUsage = RLFilterUsage.DEALER
+    else
+        Log:trace("RLMenuSettingsFrame:onUsageChanged: state=%s out of range; ignoring",
+            tostring(state))
+        return
+    end
+    local id = self.selectedFilterId
+    if self.pendingChanges[id] == nil then self.pendingChanges[id] = {} end
+    self.pendingChanges[id].usage = newUsage
+    Log:debug("RLMenuSettingsFrame:onUsageChanged: id=%s state=%d usage=%s",
+        tostring(id), state, newUsage)
+end
+
 -- =============================================================================
 -- Filter editor: flush
 -- =============================================================================
@@ -1156,10 +1251,11 @@ function RLMenuSettingsFrame:flushPendingChanges()
                 Log:warning("RLMenuSettingsFrame:flushPendingChanges: service:update returned nil for id=%s (validation rejection?)",
                     tostring(id))
             else
-                Log:debug("RLMenuSettingsFrame:flushPendingChanges: applied id=%s name='%s' animalType=%s op=%s",
+                Log:debug("RLMenuSettingsFrame:flushPendingChanges: applied id=%s name='%s' animalType=%s op=%s usage=%s",
                     tostring(id), tostring(merged.name),
                     tostring(merged.animalType),
-                    tostring(merged.expression and merged.expression.op))
+                    tostring(merged.expression and merged.expression.op),
+                    tostring(merged.usage))
                 updated = updated + 1
             end
         end
@@ -1268,6 +1364,7 @@ function RLMenuSettingsFrame:onClickDuplicate()
         name       = dupName,
         animalType = merged.animalType,
         farmId     = merged.farmId,
+        usage      = merged.usage,
         expression = cloned.expression,
     })
     if newFilter == nil then
@@ -1276,8 +1373,9 @@ function RLMenuSettingsFrame:onClickDuplicate()
         return
     end
 
-    Log:debug("RLMenuSettingsFrame:onClickDuplicate: source=%s name='%s' farmId=%s -> new id=%s",
-        tostring(self.selectedFilterId), tostring(dupName), tostring(merged.farmId), tostring(newFilter.id))
+    Log:debug("RLMenuSettingsFrame:onClickDuplicate: source=%s name='%s' farmId=%s usage=%s -> new id=%s",
+        tostring(self.selectedFilterId), tostring(dupName), tostring(merged.farmId),
+        tostring(merged.usage), tostring(newFilter.id))
     self.selectedFilterId = newFilter.id
     self:refreshData()
 end

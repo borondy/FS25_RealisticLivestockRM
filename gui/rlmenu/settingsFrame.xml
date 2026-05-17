@@ -264,6 +264,16 @@
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_op"/>
                     </Bitmap>
 
+                    <!-- Row 4: Usage scope (P1-3b) - which consumer frames the
+                         filter appears on. State 1=ANY, 2=OWNED, 3=DEALER per
+                         spec Boundaries "Editor row" bullet; wire byte order
+                         (0/1/2) matches state-index minus 1 for cognitive
+                         parity with the wire codec. -->
+                    <Bitmap profile="fs25_multiTextOptionContainer">
+                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="filterUsageSelector" onClick="onUsageChanged"/>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_usage"/>
+                    </Bitmap>
+
                 </ScrollingLayout>
 
                 <ThreePartBitmap profile="fs25_sliderDockedBg" id="filterEditorSliderBox">
