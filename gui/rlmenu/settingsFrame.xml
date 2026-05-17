@@ -228,7 +228,15 @@
                       id="filterEditorEmpty"
                       text="$l10n_rl_menu_filters_empty_editor"/>
 
-                <ScrollingLayout profile="fs25_settingsLayout" id="filterEditorLayout">
+                <!-- P1-4a robust layout (2026-05-17): cap the metadata
+                     ScrollingLayout to 280px so it occupies just enough room
+                     for the 4 rows. The remaining vertical space below is
+                     used by the conditions list (stretches) + footer row
+                     (bottom-anchored). Each region adapts to the parent's
+                     aspect-driven height. -->
+                <ScrollingLayout profile="fs25_settingsLayout" id="filterEditorLayout"
+                                 size="100% 280px"
+                                 position="0px 0px">
 
                     <!-- Row 1: Name. Canonical settings-row TextInput pattern:
                          fs25_settingsTextInput profile (anchorMiddleRight so
@@ -276,11 +284,84 @@
 
                 </ScrollingLayout>
 
-                <ThreePartBitmap profile="fs25_sliderDockedBg" id="filterEditorSliderBox">
-                    <ThreePartBitmap profile="fs25_sliderDockedBox">
-                        <Slider profile="fs25_sliderDocked" id="filterEditorSlider" dataElementId="filterEditorLayout"/>
+                <!-- P1-4a layout fix (2026-05-17 in-game playtest): the docked
+                     slider for filterEditorLayout (fs25_sliderDockedBg) was
+                     present but useless - only 4 fixed metadata rows, never
+                     scrolls. Its full-height dark right-edge bar was visible
+                     in the in-game playtest as a misplaced "scroller" and
+                     consumed layout width that the conditions list needed.
+                     Removed entirely. The ScrollingLayout still works without
+                     a visible scroll thumb. -->
+
+                <!-- P1-4a: preserved-node banner. Shows "%d condition(s)
+                     hidden - editable in a later phase. Saved on close." when
+                     the partition step finds nested groups or enum/string/
+                     in/notin conditions that the P1-4a editor cannot render.
+                     Hidden when preserved count == 0. -->
+                <Text profile="fs25_textDefault" id="filterConditionsBanner"
+                      size="100% 30px"
+                      position="20px 290px"
+                      textAlignment="left"
+                      visible="false"/>
+
+                <!-- P1-4a: conditions list container. SmoothList of condition
+                     rows + paired Slider; mirrors the structure of the left-
+                     pane `filtersList` (lines 192-212 above). Row template
+                     carries a field picker, cmp picker, two value widgets
+                     (number TextInput + bool MultiTextOption, toggled via
+                     setVisible from Lua), and a delete button. -->
+                <!-- Scrollable middle. Uses rlMenu_filterEditorMiddle profile
+                     which carries the stretching-Y anchor + size offset
+                     reservations. Trait composition lives in the profile,
+                     not on this element. -->
+                <GuiElement profile="rlMenu_filterEditorMiddle" id="filterConditionsListContainer">
+                    <Bitmap profile="fs25_subCategoryStartClipper" name="filterConditionsStartClipper"/>
+                    <Bitmap profile="fs25_subCategoryStopClipper" name="filterConditionsEndClipper"/>
+
+                    <SmoothList profile="rlMenu_filterConditionsList"
+                                id="filterConditionsList"
+                                startClipperElementName="filterConditionsStartClipper"
+                                endClipperElementName="filterConditionsEndClipper">
+                        <!-- v2 modal editor (2026-05-17): row template is
+                             a single read-only Text widget showing the
+                             formatted condition ("age >= 30"). Edits go
+                             through RLFilterConditionDialog (Tier 3 action
+                             bar's Edit button on MENU_ACCEPT), so the row
+                             carries no inline pickers / inputs / delete
+                             button. Phase 2 indent applies via the Text's
+                             position offset (depth * 20px), computed in
+                             populateCellForItemInSection. Without inline
+                             widgets the row template stays stable across
+                             field-type swaps and Phase 2 group rows. -->
+                        <ListItem profile="rlMenu_filterConditionRow" name="defaultCell">
+                            <!-- Legacy parity with rl_moveDestName usage in
+                                 AnimalMoveDestinationDialog.xml:18. Profile
+                                 uses anchorTopLeft (anchors=0 0 1 1; pivot=
+                                 0 1) so the explicit size attribute is
+                                 honored. Position Y=-10px puts the text
+                                 baseline 10px below the row top (FS25 Y-up
+                                 -> negative is "below anchor"); matches the
+                                 -5px legacy offset scaled for our 50px row
+                                 (vs legacy 55px). populateCellForItemInSection
+                                 shifts X via setPosition for indent. -->
+                            <Text profile="rl_filterConditionText" name="conditionText"
+                                  position="20px -10px" size="800px 28px"/>
+                        </ListItem>
+                    </SmoothList>
+
+                    <ThreePartBitmap profile="fs25_subCategoryListSliderBox" id="filterConditionsSliderBox">
+                        <Slider profile="fs25_listSlider" dataElementId="filterConditionsList" id="filterConditionsSlider"/>
                     </ThreePartBitmap>
-                </ThreePartBitmap>
+                </GuiElement>
+
+                <!-- P1-4a (2026-05-17): in-pane [+ condition] footer
+                     removed. The action lives on the action bar via
+                     RLMenuSettingsFrame.addConditionButtonInfo
+                     (MENU_ACCEPT) appended in updateButtonVisibility
+                     when a filter is selected. The conditions list
+                     stretches to fill the remaining vertical space below
+                     the metadata layout. -->
+
 
             </GuiElement>
 

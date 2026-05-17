@@ -809,6 +809,41 @@
 		<text name="rl_menu_filters_usage_owned" text="Owned-herd screens"/>
 		<text name="rl_menu_filters_usage_dealer" text="Dealer screens"/>
 
+		<!-- Phase 1 P1-4a: Conditions editor (number + bool). Bool True/False
+		     strings reuse base-game `ui_yes` / `ui_no` (see
+		     basegame/l10n/l10n_en.xml `ui_yes`="Yes", `ui_no`="No") so the
+		     editor reads identically to other base-game True/False prompts;
+		     no new RLRM-local keys for True/False. -->
+		<text name="rl_menu_filters_add_condition" text="Add condition"/>
+		<text name="rl_menu_filters_add_group_button" text="Add group"/>
+		<text name="rl_menu_filters_edit_condition" text="Edit condition"/>
+		<text name="rl_menu_filters_delete_condition" text="Delete condition"/>
+		<text name="rl_menu_filters_dialog_title" text="Edit condition"/>
+		<text name="rl_menu_filters_field_label" text="Field"/>
+		<text name="rl_menu_filters_cmp_label" text="Compare"/>
+		<text name="rl_menu_filters_value_label" text="Value"/>
+		<text name="rl_menu_filters_value_invalid_number" text="Invalid number"/>
+		<text name="rl_menu_filters_preserved_banner" text="%d condition(s) hidden - editable in a later phase. Saved on close."/>
+
+		<!-- Field labels per catalog key. Phase 1 P1-4a needs labels for
+		     number + bool fields; enum/string fields keep their key as a
+		     fallback until P1-4b. -->
+		<text name="rl_menu_filters_field_age" text="Age"/>
+		<text name="rl_menu_filters_field_isCastrated" text="Castrated"/>
+		<text name="rl_menu_filters_field_isPregnant" text="Pregnant"/>
+		<text name="rl_menu_filters_field_isLactating" text="Lactating"/>
+		<text name="rl_menu_filters_field_hasName" text="Has name"/>
+		<text name="rl_menu_filters_field_hasAnyDisease" text="Has any disease"/>
+		<text name="rl_menu_filters_field_hasAnyMark" text="Has any mark"/>
+		<text name="rl_menu_filters_field_weight" text="Weight"/>
+		<text name="rl_menu_filters_field_health" text="Health"/>
+		<text name="rl_menu_filters_field_genetics_metabolism" text="Genetics: metabolism"/>
+		<text name="rl_menu_filters_field_genetics_health" text="Genetics: health"/>
+		<text name="rl_menu_filters_field_genetics_fertility" text="Genetics: fertility"/>
+		<text name="rl_menu_filters_field_genetics_quality" text="Genetics: quality"/>
+		<text name="rl_menu_filters_field_genetics_productivity" text="Genetics: productivity"/>
+		<text name="rl_menu_filters_field_genetics_overall" text="Genetics: overall"/>
+
 		<!-- Filter cycle + chip MVP -->
 		<text name="rl_menu_filter_chip_none" text="No filter"/>
 		<text name="rl_menu_filter_chip_active" text="Filter: %s"/>

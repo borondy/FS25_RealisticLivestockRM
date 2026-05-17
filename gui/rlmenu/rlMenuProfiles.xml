@@ -88,11 +88,10 @@
     <!--
         Phase 2b1: pen icon profile for the Info tab.
 
-        Base-game fs25_animalPenIcon is tuned for the WIDE 700px container
-        (fs25_animalPenInfoContainer) and uses position 0px 460px which
-        renders the icon high above the container's top. We host the pen
-        column in the NARROW 390px container, so we need a smaller icon
-        positioned inside the column rather than floating above the frame.
+        The default `fs25_animalPenIcon` profile renders the icon above its
+        host container, which only works in a wide layout. The Info tab
+        uses a narrower column, so this override resizes and repositions
+        the icon to sit inside the column.
     -->
     <!--
         Pen icon for the Info tab. Mirrors legacy fs25_animalHusbandryIcon
@@ -218,9 +217,9 @@
     <!--
         Inline animal description paragraph (the "INFORMATION" text).
         Top-anchored so it sits between the can-reproduce row and the
-        two-column pedigree/genetics area. base-game's
-        fs25_animalInfoDescription is bottom-anchored which causes overlap
-        when the BoxLayout above extends down into the bottom region.
+        two-column pedigree/genetics area. Top-anchoring is required here
+        because a bottom-anchored variant would overlap the BoxLayout
+        above when its rows extend into the bottom region.
     -->
     <Profile name="rlMenu_animalDescription" extends="fs25_textGrey" with="anchorTopCenter pivotTopCenter">
         <size value="640px 100px"/>
@@ -244,12 +243,12 @@
     </Profile>
 
     <!--
-        Smaller animal image profile for the Info tab. Base-game
-        fs25_animalIcon is 340x340 at position 0px 10px, tuned for the
-        narrow fs25_animalInfoContainer where it dominates the column.
-        We host the animal in the WIDE container with much more lower-area
-        content (description + 2 columns + disease), so we need a smaller
-        image positioned higher to free vertical space.
+        Smaller animal image profile for the Info tab. The default
+        `fs25_animalIcon` profile renders the icon at a size suited to a
+        narrow column where it dominates the layout. The Info tab hosts
+        the icon in a wider column with more content underneath
+        (description + 2 columns + disease), so this override shrinks it
+        and lifts it to free vertical space.
     -->
     <Profile name="rlMenu_animalImage" extends="fs25_animalIcon">
         <size value="200px 200px"/>
@@ -268,12 +267,11 @@
     </Profile>
 
     <!--
-        Stats grid label/value text profiles. Mirrors legacy
-        AnimalScreen.xml infoTitle[1..10] / infoValue[1..10] which use
-        base-game fs25_animalInfoTitle / fs25_animalInfoValue text profiles.
-        NO status bars - legacy renders stats as plain label/value text in
-        a 2x5 grid, not as rows-with-bars (which is the conditions/food
-        pattern, a different idiom).
+        Stats grid label/value text profiles. Mirrors the legacy
+        AnimalScreen.xml stats grid (infoTitle / infoValue rows), which
+        renders stats as plain label/value text in a 2x5 grid - NOT as
+        rows-with-bars (that pattern is used elsewhere for conditions/
+        food and is a separate idiom).
     -->
     <Profile name="rlMenu_animalStatLabel" extends="fs25_animalInfoTitle">
         <textSize value="14px"/>
@@ -303,25 +301,21 @@
     </Profile>
 
     <!--
-        Wide animal column container. Extends base-game
-        fs25_animalPenInfoContainer (700px wide, anchored stretching-Y-right,
-        position -80px 0px from the right edge of detailsBox) but REMOVES
-        the absoluteSizeOffset 0px 430px that shrinks the container by 430px.
-        The base-game profile is intentionally short to leave 430px at the
-        bottom for a sibling description text - we don't want that, we want
-        full-height so our scrollable area has room.
+        Wide animal column container. Extends `fs25_animalPenInfoContainer`
+        and overrides the height offset + horizontal position so the
+        column fills the available space without overlapping the footer
+        and sits a touch left of where the inherited profile would land.
+        Tuning numbers were chosen empirically from runtime measurement
+        at 16:9.
     -->
     <Profile name="rlMenu_animalContainer" extends="fs25_animalPenInfoContainer">
         <!--
-            Base-game uses 0px 430px which over-shrinks for our needs
-            (430 = ~145 description + ~80 footer + ~205 padding for the
-            husbandry use case). We only need to clear the footer/action
-            bar at the bottom; 90 was not enough (bottom still overlapped
-            the footer), bumping to 140 to give a clean margin above the
-            footer buttons.
+            Height offset 140 clears the footer / action bar at the
+            bottom. Smaller values caused the bottom rows to overlap the
+            footer; 140 leaves a clean margin.
 
-            Position shifted 25px left (-105 vs base-game's -80) so the
-            column moves slightly toward the pen column without overlapping it.
+            Position X = -105 shifts the column slightly toward the pen
+            column without overlapping it.
         -->
         <absoluteSizeOffset value="0px 140px"/>
         <position value="-105px 0px"/>
@@ -347,8 +341,7 @@
     </Profile>
 
     <!--
-        Scrollable layout for animal info content. Mirrors base-game
-        InGameMenuSettingsFrame's fs25_settingsLayout: vertical ScrollingLayout
+        Scrollable layout for animal info content. Vertical ScrollingLayout
         with fitFlowToElements + clipping. Empty for now; content added
         incrementally after position is verified.
     -->
@@ -503,6 +496,100 @@
         <size value="100% 100%"/>
         <position value="410px 0px"/>
         <absoluteSizeOffset value="410px 0px"/>
+    </Profile>
+
+
+    <!--
+        rlMenu_filterEditorMiddle
+
+        Stretching middle region for the P1-4a filter editor's conditions
+        list container. Sits between the fixed-height metadata layout at
+        top and the bottom-anchored footer row. Uses anchorStretchingY so
+        the height adapts to the editor pane's actual height (varies with
+        screen aspect ratio), and absoluteSizeOffset reserves space for
+        the top (280px metadata layout) and bottom (60px footer row + small
+        gap) regions. emptyPanel extends baseReference (anchorBottomLeft)
+        which is the wrong anchor for stretching - so this profile overrides
+        with the correct trait.
+    -->
+    <!--
+        Pivot/position math notes for future maintainers:
+
+        - With pivotBottomLeft, position.Y offsets the element's bottom
+          upward from the parent's bottom edge. positive Y -> element
+          rises within the parent.
+        - With pivotTopLeft, position.Y offsets the element's top
+          upward from the parent's top edge. positive Y -> element rises
+          above the parent's top (typically off-screen).
+
+        We want the element's bottom just above the editor pane's bottom,
+        with the top landing right under the metadata layout. Verified
+        via runtime measurement on a 783-tall parent at 16:9.
+    -->
+    <!--
+        2026-05-17 update: [+ condition] footer row removed (moved to the
+        action bar). Conditions list now stretches all the way to the
+        parent's bottom edge. absoluteSizeOffset reduced from 380 to 290
+        (only the top metadata layout reservation remains, plus a small
+        visual gap). position dropped from 90 to 0 (element bottom flush
+        with parent bottom).
+    -->
+    <Profile name="rlMenu_filterEditorMiddle" extends="emptyPanel" with="anchorStretchingYStretchingX pivotBottomCenter">
+        <size value="100% 100%"/>
+        <position value="0px 0px"/>
+        <!-- Width offset 90px centers the container horizontally so the
+             condition rows align with the metadata rows above. Height
+             offset 290px reserves room for the metadata layout on top. -->
+        <absoluteSizeOffset value="90px 290px"/>
+    </Profile>
+
+    <!--
+        rlMenu_filterConditionRow
+
+        Row template for a condition inside the conditions SmoothList.
+        The `alternating` trait makes the SmoothList framework auto-tint
+        adjacent rows using `imageColor` and `alternateBackgroundColor`;
+        no manual tint pass needed. Without the trait the row paints the
+        bright white `gui.colorPreset` fallback. Tint values are chosen
+        to match the General-subtab rows visually.
+    -->
+    <Profile name="rlMenu_filterConditionRow" extends="baseReference" with="anchorTopStretchingX alternating">
+        <height value="50px"/>
+        <imageColor value="0.02956 0.02956 0.02956 0.2"/>
+        <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
+        <alternateBackgroundColor value="0.02956 0.02956 0.02956 0.6"/>
+    </Profile>
+
+    <!--
+        rlMenu_filterConditionsList
+
+        SmoothList container for condition rows. Extends fs25_subCategoryList
+        for the standard scroll + clipping behavior but pins
+        `listItemSpacing` to 0px. The parent profile is reused elsewhere
+        in this frame for card-style lists with negative spacing; flat
+        data rows need 0 spacing to render without overlap.
+    -->
+    <Profile name="rlMenu_filterConditionsList" extends="fs25_subCategoryList">
+        <listItemSpacing value="0px"/>
+    </Profile>
+
+    <!--
+        rl_filterConditionText
+
+        Single-line Text profile used as the row content for the conditions
+        list. The row template is a read-only display of the formatted
+        condition ("age >= 30"); editing routes through RLFilterConditionDialog
+        instead of inline widgets. White-on-grey, left-aligned, indent-friendly
+        (Phase 2 group depth applies a left position offset). Selection
+        highlight is handled by the parent rlMenu_filterConditionRow's
+        imageSelectedColor.
+    -->
+    <Profile name="rl_filterConditionText" extends="baseReference" with="anchorTopLeft">
+        <textBold value="false"/>
+        <textSize value="18px"/>
+        <textAlignment value="left"/>
+        <textColor value="$preset_fs25_colorMainLight"/>
+        <textSelectedColor value="$preset_fs25_colorMainDark"/>
     </Profile>
 
 </GUIProfiles>

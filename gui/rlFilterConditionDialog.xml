@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<!--
+    rlFilterConditionDialog.xml
+
+    Modal condition editor used by RLMenuSettingsFrame.lua to edit a single
+    condition row (field / cmp / value). Mirrors AnimalMoveDestinationDialog
+    structurally: fs25_dialogBg + fs25_dialogContentContainer + 3-part bg
+    + fs25_dialogButtonBox. Three label+widget rows + OK/Cancel.
+
+    Value widget is a swap pair (TextInput for number fields, MultiTextOption
+    for bool fields). RLFilterConditionDialog.lua toggles visibility per the
+    active field's catalog type.
+
+    Local profiles `rl_filterDialog_picker` and `rl_filterDialog_textInput`
+    pin `anchorTopCenter` so picker and TextInput position relative to the
+    content container's top-center, matching the labels (fs25_dialogText is
+    also anchorTopCenter). Without these the inherited anchors land widgets
+    at the container's bottom-left -> outside the dialog frame.
+-->
+<GUI onOpen="onOpen" onClose="onClose" onCreate="onCreate">
+    <GuiElement profile="newLayer"/>
+    <Bitmap profile="dialogFullscreenBg" id="dialogBg"/>
+    <GuiElement profile="fs25_dialogBg" id="dialogElement" size="600px 420px">
+        <ThreePartBitmap profile="fs25_dialogBgMiddle"/>
+        <ThreePartBitmap profile="fs25_dialogBgTop"/>
+        <ThreePartBitmap profile="fs25_dialogBgBottom"/>
+        <GuiElement profile="fs25_dialogContentContainer">
+
+            <Text profile="fs25_dialogTitle" id="dialogTitleElement"
+                  position="0px -30px"
+                  text="$l10n_rl_menu_filters_dialog_title"/>
+
+            <!--
+                Row 1: Field. Label left, picker right of center.
+                Labels reuse existing P1-4a keys
+                (rl_menu_filters_field_label / cmp_label / value_label).
+            -->
+            <Text profile="fs25_dialogText" id="fieldLabel"
+                  position="-180px -110px"
+                  text="$l10n_rl_menu_filters_field_label"/>
+            <MultiTextOption profile="rl_filterDialog_picker" id="fieldPicker"
+                             position="50px -110px"
+                             onClick="onFieldChanged"
+                             focusInit="onOpen">
+                <Text profile="fs25_multiTextOptionText" width="240px" name="text"/>
+            </MultiTextOption>
+
+            <!--
+                Row 2: Comparator. Editable cmps filtered to exclude
+                in / notin (multi-value editor deferred to P1-4b).
+            -->
+            <Text profile="fs25_dialogText" id="cmpLabel"
+                  position="-180px -170px"
+                  text="$l10n_rl_menu_filters_cmp_label"/>
+            <MultiTextOption profile="rl_filterDialog_picker" id="cmpPicker"
+                             position="50px -170px"
+                             onClick="onCmpChanged">
+                <Text profile="fs25_multiTextOptionText" width="240px" name="text"/>
+            </MultiTextOption>
+
+            <!--
+                Row 3: Value. TextInput (number) and MultiTextOption (bool)
+                occupy the same row position; Lua toggles visibility per
+                catalog type at onOpen + onFieldChanged.
+            -->
+            <Text profile="fs25_dialogText" id="valueLabel"
+                  position="-180px -230px"
+                  text="$l10n_rl_menu_filters_value_label"/>
+            <TextInput profile="rl_filterDialog_textInput" id="valueNumberInput"
+                       position="50px -230px"
+                       focusOnHighlight="true"
+                       onEnterPressed="onEnterPressed"
+                       onEscPressed="onEscPressed"
+                       enterWhenClickOutside="false"
+                       imeTitle="$l10n_rl_menu_filters_value_label"
+                       imeDescription="$l10n_rl_menu_filters_value_label"
+                       imePlaceholder="$l10n_rl_menu_filters_value_label">
+                <ThreePartBitmap profile="fs25_textInputBg"/>
+                <Bitmap profile="fs25_textInputIconBox">
+                    <Bitmap profile="fs25_textInputIcon"/>
+                </Bitmap>
+            </TextInput>
+            <MultiTextOption profile="rl_filterDialog_picker" id="valueBoolPicker"
+                             position="50px -230px"
+                             onClick="onValueBoolChanged">
+                <Text profile="fs25_multiTextOptionText" width="240px" name="text"/>
+            </MultiTextOption>
+
+        </GuiElement>
+
+        <BoxLayout profile="fs25_dialogButtonBox" id="buttonsPC">
+            <Button profile="buttonOK" text="$l10n_button_ok"
+                    onClick="onClickOk" id="okButton"/>
+            <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+            <Button profile="buttonBack" text="$l10n_button_back"
+                    onClick="onClickBack" id="backButton"/>
+        </BoxLayout>
+    </GuiElement>
+
+    <!--
+        Local dialog profiles. Pattern copied from
+        basegame/gui/dialogs/OptionDialog.xml (which inlines its own
+        fs25_optionDialogMultiTextOption). Element-level `with=` is
+        silently ignored by FS25's GUI loader (see project memory
+        reference_fs25_gui_gotchas) - only profile-level `with=` traits
+        work, so we have to declare these here rather than override
+        on the elements above.
+    -->
+    <GUIProfiles>
+        <Profile name="rl_filterDialog_picker" extends="fs25_multiTextOption" with="anchorTopCenter">
+            <size value="280px 36px"/>
+        </Profile>
+        <Profile name="rl_filterDialog_textInput" extends="fs25_textInput" with="anchorTopCenter">
+            <size value="280px 36px"/>
+            <textBold value="true"/>
+            <maxCharacters value="30"/>
+            <maxInputTextWidth value="250px"/>
+        </Profile>
+    </GUIProfiles>
+</GUI>

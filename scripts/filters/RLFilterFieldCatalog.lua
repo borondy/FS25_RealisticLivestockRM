@@ -44,6 +44,17 @@ local BOOL_CMPS   = { "==" }
 local ENUM_CMPS   = { "==", "!=", "in", "notin" }
 local STRING_CMPS = { "contains", "notcontains" }
 
+-- Per-type default comparator used by the conditions editor when adding a new
+-- row or coercing the cmp on a field-type change. Picked to produce a row that
+-- "matches every animal at the default value" so the user can tighten from
+-- there: NUMBER -> `>=` (the naive cmps[1] is `<`, which would default to
+-- `age < 0` matching nothing); BOOL -> `==` (the only sensible bool cmp);
+-- ENUM / STRING fall back to `cmps[1]` for now (P1-4b widens the editor).
+local DEFAULT_CMP_BY_TYPE = {
+    number = ">=",
+    bool   = "==",
+}
+
 -- =============================================================================
 -- Getter helpers
 -- =============================================================================
@@ -351,6 +362,137 @@ function RLFilterFieldCatalog.isAvailableForType(field, animalTypeIndex)
         if _G.AnimalType[allowedName] == animalTypeIndex then return true end
     end
     return false
+end
+
+--- Return the ordered subset of FIELDS that pass `isAvailableForType` for
+--- `animalTypeIndex` and (optionally) match `typeFilter` against `field.type`.
+---
+--- `typeFilter` is either nil (no type filter), a string ("number"), or a set
+--- table `{ number = true, bool = true }`. Ordering follows the canonical
+--- FIELDS array (declaration order), which the editor relies on to keep the
+--- field picker stable across re-renders.
+---@param animalTypeIndex number|nil
+---@param typeFilter string|table|nil
+---@return table[] filtered ordered field entries
+function RLFilterFieldCatalog.getAllForAnimalType(animalTypeIndex, typeFilter)
+    local out = {}
+    local filterSet
+    if type(typeFilter) == "string" then
+        filterSet = { [typeFilter] = true }
+    elseif type(typeFilter) == "table" then
+        filterSet = typeFilter
+    end
+    for _, field in ipairs(RLFilterFieldCatalog.FIELDS) do
+        local typeOk = (filterSet == nil) or (filterSet[field.type] == true)
+        if typeOk and RLFilterFieldCatalog.isAvailableForType(field, animalTypeIndex) then
+            table.insert(out, field)
+        end
+    end
+    Log:trace("RLFilterFieldCatalog.getAllForAnimalType: animalTypeIndex=%s typeFilter=%s -> %d field(s)",
+        tostring(animalTypeIndex), tostring(typeFilter), #out)
+    return out
+end
+
+--- Return the per-type default value used when seeding a new condition row or
+--- coercing on a field-type change. Mirrors the cmp default rule: NUMBER -> 0,
+--- BOOL -> false; unknown types fall back to nil and the caller's
+--- defensive-default branch.
+---@param fieldType string|nil
+---@return any default value (nil for unknown types)
+function RLFilterFieldCatalog.getDefaultValueForType(fieldType)
+    if fieldType == "number" then return 0 end
+    if fieldType == "bool"   then return false end
+    return nil
+end
+
+--- Return the default cmp for the given field. Consults
+--- `DEFAULT_CMP_BY_TYPE` first; on miss falls back to `field.cmps[1]` so a
+--- future field type (e.g. enum / string when P1-4b extends the editor)
+--- still gets a deterministic default. Returns nil only when the field has
+--- neither a default-by-type entry nor any cmps configured (treated as a
+--- catalog defect; logged at TRACE).
+---@param field table entry from FIELDS
+---@return string|nil cmp
+function RLFilterFieldCatalog.getDefaultCmpForField(field)
+    if field == nil then return nil end
+    local byType = DEFAULT_CMP_BY_TYPE[field.type]
+    if byType ~= nil then return byType end
+    if field.cmps ~= nil and field.cmps[1] ~= nil then
+        Log:trace("RLFilterFieldCatalog.getDefaultCmpForField: no DEFAULT_CMP_BY_TYPE for type=%s, falling back to cmps[1]=%s",
+            tostring(field.type), tostring(field.cmps[1]))
+        return field.cmps[1]
+    end
+    Log:trace("RLFilterFieldCatalog.getDefaultCmpForField: field key=%s has no DEFAULT_CMP_BY_TYPE entry and no cmps",
+        tostring(field.key))
+    return nil
+end
+
+-- Exposed for tests that need to inspect the default table directly.
+RLFilterFieldCatalog._DEFAULT_CMP_BY_TYPE = DEFAULT_CMP_BY_TYPE
+
+--- Coerce a condition row when the field has just changed. Pure data; no GUI
+--- or state side effects. Encodes the legacy invariants from the inline-widget
+--- editor's onConditionFieldChanged (RLMenuSettingsFrame.lua pre-v2-modal):
+---   1. The cmp survives if the new field still accepts it; otherwise it
+---      resets to getDefaultCmpForField(newField).
+---   2. When the field's type diverges (number <-> bool, etc.), the value
+---      resets to getDefaultValueForType(newField.type) AND the stale
+---      `rawText` (the in-flight TextInput buffer for number rows) is added
+---      to the clearKeys list. F2 lesson: nil-valued keys in a table literal
+---      vanish during construction, so callers MUST explicitly clear rather
+---      than rely on `patch.rawText = nil`.
+---   3. Number -> Number (or bool -> bool) preserves value + rawText.
+---
+--- Caller decides what "editable" means for cmp validity: the editor strips
+--- multi-value cmps (`in`, `notin`) until P1-4b lands a multi-value widget,
+--- so the caller passes its filtered list via `editableCmps`. When nil, the
+--- helper falls back to newField.cmps (all catalog cmps).
+---
+---@param oldCond table {field=string, cmp=string, value=any, rawText=string?}
+---@param newFieldKey string the field the user just selected
+---@param editableCmps string[]|nil whitelist of cmps the caller's editor renders
+---@return table {patch=table, clearKeys=string[]|nil}
+---   patch always carries `field`. `cmp` is present only when reset.
+---   `value` is present only when types diverge.
+---   `clearKeys` is `{"rawText"}` when types diverge, nil otherwise.
+function RLFilterFieldCatalog.coerceConditionOnFieldChange(oldCond, newFieldKey, editableCmps)
+    if oldCond == nil or newFieldKey == nil then
+        Log:warning("RLFilterFieldCatalog.coerceConditionOnFieldChange: nil oldCond=%s newFieldKey=%s",
+            tostring(oldCond), tostring(newFieldKey))
+        return { patch = {}, clearKeys = nil }
+    end
+    local newField = RLFilterFieldCatalog.get(newFieldKey)
+    if newField == nil then
+        Log:warning("RLFilterFieldCatalog.coerceConditionOnFieldChange: unknown newFieldKey=%s; returning identity patch",
+            tostring(newFieldKey))
+        return { patch = { field = newFieldKey }, clearKeys = nil }
+    end
+    local oldField = RLFilterFieldCatalog.get(oldCond.field)
+    local patch = { field = newField.key }
+
+    local cmps = editableCmps
+    if cmps == nil then cmps = newField.cmps end
+    local cmpStillValid = false
+    if cmps ~= nil then
+        for _, c in ipairs(cmps) do
+            if c == oldCond.cmp then cmpStillValid = true; break end
+        end
+    end
+    if not cmpStillValid then
+        patch.cmp = RLFilterFieldCatalog.getDefaultCmpForField(newField)
+    end
+
+    local clearKeys = nil
+    local typesDiverge = (oldField == nil or oldField.type ~= newField.type)
+    if typesDiverge then
+        patch.value = RLFilterFieldCatalog.getDefaultValueForType(newField.type)
+        clearKeys = { "rawText" }
+    end
+
+    Log:trace("RLFilterFieldCatalog.coerceConditionOnFieldChange: oldField=%s newField=%s typesDiverge=%s cmpReset=%s",
+        tostring(oldCond.field), tostring(newField.key),
+        tostring(typesDiverge), tostring(patch.cmp ~= nil))
+    return { patch = patch, clearKeys = clearKeys }
 end
 
 Log:debug("RLFilterFieldCatalog: loaded %d fields", #RLFilterFieldCatalog.FIELDS)
