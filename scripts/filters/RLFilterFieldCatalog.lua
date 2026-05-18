@@ -49,10 +49,14 @@ local STRING_CMPS = { "contains", "notcontains" }
 -- "matches every animal at the default value" so the user can tighten from
 -- there: NUMBER -> `>=` (the naive cmps[1] is `<`, which would default to
 -- `age < 0` matching nothing); BOOL -> `==` (the only sensible bool cmp);
--- ENUM / STRING fall back to `cmps[1]` for now (P1-4b widens the editor).
+-- ENUM -> `==` (the only single-value cmp the P1-4b dialog exposes; `in`/
+-- `notin` are gated out of editableCmps until P1-4b-2); STRING -> `contains`
+-- (the only positive-match cmp the P1-4b dialog exposes).
 local DEFAULT_CMP_BY_TYPE = {
     number = ">=",
     bool   = "==",
+    enum   = "==",
+    string = "contains",
 }
 
 -- =============================================================================
@@ -394,14 +398,20 @@ function RLFilterFieldCatalog.getAllForAnimalType(animalTypeIndex, typeFilter)
 end
 
 --- Return the per-type default value used when seeding a new condition row or
---- coercing on a field-type change. Mirrors the cmp default rule: NUMBER -> 0,
---- BOOL -> false; unknown types fall back to nil and the caller's
---- defensive-default branch.
+--- coercing on a field-type change. NUMBER -> 0, BOOL -> false, STRING -> ""
+--- (empty needle; the dialog's empty-string reject prevents committing as-is
+--- but the seed has to be safe to render). ENUM defaults are domain-driven
+--- (subType is per-animal-type, gender is fixed but still lives in
+--- RLFilterFieldDisplay to keep the catalog free of UI coupling); the catalog
+--- returns nil and the dialog patches in domain[1] after coercion. Unknown
+--- types fall back to nil and the caller's defensive-default branch.
 ---@param fieldType string|nil
----@return any default value (nil for unknown types)
+---@return any default value (nil for enum and unknown types)
 function RLFilterFieldCatalog.getDefaultValueForType(fieldType)
     if fieldType == "number" then return 0 end
     if fieldType == "bool"   then return false end
+    if fieldType == "string" then return "" end
+    -- enum: nil so the dialog seeds from RLFilterFieldDisplay.getEnumDomain
     return nil
 end
 
@@ -485,8 +495,20 @@ function RLFilterFieldCatalog.coerceConditionOnFieldChange(oldCond, newFieldKey,
     local clearKeys = nil
     local typesDiverge = (oldField == nil or oldField.type ~= newField.type)
     if typesDiverge then
-        patch.value = RLFilterFieldCatalog.getDefaultValueForType(newField.type)
-        clearKeys = { "rawText" }
+        local defaultValue = RLFilterFieldCatalog.getDefaultValueForType(newField.type)
+        if defaultValue == nil then
+            -- F2 lesson generalised: enum's default value is domain-driven
+            -- (subType is per-animal-type, gender lives in RLFilterFieldDisplay
+            -- to keep the catalog free of UI coupling). The catalog can't seed
+            -- it, so we flag `value` for explicit clearing and let the dialog
+            -- patch in domain[1] after coercion. Without this the stale enum
+            -- value from oldCond would survive the type swap (the patch
+            -- merge guards on `~= nil`).
+            clearKeys = { "rawText", "value" }
+        else
+            patch.value = defaultValue
+            clearKeys = { "rawText" }
+        end
     end
 
     Log:trace("RLFilterFieldCatalog.coerceConditionOnFieldChange: oldField=%s newField=%s typesDiverge=%s cmpReset=%s",

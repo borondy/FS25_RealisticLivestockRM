@@ -71,6 +71,7 @@
                        focusOnHighlight="true"
                        onEnterPressed="onEnterPressed"
                        onEscPressed="onEscPressed"
+                       onTextChanged="onTextChanged"
                        enterWhenClickOutside="false"
                        imeTitle="$l10n_rl_menu_filters_value_label"
                        imeDescription="$l10n_rl_menu_filters_value_label"
@@ -86,6 +87,52 @@
                 <Text profile="fs25_multiTextOptionText" width="240px" name="text"/>
             </MultiTextOption>
 
+            <!--
+                P1-4b: enum value picker (gender / subType single-pick). Shares
+                the value-row slot with the number / bool widgets; Lua toggles
+                visibility per catalog type. Reuses the same rl_filterDialog_picker
+                profile as the field/cmp pickers (no new profile per spec).
+            -->
+            <MultiTextOption profile="rl_filterDialog_picker" id="valueEnumPicker"
+                             position="50px -230px"
+                             onClick="onValueEnumChanged">
+                <Text profile="fs25_multiTextOptionText" width="240px" name="text"/>
+            </MultiTextOption>
+
+            <!--
+                P1-4b: string value input (name contains/notcontains). Shares
+                the value-row slot. Reuses the rl_filterDialog_textInput profile
+                from the number input (length cap 30 already declared on the
+                profile). Empty-string commit is rejected at OK click and
+                surfaces hintText.
+            -->
+            <TextInput profile="rl_filterDialog_textInput" id="valueStringInput"
+                       position="50px -230px"
+                       focusOnHighlight="true"
+                       onEnterPressed="onEnterPressed"
+                       onEscPressed="onEscPressed"
+                       onTextChanged="onTextChanged"
+                       enterWhenClickOutside="false"
+                       imeTitle="$l10n_rl_menu_filters_value_label"
+                       imeDescription="$l10n_rl_menu_filters_value_label"
+                       imePlaceholder="$l10n_rl_menu_filters_value_label">
+                <ThreePartBitmap profile="fs25_textInputBg"/>
+                <Bitmap profile="fs25_textInputIconBox">
+                    <Bitmap profile="fs25_textInputIcon"/>
+                </Bitmap>
+            </TextInput>
+
+            <!--
+                P1-4b: inline hint surface for reject paths (empty-string,
+                subType-domain-empty refuse). Hidden by default; populated via
+                RLFilterConditionDialog:showHint(l10nKey). Also unblocks the
+                P1-4a deferred silent-numeric-reject hint (RLRM-271).
+            -->
+            <Text profile="fs25_dialogText" id="hintText"
+                  position="0px -290px"
+                  visible="false"
+                  text=""/>
+
         </GuiElement>
 
         <BoxLayout profile="fs25_dialogButtonBox" id="buttonsPC">
@@ -98,13 +145,10 @@
     </GuiElement>
 
     <!--
-        Local dialog profiles. Pattern copied from
-        basegame/gui/dialogs/OptionDialog.xml (which inlines its own
-        fs25_optionDialogMultiTextOption). Element-level `with=` is
-        silently ignored by FS25's GUI loader (see project memory
-        reference_fs25_gui_gotchas) - only profile-level `with=` traits
-        work, so we have to declare these here rather than override
-        on the elements above.
+        Local dialog profiles. Element-level `with=` is silently ignored
+        by the GUI loader (see project memory reference_fs25_gui_gotchas)
+        - only profile-level `with=` traits are honored, so we have to
+        declare these here rather than override on the elements above.
     -->
     <GUIProfiles>
         <Profile name="rl_filterDialog_picker" extends="fs25_multiTextOption" with="anchorTopCenter">

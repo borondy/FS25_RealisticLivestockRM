@@ -1507,9 +1507,14 @@ end
 --- later phase). All other cmps fall through to the supported-type check.
 local UNSUPPORTED_CMPS = { ["in"] = true, ["notin"] = true }
 
---- Set of field types this slice can render in the conditions editor. enum
---- and string types defer to P1-4b.
-local SUPPORTED_TYPES = { number = true, bool = true }
+--- Set of field types this slice can render in the conditions editor. P1-4a
+--- shipped number + bool only; P1-4b (2026-05-18) widens to enum + string
+--- via the dialog's MultiTextOption (single-pick) + TextInput (contains /
+--- notcontains) widgets. Multi-value editor for in / notin defers to
+--- P1-4b-2 (RLRM-274), and UNSUPPORTED_CMPS still gates in / notin out
+--- of editableCmps so enum / string conditions on those cmps round-trip
+--- through partition->preserved unchanged.
+local SUPPORTED_TYPES = { number = true, bool = true, enum = true, string = true }
 
 --- True when the given AST node is a flat condition that the P1-4a editor
 --- can render directly. False for groups, conditions on unknown fields,
@@ -1583,28 +1588,39 @@ local function resolveFieldLabel(key)
 end
 
 --- Format a condition row for the read-only text display in the v2 conditions
---- list. Returns a localized "FieldLabel cmp value" string. Bool values render
---- via the base-game True/False keys (ui_yes / ui_no per project context); number
---- values render via tostring. Caller's row template Text widget displays the
---- result without further interpretation.
+--- list. P1-4b (2026-05-18) delegates to RLFilterFieldDisplay.formatConditionDisplay
+--- so enum (subType, gender) labels resolve via FillTypeManager / i18n and
+--- the catalog stays free of UI coupling. Local wrapper kept so the
+--- populateCell call site doesn't have to thread animalType through.
+---
+--- animalType resolution is inlined (not via resolveEffectiveAnimalType
+--- below) because Lua local-function-declaration ordering: this helper sits
+--- ~340 lines before resolveEffectiveAnimalType in source order, and `local
+--- function` declarations are only visible from their declaration point
+--- onward. Lifting the inline lookup back into resolveEffectiveAnimalType
+--- would require moving that helper up; the inline mirror is two lines and
+--- carries no extra state.
+---@param self table frame instance (used to resolve the filter's animalType scope)
 ---@param row table {field, cmp, value}
 ---@param field table catalog entry resolved from row.field
 ---@return string display
-local function formatConditionDisplay(row, field)
-    if row == nil or field == nil then return "(invalid)" end
-    local fieldLabel = resolveFieldLabel(row.field)
-    local cmpDisplay = tostring(row.cmp or "?")
-    local valueDisplay
-    if field.type == "bool" then
-        valueDisplay = (row.value == true)
-            and g_i18n:getText("ui_yes")
-            or  g_i18n:getText("ui_no")
-    elseif field.type == "number" then
-        valueDisplay = tostring(row.value or 0)
-    else
-        valueDisplay = tostring(row.value or "")
+local function formatConditionDisplay(self, row, field)
+    local animalType = nil
+    if self ~= nil and self.selectedFilterId ~= nil and g_rlFilterService ~= nil then
+        local stored = g_rlFilterService:getById(self.selectedFilterId)
+        if stored ~= nil then
+            animalType = stored.animalType
+            local pendingForId = self.pendingChanges and self.pendingChanges[self.selectedFilterId]
+            if pendingForId ~= nil and pendingForId.animalType ~= nil then
+                if pendingForId.animalType == RLMenuSettingsFrame.ANIMAL_TYPE_ANY then
+                    animalType = nil
+                else
+                    animalType = pendingForId.animalType
+                end
+            end
+        end
     end
-    return string.format("%s %s %s", fieldLabel, cmpDisplay, valueDisplay)
+    return RLFilterFieldDisplay.formatConditionDisplay(row, field, animalType)
 end
 
 --- Return the list of catalog fields that the conditions editor can render
@@ -1976,6 +1992,33 @@ function RLMenuSettingsFrame:openConditionEditDialog(rowIndex)
             Log:warning("RLMenuSettingsFrame:openConditionEditDialog: rowIndex=%d not in supportedRows; aborting",
                 rowIndex)
             return
+        end
+        -- P1-4b: refuse to open the dialog when the row carries an enum
+        -- value whose domain is currently empty (subType when the filter
+        -- scope has no resolvable animal type, or the scoped type has zero
+        -- subtypes loaded). The condition stays intact in pendingChanges /
+        -- preservedChildren and round-trips through flush unchanged; the
+        -- user can re-author it after switching the filter's animalType.
+        local field = RLFilterFieldCatalog.get(row.field)
+        if field ~= nil and field.type == "enum" then
+            local domain = RLFilterFieldDisplay.getEnumDomain(row.field, animalType)
+            if domain == nil or #domain == 0 then
+                Log:warning("RLMenuSettingsFrame:openConditionEditDialog: refusing edit on rowIndex=%d field=%s (empty enum domain for animalType=%s)",
+                    rowIndex, tostring(row.field), tostring(animalType))
+                -- Surface the refuse via the existing filterConditionsBanner
+                -- element (same surface used for the "N condition(s) hidden"
+                -- preserved-children notice). The next renderConditionsForFilter
+                -- pass (driven by any subsequent selection change or
+                -- animalType edit) overwrites the banner with its own
+                -- content, so this is transient by design - matches the
+                -- spec's intent of a non-modal in-frame hint.
+                if self.filterConditionsBanner ~= nil and g_i18n ~= nil then
+                    self.filterConditionsBanner:setText(
+                        g_i18n:getText("rl_menu_filters_subtypeRequiresAnimalType"))
+                    self.filterConditionsBanner:setVisible(true)
+                end
+                return
+            end
         end
         initialCondition = {
             field   = row.field,
@@ -2766,7 +2809,30 @@ function RLMenuSettingsFrame:populateCellForItemInSection(list, _section, index,
         return
     end
 
-    local displayText = formatConditionDisplay(row, field)
+    local displayText = formatConditionDisplay(self, row, field)
+
+    -- P1-4b: pixel-accurate row truncation. String values use middle-truncate
+    -- so two long needles that differ only at the suffix render
+    -- distinguishably ("VeryLong...ABC" vs "VeryLong...XYZ"); other types
+    -- use suffix-truncate via the basegame helper. Width budget is the row's
+    -- own NDC width minus the left-indent offset, converted back to pixels.
+    -- conditionText.textSize is set by the rl_filterConditionText profile
+    -- (textSize 18px); we read it live so profile changes propagate.
+    local textSize = conditionText.textSize
+    local budgetPx = nil
+    if cell ~= nil and cell.size ~= nil and cell.size[1] ~= nil
+       and g_referenceScreenWidth ~= nil then
+        local rowWidthPx = cell.size[1] * g_referenceScreenWidth
+        local leftOffsetPx = 20  -- matches the XML position="20px ..."
+        budgetPx = rowWidthPx - leftOffsetPx - 8 -- 8px right padding so the
+                                                 -- truncation sentinel isn't
+                                                 -- flush against the row edge
+    end
+    if textSize ~= nil and budgetPx ~= nil and budgetPx > 0 then
+        displayText = RLFilterFieldDisplay.limitConditionRowText(
+            displayText, textSize, budgetPx, field.type)
+    end
+
     conditionText:setText(displayText)
 
     -- Indent: depth-aware left position. v2 ships flat (depth=0 for every

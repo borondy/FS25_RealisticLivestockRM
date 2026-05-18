@@ -112,6 +112,7 @@ source(modDirectory .. "scripts/animal/AnimalSerialization.lua")
 
 -- SECTION 11g: Saveable Filters - headless service + MP events (Phase 0)
 source(modDirectory .. "scripts/filters/RLFilterFieldCatalog.lua")
+source(modDirectory .. "scripts/filters/RLFilterFieldDisplay.lua")
 source(modDirectory .. "scripts/filters/RLFilterEvaluator.lua")
 source(modDirectory .. "scripts/filters/RLFilterUsage.lua")
 source(modDirectory .. "scripts/filters/RLFilterSerialization.lua")
