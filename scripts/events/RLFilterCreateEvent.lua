@@ -150,6 +150,29 @@ function RLFilterCreateEvent:run(connection)
     Log:debug("RLFilterCreateEvent:run: applied create id=%s name=%s",
         tostring(filter.id), tostring(filter.name))
 
+    -- Spec B fanout: notify the four consumer frames (Info/Buy/Sell/Move) so
+    -- their chip + animal list stay in sync with the remote mutation. Each
+    -- frame's onRemoteFilterChange id-match-gates against its own activeFilterId
+    -- so non-active remote changes are cheap no-ops (no chip / list churn).
+    -- Nil-guarded for the same reasons as the settingsFrame:refreshIfOpen
+    -- block below: g_rlMenu may not exist during early lifecycle; frame
+    -- fields may be nil pre-menu-open or on a dedicated server.
+    Log:trace("RLFilterCreateEvent:run: fanout to consumer frames, id=%s",
+        tostring(filter.id))
+    if g_rlMenu ~= nil then
+        -- Iterate frame NAMES (a no-nil string array) and look up the field
+        -- on g_rlMenu. An array-of-frame-references like
+        -- `{g_rlMenu.infoFrame, ..., g_rlMenu.moveFrame}` would break ipairs:
+        -- Lua stops at the first nil, so any nil frame field (dedi, pre-menu-
+        -- open, partial-rollback) would silently skip every later frame.
+        for _, frameName in ipairs({"infoFrame", "buyFrame", "sellFrame", "moveFrame"}) do
+            local f = g_rlMenu[frameName]
+            if f ~= nil and f.onRemoteFilterChange ~= nil then
+                f:onRemoteFilterChange(filter.id, "create")
+            end
+        end
+    end
+
     -- Refresh the Settings frame if it is currently open on this machine.
     -- Nil-guarded: g_rlMenu may not exist during early lifecycle,
     -- settingsFrame may be nil if the menu was never opened.

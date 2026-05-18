@@ -125,6 +125,29 @@ function RLFilterDeleteEvent:run(connection)
         Log:trace("RLFilterDeleteEvent:run: no-op delete id=%s (already gone)", tostring(id))
     end
 
+    -- Spec B fanout: notify the four consumer frames (Info/Buy/Sell/Move) so
+    -- their chip + animal list stay in sync with the remote mutation. Each
+    -- frame's onRemoteFilterChange id-match-gates against its own activeFilterId
+    -- so non-active remote changes are cheap no-ops (no chip / list churn).
+    -- Fires on both the applied and already-gone branches: a fanout on the
+    -- already-gone path means a peer's prior delete reached us out of order;
+    -- our local frame may still hold a stale activeFilterId pointing at the
+    -- just-removed filter, and the per-frame revalidate will clear it.
+    -- Nil-guarded for the same reasons as the settingsFrame:refreshIfOpen
+    -- block below: g_rlMenu may not exist during early lifecycle; frame
+    -- fields may be nil pre-menu-open or on a dedicated server.
+    Log:trace("RLFilterDeleteEvent:run: fanout to consumer frames, id=%s", tostring(id))
+    if g_rlMenu ~= nil then
+        -- Iterate frame NAMES (no-nil string array); see RLFilterCreateEvent
+        -- for the ipairs-nil rationale.
+        for _, frameName in ipairs({"infoFrame", "buyFrame", "sellFrame", "moveFrame"}) do
+            local f = g_rlMenu[frameName]
+            if f ~= nil and f.onRemoteFilterChange ~= nil then
+                f:onRemoteFilterChange(id, "delete")
+            end
+        end
+    end
+
     -- Refresh the Settings frame if it is currently open on this machine.
     -- Called after the branched if/else end so both applied and no-op
     -- paths trigger the refresh - the no-op path means the id was already

@@ -1265,3 +1265,38 @@ function RLMenuBuyFrame:revalidateActiveFilter()
             tostring(self.activeFilterId))
     end
 end
+
+--- Remote-change fanout hook fired from RLFilter{Create,Update,Delete}Event:run
+--- when a peer mutates a saved filter. Id-match gate short-circuits when the
+--- changed filter is not this frame's active filter, preserving user selection
+--- and detail-pane state. Otherwise re-runs revalidateActiveFilter +
+--- updateFilterChip + reloadAnimalList so the displayed list reflects the
+--- new active-filter state. BuyFrame is the isolated island in Cycle-A's
+--- shared-selection model (dealer context); it does NOT clear
+--- g_rlMenu.sharedSelection.activeFilterId on active-cleared.
+---@param filterId string  -- id of the filter that was created/updated/deleted on the network
+---@param changeType string  -- "create" | "update" | "delete"
+function RLMenuBuyFrame:onRemoteFilterChange(filterId, changeType)
+    Log:trace("RLMenuBuyFrame:onRemoteFilterChange: id=%s change=%s activeId=%s isFrameOpen=%s",
+        tostring(filterId), tostring(changeType), tostring(self.activeFilterId), tostring(self.isFrameOpen))
+
+    if self.isFrameOpen ~= true then
+        Log:trace("RLMenuBuyFrame:onRemoteFilterChange: frame not open, deferring to onFrameOpen")
+        return
+    end
+
+    if filterId ~= self.activeFilterId then
+        Log:trace("RLMenuBuyFrame:onRemoteFilterChange: no-op (non-active change)")
+        return
+    end
+
+    self:revalidateActiveFilter()
+    self:updateFilterChip()
+    self:reloadAnimalList()
+
+    if self.activeFilter == nil then
+        Log:debug("RLMenuBuyFrame:onRemoteFilterChange: active filter cleared (delete or scope-narrow)")
+    else
+        Log:debug("RLMenuBuyFrame:onRemoteFilterChange: active filter snapshot refreshed")
+    end
+end

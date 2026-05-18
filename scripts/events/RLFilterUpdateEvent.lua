@@ -135,6 +135,26 @@ function RLFilterUpdateEvent:run(connection)
     Log:debug("RLFilterUpdateEvent:run: applied update id=%s name=%s",
         tostring(filter.id), tostring(filter.name))
 
+    -- Spec B fanout: notify the four consumer frames (Info/Buy/Sell/Move) so
+    -- their chip + animal list stay in sync with the remote mutation. Each
+    -- frame's onRemoteFilterChange id-match-gates against its own activeFilterId
+    -- so non-active remote changes are cheap no-ops (no chip / list churn).
+    -- Nil-guarded for the same reasons as the settingsFrame:refreshIfOpen
+    -- block below: g_rlMenu may not exist during early lifecycle; frame
+    -- fields may be nil pre-menu-open or on a dedicated server.
+    Log:trace("RLFilterUpdateEvent:run: fanout to consumer frames, id=%s",
+        tostring(filter.id))
+    if g_rlMenu ~= nil then
+        -- Iterate frame NAMES (no-nil string array); see RLFilterCreateEvent
+        -- for the ipairs-nil rationale.
+        for _, frameName in ipairs({"infoFrame", "buyFrame", "sellFrame", "moveFrame"}) do
+            local f = g_rlMenu[frameName]
+            if f ~= nil and f.onRemoteFilterChange ~= nil then
+                f:onRemoteFilterChange(filter.id, "update")
+            end
+        end
+    end
+
     -- Refresh the Settings frame if it is currently open on this machine.
     -- Nil-guarded: g_rlMenu may not exist during early lifecycle,
     -- settingsFrame may be nil if the menu was never opened.

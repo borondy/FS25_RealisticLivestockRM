@@ -1071,3 +1071,42 @@ function RLMenuInfoFrame:revalidateActiveFilter()
             tostring(self.activeFilterId))
     end
 end
+
+--- Remote-change fanout hook fired from RLFilter{Create,Update,Delete}Event:run
+--- when a peer mutates a saved filter. Id-match gate short-circuits when the
+--- changed filter is not this frame's active filter, preserving user selection
+--- and detail-pane state. Otherwise re-runs revalidateActiveFilter +
+--- updateFilterChip + reloadAnimalList so the displayed list reflects the
+--- new active-filter state. Clears g_rlMenu.sharedSelection.activeFilterId
+--- when revalidate cleared the active filter (Info participates in shared
+--- selection alongside Sell + Move; Buy is isolated).
+---@param filterId string  -- id of the filter that was created/updated/deleted on the network
+---@param changeType string  -- "create" | "update" | "delete"
+function RLMenuInfoFrame:onRemoteFilterChange(filterId, changeType)
+    Log:trace("RLMenuInfoFrame:onRemoteFilterChange: id=%s change=%s activeId=%s isFrameOpen=%s",
+        tostring(filterId), tostring(changeType), tostring(self.activeFilterId), tostring(self.isFrameOpen))
+
+    if self.isFrameOpen ~= true then
+        Log:trace("RLMenuInfoFrame:onRemoteFilterChange: frame not open, deferring to onFrameOpen")
+        return
+    end
+
+    if filterId ~= self.activeFilterId then
+        Log:trace("RLMenuInfoFrame:onRemoteFilterChange: no-op (non-active change)")
+        return
+    end
+
+    self:revalidateActiveFilter()
+    self:updateFilterChip()
+    self:reloadAnimalList()
+
+    if self.activeFilter == nil then
+        if g_rlMenu ~= nil and g_rlMenu.sharedSelection ~= nil then
+            g_rlMenu.sharedSelection.activeFilterId = nil
+            Log:trace("RLMenuInfoFrame:onRemoteFilterChange: sharedSelection.activeFilterId cleared")
+        end
+        Log:debug("RLMenuInfoFrame:onRemoteFilterChange: active filter cleared (delete or scope-narrow)")
+    else
+        Log:debug("RLMenuInfoFrame:onRemoteFilterChange: active filter snapshot refreshed")
+    end
+end
