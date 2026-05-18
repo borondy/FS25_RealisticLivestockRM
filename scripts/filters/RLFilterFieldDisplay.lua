@@ -76,11 +76,10 @@ end
 
 --- Return the ordered list of stable internal-key values for an enum field.
 --- gender: fixed `{ "male", "female" }`. subType: per-animal-type, drawn from
---- `g_currentMission.animalSystem.types[idx].subTypes` (numeric array of
---- subTypeIndex values per AnimalSystem.lua:96 + :262) and mapped via
---- `animalSystem:getSubTypeByIndex(idx)` (AnimalSystem.lua:425-427) to extract
---- `subType.name` (set at AnimalSystem.lua:257). Order follows XML-load-order
---- and is deterministic within a session.
+--- `g_currentMission.animalSystem.types[idx].subTypes` (a numeric array of
+--- subTypeIndex values) and mapped via `animalSystem:getSubTypeByIndex(idx)`
+--- to extract `subType.name`. Order follows XML-load-order and is
+--- deterministic within a session.
 ---
 --- Returns an empty table when the domain is unresolvable: animalTypeIndex
 --- is nil, the live mission isn't loaded, or the scoped type has zero
@@ -126,6 +125,47 @@ function RLFilterFieldDisplay.getEnumDomain(fieldKey, animalTypeIndex)
     Log:trace("RLFilterFieldDisplay.getEnumDomain: unknown enum fieldKey=%s; returning empty",
         tostring(fieldKey))
     return {}
+end
+
+--- P1-4b-2: cross-species union of subTypes for unscoped filters
+--- (filter.animalType == nil). Returns the flat global subType-name array
+--- straight off `g_currentMission.animalSystem.subTypes`. Subtype names are
+--- globally unique (the AnimalSystem XML loader rejects duplicates), so the
+--- returned keys are safe to use as map keys without collision.
+---
+--- Order matches XML-load-order across all animal types and is deterministic
+--- within a session. Returns an empty table when the mission / animalSystem
+--- isn't loaded or the global array is empty (loadOrder gap).
+---
+--- gender is not relevant for the unscoped path - the fixed-domain caller
+--- still uses getEnumDomain("gender", nil). This helper is subType-only.
+---
+---@param fieldKey string "subType" (any other key returns empty + logs)
+---@return string[] ordered internal keys (empty if unresolvable)
+function RLFilterFieldDisplay.getEnumDomainForUnscopedFilter(fieldKey)
+    if fieldKey ~= "subType" then
+        Log:trace("RLFilterFieldDisplay.getEnumDomainForUnscopedFilter: only subType supported, got %s",
+            tostring(fieldKey))
+        return {}
+    end
+    if g_currentMission == nil or g_currentMission.animalSystem == nil then
+        Log:trace("RLFilterFieldDisplay.getEnumDomainForUnscopedFilter: animalSystem unavailable")
+        return {}
+    end
+    local subTypes = g_currentMission.animalSystem.subTypes
+    if subTypes == nil or #subTypes == 0 then
+        Log:trace("RLFilterFieldDisplay.getEnumDomainForUnscopedFilter: global subTypes empty")
+        return {}
+    end
+    local out = {}
+    for _, subType in ipairs(subTypes) do
+        if subType ~= nil and subType.name ~= nil then
+            table.insert(out, subType.name)
+        end
+    end
+    Log:trace("RLFilterFieldDisplay.getEnumDomainForUnscopedFilter: %d cross-species subType(s)",
+        #out)
+    return out
 end
 
 -- =============================================================================
@@ -257,7 +297,26 @@ function RLFilterFieldDisplay.formatConditionDisplay(condition, fieldEntry, anim
     local fieldLabel = resolveFieldLabel(condition.field)
     local cmpDisplay = tostring(condition.cmp or "?")
     local valueDisplay
-    if fieldEntry.type == "bool" then
+    -- P1-4b-2: list-shaped values (cmp = in/notin) render as "[Lab1, Lab2, ...]"
+    -- with each element passed through the enum label resolver. Only enum
+    -- fields use list-shape today (in/notin gated to enum); number lists
+    -- would render via tostring per element if/when a future cmp adds them.
+    if type(condition.value) == "table" and (condition.cmp == "in" or condition.cmp == "notin") then
+        local parts = {}
+        if fieldEntry.type == "enum" then
+            for _, key in ipairs(condition.value) do
+                table.insert(parts, RLFilterFieldDisplay.getEnumValueDisplayName(
+                    fieldEntry.key, key, animalTypeIndex))
+            end
+        else
+            for _, v in ipairs(condition.value) do
+                table.insert(parts, tostring(v))
+            end
+        end
+        valueDisplay = "[" .. table.concat(parts, ", ") .. "]"
+        Log:trace("RLFilterFieldDisplay.formatConditionDisplay: list field=%s cmp=%s n=%d",
+            tostring(condition.field), tostring(condition.cmp), #parts)
+    elseif fieldEntry.type == "bool" then
         valueDisplay = (condition.value == true)
             and (g_i18n and g_i18n:getText("ui_yes") or "Yes")
             or  (g_i18n and g_i18n:getText("ui_no")  or "No")

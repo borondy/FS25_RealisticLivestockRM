@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<!--
+    rlFilterValueSetDialog.xml
+
+    P1-4b-2 multi-select dialog. Opened from RLFilterConditionDialog's value
+    row when cmp = `in`/`notin`. Mirrors the AnimalMoveDestinationDialog shape
+    (modal with embedded SmoothList) and the Sell/Buy/Move-frame row-checkmark
+    pattern (cell:getAttribute("checkbox") + name="check" bitmap).
+
+    Action bar (left-to-right): Select / Select all / OK / Back. Profile-bound
+    input actions: rlButtonSelect -> RL_SELECT (KEY_a), rlButtonMenuActivate ->
+    MENU_ACTIVATE (Space), buttonOK -> MENU_ACCEPT (Enter), buttonBack ->
+    MENU_CANCEL (Esc). Mouse-click hits onClick handlers; the visible button
+    text doubles as the input-help-bar prompt.
+-->
+<GUI onOpen="onOpen" onClose="onClose" onCreate="onCreate">
+    <GuiElement profile="newLayer"/>
+    <Bitmap profile="dialogFullscreenBg" id="dialogBg"/>
+    <GuiElement profile="fs25_dialogBg" id="dialogElement" size="750px 540px">
+        <ThreePartBitmap profile="fs25_dialogBgMiddle"/>
+        <ThreePartBitmap profile="fs25_dialogBgTop"/>
+        <ThreePartBitmap profile="fs25_dialogBgBottom"/>
+        <GuiElement profile="fs25_dialogContentContainer">
+
+            <Text profile="fs25_dialogTitle" id="dialogTitleElement"
+                  position="0px -30px"
+                  text="$l10n_rl_menu_filters_valueSet_title"/>
+
+            <!--
+                Value list. Borrows the move-destination dialog's SmoothList
+                sizing (470px wide). Row template adapts the sell-frame
+                checkbox cell: full-row label + anchored top-right checkbox
+                via the shipped rlMenu_checkbox* profiles. Cell width 455px
+                matches the list's content area minus the slider gutter.
+            -->
+            <SmoothList profile="rl_filterValueSetList" id="valueList"
+                        position="50px -80px"
+                        size="620px 350px"
+                        focusInit="onOpen"
+                        focusChangeTop="nil"
+                        focusChangeBottom="nil"
+                        onClick="onListClick">
+                <ListItem profile="rl_filterValueSetListItem" size="605px 55px">
+                    <Text profile="rl_filterValueSetLabel"
+                          position="10px 0px"
+                          size="500px 55px"
+                          name="label"/>
+                    <!-- Checkbox: outer button (mouse hit area) + box bg + tick icon.
+                         Element-level position override: shared rlMenu_checkboxButton
+                         profile uses position="-45px -25px" sized for sell-frame's
+                         ~80px rows; for this dialog's 55px rows we shift up to
+                         -15px so the checkbox is vertically centered ((55-25)/2). -->
+                    <Button profile="rlMenu_checkboxButton" name="checkbox" position="-45px -15px">
+                        <ThreePartBitmap profile="rlMenu_checkboxBox"/>
+                        <Bitmap profile="rlMenu_checkbox" name="check"/>
+                    </Button>
+                </ListItem>
+            </SmoothList>
+
+            <ThreePartBitmap profile="fs25_listSliderBox"
+                             position="-30px -17px"
+                             size="12px 350px"
+                             with="anchorTopRight">
+                <Slider profile="fs25_listSlider" size="6px 342px" dataElementId="valueList"/>
+            </ThreePartBitmap>
+
+            <!--
+                Empty-set reject + drift hint surface. Hidden by default;
+                populated via RLFilterValueSetDialog:showHint(l10nKey).
+                Sits below the list + above the action bar.
+            -->
+            <Text profile="fs25_dialogText" id="hintText"
+                  position="0px -450px"
+                  visible="false"
+                  text=""/>
+
+        </GuiElement>
+
+        <!--
+            Four-button action bar: Select / Select all / OK / Back. Each
+            button's profile carries its inputAction so the keyboard/gamepad
+            binding AND the input-help-bar prompt come from the same source
+            as the visible button. Mirrors rlFilterConditionDialog.xml:138-144
+            for OK/Back; rlButtonSelect already shipped at AnimalScreen.xml:969-971;
+            rlButtonMenuActivate declared locally below.
+        -->
+        <BoxLayout profile="fs25_dialogButtonBox" id="buttonsPC">
+            <Button profile="rlButtonSelect" text="$l10n_button_select"
+                    onClick="onClickSelect" id="selectButton"/>
+            <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+            <Button profile="rlButtonMenuActivate" text="$l10n_rl_ui_selectAll"
+                    onClick="onClickSelectAll" id="selectAllButton"/>
+            <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+            <Button profile="buttonOK" text="$l10n_button_ok"
+                    onClick="onClickOk" id="okButton"/>
+            <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+            <Button profile="buttonBack" text="$l10n_button_back"
+                    onClick="onClickBack" id="backButton"/>
+        </BoxLayout>
+    </GuiElement>
+
+    <!--
+        Local profiles. Element-level `with=` is silently ignored by the GUI
+        loader (per reference_fs25_gui_gotchas memory); declare here so the
+        traits actually apply.
+    -->
+    <GUIProfiles>
+        <!--
+            SmoothList container - same shape as rl_moveDestList from
+            AnimalMoveDestinationDialog.xml. Anchored top-left of the
+            dialog content container.
+        -->
+        <Profile name="rl_filterValueSetList" extends="emptyPanel" with="anchorStretchingYLeft pivotTopLeft">
+        </Profile>
+
+        <!--
+            Row container. baseReference + anchorTopStretchingX so each row
+            spans the SmoothList width. `alternating` flips background color
+            on odd rows for readability (matches move-destination + sell-frame).
+        -->
+        <Profile name="rl_filterValueSetListItem" extends="baseReference" with="anchorTopStretchingX alternating">
+            <height value="55px"/>
+            <imageColor value="$preset_fs25_colorGrey"/>
+            <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
+            <alternateBackgroundColor value="$preset_fs25_colorGreyDark_50"/>
+        </Profile>
+
+        <!--
+            Row label. Single-line, left-aligned. textSize matches move-dest
+            destination name (18px) for visual consistency across dialog lists.
+        -->
+        <Profile name="rl_filterValueSetLabel" extends="baseReference" with="anchorTopLeft">
+            <textBold value="false"/>
+            <textSize value="18px"/>
+            <textAlignment value="left"/>
+            <textColor value="$preset_fs25_colorMainLight"/>
+            <textSelectedColor value="$preset_fs25_colorMainDark"/>
+        </Profile>
+
+        <!--
+            MENU_ACTIVATE-bound wide button. Sibling pattern to rlButtonSelect
+            (AnimalScreen.xml:969-971); declared locally because GUI profile
+            scopes are per-XML and we want the dialog self-contained.
+        -->
+        <Profile name="rlButtonMenuActivate" extends="fs25_wideButton" with="touchButton">
+            <inputAction value="MENU_ACTIVATE"/>
+        </Profile>
+
+        <!--
+            RL_SELECT-bound wide button. Re-declared locally for self-contained
+            profile scope (mirrors AnimalScreen.xml:969-971; same trait + same
+            inputAction).
+        -->
+        <Profile name="rlButtonSelect" extends="fs25_wideButton" with="touchButton">
+            <inputAction value="RL_SELECT"/>
+        </Profile>
+    </GUIProfiles>
+</GUI>

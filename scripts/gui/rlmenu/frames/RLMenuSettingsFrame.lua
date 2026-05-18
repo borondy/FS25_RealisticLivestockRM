@@ -1501,34 +1501,34 @@ end
 -- Filter editor: conditions list (P1-4a)
 -- =============================================================================
 
---- Set of cmps that are NOT supported by the P1-4a in-row editor. Conditions
---- carrying these cmps are routed to `preservedChildren` so they round-trip
---- through flush unchanged (multi-value `in`/`notin` widget belongs to a
---- later phase). All other cmps fall through to the supported-type check.
-local UNSUPPORTED_CMPS = { ["in"] = true, ["notin"] = true }
-
 --- Set of field types this slice can render in the conditions editor. P1-4a
 --- shipped number + bool only; P1-4b (2026-05-18) widens to enum + string
 --- via the dialog's MultiTextOption (single-pick) + TextInput (contains /
---- notcontains) widgets. Multi-value editor for in / notin defers to
---- P1-4b-2 (RLRM-274), and UNSUPPORTED_CMPS still gates in / notin out
---- of editableCmps so enum / string conditions on those cmps round-trip
---- through partition->preserved unchanged.
+--- notcontains) widgets. P1-4b-2 (2026-05-18) lifts `in`/`notin` for ENUM
+--- via RLFilterValueSetDialog (multi-select modal). The cmp gate inside
+--- isSupportedConditionNode is type-conditional: ENUM accepts in/notin,
+--- NUMBER/BOOL/STRING still route those cmps through partition->preserved.
 local SUPPORTED_TYPES = { number = true, bool = true, enum = true, string = true }
 
---- True when the given AST node is a flat condition that the P1-4a editor
---- can render directly. False for groups, conditions on unknown fields,
---- conditions on enum/string fields, and conditions with `in`/`notin` cmps.
+--- True when the given AST node is a flat condition the in-frame editor can
+--- render directly. False for groups, conditions on unknown fields,
+--- conditions on unsupported field types, and `in`/`notin` cmps on
+--- non-enum fields (the multi-value editor only supports enum domains).
 ---@param node table
 ---@return boolean
 local function isSupportedConditionNode(node)
     if type(node) ~= "table" then return false end
     if node.op ~= nil then return false end -- group, not a condition
     if node.field == nil or node.cmp == nil then return false end
-    if UNSUPPORTED_CMPS[node.cmp] then return false end
     local field = RLFilterFieldCatalog.get(node.field)
     if field == nil then return false end
     if not SUPPORTED_TYPES[field.type] then return false end
+    -- P1-4b-2: enum supports in/notin via RLFilterValueSetDialog. All other
+    -- field types still route in/notin to preservedChildren (round-trip
+    -- only; no multi-value editor for number/string/bool).
+    if (node.cmp == "in" or node.cmp == "notin") and field.type ~= "enum" then
+        return false
+    end
     return true
 end
 
@@ -1999,9 +1999,18 @@ function RLMenuSettingsFrame:openConditionEditDialog(rowIndex)
         -- subtypes loaded). The condition stays intact in pendingChanges /
         -- preservedChildren and round-trips through flush unchanged; the
         -- user can re-author it after switching the filter's animalType.
+        -- P1-4b-2: subType under unscoped filter (animalType=nil) now resolves
+        -- via the cross-species union helper (mirrors the dialog-side
+        -- _resolveActiveEnumDomain routing); the multi-value editor handles
+        -- the union domain. Other enum reads stay on the scoped resolver.
         local field = RLFilterFieldCatalog.get(row.field)
         if field ~= nil and field.type == "enum" then
-            local domain = RLFilterFieldDisplay.getEnumDomain(row.field, animalType)
+            local domain
+            if row.field == "subType" and animalType == nil then
+                domain = RLFilterFieldDisplay.getEnumDomainForUnscopedFilter("subType")
+            else
+                domain = RLFilterFieldDisplay.getEnumDomain(row.field, animalType)
+            end
             if domain == nil or #domain == 0 then
                 Log:warning("RLMenuSettingsFrame:openConditionEditDialog: refusing edit on rowIndex=%d field=%s (empty enum domain for animalType=%s)",
                     rowIndex, tostring(row.field), tostring(animalType))

@@ -861,6 +861,18 @@
 		<text name="rl_menu_filters_invalidNumber" text="Enter a valid number"/>
 		<text name="rl_menu_filters_enumValueDrifted" text="Stored value no longer valid - pick a replacement"/>
 
+		<!-- P1-4b-2 multi-value editor (RLFilterValueSetDialog). Summary
+		     button text on the condition dialog renders "N selected" via
+		     valueSet_summary; the dialog itself shows valueSet_title. The
+		     "Edit values..." valueSet_button text is the summary button
+		     fallback when the cmp picker first switches to in/notin and
+		     workingValue is nil. Button labels (Select / Select all /
+		     OK / Back) reuse $l10n_button_select, $l10n_rl_ui_selectAll,
+		     $l10n_button_ok, $l10n_button_back - no new keys needed. -->
+		<text name="rl_menu_filters_valueSet_title" text="Select values"/>
+		<text name="rl_menu_filters_valueSet_summary" text="%d selected"/>
+		<text name="rl_menu_filters_valueSet_button" text="Edit values..."/>
+
 		<!-- Filter cycle + chip MVP -->
 		<text name="rl_menu_filter_chip_none" text="No filter"/>
 		<text name="rl_menu_filter_chip_active" text="Filter: %s"/>

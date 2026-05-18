@@ -19,10 +19,16 @@ RLFilterConditionDialog = {}
 local RLFilterConditionDialog_mt = Class(RLFilterConditionDialog, MessageDialog)
 local modDirectory = g_currentModDirectory
 
--- Editor-side cmp gate. P1-4a deferred multi-value editor to P1-4b; the
--- dialog filters in/notin out of pickers but keeps them in catalog cmps[]
--- so the helper's cmp-validity check honors the caller's editable list.
-local UNSUPPORTED_CMPS_DIALOG = { ["in"] = true, ["notin"] = true }
+-- Editor-side cmp gate. P1-4b-2 lifts `in`/`notin` to ENUM fields (multi-value
+-- editor via RLFilterValueSetDialog). STRING fields stay scalar-only;
+-- `STRING_CMPS` already excludes `in`/`notin` upstream in the catalog so this
+-- gate is defensive belt-and-suspenders for the string branch.
+local UNSUPPORTED_CMPS_BY_TYPE = {
+    number = { ["in"] = true, ["notin"] = true },  -- multi-value numeric editor never specced
+    bool   = {},                                    -- BOOL_CMPS = {"=="} only; no exclusions needed
+    enum   = {},                                    -- P1-4b-2: in/notin now editable
+    string = { ["in"] = true, ["notin"] = true },  -- substring cmps only
+}
 
 -- Field types this dialog can render. P1-4a covered number + bool; P1-4b
 -- (2026-05-18) extends to enum (gender / subType single-pick) and string
@@ -103,6 +109,7 @@ function RLFilterConditionDialog:onGuiSetupFinished()
     self.valueBoolPicker  = self:getDescendantById("valueBoolPicker")
     self.valueEnumPicker  = self:getDescendantById("valueEnumPicker")
     self.valueStringInput = self:getDescendantById("valueStringInput")
+    self.valueSetButton   = self:getDescendantById("valueSetButton")
     self.hintText         = self:getDescendantById("hintText")
     self.okButton         = self:getDescendantById("okButton")
 
@@ -113,6 +120,7 @@ function RLFilterConditionDialog:onGuiSetupFinished()
     if self.valueBoolPicker  == nil then table.insert(missing, "valueBoolPicker") end
     if self.valueEnumPicker  == nil then table.insert(missing, "valueEnumPicker") end
     if self.valueStringInput == nil then table.insert(missing, "valueStringInput") end
+    if self.valueSetButton   == nil then table.insert(missing, "valueSetButton") end
     if self.hintText         == nil then table.insert(missing, "hintText") end
     if #missing > 0 then
         Log:warning("RLFilterConditionDialog:onGuiSetupFinished: missing elements: %s",
@@ -158,15 +166,21 @@ end
 -- Helpers (pure-ish; read/write working state)
 -- =============================================================================
 
---- Filter newField.cmps down to the editable subset (drops in/notin).
+--- Filter newField.cmps down to the editable subset per field type.
+--- P1-4b-2: ENUM now exposes `in`/`notin`; STRING and NUMBER keep the
+--- multi-value cmps gated. The catalog has full cmp lists per field type;
+--- this gate is the dialog's view of what it can actually edit.
 local function editableCmpsFor(field)
     local out = {}
     if field == nil or field.cmps == nil then return out end
+    local excludeSet = UNSUPPORTED_CMPS_BY_TYPE[field.type] or {}
     for _, c in ipairs(field.cmps) do
-        if not UNSUPPORTED_CMPS_DIALOG[c] then
+        if not excludeSet[c] then
             table.insert(out, c)
         end
     end
+    Log:trace("RLFilterConditionDialog.editableCmpsFor: type=%s cmps=%d (excluded %d)",
+        tostring(field.type), #out, #field.cmps - #out)
     return out
 end
 
@@ -203,7 +217,17 @@ function RLFilterConditionDialog:onOpen()
     self.fieldOptions = {}
     for _, f in ipairs(catalogFields) do
         if f.type == "enum" then
-            local domain = RLFilterFieldDisplay.getEnumDomain(f.key, self.animalType)
+            -- P1-4b-2: subType under animalType=nil routes through the
+            -- cross-species union helper (the value-set dialog can now
+            -- author cross-type lists). gender + scoped subType still go
+            -- through the scoped getEnumDomain. The empty-domain exclusion
+            -- still applies to both paths (loadOrder gap, zero subtypes).
+            local domain
+            if f.key == "subType" and self.animalType == nil then
+                domain = RLFilterFieldDisplay.getEnumDomainForUnscopedFilter("subType")
+            else
+                domain = RLFilterFieldDisplay.getEnumDomain(f.key, self.animalType)
+            end
             if domain ~= nil and #domain > 0 then
                 table.insert(self.fieldOptions, f)
             else
@@ -247,21 +271,29 @@ function RLFilterConditionDialog:onOpen()
 
     -- Reset hint surface so a previous reject hint doesn't bleed across dialogs.
     self:clearHint()
+    -- P1-4b-2 triage fix #2: also reset the drift flag at open. The dialog
+    -- is a singleton; without this reset, a cancelled drifted edit would
+    -- leak its flag into the next valid edit and refuse OK on a clean row.
+    self.valueDrifted = false
 
     self:refreshFieldPicker()
     self:refreshCmpPicker()
     self:refreshValueWidget()
 end
 
---- Resolve domain[1] for an enum field via RLFilterFieldDisplay. Returns nil
---- when the domain is empty (e.g. subType when animalType=nil or has zero
---- subtypes). Caller decides whether nil is fatal (subType refuse-to-edit
---- path) or just leaves the picker at "no options" (gender is always
---- non-empty so this branch is subType-only in practice).
+--- Resolve domain[1] for an enum field. Routes subType-under-unscoped-filter
+--- through the cross-species union helper so the scalar default seed matches
+--- the field-picker exposure (P1-4b-2: triage fix #1). Returns nil when the
+--- domain is empty.
 ---@param fieldKey string
 ---@return string|nil
 function RLFilterConditionDialog:resolveDefaultEnumValue(fieldKey)
-    local domain = RLFilterFieldDisplay.getEnumDomain(fieldKey, self.animalType)
+    local domain
+    if fieldKey == "subType" and self.animalType == nil then
+        domain = RLFilterFieldDisplay.getEnumDomainForUnscopedFilter("subType")
+    else
+        domain = RLFilterFieldDisplay.getEnumDomain(fieldKey, self.animalType)
+    end
     if domain == nil or #domain == 0 then
         Log:trace("RLFilterConditionDialog:resolveDefaultEnumValue: empty domain for fieldKey=%s animalType=%s",
             tostring(fieldKey), tostring(self.animalType))
@@ -319,6 +351,36 @@ function RLFilterConditionDialog:_hideAllValueWidgets()
     if self.valueBoolPicker  ~= nil then self.valueBoolPicker:setVisible(false)  end
     if self.valueEnumPicker  ~= nil then self.valueEnumPicker:setVisible(false)  end
     if self.valueStringInput ~= nil then self.valueStringInput:setVisible(false) end
+    if self.valueSetButton   ~= nil then self.valueSetButton:setVisible(false)   end
+end
+
+--- Resolve the active enum domain for the current working field, honoring
+--- the P1-4b-2 subType cross-species union when animalType=nil. Used by the
+--- enum picker + list-mode drift check + summary widget.
+function RLFilterConditionDialog:_resolveActiveEnumDomain()
+    if self.workingField == "subType" and self.animalType == nil then
+        return RLFilterFieldDisplay.getEnumDomainForUnscopedFilter("subType")
+    end
+    return RLFilterFieldDisplay.getEnumDomain(self.workingField, self.animalType)
+end
+
+--- Update the summary button text to reflect the current list length.
+--- P1-4b-2 design decision #6: count-only ("N selected"), no label suffix
+--- (the label list lives one click away in the value-set dialog). Reads
+--- workingValue directly so callers can invoke this after any list mutation.
+function RLFilterConditionDialog:refreshValueSetSummary()
+    if self.valueSetButton == nil then return end
+    local n = 0
+    if type(self.workingValue) == "table" then n = #self.workingValue end
+    local text
+    if g_i18n ~= nil and g_i18n.hasText ~= nil and g_i18n:hasText("rl_menu_filters_valueSet_summary") then
+        text = string.format(g_i18n:getText("rl_menu_filters_valueSet_summary"), n)
+    else
+        text = string.format("%d selected", n)
+    end
+    self.valueSetButton:setText(text)
+    Log:trace("RLFilterConditionDialog:refreshValueSetSummary: n=%d text='%s'",
+        n, tostring(text))
 end
 
 function RLFilterConditionDialog:refreshValueWidget()
@@ -330,6 +392,58 @@ function RLFilterConditionDialog:refreshValueWidget()
     end
 
     self:_hideAllValueWidgets()
+
+    -- P1-4b-2 triage fix #2: clear drift flag at the top of every refresh.
+    -- The drift checks below re-set it only when the current value actually
+    -- falls outside the live domain. Without this reset a stale flag from
+    -- an earlier widget swap or session could leak into a clean refresh.
+    self.valueDrifted = false
+
+    -- P1-4b-2: list-shape branch. When cmp is `in`/`notin` on an enum field,
+    -- show the summary button instead of the per-type scalar widget. Drift
+    -- detection runs against the resolved domain (same data source as the
+    -- scalar enum picker), and any value in workingValue not in the domain
+    -- sets self.valueDrifted so onClickOk refuses commit until the user
+    -- explicitly re-commits via the value-set dialog (which strips drifted
+    -- keys; mirrors P1-4b's scalar drift contract).
+    if field.type == "enum" and (self.workingCmp == "in" or self.workingCmp == "notin") then
+        local domain = self:_resolveActiveEnumDomain() or {}
+        self.valueEnumDomain = domain
+        if #domain == 0 then
+            Log:warning("RLFilterConditionDialog:refreshValueWidget: enum domain empty for list-mode field=%s animalType=%s",
+                tostring(self.workingField), tostring(self.animalType))
+            self:showHint("rl_menu_filters_subtypeRequiresAnimalType")
+            return
+        end
+        -- List-shape drift check: any element of workingValue not in domain
+        -- trips valueDrifted. workingValue may be a scalar (e.g. user just
+        -- coerced from == to in via cmp change; coerce wraps the scalar so
+        -- it's already a table by this point) or nil (fresh in/notin).
+        if type(self.workingValue) == "table" then
+            local domainSet = {}
+            for _, k in ipairs(domain) do domainSet[k] = true end
+            local drifted = {}
+            for _, v in ipairs(self.workingValue) do
+                if not domainSet[v] then table.insert(drifted, tostring(v)) end
+            end
+            if #drifted > 0 then
+                self.valueDrifted = true
+                Log:warning("RLFilterConditionDialog:refreshValueWidget: list-mode drift; %d value(s) not in domain: %s",
+                    #drifted, table.concat(drifted, ", "))
+                self:showHint("rl_menu_filters_enumValueDrifted")
+            end
+        end
+        if self.valueSetButton ~= nil then
+            self.valueSetButton:setVisible(true)
+            self:refreshValueSetSummary()
+        end
+        Log:trace("RLFilterConditionDialog:refreshValueWidget: list-mode field=%s cmp=%s domainSize=%d valueCount=%d drifted=%s",
+            tostring(self.workingField), tostring(self.workingCmp),
+            #domain,
+            type(self.workingValue) == "table" and #self.workingValue or 0,
+            tostring(self.valueDrifted == true))
+        return
+    end
 
     if field.type == "number" then
         if self.valueNumberInput ~= nil then
@@ -357,7 +471,10 @@ function RLFilterConditionDialog:refreshValueWidget()
     elseif field.type == "enum" then
         -- P1-4b: enum picker (gender / subType). Domain + display name resolve
         -- via RLFilterFieldDisplay; storage uses stable internal key only.
-        local domain = RLFilterFieldDisplay.getEnumDomain(self.workingField, self.animalType)
+        -- P1-4b-2 triage fix #1: route through _resolveActiveEnumDomain so
+        -- subType under animalType=nil uses the cross-species union (matches
+        -- the field-picker exposure + list-mode branch).
+        local domain = self:_resolveActiveEnumDomain()
         self.valueEnumDomain = domain or {}
         if #self.valueEnumDomain == 0 then
             -- Empty domain: gender always non-empty in practice, so this is
@@ -399,7 +516,7 @@ function RLFilterConditionDialog:refreshValueWidget()
             -- clamps to range) so the row isn't blank; the stale workingValue
             -- is preserved for logging until the user replaces it.
             if not foundInDomain then
-                self.enumValueDrifted = true
+                self.valueDrifted = true
                 Log:warning("RLFilterConditionDialog:refreshValueWidget: enum workingValue=%s not in domain for field=%s; require explicit pick",
                     tostring(self.workingValue), tostring(self.workingField))
                 self:showHint("rl_menu_filters_enumValueDrifted")
@@ -478,7 +595,7 @@ function RLFilterConditionDialog:onFieldChanged(state, _widget)
     -- Clear the enum-drift flag too; the catalog coercion above already
     -- wrote a fresh defaulted value (or domain[1] via the dialog's
     -- resolveDefaultEnumValue patch), so any prior drift state is stale.
-    self.enumValueDrifted = false
+    self.valueDrifted = false
     self:clearHint()
 
     Log:debug("RLFilterConditionDialog:onFieldChanged: field=%s cmp=%s value=%s rawText=%s",
@@ -496,11 +613,122 @@ function RLFilterConditionDialog:onCmpChanged(state, _widget)
             state, #self.cmpOptions)
         return
     end
+    if cmp == self.workingCmp then
+        -- No-op: picker fires onClick even when state is unchanged (e.g. after
+        -- onOpen seed). Skip the coerce pass to avoid logging churn.
+        self:clearHint()
+        return
+    end
+
+    -- P1-4b-2: route cmp transitions through the catalog coerce helper so
+    -- scalar<->list shape changes wrap/unwrap the value consistently.
+    -- Substring<->list / scalar<->substring cross-shape transitions are
+    -- caught by the catalog helper's illegal-transition branch and clear
+    -- value+rawText (defensive; shouldn't happen given editableCmpsFor's
+    -- per-type gate).
+    local field = RLFilterFieldCatalog.get(self.workingField)
+    if field ~= nil then
+        local oldCond = {
+            field   = self.workingField,
+            cmp     = self.workingCmp,
+            value   = self.workingValue,
+            rawText = self.workingRawText,
+        }
+        local result = RLFilterFieldCatalog.coerceConditionOnCmpChange(oldCond, cmp, field)
+        if result.patch.value ~= nil then
+            self.workingValue = result.patch.value
+        end
+        if result.clearKeys ~= nil then
+            for _, k in ipairs(result.clearKeys) do
+                if     k == "rawText" then self.workingRawText = nil
+                elseif k == "value"   then self.workingValue   = nil
+                end
+            end
+        end
+
+        -- P1-4b-2 triage fix #3: drift-aware list->scalar collapse. The
+        -- catalog is pure-data and cannot consult the live domain; it
+        -- returns value[1] verbatim. We apply the spec's "skip drifted
+        -- values during collapse" rule here at the dialog layer where
+        -- the live domain is accessible. On list->scalar transition,
+        -- walk the source list and pick the first element actually in
+        -- the resolved domain. If none survives, clear value and set
+        -- valueDrifted so onClickOk refuses until the user picks.
+        local oldIsList = (oldCond.cmp == "in" or oldCond.cmp == "notin")
+        local newIsScalar = (cmp == "==" or cmp == "!=")
+        if oldIsList and newIsScalar and field.type == "enum"
+           and type(oldCond.value) == "table" and #oldCond.value > 0 then
+            local domain = self:_resolveActiveEnumDomain() or {}
+            local domainSet = {}
+            for _, k in ipairs(domain) do domainSet[k] = true end
+            local survivor = nil
+            for _, v in ipairs(oldCond.value) do
+                if domainSet[v] then survivor = v; break end
+            end
+            if survivor ~= nil then
+                if self.workingValue ~= survivor then
+                    Log:debug("RLFilterConditionDialog:onCmpChanged: drift-aware collapse picked '%s' over catalog's '%s'",
+                        tostring(survivor), tostring(self.workingValue))
+                end
+                self.workingValue = survivor
+            else
+                Log:warning("RLFilterConditionDialog:onCmpChanged: all list values drifted (%d); clearing scalar value + setting valueDrifted",
+                    #oldCond.value)
+                self.workingValue = nil
+                self.valueDrifted = true
+            end
+        end
+    end
+
     self.workingCmp = cmp
     -- Reset hint so a stale reject hint doesn't bleed across user input
     -- (matches the clearHint helper's own contract at :148).
     self:clearHint()
-    Log:debug("RLFilterConditionDialog:onCmpChanged: cmp=%s", tostring(self.workingCmp))
+    -- Refresh value widget AND cmp picker labels - the widget swaps when the
+    -- cmp shape changes (scalar enum picker <-> list summary button). Also
+    -- re-run drift check (refreshValueWidget owns that for both modes).
+    self:refreshValueWidget()
+    Log:debug("RLFilterConditionDialog:onCmpChanged: cmp=%s workingValueType=%s",
+        tostring(self.workingCmp), type(self.workingValue))
+end
+
+-- =============================================================================
+-- P1-4b-2: value-set dialog handoff
+-- =============================================================================
+
+--- Open RLFilterValueSetDialog for the current field + value list. Passes
+--- workingValue (a table for in/notin or nil for fresh) as the initial
+--- selection; the value-set dialog tolerates drift on initial render and
+--- strips drifted keys on commit (the explicit re-commit path that clears
+--- valueDrifted).
+function RLFilterConditionDialog:onClickOpenValueSet()
+    Log:debug("RLFilterConditionDialog:onClickOpenValueSet: field=%s animalType=%s currentCount=%d",
+        tostring(self.workingField), tostring(self.animalType),
+        type(self.workingValue) == "table" and #self.workingValue or 0)
+    local initialList = type(self.workingValue) == "table" and self.workingValue or nil
+    RLFilterValueSetDialog.show(
+        self.onValueSetCommitted, self,
+        self.workingField, self.animalType, initialList)
+end
+
+--- Value-set dialog committed back. nil = cancel; non-nil = array of
+--- internal keys (drifted keys already stripped by the value-set dialog).
+--- Clears valueDrifted on a non-nil commit (the explicit re-commit
+--- contract: only an explicit OK from the value-set dialog can clear the
+--- drift flag, per spec Boundaries Always #4).
+function RLFilterConditionDialog:onValueSetCommitted(list)
+    if list == nil then
+        Log:trace("RLFilterConditionDialog:onValueSetCommitted: cancel")
+        return
+    end
+    self.workingValue = list
+    -- Explicit re-commit through the value-set dialog clears the unified
+    -- drift flag (only path that does so for list-mode; scalar mode clears
+    -- via onValueEnumChanged at :535).
+    self.valueDrifted = false
+    self:clearHint()
+    Log:debug("RLFilterConditionDialog:onValueSetCommitted: %d key(s)", #list)
+    self:refreshValueSetSummary()
 end
 
 function RLFilterConditionDialog:onValueBoolChanged(state, _widget)
@@ -532,7 +760,7 @@ function RLFilterConditionDialog:onValueEnumChanged(state, _widget)
     self.workingValue = key
     -- User picked a real domain key, so the drift flag clears. Any user
     -- widget interaction also clears the stale reject hint.
-    self.enumValueDrifted = false
+    self.valueDrifted = false
     self:clearHint()
     Log:debug("RLFilterConditionDialog:onValueEnumChanged: value=%s (state=%d)",
         tostring(self.workingValue), state)
@@ -595,10 +823,9 @@ function RLFilterConditionDialog:onClickOk()
     elseif field.type == "bool" then
         newCondition.value = (self.workingValue == true)
     elseif field.type == "enum" then
-        -- Stable internal key (workingValue is the domain entry, never the
-        -- translated label). Refuse close when the domain is empty - the
-        -- settings frame's field-picker exclusion should already prevent
-        -- this case from reaching OK, but guard against legacy rows.
+        -- Refuse close when the domain is empty - the field-picker exclusion
+        -- should already prevent this case from reaching OK, but guard
+        -- against legacy rows.
         local domain = self.valueEnumDomain or {}
         if #domain == 0 then
             Log:warning("RLFilterConditionDialog:onClickOk: enum domain empty for field=%s; refusing commit",
@@ -606,32 +833,63 @@ function RLFilterConditionDialog:onClickOk()
             self:showHint("rl_menu_filters_subtypeRequiresAnimalType")
             return
         end
-        -- If refreshValueWidget detected drift (workingValue not in the
-        -- current domain) the dialog set enumValueDrifted=true and asked the
-        -- user to explicitly pick. onClickOk refuses commit until the user
-        -- picks (onValueEnumChanged clears the flag). Silently snapping to
-        -- domain[1] would rewrite stored subType keys to a different breed.
-        if self.enumValueDrifted then
-            Log:warning("RLFilterConditionDialog:onClickOk: refusing commit, enum value drifted (workingValue=%s, field=%s); pick a replacement",
-                tostring(self.workingValue), tostring(self.workingField))
+        -- Drift refuse-commit (unified valueDrifted covers scalar + list).
+        -- Scalar mode clears via onValueEnumChanged (user picks via picker);
+        -- list mode clears via onValueSetCommitted (user re-commits via the
+        -- value-set dialog, which strips drifted keys). Silently snapping
+        -- would rewrite stored keys to a different value.
+        if self.valueDrifted then
+            Log:warning("RLFilterConditionDialog:onClickOk: refusing commit, value drifted (workingValue=%s, field=%s, cmp=%s); pick a replacement",
+                tostring(self.workingValue), tostring(self.workingField), tostring(self.workingCmp))
             self:showHint("rl_menu_filters_enumValueDrifted")
             return
         end
-        -- Defensive: workingValue must be a domain key by this point because
-        -- (a) initial seed comes from the initialCondition or resolveDefaultEnumValue,
-        -- (b) onValueEnumChanged only writes domain[state], (c) drift is caught above.
-        -- If this ever fails it's a real bug, not user data.
-        local valid = false
-        for _, key in ipairs(domain) do
-            if key == self.workingValue then valid = true; break end
+
+        -- P1-4b-2: list-shape commit for in/notin. workingValue is a table
+        -- of stable internal keys (committed via onValueSetCommitted, or
+        -- coerceConditionOnCmpChange wrapped a scalar on cmp swap). Empty
+        -- list reject mirrors the value-set dialog's own empty-set reject.
+        if self.workingCmp == "in" or self.workingCmp == "notin" then
+            if type(self.workingValue) ~= "table" or #self.workingValue == 0 then
+                Log:warning("RLFilterConditionDialog:onClickOk: refusing empty list commit (field=%s cmp=%s)",
+                    tostring(self.workingField), tostring(self.workingCmp))
+                self:showHint("rl_menu_filters_emptyValueRejected")
+                return
+            end
+            -- Defensive validation: every element must be in domain. The
+            -- value-set dialog strips drifted keys on its OK commit, so
+            -- post-onValueSetCommitted this should always hold; if not
+            -- it's a real bug, not user data.
+            local domainSet = {}
+            for _, k in ipairs(domain) do domainSet[k] = true end
+            for _, v in ipairs(self.workingValue) do
+                if not domainSet[v] then
+                    Log:warning("RLFilterConditionDialog:onClickOk: list element %s not in domain post-drift-check; refusing commit",
+                        tostring(v))
+                    self:showHint("rl_menu_filters_enumValueDrifted")
+                    return
+                end
+            end
+            newCondition.value = self.workingValue
+            Log:debug("RLFilterConditionDialog:onClickOk: list commit field=%s cmp=%s n=%d",
+                tostring(self.workingField), tostring(self.workingCmp), #self.workingValue)
+        else
+            -- Scalar enum commit (==/!=). Defensive: workingValue must be a
+            -- domain key (initial seed from initialCondition or
+            -- resolveDefaultEnumValue; onValueEnumChanged only writes
+            -- domain[state]; drift caught above).
+            local valid = false
+            for _, key in ipairs(domain) do
+                if key == self.workingValue then valid = true; break end
+            end
+            if not valid then
+                Log:warning("RLFilterConditionDialog:onClickOk: enum workingValue=%s not in domain post-drift-check; refusing commit",
+                    tostring(self.workingValue))
+                self:showHint("rl_menu_filters_enumValueDrifted")
+                return
+            end
+            newCondition.value = self.workingValue
         end
-        if not valid then
-            Log:warning("RLFilterConditionDialog:onClickOk: enum workingValue=%s not in domain post-drift-check; refusing commit",
-                tostring(self.workingValue))
-            self:showHint("rl_menu_filters_enumValueDrifted")
-            return
-        end
-        newCondition.value = self.workingValue
     elseif field.type == "string" then
         -- Pull live text from TextInput (handles in-flight keystrokes; matches
         -- the number branch's same pattern). Store verbatim - no trim, no

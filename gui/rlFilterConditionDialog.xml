@@ -123,6 +123,21 @@
             </TextInput>
 
             <!--
+                P1-4b-2: summary button shown in the value-row slot when cmp =
+                `in`/`notin`. Opens RLFilterValueSetDialog for multi-select.
+                Lua sets text to "N selected" via refreshValueSetSummary; size
+                matches the 280x36 value-row slot so the swap visually replaces
+                the picker/text input without layout shift.
+            -->
+            <Button profile="rl_filterDialog_summaryButton" id="valueSetButton"
+                    position="50px -230px"
+                    onClick="onClickOpenValueSet"
+                    visible="false"
+                    text="">
+                <ThreePartBitmap profile="fs25_settingsButtonBg"/>
+            </Button>
+
+            <!--
                 P1-4b: inline hint surface for reject paths (empty-string,
                 subType-domain-empty refuse). Hidden by default; populated via
                 RLFilterConditionDialog:showHint(l10nKey). Also unblocks the
@@ -159,6 +174,33 @@
             <textBold value="true"/>
             <maxCharacters value="30"/>
             <maxInputTextWidth value="250px"/>
+        </Profile>
+        <!--
+            P1-4b-2: summary button at the value-row slot. Mirrors the RLRM
+            General-tab settings-action button pattern (our mod's
+            rl_settingsButton profile + the fs25_settingsButtonBg child for
+            the bordered bitmap background); diff from that pattern is only
+            in anchor (anchorTopCenter so position="50px -230px" resolves
+            against the dialog content container's top-center) + size
+            (280x36 to match the value-row slot widgets). No inputAction;
+            click opens the value-set dialog. focusOnHighlight=true makes
+            the button keyboard/gamepad-navigable.
+        -->
+        <Profile name="rl_filterDialog_summaryButton" extends="emptyPanel" with="anchorTopCenter">
+            <size value="280px 36px"/>
+            <focusOnHighlight value="true"/>
+            <textResizeWidth value="200px"/>
+            <textSize value="16px"/>
+            <iconColor value="$preset_colorTransparent"/>
+            <iconFocusedColor value="$preset_colorTransparent"/>
+            <iconTextOffset value="0px -1px"/>
+            <iconHighlightedColor value="$preset_colorTransparent"/>
+            <textBold value="true"/>
+            <textUpperCase value="true"/>
+            <textAlignment value="center"/>
+            <textColor value="$preset_fs25_colorMainLight"/>
+            <textFocusedColor value="$preset_fs25_colorMainDark"/>
+            <textDisabledColor value="$preset_colorDisabled"/>
         </Profile>
     </GUIProfiles>
 </GUI>

@@ -517,4 +517,101 @@ function RLFilterFieldCatalog.coerceConditionOnFieldChange(oldCond, newFieldKey,
     return { patch = patch, clearKeys = clearKeys }
 end
 
+-- =============================================================================
+-- Cmp-change coercion (P1-4b-2: scalar <-> list value shape)
+-- =============================================================================
+
+--- Cmp groups by value-shape. Scalar cmps store value as a single primitive;
+--- list cmps store value as an array of primitives. Substring cmps live in
+--- their own scalar-string group and are disjoint from in/notin.
+local SCALAR_CMPS    = { ["<"]=true, ["<="]=true, ["=="]=true, ["!="]=true, [">="]=true, [">"]=true }
+local LIST_CMPS      = { ["in"]=true, ["notin"]=true }
+local SUBSTRING_CMPS = { ["contains"]=true, ["notcontains"]=true }
+
+local function cmpShape(cmp)
+    if SCALAR_CMPS[cmp]    then return "scalar" end
+    if LIST_CMPS[cmp]      then return "list" end
+    if SUBSTRING_CMPS[cmp] then return "substring" end
+    return nil
+end
+
+--- Coerce a condition row when the cmp changes within the same field. Handles
+--- scalar<->list shape changes by wrapping / unwrapping the value:
+---   * scalar -> list: wrap in singleton list when non-nil; nil stays nil
+---     (the dialog seeds defaults on refresh).
+---   * list -> scalar: take value[1] (first element in the stored list -
+---     the order the user committed; drifted values are NOT stripped here,
+---     the dialog's drift check at refresh time catches them).
+---   * scalar -> scalar (and list -> list): value preserved verbatim.
+---   * substring <-> list / substring <-> scalar (other-than-string-scalar):
+---     illegal transition for ENUM/STRING/etc.; clear value + rawText.
+---
+--- Catalog-side and pure-data; the dialog handles the carry-over of
+--- `valueDrifted` (an editor-state flag, not a catalog concern).
+---
+---@param oldCond table {field, cmp, value, rawText?}
+---@param newCmp string the cmp the user just picked
+---@param fieldEntry table the active catalog field (cmp set must include newCmp)
+---@return table {patch=table, clearKeys=string[]|nil}
+function RLFilterFieldCatalog.coerceConditionOnCmpChange(oldCond, newCmp, fieldEntry)
+    if oldCond == nil or newCmp == nil or fieldEntry == nil then
+        Log:warning("RLFilterFieldCatalog.coerceConditionOnCmpChange: nil arg oldCond=%s newCmp=%s fieldEntry=%s",
+            tostring(oldCond), tostring(newCmp), tostring(fieldEntry))
+        return { patch = {}, clearKeys = nil }
+    end
+
+    local patch = { cmp = newCmp }
+    local clearKeys = nil
+    local oldShape = cmpShape(oldCond.cmp)
+    local newShape = cmpShape(newCmp)
+
+    if oldShape == newShape then
+        -- Same shape -> value preserved (already on oldCond; no patch entry).
+        Log:trace("RLFilterFieldCatalog.coerceConditionOnCmpChange: shape preserved (%s); value untouched",
+            tostring(newShape))
+        return { patch = patch, clearKeys = nil }
+    end
+
+    if oldShape == "scalar" and newShape == "list" then
+        if oldCond.value ~= nil then
+            patch.value = { oldCond.value }
+            Log:trace("RLFilterFieldCatalog.coerceConditionOnCmpChange: scalar->list wrap value=%s",
+                tostring(oldCond.value))
+        else
+            clearKeys = { "value" }
+            Log:trace("RLFilterFieldCatalog.coerceConditionOnCmpChange: scalar->list, oldValue nil; clearing")
+        end
+    elseif oldShape == "list" and newShape == "scalar" then
+        if type(oldCond.value) == "table" and oldCond.value[1] ~= nil then
+            patch.value = oldCond.value[1]
+            local discardedCount = math.max(0, #oldCond.value - 1)
+            if discardedCount > 0 then
+                Log:warning("RLFilterFieldCatalog.coerceConditionOnCmpChange: list->scalar discarding %d value(s) beyond [1] (kept=%s)",
+                    discardedCount, tostring(oldCond.value[1]))
+            else
+                Log:trace("RLFilterFieldCatalog.coerceConditionOnCmpChange: list->scalar value=%s",
+                    tostring(oldCond.value[1]))
+            end
+        else
+            clearKeys = { "value" }
+            Log:trace("RLFilterFieldCatalog.coerceConditionOnCmpChange: list->scalar, oldValue empty; clearing")
+        end
+    else
+        -- Substring <-> other (illegal across enum/string boundary) or unknown
+        -- cmp. Reset value + rawText so the dialog seeds defaults; warn so a
+        -- logic bug in the caller's cmp gate is visible.
+        Log:warning("RLFilterFieldCatalog.coerceConditionOnCmpChange: illegal transition %s(%s) -> %s(%s); clearing value+rawText",
+            tostring(oldCond.cmp), tostring(oldShape),
+            tostring(newCmp), tostring(newShape))
+        clearKeys = { "value", "rawText" }
+    end
+
+    return { patch = patch, clearKeys = clearKeys }
+end
+
+-- Exposed for tests + the dialog's editable-cmp gate.
+RLFilterFieldCatalog._SCALAR_CMPS    = SCALAR_CMPS
+RLFilterFieldCatalog._LIST_CMPS      = LIST_CMPS
+RLFilterFieldCatalog._SUBSTRING_CMPS = SUBSTRING_CMPS
+
 Log:debug("RLFilterFieldCatalog: loaded %d fields", #RLFilterFieldCatalog.FIELDS)

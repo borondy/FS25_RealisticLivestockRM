@@ -256,6 +256,7 @@ function RealisticLivestock_FSBaseMission:onStartMission()
     AnimalFilterDialog.register()
     AnimalMoveDestinationDialog.register()
     RLFilterConditionDialog.register()
+    RLFilterValueSetDialog.register()
     RmMigrationDialog.register()
 
     -- Mod-compatibility detection runs on every peer (g_modIsLoaded is authoritative
