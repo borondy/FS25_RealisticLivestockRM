@@ -111,6 +111,19 @@ local function clampU8(n, what)
     return n
 end
 
+--- TRACE-log helper: serialize a list of scalar values (numbers / bools /
+--- strings / enums) into a comma-joined string. `tostring` per element so
+--- booleans render as `true`/`false` rather than triggering a `table.concat`
+--- type error on mixed-type or bool lists.
+---@param list table
+---@param n integer number of elements to serialize
+---@return string
+local function joinValues(list, n)
+    local parts = {}
+    for i = 1, n do parts[i] = tostring(list[i]) end
+    return table.concat(parts, ",")
+end
+
 --- True when the cmp token selects a list-valued condition (`in` / `notin`).
 --- Used by both writer and reader to frame list vs scalar payloads without
 --- a leading wire discriminant.
@@ -188,8 +201,8 @@ local function writeCondition(streamId, cond)
         for i = 1, n do
             writeByType(streamId, list[i], field.type)
         end
-        Log:trace("RLFilterWire.writeCondition: field=%s cmp=%s list#=%d",
-            cond.field, cond.cmp, n)
+        Log:trace("RLFilterWire.writeCondition: field=%s cmp=%s list=[%s]",
+            cond.field, cond.cmp, joinValues(list, n))
     else
         if cond.value == nil then
             Log:warning("RLFilterWire.writeCondition: nil scalar value on field '%s' cmp='%s'; writing type default",
@@ -268,8 +281,8 @@ local function readCondition(streamId)
             if v ~= nil then table.insert(values, v) end
         end
         cond.value = values
-        Log:trace("RLFilterWire.readCondition: field=%s cmp=%s list#=%d",
-            fieldKey, cmp, #values)
+        Log:trace("RLFilterWire.readCondition: field=%s cmp=%s list=[%s]",
+            fieldKey, cmp, joinValues(values, #values))
     else
         cond.value = readByType(streamId, field.type)
         Log:trace("RLFilterWire.readCondition: field=%s cmp=%s value=%s",
