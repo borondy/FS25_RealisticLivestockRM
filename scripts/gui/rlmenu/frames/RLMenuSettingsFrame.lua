@@ -916,6 +916,23 @@ function RLMenuSettingsFrame:updateButtonVisibility()
     local hasSelection = (self.selectedFilterId ~= nil)
     local appended = {}
 
+    -- Right-pane editor-widget gate: a worker without tradeAnimals (or any
+    -- player without a farm) sees the filter list and footer correctly
+    -- restricted to Back, but the Name / Animal Type / Op / Show-on widgets
+    -- were still accepting input. The server-side RLFilterUpdateEvent guard
+    -- already drops the forged mutation, but the local commit-then-revert
+    -- cycle is misleading and dispatches WARN-spammy wire churn. Mirror the
+    -- adminOnly pattern used by updateReadonlyState (line ~3167) and push
+    -- the editable bit to each widget. setDisabled is idempotent, so this
+    -- is safe to call on every focus-driven re-entry.
+    local editable = hasFarm and hasPerm
+    if self.filterNameInput          ~= nil then self.filterNameInput:setDisabled(not editable) end
+    if self.filterAnimalTypeSelector ~= nil then self.filterAnimalTypeSelector:setDisabled(not editable) end
+    if self.filterOpSelector         ~= nil then self.filterOpSelector:setDisabled(not editable) end
+    if self.filterUsageSelector      ~= nil then self.filterUsageSelector:setDisabled(not editable) end
+    Log:trace("RLMenuSettingsFrame:updateButtonVisibility: right-pane widgets editable=%s (hasFarm=%s hasPerm=%s)",
+        tostring(editable), tostring(hasFarm), tostring(hasPerm))
+
     self.menuButtonInfo = { self.backButtonInfo }
 
     -- Tier resolution gated on subtab + permissions. Outside Filters, or
