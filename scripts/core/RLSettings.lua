@@ -117,6 +117,7 @@ RLSettings.SETTINGS = {
 
 	["deathEnabled"] = {
 		["index"] = 1,
+		["adminOnly"] = true,
 		["type"] = "BinaryOption",
 		["dynamicTooltip"] = true,
 		["default"] = 2,
@@ -127,6 +128,7 @@ RLSettings.SETTINGS = {
 
 	["accidentsChance"] = {
 		["index"] = 2,
+		["adminOnly"] = true,
 		["type"] = "MultiTextOption",
 		["default"] = 11,
 		["valueType"] = "float",
@@ -140,6 +142,7 @@ RLSettings.SETTINGS = {
 
 	["diseasesEnabled"] = {
 		["index"] = 3,
+		["adminOnly"] = true,
 		["type"] = "BinaryOption",
 		["dynamicTooltip"] = true,
 		["default"] = 2,
@@ -150,6 +153,7 @@ RLSettings.SETTINGS = {
 
 	["diseasesChance"] = {
 		["index"] = 4,
+		["adminOnly"] = true,
 		["type"] = "MultiTextOption",
 		["default"] = 4,
 		["valueType"] = "float",
@@ -163,6 +167,7 @@ RLSettings.SETTINGS = {
 
 	["foodScale"] = {
 		["index"] = 5,
+		["adminOnly"] = true,
 		["type"] = "MultiTextOption",
 		["default"] = 2,
 		["valueType"] = "float",
@@ -172,6 +177,7 @@ RLSettings.SETTINGS = {
 
 	["maxDealerAnimals"] = {
 		["index"] = 6,
+		["adminOnly"] = true,
 		["type"] = "MultiTextOption",
 		["default"] = 4,
 		["valueType"] = "int",
@@ -181,6 +187,7 @@ RLSettings.SETTINGS = {
 
 	["useCustomAnimals"] = {
 		["index"] = 7,
+		["adminOnly"] = true,
 		["type"] = "BinaryOption",
 		["dynamicTooltip"] = true,
 		["default"] = 1,
@@ -191,6 +198,7 @@ RLSettings.SETTINGS = {
 
 	["animalsXML"] = {
 		["index"] = 8,
+		["adminOnly"] = true,
 		["type"] = "Button",
 		["ignore"] = true,
 		["callback"] = RLSettings.onClickChangeAnimalsXML,
@@ -202,6 +210,7 @@ RLSettings.SETTINGS = {
 
 	["messageSummary"] = {
 		["index"] = 9,
+		["adminOnly"] = true,
 		["type"] = "BinaryOption",
 		["dynamicTooltip"] = true,
 		["default"] = 1,  -- Individual (current behavior) as default
@@ -212,6 +221,7 @@ RLSettings.SETTINGS = {
 
 	["maxNumMessages"] = {
 		["index"] = 10,
+		["adminOnly"] = true,
 		["type"] = "MultiTextOption",
 		["default"] = 5,
 		["valueType"] = "int",
@@ -221,6 +231,7 @@ RLSettings.SETTINGS = {
 
 	["geneticsDisplay"] = {
 		["index"] = 11,
+		["adminOnly"] = true,
 		["type"] = "MultiTextOption",
 		["default"] = 1,
 		["values"] = { 1, 2, 3 }
@@ -228,6 +239,7 @@ RLSettings.SETTINGS = {
 
 	["geneticsPosition"] = {
 		["index"] = 12,
+		["adminOnly"] = true,
 		["type"] = "BinaryOption",
 		["default"] = 1,
 		["values"] = { 1, 2 }
@@ -235,6 +247,7 @@ RLSettings.SETTINGS = {
 
 	["sortByGenetics"] = {
 		["index"] = 13,
+		["adminOnly"] = true,
 		["type"] = "BinaryOption",
 		["dynamicTooltip"] = true,
 		["default"] = 1,
@@ -244,6 +257,7 @@ RLSettings.SETTINGS = {
 
 	["tagColour"] = {
 		["index"] = 14,
+		["adminOnly"] = true,
 		["type"] = "Button",
 		["ignore"] = true,
 		["callback"] = RLSettings.onClickTagColour
@@ -251,6 +265,7 @@ RLSettings.SETTINGS = {
 
 	["exportCSV"] = {
 		["index"] = 15,
+		["adminOnly"] = true,
 		["type"] = "Button",
 		["ignore"] = true,
 		["callback"] = RLSettings.onClickExportCSV
