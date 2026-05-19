@@ -73,6 +73,12 @@ function RLMenuSettingsFrame.new()
     -- paging lifecycle; see RLMenu:setupMenuPages).
     self.didMeasureFiltersPane = false
 
+    -- RLRM-280 items 2/3: counter for the first 2 filter list cells populated.
+    -- Logs cell + title geometry + text constraints (textWrapWidth, etc) so
+    -- the rl_filterListItem profile can be tuned against real geometry
+    -- (session rule 4). Reset on every list reload.
+    self.didMeasureFilterCellCount = 0
+
     -- P1-3 editor pane measure log flag. Once-per-process (NOT once-per-open):
     -- RLMenuSettingsFrame.new() runs once at setupGui() time and the clone is
     -- reused across every menu open (RLMenu.lua:88-138). Pane geometry doesn't
@@ -308,15 +314,18 @@ function RLMenuSettingsFrame:onGuiSetupFinished()
         Log:trace("RLMenuSettingsFrame:onGuiSetupFinished: filterConditionsList bound")
     end
 
-    -- Seed the AND/OR op selector texts once at setup (static, locale-baked
-    -- at l10n load time). AnimalType selector is reseeded per renderEditor
-    -- because it depends on animal-system state.
+    -- Seed the conditions match-logic selector texts once at setup (static,
+    -- locale-baked at l10n load time). AnimalType selector is reseeded per
+    -- renderEditor because it depends on animal-system state.
+    -- RLRM-280 item 5: display text is "Match ALL" / "Match ANY" (renamed
+    -- from AND/OR for clarity). Stored op string in serialisation/wire stays
+    -- "AND"/"OR" - keys preserved end-to-end; only the visible text changed.
     if self.filterOpSelector ~= nil then
         self.filterOpSelector:setTexts({
             g_i18n:getText("rl_menu_filters_op_and"),
             g_i18n:getText("rl_menu_filters_op_or"),
         })
-        Log:trace("RLMenuSettingsFrame:onGuiSetupFinished: filterOpSelector texts set (AND/OR)")
+        Log:trace("RLMenuSettingsFrame:onGuiSetupFinished: filterOpSelector texts set (Match ALL / Match ANY)")
     end
 
     -- v2 modal editor: three-tier action bar focus triggers. Each anchor
@@ -434,6 +443,34 @@ function RLMenuSettingsFrame:onFrameOpen()
        and not self.didMeasureGeneralPane then
         Log:debug("RLMenuSettingsFrame: generalSettingsLayout measured: %.2fpx x %.2fpx",
             genLayout.size[1] * 1920, genLayout.size[2] * 1080)
+
+        -- RLRM-280 item 10 measurement: log subCategoryPages[1] (parent of
+        -- generalSettingsSliderBox) + the sliderBox itself + the layout, so
+        -- we can see the actual right-edge gap and pick a correct anchor /
+        -- parent reanchor instead of guessing magic +Npx offsets.
+        local function _logBox(name, e)
+            if e == nil then Log:debug("RLMenuSettingsFrame._geom: %s == nil", name); return end
+            local ax = (e.absPosition and e.absPosition[1] or 0) * g_referenceScreenWidth
+            local ay = (e.absPosition and e.absPosition[2] or 0) * g_referenceScreenHeight
+            local sw = (e.size and e.size[1] or 0) * g_referenceScreenWidth
+            local sh = (e.size and e.size[2] or 0) * g_referenceScreenHeight
+            Log:debug("RLMenuSettingsFrame._geom: %s absPos=(%.1f,%.1f) size=(%.1fx%.1f) right=%.1f bottom=%.1f",
+                name, ax, ay, sw, sh, ax + sw, ay)
+        end
+        local pageContainer = self:getDescendantById("subCategoryPages[1]")
+        local sliderBox     = self:getDescendantById("generalSettingsSliderBox")
+        _logBox("subCategoryPages[1]",     pageContainer)
+        _logBox("generalSettingsLayout",   genLayout)
+        _logBox("generalSettingsSliderBox", sliderBox)
+        if pageContainer ~= nil and sliderBox ~= nil
+           and pageContainer.absPosition and sliderBox.absPosition
+           and pageContainer.size and sliderBox.size then
+            local parentRight  = (pageContainer.absPosition[1] + pageContainer.size[1]) * g_referenceScreenWidth
+            local sliderRight  = (sliderBox.absPosition[1] + sliderBox.size[1]) * g_referenceScreenWidth
+            Log:debug("RLMenuSettingsFrame._geom: scrollbar gap = parentRight(%.1f) - sliderRight(%.1f) = %.1f px",
+                parentRight, sliderRight, parentRight - sliderRight)
+        end
+
         self.didMeasureGeneralPane = true
     end
 
@@ -477,22 +514,29 @@ function RLMenuSettingsFrame:onFrameOpen()
         FocusManager:linkElements(self.filterNameInput,         FocusManager.BOTTOM, self.filterAnimalTypeSelector)
         FocusManager:linkElements(self.filterAnimalTypeSelector, FocusManager.TOP,   self.filterNameInput)
     end
-    if self.filterAnimalTypeSelector ~= nil and self.filterOpSelector ~= nil then
-        FocusManager:linkElements(self.filterAnimalTypeSelector, FocusManager.BOTTOM, self.filterOpSelector)
-        FocusManager:linkElements(self.filterOpSelector,         FocusManager.TOP,   self.filterAnimalTypeSelector)
+    -- RLRM-280 item 4: visual row order is now Name -> AnimalType -> Usage
+    -- -> Op (filterOpSelector / "Conditions: Match ALL|ANY") -> ConditionsList.
+    -- Focus links MUST mirror that order so D-pad / keyboard nav does not
+    -- teleport over rows. Prior order (AnimalType -> Op -> Usage) was wired
+    -- here pre-reorder; if these links are missed the keyboard chain skips
+    -- whichever row was reordered.
+    if self.filterAnimalTypeSelector ~= nil and self.filterUsageSelector ~= nil then
+        FocusManager:linkElements(self.filterAnimalTypeSelector, FocusManager.BOTTOM, self.filterUsageSelector)
+        FocusManager:linkElements(self.filterUsageSelector,      FocusManager.TOP,    self.filterAnimalTypeSelector)
     end
-    if self.filterOpSelector ~= nil and self.filterUsageSelector ~= nil then
-        FocusManager:linkElements(self.filterOpSelector,    FocusManager.BOTTOM, self.filterUsageSelector)
-        FocusManager:linkElements(self.filterUsageSelector, FocusManager.TOP,    self.filterOpSelector)
+    if self.filterUsageSelector ~= nil and self.filterOpSelector ~= nil then
+        FocusManager:linkElements(self.filterUsageSelector, FocusManager.BOTTOM, self.filterOpSelector)
+        FocusManager:linkElements(self.filterOpSelector,    FocusManager.TOP,    self.filterUsageSelector)
     end
 
-    -- P1-4a focus chain: usageSelector -> conditionsList. [+ condition]
-    -- moved to the action bar 2026-05-17, so the in-pane focus chain skips
-    -- it - DOWN from the last metadata row reaches the conditions list
-    -- directly; UP rises straight back.
-    if self.filterUsageSelector ~= nil and self.filterConditionsList ~= nil then
-        FocusManager:linkElements(self.filterUsageSelector, FocusManager.BOTTOM, self.filterConditionsList)
-        FocusManager:linkElements(self.filterConditionsList, FocusManager.TOP,   self.filterUsageSelector)
+    -- P1-4a focus chain: last metadata row (now filterOpSelector after the
+    -- RLRM-280 reorder) -> conditionsList. [+ condition] moved to the action
+    -- bar 2026-05-17, so the in-pane focus chain skips it - DOWN from the
+    -- last metadata row reaches the conditions list directly; UP rises
+    -- straight back.
+    if self.filterOpSelector ~= nil and self.filterConditionsList ~= nil then
+        FocusManager:linkElements(self.filterOpSelector,     FocusManager.BOTTOM, self.filterConditionsList)
+        FocusManager:linkElements(self.filterConditionsList, FocusManager.TOP,    self.filterOpSelector)
     end
     Log:trace("RLMenuSettingsFrame:onFrameOpen: editor focus chain linked")
 
@@ -640,6 +684,24 @@ function RLMenuSettingsFrame:updateSubCategoryPages(state)
         page:setVisible(index == idx)
     end
 
+    -- RLRM-280 item 10: generalSettingsSliderBox now lives at the GUI
+    -- root (sibling of the menu container) so its right edge lands at
+    -- the screen right edge instead of inside the menu chrome. Because
+    -- it's no longer nested inside subCategoryPages[1], it does not
+    -- inherit the per-page setVisible toggle above - we must hide it
+    -- explicitly when the Filters tab is active. dataElementId binds it
+    -- to generalSettingsLayout (still inside subCategoryPages[1]); when
+    -- that pane is hidden the slider has no scrollable target and should
+    -- not render.
+    local sliderBox = self.generalSettingsSliderBox or self:getDescendantById("generalSettingsSliderBox")
+    if sliderBox ~= nil then
+        self.generalSettingsSliderBox = sliderBox -- cache for next call
+        local visible = (idx == RLMenuSettingsFrame.SUB_CATEGORY.GENERAL)
+        sliderBox:setVisible(visible)
+        Log:trace("RLMenuSettingsFrame:updateSubCategoryPages: generalSettingsSliderBox visible=%s (idx=%d)",
+            tostring(visible), idx)
+    end
+
     -- First-visibility measure log. One-shot per frame-open cycle so the
     -- log doesn't spam on every subtab click. Measures after the visibility
     -- toggle above so the layout engine has settled the stretched size.
@@ -654,6 +716,35 @@ function RLMenuSettingsFrame:updateSubCategoryPages(state)
         Log:debug("RLMenuSettingsFrame: filtersListContainer measured: %.2fpx x %.2fpx",
             self.filtersListContainer.size[1] * 1920,
             self.filtersListContainer.size[2] * 1080)
+
+        -- RLRM-280 items 4 / 6 measurement: log filterEditorContainer +
+        -- filterConditionsListContainer + filterConditionsBanner so the
+        -- banner can be anchored relative to the conditions-list TOP
+        -- without guessing the 290px reservation.
+        local function _logBox(name, e)
+            if e == nil then Log:debug("RLMenuSettingsFrame._geom: %s == nil", name); return end
+            local ax = (e.absPosition and e.absPosition[1] or 0) * g_referenceScreenWidth
+            local ay = (e.absPosition and e.absPosition[2] or 0) * g_referenceScreenHeight
+            local sw = (e.size and e.size[1] or 0) * g_referenceScreenWidth
+            local sh = (e.size and e.size[2] or 0) * g_referenceScreenHeight
+            Log:debug("RLMenuSettingsFrame._geom: %s absPos=(%.1f,%.1f) size=(%.1fx%.1f) top=%.1f bottom=%.1f",
+                name, ax, ay, sw, sh, ay + sh, ay)
+        end
+        local editorContainer = self:getDescendantById("filterEditorContainer")
+        local editorLayout    = self:getDescendantById("filterEditorLayout")
+        _logBox("filterEditorContainer",        editorContainer)
+        _logBox("filterEditorLayout(metadata)", editorLayout)
+        _logBox("filterConditionsListContainer", self.filterConditionsListContainer)
+        _logBox("filterConditionsBanner",        self.filterConditionsBanner)
+        if editorContainer ~= nil and self.filterConditionsListContainer ~= nil
+           and editorContainer.absPosition and self.filterConditionsListContainer.absPosition
+           and editorContainer.size and self.filterConditionsListContainer.size then
+            local containerTop   = (editorContainer.absPosition[2] + editorContainer.size[2]) * g_referenceScreenHeight
+            local listTop        = (self.filterConditionsListContainer.absPosition[2] + self.filterConditionsListContainer.size[2]) * g_referenceScreenHeight
+            Log:debug("RLMenuSettingsFrame._geom: containerTop=%.1f conditionsListTop=%.1f -> metadata block height=%.1fpx",
+                containerTop, listTop, containerTop - listTop)
+        end
+
         self.didMeasureFiltersPane = true
     end
 
@@ -2310,11 +2401,20 @@ function RLMenuSettingsFrame:addConditionAtSelection(newCond)
     reloadConditionsList(self, insertAt)
 end
 
---- Phase 2 stub. v2 binding: enabled callback that logs + warns + no-ops.
---- Verifies the action-bar context-switching plumbing without committing
---- Phase 2 group semantics.
+--- Phase 2 stub. v2 binding: enabled callback that logs + warns + surfaces
+--- an InfoDialog so the user gets visible feedback instead of a silent
+--- no-op. Verifies the action-bar context-switching plumbing without
+--- committing Phase 2 group semantics.
+---
+--- RLRM-280 item 11: prior body was a silent Log:warning. Replaced with
+--- a base-game InfoDialog.show so the action gives the user closed-loop
+--- feedback that grouping is intentionally unimplemented in this version.
 function RLMenuSettingsFrame:addGroupAtSelection(_newGroup)
     Log:warning("RLMenuSettingsFrame:addGroupAtSelection: Add group: placeholder (Phase 2) - no state change")
+    if InfoDialog ~= nil and InfoDialog.show ~= nil and g_i18n ~= nil then
+        Log:debug("RLMenuSettingsFrame:addGroupAtSelection: showing not-yet-implemented InfoDialog")
+        InfoDialog.show(g_i18n:getText("rl_menu_filters_add_group_not_implemented"))
+    end
 end
 
 --- Action-bar Add condition (Tier 2/3, MENU_EXTRA_1 in step 5). Currently
@@ -2925,6 +3025,33 @@ function RLMenuSettingsFrame:populateCellForItemInSection(list, _section, index,
         local nameCell = cell:getAttribute("filterName")
         if nameCell ~= nil then
             nameCell:setText(displayName)
+        end
+
+        -- RLRM-280 items 2/3 runtime measurement: log the first two cells so
+        -- we can compute actual rendered Y spacing (parent profile sets
+        -- listItemSpacing=-20px, so cells overlap by 20px; the rl_filterListItem
+        -- flat-color override exposed this without a fade gradient). Also log
+        -- the title text constraints (textWrapWidth, maxInputTextWidth,
+        -- textLayoutMode) because the visible truncation point was 250-280px
+        -- despite the size element being 380px wide.
+        local idx = self.didMeasureFilterCellCount or 0
+        if idx < 2 then
+            self.didMeasureFilterCellCount = idx + 1
+            local cellAX = (cell.absPosition and cell.absPosition[1] or 0) * g_referenceScreenWidth
+            local cellAY = (cell.absPosition and cell.absPosition[2] or 0) * g_referenceScreenHeight
+            local cellW = (cell.size and cell.size[1] or 0) * g_referenceScreenWidth
+            local cellH = (cell.size and cell.size[2] or 0) * g_referenceScreenHeight
+            local titleAX = (nameCell and nameCell.absPosition and nameCell.absPosition[1] or 0) * g_referenceScreenWidth
+            local titleAY = (nameCell and nameCell.absPosition and nameCell.absPosition[2] or 0) * g_referenceScreenHeight
+            local titleW = (nameCell and nameCell.size and nameCell.size[1] or 0) * g_referenceScreenWidth
+            local titleH = (nameCell and nameCell.size and nameCell.size[2] or 0) * g_referenceScreenHeight
+            local wrap = nameCell and nameCell.textWrapWidth or nil
+            local maxw = nameCell and nameCell.maxInputTextWidth or nil
+            local lm   = nameCell and nameCell.textLayoutMode or nil
+            local twa  = nameCell and nameCell.textWrapAtPunctuation or nil
+            Log:debug("RLMenuSettingsFrame:populateCellForItemInSection: filterListCell[%d] cell.absPos=(%.1f,%.1f) cell=%.1fx%.1f title.absPos=(%.1f,%.1f) title=%.1fx%.1f textWrapWidth=%s maxInputTextWidth=%s textLayoutMode=%s textWrapAtPunct=%s name=%q",
+                idx, cellAX, cellAY, cellW, cellH, titleAX, titleAY, titleW, titleH,
+                tostring(wrap), tostring(maxw), tostring(lm), tostring(twa), displayName)
         end
         return
     end

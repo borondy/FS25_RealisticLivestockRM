@@ -67,10 +67,14 @@
             <!--
                 Empty-set reject + drift hint surface. Hidden by default;
                 populated via RLFilterValueSetDialog:showHint(l10nKey).
-                Sits below the list + above the action bar.
+                Sits between the list bottom and the action bar.
+                RLRM-280 item 1: position tuned via in-game measurement so
+                the hint sits centered in the gap above the action bar,
+                without overlapping the list's bottom rows or clipping the
+                footer.
             -->
             <Text profile="fs25_dialogText" id="hintText"
-                  position="0px -450px"
+                  position="0px -436px"
                   visible="false"
                   text=""/>
 

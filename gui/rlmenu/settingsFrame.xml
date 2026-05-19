@@ -174,14 +174,10 @@
 
             </ScrollingLayout>
 
-            <!-- Slider docked inside this pane (not at TabbedMenuFrame root)
-                 because [Filters] has its own slider for the filter list.
-                 dataElementId binds it to generalSettingsLayout above. -->
-            <ThreePartBitmap profile="fs25_sliderDockedBg" id="generalSettingsSliderBox">
-                <ThreePartBitmap profile="fs25_sliderDockedBox">
-                    <Slider profile="fs25_sliderDocked" id="generalSettingsSlider" dataElementId="generalSettingsLayout"/>
-                </ThreePartBitmap>
-            </ThreePartBitmap>
+            <!-- RLRM-280 item 10: sliderBox moved out to top level under
+                 <GUI>; see end-of-file. Visibility toggle in
+                 RLMenuSettingsFrame.lua (updateSubCategoryPages) hides
+                 it on the Filters tab. -->
 
         </GuiElement>
 
@@ -193,12 +189,17 @@
                 <Bitmap profile="fs25_subCategoryStartClipper" name="filtersStartClipper"/>
                 <Bitmap profile="fs25_subCategoryStopClipper" name="filtersEndClipper"/>
 
-                <SmoothList profile="fs25_subCategoryList"
+                <SmoothList profile="rl_filterList"
                             id="filtersList"
                             startClipperElementName="filtersStartClipper"
                             endClipperElementName="filtersEndClipper">
-                    <ListItem profile="fs25_subCategoryListItem" name="defaultCell">
-                        <Text profile="fs25_subCategoryListItemName" name="filterName"/>
+                    <!-- RLRM-280 items 2/3: rl_filterListItem replaces the
+                         icon-padded card variant with a flat colored card;
+                         rl_filterListItemName vertical-centers the title and
+                         reclaims the freed left-icon width. See
+                         rlMenuProfiles.xml end-of-file. -->
+                    <ListItem profile="rl_filterListItem" name="defaultCell">
+                        <Text profile="rl_filterListItemName" name="filterName"/>
                     </ListItem>
                 </SmoothList>
 
@@ -266,20 +267,25 @@
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_animal_type"/>
                     </Bitmap>
 
-                    <!-- Row 3: Top-level match (AND/OR) -->
-                    <Bitmap profile="fs25_multiTextOptionContainer">
-                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="filterOpSelector" onClick="onOpChanged"/>
-                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_op"/>
-                    </Bitmap>
-
-                    <!-- Row 4: Usage scope (P1-3b) - which consumer frames the
+                    <!-- Row 3: Usage scope (P1-3b) - which consumer frames the
                          filter appears on. State 1=ANY, 2=OWNED, 3=DEALER per
                          spec Boundaries "Editor row" bullet; wire byte order
                          (0/1/2) matches state-index minus 1 for cognitive
-                         parity with the wire codec. -->
+                         parity with the wire codec.
+                         RLRM-280 item 4: moved from row 4 to row 3 so the
+                         match-logic (Conditions) row sits at the bottom of
+                         the metadata block. Source-order swap also reorders
+                         keyboard/gamepad focus traversal - intentional. -->
                     <Bitmap profile="fs25_multiTextOptionContainer">
                         <MultiTextOption profile="fs25_settingsMultiTextOption" id="filterUsageSelector" onClick="onUsageChanged"/>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_usage"/>
+                    </Bitmap>
+
+                    <!-- Row 4: Conditions match-logic (stored AND/OR; displayed
+                         "Match ALL" / "Match ANY" per RLRM-280 item 5). -->
+                    <Bitmap profile="fs25_multiTextOptionContainer">
+                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="filterOpSelector" onClick="onOpChanged"/>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_op"/>
                     </Bitmap>
 
                 </ScrollingLayout>
@@ -297,11 +303,14 @@
                      hidden - editable in a later phase. Saved on close." when
                      the partition step finds nested groups or enum/string/
                      in/notin conditions that the P1-4a editor cannot render.
-                     Hidden when preserved count == 0. -->
-                <Text profile="fs25_textDefault" id="filterConditionsBanner"
-                      size="100% 30px"
-                      position="20px 290px"
-                      textAlignment="left"
+                     Hidden when preserved count == 0.
+                     RLRM-280 item 6: profile rl_filterConditionsBanner pins
+                     this element just above the conditions list (was floating
+                     mid-list at the old position="20px 290px" with default
+                     anchorBottomLeft). Same element is also reused as a
+                     transient subType-refuse surface (RLMenuSettingsFrame.lua
+                     :2138-2148). Both messages now render above the list. -->
+                <Text profile="rl_filterConditionsBanner" id="filterConditionsBanner"
                       visible="false"/>
 
                 <!-- P1-4a: conditions list container. SmoothList of condition
@@ -368,4 +377,17 @@
         </GuiElement>
 
     </GuiElement>
+
+    <!-- RLRM-280 item 10: docked vertical scrollbar for the General tab
+         settings list. TOP-LEVEL sibling of the menu container so its
+         right edge lands at the screen right edge instead of inside the
+         menu chrome. Matches the slider placement used in our other
+         settings frames. Visibility is toggled in updateSubCategoryPages
+         (hidden on the Filters tab since the filter list has its own
+         slider). -->
+    <ThreePartBitmap profile="fs25_sliderDockedBg" id="generalSettingsSliderBox">
+        <ThreePartBitmap profile="fs25_sliderDockedBox">
+            <Slider profile="fs25_sliderDocked" id="generalSettingsSlider" dataElementId="generalSettingsLayout"/>
+        </ThreePartBitmap>
+    </ThreePartBitmap>
 </GUI>

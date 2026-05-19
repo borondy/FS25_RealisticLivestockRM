@@ -783,10 +783,11 @@
 		<text name="rl_menu_filters_empty_editor" text="Select a filter to edit"/>
 		<text name="rl_menu_filters_editor_title_name" text="Name"/>
 		<text name="rl_menu_filters_editor_title_animal_type" text="Animal type"/>
-		<text name="rl_menu_filters_editor_title_op" text="Top-level match"/>
+		<text name="rl_menu_filters_editor_title_op" text="Conditions"/>
 		<text name="rl_menu_filters_animal_type_any" text="Any"/>
-		<text name="rl_menu_filters_op_and" text="AND"/>
-		<text name="rl_menu_filters_op_or" text="OR"/>
+		<text name="rl_menu_filters_op_and" text="Match ALL"/>
+		<text name="rl_menu_filters_op_or" text="Match ANY"/>
+		<text name="rl_menu_filters_add_group_not_implemented" text="Add group is not yet implemented in this version."/>
 		<text name="rl_menu_filters_duplicate_button" text="Duplicate"/>
 		<text name="rl_menu_filters_delete_button" text="Delete"/>
 		<text name="rl_menu_filters_duplicate_suffix" text=" (copy)"/>

@@ -34,9 +34,15 @@
                 Row 1: Field. Label left, picker right of center.
                 Labels reuse existing P1-4a keys
                 (rl_menu_filters_field_label / cmp_label / value_label).
+                RLRM-280 item 7: explicit size + textAlignment="right" so all
+                three labels right-align toward the widget column at x=50px.
+                Without an explicit width, textAlignment has no bounding box
+                to align within and the change is a no-op.
             -->
             <Text profile="fs25_dialogText" id="fieldLabel"
-                  position="-180px -110px"
+                  size="160px 28px"
+                  textAlignment="right"
+                  position="-200px -110px"
                   text="$l10n_rl_menu_filters_field_label"/>
             <MultiTextOption profile="rl_filterDialog_picker" id="fieldPicker"
                              position="50px -110px"
@@ -50,7 +56,9 @@
                 in / notin (multi-value editor deferred to P1-4b).
             -->
             <Text profile="fs25_dialogText" id="cmpLabel"
-                  position="-180px -170px"
+                  size="160px 28px"
+                  textAlignment="right"
+                  position="-200px -170px"
                   text="$l10n_rl_menu_filters_cmp_label"/>
             <MultiTextOption profile="rl_filterDialog_picker" id="cmpPicker"
                              position="50px -170px"
@@ -64,8 +72,15 @@
                 catalog type at onOpen + onFieldChanged.
             -->
             <Text profile="fs25_dialogText" id="valueLabel"
-                  position="-180px -230px"
+                  size="160px 28px"
+                  textAlignment="right"
+                  position="-200px -230px"
                   text="$l10n_rl_menu_filters_value_label"/>
+            <!-- RLRM-280 item 6: bg + iconBox use local profiles that pin
+                 the visible extent to the parent's 280px box so the field
+                 lines up with the Field/Compare pickers. See
+                 rl_filterDialog_textInputBg / rl_filterDialog_textInputIconBox
+                 in <GUIProfiles> below. -->
             <TextInput profile="rl_filterDialog_textInput" id="valueNumberInput"
                        position="50px -230px"
                        focusOnHighlight="true"
@@ -76,8 +91,8 @@
                        imeTitle="$l10n_rl_menu_filters_value_label"
                        imeDescription="$l10n_rl_menu_filters_value_label"
                        imePlaceholder="$l10n_rl_menu_filters_value_label">
-                <ThreePartBitmap profile="fs25_textInputBg"/>
-                <Bitmap profile="fs25_textInputIconBox">
+                <ThreePartBitmap profile="rl_filterDialog_textInputBg"/>
+                <Bitmap profile="rl_filterDialog_textInputIconBox">
                     <Bitmap profile="fs25_textInputIcon"/>
                 </Bitmap>
             </TextInput>
@@ -106,6 +121,8 @@
                 profile). Empty-string commit is rejected at OK click and
                 surfaces hintText.
             -->
+            <!-- RLRM-280 item 6: same bg + iconBox local profile usage as
+                 valueNumberInput above. -->
             <TextInput profile="rl_filterDialog_textInput" id="valueStringInput"
                        position="50px -230px"
                        focusOnHighlight="true"
@@ -116,8 +133,8 @@
                        imeTitle="$l10n_rl_menu_filters_value_label"
                        imeDescription="$l10n_rl_menu_filters_value_label"
                        imePlaceholder="$l10n_rl_menu_filters_value_label">
-                <ThreePartBitmap profile="fs25_textInputBg"/>
-                <Bitmap profile="fs25_textInputIconBox">
+                <ThreePartBitmap profile="rl_filterDialog_textInputBg"/>
+                <Bitmap profile="rl_filterDialog_textInputIconBox">
                     <Bitmap profile="fs25_textInputIcon"/>
                 </Bitmap>
             </TextInput>
@@ -174,6 +191,27 @@
             <textBold value="true"/>
             <maxCharacters value="30"/>
             <maxInputTextWidth value="250px"/>
+        </Profile>
+        <!--
+            RLRM-280 item 6: the inherited bg renders wider than the parent
+            TextInput's 280px box, so the value field looks visibly wider
+            than the Field/Compare pickers. Reset absoluteSizeOffset to 0
+            so the bg fills exactly the parent box and matches the picker
+            visible extent.
+        -->
+        <Profile name="rl_filterDialog_textInputBg" extends="fs25_textInputBg">
+            <absoluteSizeOffset value="0px 0px"/>
+        </Profile>
+        <!--
+            RLRM-280 item 6: the inherited iconBox renders the pencil
+            outside the parent TextInput's right edge, adding visual width
+            past the picker outline. Override position so the iconBox sits
+            flush inside the parent's right edge instead, keeping the
+            pencil affordance + focus rendering but matching the picker
+            visible extent.
+        -->
+        <Profile name="rl_filterDialog_textInputIconBox" extends="fs25_textInputIconBox">
+            <position value="0px 0px"/>
         </Profile>
         <!--
             P1-4b-2: summary button at the value-row slot. Mirrors the RLRM

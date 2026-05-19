@@ -178,6 +178,26 @@ function RLFilterValueSetDialog:onOpen()
     Log:debug("RLFilterValueSetDialog:onOpen: fieldKey=%s animalType=%s domain=%d preChecked=%d",
         tostring(self.fieldKey), tostring(self.animalType),
         #self.domain, preCheckedCount)
+
+    -- RLRM-280 one-shot geometry log. Computes the screen-space bounding box
+    -- of the value list, the hint surface, and the action-bar buttons so the
+    -- hint position can be placed between list-bottom and action-bar-top
+    -- without guessing.
+    local function _logElem(name, e)
+        if e == nil then
+            Log:debug("RLFilterValueSetDialog._geom: %s == nil", name); return
+        end
+        local ax = (e.absPosition and e.absPosition[1] or 0) * g_referenceScreenWidth
+        local ay = (e.absPosition and e.absPosition[2] or 0) * g_referenceScreenHeight
+        local sw = (e.size and e.size[1] or 0) * g_referenceScreenWidth
+        local sh = (e.size and e.size[2] or 0) * g_referenceScreenHeight
+        Log:debug("RLFilterValueSetDialog._geom: %s absPos=(%.1f,%.1f) size=(%.1fx%.1f) top=%.1f bottom=%.1f left=%.1f right=%.1f",
+            name, ax, ay, sw, sh, ay + sh, ay, ax, ax + sw)
+    end
+    _logElem("valueList",       self.valueList)
+    _logElem("hintText",        self.hintText)
+    _logElem("okButton",        self.okButton)
+    _logElem("selectAllButton", self.selectAllButton)
 end
 
 --- onClose: unregister any action events registered with self as target.

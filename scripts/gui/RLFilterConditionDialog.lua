@@ -112,6 +112,11 @@ function RLFilterConditionDialog:onGuiSetupFinished()
     self.valueSetButton   = self:getDescendantById("valueSetButton")
     self.hintText         = self:getDescendantById("hintText")
     self.okButton         = self:getDescendantById("okButton")
+    -- RLRM-280 measurement: resolve label elements too so onOpen can log
+    -- their rendered geometry for position/width math.
+    self.fieldLabel       = self:getDescendantById("fieldLabel")
+    self.cmpLabel         = self:getDescendantById("cmpLabel")
+    self.valueLabel       = self:getDescendantById("valueLabel")
 
     local missing = {}
     if self.fieldPicker      == nil then table.insert(missing, "fieldPicker") end
@@ -127,6 +132,29 @@ function RLFilterConditionDialog:onGuiSetupFinished()
             table.concat(missing, ","))
     else
         Log:trace("RLFilterConditionDialog:onGuiSetupFinished: all elements resolved")
+    end
+end
+
+-- =============================================================================
+-- RLRM-280 measurement helper. Logs absolute on-screen geometry for a list of
+-- (name, element) pairs at DEBUG. Coordinates are scaled to a 1920x1080
+-- reference (matches the `element.size * 1920` pattern from session rule 4).
+-- Used once per dialog open to ground position math in actual rendered values.
+-- =============================================================================
+function RLFilterConditionDialog:_logGeometry(label, items)
+    if Log == nil or Log.debug == nil then return end
+    for _, pair in ipairs(items) do
+        local name, e = pair[1], pair[2]
+        if e ~= nil then
+            local ax = (e.absPosition and e.absPosition[1] or 0) * g_referenceScreenWidth
+            local ay = (e.absPosition and e.absPosition[2] or 0) * g_referenceScreenHeight
+            local sw = (e.size and e.size[1] or 0) * g_referenceScreenWidth
+            local sh = (e.size and e.size[2] or 0) * g_referenceScreenHeight
+            Log:debug("RLFilterConditionDialog._logGeometry[%s]: %s absPos=(%.1f,%.1f) size=(%.1fx%.1f) leftEdge=%.1f rightEdge=%.1f topEdge=%.1f bottomEdge=%.1f",
+                label, name, ax, ay, sw, sh, ax, ax + sw, ay + sh, ay)
+        else
+            Log:debug("RLFilterConditionDialog._logGeometry[%s]: %s == nil", label, name)
+        end
     end
 end
 
@@ -279,6 +307,24 @@ function RLFilterConditionDialog:onOpen()
     self:refreshFieldPicker()
     self:refreshCmpPicker()
     self:refreshValueWidget()
+
+    -- RLRM-280 one-shot geometry log so position math is grounded in actual
+    -- rendered values. Logged on every onOpen (cheap, DEBUG level, only when
+    -- dialog is opened).
+    self:_logGeometry("onOpen", {
+        {"fieldLabel",       self.fieldLabel},
+        {"cmpLabel",         self.cmpLabel},
+        {"valueLabel",       self.valueLabel},
+        {"fieldPicker",      self.fieldPicker},
+        {"cmpPicker",        self.cmpPicker},
+        {"valueNumberInput", self.valueNumberInput},
+        {"valueStringInput", self.valueStringInput},
+        {"valueBoolPicker",  self.valueBoolPicker},
+        {"valueEnumPicker",  self.valueEnumPicker},
+        {"valueSetButton",   self.valueSetButton},
+        {"hintText",         self.hintText},
+        {"okButton",         self.okButton},
+    })
 end
 
 --- Resolve domain[1] for an enum field. Routes subType-under-unscoped-filter
@@ -771,6 +817,13 @@ end
 -- =============================================================================
 
 --- Validate working state, build coerced newCondition, deliver to caller, close.
+---
+--- Note: an earlier draft of RLRM-280 intercepted Enter-on-valueSetButton
+--- here via a focused-element check, but that guard could also hijack a
+--- real mouse click on OK when focus had not yet moved off the button. The
+--- guard has been removed; Enter on the multi-value picker button relies
+--- on FocusManager's default activation. If that doesn't activate the
+--- button in-game, the case is tracked as a follow-up enhancement.
 function RLFilterConditionDialog:onClickOk()
     local field = RLFilterFieldCatalog.get(self.workingField)
     if field == nil then
@@ -944,15 +997,38 @@ function RLFilterConditionDialog:onClickBack()
     end
 end
 
---- Enter pressed while the TextInput is focused. Routes through the
+--- Enter pressed while a TextInput is focused. Routes through the
 --- canonical RLRM dialog pattern from NameInputDialog.lua:135-137: when
 --- `dismiss` is truthy, the Enter event is the IME-closing gesture
 --- (TextInputElement raises this with dismiss=true) and we suppress
---- form-commit so the user can see their typed value first. When dismiss
---- is falsy, treat as a form-commit and route to onClickOk.
+--- form-commit so the user can see their typed value first.
+---
+--- RLRM-280 item 9 (TextInput case): when `dismiss` is falsy, inspect
+--- the focused element. If it's a TextInput that has not yet activated
+--- its IME (forcePressed == false), call onFocusActivate() to start
+--- editing instead of committing the dialog. Applied lazily at Enter-time
+--- so the field/cmp pickers retain initial focus on dialog open. If focus
+--- is already on an active TextInput, or on a non-TextInput element, fall
+--- through to the existing onClickOk path.
 function RLFilterConditionDialog:onEnterPressed(_, dismiss)
     Log:trace("RLFilterConditionDialog:onEnterPressed: dismiss=%s", tostring(dismiss))
-    return dismiss and true or self:onClickOk()
+    if dismiss then
+        return true
+    end
+
+    if FocusManager ~= nil and FocusManager.getFocusedElement ~= nil then
+        local focused = FocusManager:getFocusedElement()
+        if focused ~= nil and focused.onFocusActivate ~= nil
+           and (focused == self.valueNumberInput or focused == self.valueStringInput)
+           and not focused.forcePressed then
+            Log:trace("RLFilterConditionDialog:onEnterPressed: focus on inactive TextInput (id=%s); activating IME instead of committing OK",
+                tostring(focused.id))
+            focused:onFocusActivate()
+            return true
+        end
+    end
+
+    return self:onClickOk()
 end
 
 --- Esc pressed while the TextInput is focused. Routes to onClickBack

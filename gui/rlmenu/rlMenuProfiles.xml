@@ -592,4 +592,76 @@
         <textSelectedColor value="$preset_fs25_colorMainDark"/>
     </Profile>
 
+    <!--
+        RLRM-280 polish (items 2, 3): saved-filters list cell template.
+        Replaces the icon-padded card variant with a flat colored card so
+        the unused icon slot disappears. Height stays at 100px to match
+        the SmoothList row metrics; colors mirror the rlMenu_tableListItem
+        pattern so focus/highlight states remain visible.
+    -->
+    <!--
+        RLRM-280 polish (item 1C): SmoothList container for the saveable-
+        filters list. Mirrors rlMenu_filterConditionsList: extends
+        fs25_subCategoryList for standard scroll + clipping behaviour, pins
+        `listItemSpacing` to 0px because the rl_filterListItem cells use a
+        flat-colour background. The inherited default expects overlapping
+        cards with fade-edge slice graphics; a flat-colour card needs
+        non-overlapping spacing or the overlap shows as a darker stripe.
+    -->
+    <Profile name="rl_filterList" extends="fs25_subCategoryList">
+        <listItemSpacing value="0px"/>
+    </Profile>
+
+    <Profile name="rl_filterListItem" extends="fs25_subCategoryListItem" with="anchorTopStretchingX">
+        <height value="100px"/>
+        <!-- Use a flat tintable slice so imageColor below paints a uniform
+             fill (same approach as rlMenu_tableListItem elsewhere in this
+             file). A nil slice removes the rendering surface entirely. -->
+        <imageSliceId value="gui.colorPreset"/>
+        <imageSelectedSliceId value="gui.colorPreset"/>
+        <imageHighlightedSliceId value="gui.colorPreset"/>
+        <imageColor value="$preset_fs25_colorGreyDark_50"/>
+        <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
+        <imageHighlightedColor value="$preset_fs25_colorGrey"/>
+    </Profile>
+
+    <!--
+        RLRM-280 polish (item 3): saved-filters list card title. Replaces
+        the icon-padded inherited name profile with a left-edge-inset,
+        vertically-centered title that uses the freed icon-area width.
+        Anchor switches to anchorMiddleLeft so the text vertical-centers
+        in the 100px-tall cell.
+    -->
+    <Profile name="rl_filterListItemName" extends="fs25_subCategoryListItemName" with="anchorMiddleLeft pivotMiddleLeft">
+        <!-- Override width directly so the inherited width clamp does
+             not win the trait merge against <size>. 380px fits inside the
+             filter list's reserved width with a small inset on each side. -->
+        <width value="380px"/>
+        <size value="380px 30px"/>
+        <position value="20px 0px"/>
+        <textBold value="true"/>
+        <textUpperCase value="true"/>
+        <textAlignment value="left"/>
+        <textLayoutMode value="scrolling"/>
+    </Profile>
+
+    <!--
+        RLRM-280 polish (item 6): preserved-conditions / subType-refuse
+        banner. Anchored above the conditions list so warnings render
+        above the list rows rather than inside them. x=50 aligns the
+        banner's left edge with the conditions-row text inset.
+        Note: the same element is reused by RLMenuSettingsFrame as a
+        transient subType-refuse surface (see openConditionEditDialog).
+        Both messages now appear at this above-list location - acceptable
+        UX since both are above-list warnings.
+    -->
+    <Profile name="rl_filterConditionsBanner" extends="fs25_textDefault" with="anchorTopLeft pivotTopLeft">
+        <size value="100% 30px"/>
+        <absoluteSizeOffset value="90px 0px"/>
+        <!-- y offset places banner_bottom just above the conditions list
+             top with a small visual gap. Tuned via in-game measurement. -->
+        <position value="50px -258px"/>
+        <textAlignment value="left"/>
+    </Profile>
+
 </GUIProfiles>
