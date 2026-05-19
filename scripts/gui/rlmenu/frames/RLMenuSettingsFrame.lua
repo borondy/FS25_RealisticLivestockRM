@@ -1085,6 +1085,79 @@ local function resolveAnimalTypeLabel(at)
     return at.groupTitle or at.name or "?"
 end
 
+--- True when `node` looks like an expression group (op + children) rather
+--- than a leaf condition. Used by deepEqualFilter to dispatch comparison.
+---@param node table|nil
+---@return boolean
+local function isGroupNode(node)
+    return node ~= nil and node.op ~= nil and node.children ~= nil
+end
+
+--- Compare a condition's value field. Scalars (number/bool/string) via `==`;
+--- list values (table, for `in`/`notin`) by length + ipairs element equality.
+--- Mixed types are unequal.
+---@param va any
+---@param vb any
+---@return boolean
+local function deepEqualConditionValue(va, vb)
+    if type(va) ~= type(vb) then return false end
+    if type(va) == "table" then
+        if #va ~= #vb then return false end
+        for j = 1, #va do
+            if va[j] ~= vb[j] then return false end
+        end
+        return true
+    end
+    return va == vb
+end
+
+local deepEqualGroup -- forward decl for mutual recursion with deepEqualNode
+
+--- Compare a single expression-tree node. Groups recurse; leaves compare
+--- field/cmp/value.
+---@param a table|nil
+---@param b table|nil
+---@return boolean
+local function deepEqualNode(a, b)
+    if a == nil or b == nil then return a == b end
+    local ag = isGroupNode(a)
+    if ag ~= isGroupNode(b) then return false end
+    if ag then return deepEqualGroup(a, b) end
+    if a.field ~= b.field then return false end
+    if a.cmp ~= b.cmp then return false end
+    return deepEqualConditionValue(a.value, b.value)
+end
+
+deepEqualGroup = function(a, b)
+    if a == nil or b == nil then return a == b end
+    if a.op ~= b.op then return false end
+    local ac = a.children or {}
+    local bc = b.children or {}
+    if #ac ~= #bc then return false end
+    for i = 1, #ac do
+        if not deepEqualNode(ac[i], bc[i]) then return false end
+    end
+    return true
+end
+
+--- Deep-compare a merged filter snapshot against a stored filter on the
+--- fields a Settings-editor overlay can change: name, animalType, farmId,
+--- usage, expression tree. Used by flushPendingChangesForId to short-circuit
+--- the wire update when an overlay collapses back to stored state (RLRM-279
+--- phantom-rewrite guard). Skips id / version: id is invariant, version is
+--- a server stamp not authored by the editor.
+---@param merged table
+---@param stored table
+---@return boolean equal
+local function deepEqualFilter(merged, stored)
+    if merged == nil or stored == nil then return merged == stored end
+    if merged.name ~= stored.name then return false end
+    if merged.animalType ~= stored.animalType then return false end
+    if merged.farmId ~= stored.farmId then return false end
+    if merged.usage ~= stored.usage then return false end
+    return deepEqualGroup(merged.expression, stored.expression)
+end
+
 --- Apply a pending overlay onto a stored filter, producing a merged snapshot.
 --- Immutable fields (id, farmId, version) are copied from stored unchanged so
 --- service:update never sees a divergence. animalType has three-state semantics
@@ -1399,6 +1472,37 @@ function RLMenuSettingsFrame:onFilterNameChanged(element, _text)
     end
     local typed = element:getText() or ""
     local id = self.selectedFilterId
+
+    -- Phantom-rewrite guard (RLRM-279): TextInput onChange fires not only on
+    -- real typing but also on programmatic setText during selection-change
+    -- reconcile and on refocus reemit. In those paths "typed" already
+    -- equals stored.name; stashing it produces an overlay the flush layer
+    -- cannot tell from a real edit, and service:update broadcasts a
+    -- byte-identical Update over the wire. Compare trimmed-typed to
+    -- trimmed-stored and short-circuit when they match. If an earlier
+    -- keystroke left a stale name in the overlay (user typed, then
+    -- reverted), clear it so it can't leak into a subsequent flush; drop
+    -- the overlay table entirely if it carries no other pending fields.
+    if g_rlFilterService ~= nil then
+        local stored = g_rlFilterService:getById(id)
+        if stored ~= nil then
+            local trimmedTyped = typed:match("^%s*(.-)%s*$") or ""
+            local trimmedStored = (stored.name or ""):match("^%s*(.-)%s*$") or ""
+            if trimmedTyped == trimmedStored then
+                local overlay = self.pendingChanges[id]
+                if overlay ~= nil and overlay.name ~= nil then
+                    overlay.name = nil
+                    if next(overlay) == nil then
+                        self.pendingChanges[id] = nil
+                    end
+                end
+                Log:trace("RLMenuSettingsFrame:onFilterNameChanged: id=%s value='%s' equals stored; skipping stash",
+                    tostring(id), typed)
+                return
+            end
+        end
+    end
+
     if self.pendingChanges[id] == nil then self.pendingChanges[id] = {} end
     self.pendingChanges[id].name = typed
     Log:debug("RLMenuSettingsFrame:onFilterNameChanged: id=%s value='%s'", tostring(id), typed)
@@ -2445,6 +2549,19 @@ function RLMenuSettingsFrame:flushPendingChangesForId(id)
         merged.expression = { op = rootOp, children = rebuiltChildren }
         Log:debug("RLMenuSettingsFrame:flushPendingChangesForId: id=%s rebuilt children: supported=%d preserved=%d",
             tostring(id), #validSupported, #preserved)
+    end
+
+    -- Phantom-rewrite guard (RLRM-279): a defensive net for any callsite
+    -- that tainted pendingChanges with values identical to stored. Without
+    -- this short-circuit a no-op overlay (e.g. retyping a name back to its
+    -- original, then closing the frame) would still emit a byte-identical
+    -- Update event, triggering fanout to all consumer frames on every
+    -- client. Returning "skipped" matches the orphan-id contract:
+    -- flushPendingChanges clears the entry rather than retaining for retry.
+    if deepEqualFilter(merged, stored) then
+        Log:debug("RLMenuSettingsFrame:flushPendingChangesForId: id=%s overlay matches stored; skipping wire update",
+            tostring(id))
+        return "skipped"
     end
 
     local result = g_rlFilterService:update(id, merged)
