@@ -997,38 +997,89 @@ function RLFilterConditionDialog:onClickBack()
     end
 end
 
---- Enter pressed while a TextInput is focused. Routes through the
---- canonical RLRM dialog pattern from NameInputDialog.lua:135-137: when
---- `dismiss` is truthy, the Enter event is the IME-closing gesture
---- (TextInputElement raises this with dismiss=true) and we suppress
---- form-commit so the user can see their typed value first.
+--- Dialog-level input event override.
 ---
---- RLRM-280 item 9 (TextInput case): when `dismiss` is falsy, inspect
---- the focused element. If it's a TextInput that has not yet activated
---- its IME (forcePressed == false), call onFocusActivate() to start
---- editing instead of committing the dialog. Applied lazily at Enter-time
---- so the field/cmp pickers retain initial focus on dialog open. If focus
---- is already on an active TextInput, or on a non-TextInput element, fall
---- through to the existing onClickOk path.
-function RLFilterConditionDialog:onEnterPressed(_, dismiss)
-    Log:trace("RLFilterConditionDialog:onEnterPressed: dismiss=%s", tostring(dismiss))
-    if dismiss then
-        return true
-    end
+--- Without this override, Enter on a focused Value TextInput or
+--- `valueSetButton` commits the dialog (via the OK button) instead of
+--- activating the focused widget. This intercept routes MENU_ACCEPT to
+--- `onFocusActivate` for the three value widgets so the keyboard path
+--- matches the mouse path.
+---
+--- Gates (all required, in order):
+---   1. `not eventUsed`                                  upstream layer hasn't claimed it
+---   2. `action == InputAction.MENU_ACCEPT`              only Enter, never affects other actions
+---   3. focused element is `valueNumberInput` /          only the three value widgets that need it;
+---      `valueStringInput` / `valueSetButton`            every other focused widget falls through
+---   4a. TextInput case: `not focused.forcePressed`      skip when IME is already active so the
+---                                                       existing IME-Enter (commit) path is not
+---                                                       interrupted by a forcePressed toggle
+---   4b. Button case: `focused:getIsActive() and         guarantee activation will fire a
+---                    focused.onClickCallback ~= nil`    callback (no dead-key activation)
+---
+--- On match: DEBUG log + `focused:onFocusActivate()` + return true.
+--- On any miss: fall through via super so the dialog's default Enter
+--- handling (OK button commit) is preserved for every Field / Compare /
+--- bool / enum picker and for the dialog-open "Enter to accept" shortcut.
+---
+--- Standard Lua class-method override; not new input-action registration.
+---
+---@param action number InputAction enum value
+---@param value any axis / digital value passed by the dispatcher
+---@param eventUsed boolean true when an upstream layer already consumed
+---@return boolean true to consume MENU_ACCEPT here, otherwise the super result
+function RLFilterConditionDialog:inputEvent(action, value, eventUsed)
+    local focused = FocusManager ~= nil
+                    and FocusManager.getFocusedElement ~= nil
+                    and FocusManager:getFocusedElement()
+                    or nil
+    Log:trace("RLFilterConditionDialog:inputEvent: entry action=%s eventUsed=%s focusedId=%s",
+        tostring(action),
+        tostring(eventUsed),
+        focused ~= nil and tostring(focused.id) or "nil")
 
-    if FocusManager ~= nil and FocusManager.getFocusedElement ~= nil then
-        local focused = FocusManager:getFocusedElement()
-        if focused ~= nil and focused.onFocusActivate ~= nil
-           and (focused == self.valueNumberInput or focused == self.valueStringInput)
-           and not focused.forcePressed then
-            Log:trace("RLFilterConditionDialog:onEnterPressed: focus on inactive TextInput (id=%s); activating IME instead of committing OK",
+    if not eventUsed and action == InputAction.MENU_ACCEPT then
+        local intercept = false
+        if focused == self.valueNumberInput or focused == self.valueStringInput then
+            -- TextInput: only intercept when (a) the widget is visible /
+            -- enabled (getIsActive guards stale identity if focus survives
+            -- a refreshValueWidget swap) and (b) IME is inactive. When
+            -- the IME is already active, Enter is delivered through the
+            -- TextInput's own callback path (our onEnterPressed handler).
+            intercept = focused ~= nil
+                        and focused.getIsActive ~= nil
+                        and focused:getIsActive()
+                        and not focused.forcePressed
+        elseif focused == self.valueSetButton then
+            -- Button: only intercept when activation will actually fire a
+            -- callback. Guard against transient inactive states (e.g.
+            -- visibility toggled mid-frame, callback dropped during reload).
+            intercept = focused ~= nil
+                        and focused.getIsActive ~= nil
+                        and focused:getIsActive()
+                        and focused.onClickCallback ~= nil
+        end
+
+        if intercept then
+            Log:debug("RLFilterConditionDialog:inputEvent: routing MENU_ACCEPT to onFocusActivate on id=%s",
                 tostring(focused.id))
             focused:onFocusActivate()
             return true
         end
     end
 
-    return self:onClickOk()
+    return RLFilterConditionDialog:superClass().inputEvent(self, action, value, eventUsed)
+end
+
+--- Enter raised by a TextInputElement callback. `dismiss=true` is the
+--- IME-closing gesture (suppresses commit so the user can review the
+--- typed value); `dismiss=false`/`nil` is the IME-complete commit path.
+--- Mirrors NameInputDialog.lua:135-137.
+---@param _ any unused (the TextInputElement raising the callback)
+---@param dismiss boolean|nil true on IME-close gesture, false/nil on commit
+---@return boolean true to consume the event, false to fall through
+function RLFilterConditionDialog:onEnterPressed(_, dismiss)
+    Log:trace("RLFilterConditionDialog:onEnterPressed: dismiss=%s", tostring(dismiss))
+    return dismiss and true or self:onClickOk()
 end
 
 --- Esc pressed while the TextInput is focused. Routes to onClickBack
