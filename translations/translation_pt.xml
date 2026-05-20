@@ -1,7 +1,7 @@
 <l10n>
 	<texts>
 		<!-- COWS -->
-		
+
 		<text name="fillType_bull" text="Touro"/>
 		<text name="fillType_bull_swiss_brown" text="Touro Brown-Swiss"/>
 		<text name="fillType_bull_holstein" text="Touro Holstein"/>
@@ -21,7 +21,7 @@
 		<text name="fillType_bull_waterbuffalo" text="Touro de búfalo-asiático"/>
 
 		<!-- PIGS -->
-		
+
 		<text name="fillType_boar" text="Porco"/>
 		<text name="fillType_boar_landrace" text="Porco Landrace"/>
 		<text name="fillType_boar_black_pied" text="Porco Black-Pied"/>
@@ -32,7 +32,7 @@
 		<text name="animal_descriptionBoarYoung" text="Ele é um leitão macho."/>
 
 		<!-- SHEEP -->
-		
+
 		<text name="fillType_ram" text="Carneiro"/>
 		<text name="fillType_ram_landrace" text="Carneiro de Bentheimer Landschaf"/>
 		<text name="fillType_ram_steinschaf" text="Carneiro de Steinschaf"/>
@@ -49,7 +49,7 @@
 		<text name="rl_descriptionGoatReproduction" text="Cabras saudáveis e com mais de 16 meses podem reproduzir."/>
 
 		<!-- HORSES -->
-		
+
 		<text name="fillType_stallion" text="Garanhão"/>
 		<text name="fillType_stallion_gray" text="Garanhão Cinzento"/>
 		<text name="fillType_stallion_pinto" text="Garanhão Pinto"/>
@@ -71,7 +71,7 @@
 
         <!-- UI -->
 
-		
+
         <text name="input_VisualAnimalsDialog" text="Altera Quantidade Visual de Animais"/>
         <text name="rl_button_apply" text="Aplicar"/>
         <text name="rl_button_confirm" text="Confirmar"/>
@@ -111,7 +111,7 @@
 		<text name="rl_ui_rename" text="Alterar nome"/>
 		<text name="rl_ui_cantFindAnimal" text="Não é possível encontrar o animal"/>
 		<text name="rl_ui_maleNumImpregnatable" text="Engravida os animais no curral"/>
-		
+
 		<text name="rl_ui_breederQuality" text="Qualidade da Reprodução"/>
 		<text name="rl_ui_birthday" text="Dia Nascimento"/>
 		<text name="rl_ui_pregnancyExpected" text="Esperado"/>
@@ -147,7 +147,7 @@
 		<text name="rl_ui_genetics_good" text="Bom"/>
 		<text name="rl_ui_genetics_veryGood" text="Muito bom"/>
 		<text name="rl_ui_genetics_extremelyGood" text="Extremamente bom"/>
-		
+
 		<text name="rl_ui_buySelected" text="Compra selecionado"/>
 		<text name="rl_ui_sellSelected" text="Vende selecionado"/>
 		<text name="rl_ui_moveSelected" text="Move selectionado"/>
@@ -694,7 +694,7 @@
         <text name="rl_mod_compat_url" text="https://rittermod.github.io/FS25_RealisticLivestockRM/user-guide/reference-mod-compatibility"/>
         <text name="rl_mod_warn_FS25_AnimalFoodCalculator" text="FS25_AnimalFoodCalculator: significant performance impact that grows with herd size."/>
 
-		
+
 
         <!-- Missing keys (English fallback) -->
         <text name="input_RL_MENU" text="Open RL Menu (new)"/>
@@ -736,13 +736,13 @@
         <text name="rl_menu_sell_cart_selected" text="Selected"/>
         <text name="rl_menu_sell_cart_empty" text="Select animals to sell"/>
 
-        <!-- Phase 5: Buy tab -->
+        <!-- Buy tab -->
         <text name="rl_menu_buy_title" text="Buy"/>
         <text name="rl_menu_buy_empty_no_types" text="The dealer has no animal types available"/>
         <text name="rl_menu_buy_empty_no_animals" text="No animals available at the dealer for this type"/>
         <text name="rl_menu_buy_cart_header" text="Purchase Summary"/>
         <text name="rl_menu_buy_cart_selected" text="Selected"/>
-        <!-- Phase 6: AI tab (English fallback) -->
+        <!-- AI tab (English fallback) -->
         <text name="rl_menu_ai_title" text="Artificial Insemination"/>
         <text name="rl_menu_ai_quantity" text="Quantity"/>
         <text name="rl_menu_ai_price" text="Price"/>
@@ -759,7 +759,7 @@
 		<text name="rl_menu_filters_new_button" text="New filter"/>
 		<text name="rl_menu_filters_default_name" text="New filter"/>
 		<text name="rl_menu_filters_detail_placeholder" text="To be implemented"/>
-		<!-- Phase 1 P1-3: Editor + Duplicate/Delete (English fallback) -->
+		<!-- Editor + Duplicate/Delete (English fallback) -->
 		<text name="rl_menu_filters_empty_editor" text="Select a filter to edit"/>
 		<text name="rl_menu_filters_editor_title_name" text="Name"/>
 		<text name="rl_menu_filters_editor_title_animal_type" text="Animal type"/>
@@ -773,7 +773,7 @@
 		<text name="rl_menu_filters_duplicate_suffix" text=" (copy)"/>
 		<text name="rl_menu_filters_duplicate_suffix_n" text=" (copy %d)"/>
 		<text name="rl_menu_filters_delete_confirm_text" text="Delete filter &quot;%s&quot;? This cannot be undone."/>
-		<!-- Phase 1 P1-3b: Usage scope axis -->
+		<!-- Usage scope axis -->
 		<text name="rl_menu_filters_editor_title_usage" text="Show on"/>
 		<text name="rl_menu_filters_usage_any" text="All screens"/>
 		<text name="rl_menu_filters_usage_owned" text="Owned-herd screens"/>

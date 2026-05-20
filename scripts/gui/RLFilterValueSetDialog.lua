@@ -1,5 +1,5 @@
 -- RLFilterValueSetDialog.lua
--- P1-4b-2 multi-select dialog opened from RLFilterConditionDialog's value
+-- Multi-select dialog opened from RLFilterConditionDialog's value
 -- row when cmp = `in`/`notin`. User toggles per-row checkmarks; OK commits
 -- an array of stable internal keys back to the condition dialog. Empty-set
 -- on OK is rejected (mirrors the empty-string reject in the condition
@@ -135,7 +135,7 @@ function RLFilterValueSetDialog:onOpen()
     RLFilterValueSetDialog:superClass().onOpen(self)
 
     -- Resolve domain. animalType==nil triggers the cross-species union path
-    -- for subType (per P1-4b-2 design decision #3); gender stays fixed and
+    -- for subType (per design decision #3); gender stays fixed and
     -- ignores the scope.
     if self.fieldKey == "subType" and self.animalType == nil then
         self.domain = RLFilterFieldDisplay.getEnumDomainForUnscopedFilter("subType")
@@ -179,7 +179,7 @@ function RLFilterValueSetDialog:onOpen()
         tostring(self.fieldKey), tostring(self.animalType),
         #self.domain, preCheckedCount)
 
-    -- RLRM-280 one-shot geometry log. Computes the screen-space bounding box
+    -- One-shot geometry log. Computes the screen-space bounding box
     -- of the value list, the hint surface, and the action-bar buttons so the
     -- hint position can be placed between list-bottom and action-bar-top
     -- without guessing.

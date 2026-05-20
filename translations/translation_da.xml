@@ -514,7 +514,7 @@
 		<text name="rl_help_monitors_1" text="For at se størstedelen af ​​et dyrs statistikker skal du tilføje et overvågningsmærke til det, hvilket kan gøres via dyremenuen (hvor du køber og sælger dyr). Overvågningsmærker vises også visuelt på dyret, på deres venstre øre ved siden af ​​deres ID-mærke."/>
 		<text name="rl_help_monitors_2" text="Overvågning af mærker vil resultere i, at du får vist vigtige oplysninger, herunder sundhed, vægt, laktation, produktion samt behov for halm, foder og vand."/>
 		<text name="rl_help_monitors_3" text="Det koster et lille månedligt abonnement at sætte et mærke på et dyr, afhængigt af dyrets art. Hvis du vælger at fjerne mærket, vil det blive fjernet i starten af ​​den næste måned."/>
-		
+
 		<text name="rl_help_pregnancy_title" text="Drægtighed"/>
 		<text name="rl_help_pregnancy_1" text="Alle Hunner kræver mindst én han for potentielt at blive drægtige. Begge dyr skal have den rette alder og sundhedstilstand og skal være af samme art. Avl mellem forskellige racer (f.eks.: Holsteinko og Angustyr) er tilladt."/>
 		<text name="rl_help_pregnancy_2" text="Indavl er ikke tilladt. Hvis en han og en hun er direkte beslægtede, vil det ikke være muligt at avle på dem."/>
@@ -526,11 +526,11 @@
 		<text name="rl_help_production_1" text="Køer af enhver race vil først begynde at producere mælk efter fødslen. Når koen har født, vil den producere mælk eksponentielt i 3 måneder, hvorefter dens produktion langsomt vil falde i de næste 6 måneder. 10 måneder efter drægtigheden vil koen stoppe med at producere mælk indtil sin næste drægtighed."/>
 		<text name="rl_help_production_2" text="Får producerer uld i de varme måneder. I de kolde måneder, under 12 grader, producerer de ikke uld."/>
 		<text name="rl_help_production_3" text="Mælke-, uld- og ægproduktion påvirkes yderligere af dyrets genetik. Et dyr med god produktionsgenetik vil producere mere, hvorimod dyr med dårlig genetik slet ikke vil producere meget."/>
-		
+
 		<text name="rl_help_weight_title" text="Vægt"/>
 		<text name="rl_help_weight_1" text="Dyr har en bestemt vægt, som påvirkes af, hvor meget de spiser og drikker. Hver art og race har sin egen gennemsnitsvægt, som påvirker hvert dyrs vægt."/>
 		<text name="rl_help_weight_2" text="Vægt øger dyrets værdi, og en lav vægt påvirker dets chance for at blive fjernet hver måned."/>
-		
+
 		<text name="rl_help_genetics_title" text="Genetik"/>
 		<text name="rl_help_genetics_1" text="Hvert dyr har 4 forskellige genetiske værdier; stofskifte, fertilitet, sundhed og kvalitet. Genetikken blandes mellem mor og far og gives derefter videre til deres afkom."/>
 		<text name="rl_help_genetics_2" text="Stofskiftet påvirker dyrets evne til at omdanne føde til vægt, og påvirker den mængde, det spiser."/>
@@ -729,13 +729,13 @@
         <text name="rl_menu_sell_cart_selected" text="Selected"/>
         <text name="rl_menu_sell_cart_empty" text="Select animals to sell"/>
 
-        <!-- Phase 5: Buy tab -->
+        <!-- Buy tab -->
         <text name="rl_menu_buy_title" text="Buy"/>
         <text name="rl_menu_buy_empty_no_types" text="The dealer has no animal types available"/>
         <text name="rl_menu_buy_empty_no_animals" text="No animals available at the dealer for this type"/>
         <text name="rl_menu_buy_cart_header" text="Purchase Summary"/>
         <text name="rl_menu_buy_cart_selected" text="Selected"/>
-        <!-- Phase 6: AI tab (English fallback) -->
+        <!-- AI tab (English fallback) -->
         <text name="rl_menu_ai_title" text="Artificial Insemination"/>
         <text name="rl_menu_ai_quantity" text="Quantity"/>
         <text name="rl_menu_ai_price" text="Price"/>
@@ -752,7 +752,7 @@
 		<text name="rl_menu_filters_new_button" text="New filter"/>
 		<text name="rl_menu_filters_default_name" text="New filter"/>
 		<text name="rl_menu_filters_detail_placeholder" text="To be implemented"/>
-		<!-- Phase 1 P1-3: Editor + Duplicate/Delete (English fallback) -->
+		<!-- Editor + Duplicate/Delete (English fallback) -->
 		<text name="rl_menu_filters_empty_editor" text="Select a filter to edit"/>
 		<text name="rl_menu_filters_editor_title_name" text="Name"/>
 		<text name="rl_menu_filters_editor_title_animal_type" text="Animal type"/>
@@ -766,7 +766,7 @@
 		<text name="rl_menu_filters_duplicate_suffix" text=" (copy)"/>
 		<text name="rl_menu_filters_duplicate_suffix_n" text=" (copy %d)"/>
 		<text name="rl_menu_filters_delete_confirm_text" text="Delete filter &quot;%s&quot;? This cannot be undone."/>
-		<!-- Phase 1 P1-3b: Usage scope axis -->
+		<!-- Usage scope axis -->
 		<text name="rl_menu_filters_editor_title_usage" text="Show on"/>
 		<text name="rl_menu_filters_usage_any" text="All screens"/>
 		<text name="rl_menu_filters_usage_owned" text="Owned-herd screens"/>

@@ -203,7 +203,7 @@ function RLMenuInfoFrame:onFrameOpen()
     end
 
     -- Revalidate active saved filter against current scope on tab activation
-    -- (handles farm swap, scope drift from future P1-3 edits, etc.) then
+    -- (handles farm swap, scope drift from future filter edits, etc.) then
     -- render the chip with the possibly-cleared state.
     self:revalidateActiveFilter()
     self:updateFilterChip()

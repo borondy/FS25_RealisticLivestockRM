@@ -724,7 +724,7 @@
 
 		<!-- RL Tabbed Menu -->
 		<text name="input_RL_MENU" text="Open RL Menu (new)"/>
-		<!-- Phase 1: Messages tab -->
+		<!-- Messages tab -->
 		<text name="rl_menu_messages_title" text="Messages"/>
 		<text name="rl_menu_messages_empty" text="No messages yet"/>
 		<text name="rl_menu_messages_no_farm" text="You need to own a farm to view messages"/>
@@ -739,7 +739,7 @@
 		<text name="rl_menu_messages_delete_button" text="Delete"/>
 		<text name="rl_menu_messages_delete_all_button" text="Delete all"/>
 		<text name="rl_menu_messages_confirm_delete_all" text="Delete all %s messages? This cannot be undone."/>
-		<!-- Phase 2a: Info tab -->
+		<!-- Info tab -->
 		<text name="rl_menu_info_title" text="Manage"/>
 		<text name="rl_menu_info_empty_no_husbandries" text="You need at least one husbandry to view animals"/>
 		<text name="rl_menu_info_empty_no_animals" text="No animals in this husbandry"/>
@@ -754,24 +754,24 @@
 		<text name="rl_menu_info_output_header" text="Output (monitored)"/>
 		<text name="rl_menu_info_children" text="Children"/>
 
-		<!-- Phase 3: Move tab -->
+		<!-- Move tab -->
 		<text name="rl_menu_move_title" text="Move"/>
 		<text name="rl_menu_move_summary" text="%d animals" tag="format"/>
 
-		<!-- Phase 4: Sell tab -->
+		<!-- Sell tab -->
 		<text name="rl_menu_sell_title" text="Sell"/>
 		<text name="rl_menu_sell_cart_header" text="Sale Summary"/>
 		<text name="rl_menu_sell_cart_selected" text="Selected"/>
 		<text name="rl_menu_sell_cart_empty" text="Select animals to sell"/>
 
-		<!-- Phase 5: Buy tab -->
+		<!-- Buy tab -->
 		<text name="rl_menu_buy_title" text="Buy"/>
 		<text name="rl_menu_buy_empty_no_types" text="The dealer has no animal types available"/>
 		<text name="rl_menu_buy_empty_no_animals" text="No animals available at the dealer for this type"/>
 		<text name="rl_menu_buy_cart_header" text="Purchase Summary"/>
 		<text name="rl_menu_buy_cart_selected" text="Selected"/>
 
-		<!-- Phase 6: AI tab -->
+		<!-- AI tab -->
 		<text name="rl_menu_ai_title" text="Artificial Insemination"/>
 		<text name="rl_menu_ai_quantity" text="Quantity"/>
 		<text name="rl_menu_ai_price" text="Price"/>
@@ -790,7 +790,7 @@
 		<text name="rl_menu_filters_default_name" text="New filter"/>
 		<text name="rl_menu_filters_detail_placeholder" text="To be implemented"/>
 
-		<!-- Phase 1 P1-3: Editor + Duplicate/Delete -->
+		<!-- Editor + Duplicate/Delete -->
 		<text name="rl_menu_filters_empty_editor" text="Select a filter to edit"/>
 		<text name="rl_menu_filters_editor_title_name" text="Name"/>
 		<text name="rl_menu_filters_editor_title_animal_type" text="Animal type"/>
@@ -803,13 +803,13 @@
 		<text name="rl_menu_filters_duplicate_suffix" text=" (copy)"/>
 		<text name="rl_menu_filters_duplicate_suffix_n" text=" (copy %d)"/>
 		<text name="rl_menu_filters_delete_confirm_text" text="Delete filter &quot;%s&quot;? This cannot be undone."/>
-		<!-- Phase 1 P1-3b: Usage scope axis -->
+		<!-- Usage scope axis -->
 		<text name="rl_menu_filters_editor_title_usage" text="Show on"/>
 		<text name="rl_menu_filters_usage_any" text="All screens"/>
 		<text name="rl_menu_filters_usage_owned" text="Owned-herd screens"/>
 		<text name="rl_menu_filters_usage_dealer" text="Dealer screens"/>
 
-		<!-- Phase 1 P1-4a: Conditions editor (number + bool). Bool True/False
+		<!-- Conditions editor (number + bool). Bool True/False
 		     strings reuse base-game `ui_yes` / `ui_no` (see
 		     basegame/l10n/l10n_en.xml `ui_yes`="Yes", `ui_no`="No") so the
 		     editor reads identically to other base-game True/False prompts;
@@ -826,9 +826,9 @@
 		<text name="rl_menu_filters_value_invalid_number" text="Invalid number"/>
 		<text name="rl_menu_filters_preserved_banner" text="%d condition(s) hidden - editable in a later phase. Saved on close."/>
 
-		<!-- Field labels per catalog key. Phase 1 P1-4a needs labels for
+		<!-- Field labels per catalog key. Phase 1 needs labels for
 		     number + bool fields; enum/string fields keep their key as a
-		     fallback until P1-4b. -->
+		     fallback until a future iteration. -->
 		<text name="rl_menu_filters_field_age" text="Age"/>
 		<text name="rl_menu_filters_field_isCastrated" text="Castrated"/>
 		<text name="rl_menu_filters_field_isPregnant" text="Pregnant"/>
@@ -845,7 +845,7 @@
 		<text name="rl_menu_filters_field_genetics_productivity" text="Genetics: productivity"/>
 		<text name="rl_menu_filters_field_genetics_overall" text="Genetics: overall"/>
 
-		<!-- P1-4b enum value labels (gender). subType labels resolve via
+		<!-- enum value labels (gender). subType labels resolve via
 		     pre-translated fillType.title; no RLRM-local keys needed there.
 		     l10n-miss path in RLFilterFieldDisplay capitalises the internal
 		     key so a missing translation never renders as a raw lowercase
@@ -853,7 +853,7 @@
 		<text name="rl_menu_filters_gender_male" text="Male"/>
 		<text name="rl_menu_filters_gender_female" text="Female"/>
 
-		<!-- P1-4b inline hint strings surfaced by the condition dialog
+		<!-- inline hint strings surfaced by the condition dialog
 		     hintText element (empty-string commit) and the conditions-list
 		     refuse-to-edit path (legacy subType row whose enum domain
 		     resolves empty under the current filter scope). -->
@@ -862,7 +862,7 @@
 		<text name="rl_menu_filters_invalidNumber" text="Enter a valid number"/>
 		<text name="rl_menu_filters_enumValueDrifted" text="Stored value no longer valid - pick a replacement"/>
 
-		<!-- P1-4b-2 multi-value editor (RLFilterValueSetDialog). Summary
+		<!-- multi-value editor (RLFilterValueSetDialog). Summary
 		     button text on the condition dialog renders "N selected" via
 		     valueSet_summary; the dialog itself shows valueSet_title. The
 		     "Edit values..." valueSet_button text is the summary button

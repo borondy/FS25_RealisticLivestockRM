@@ -32,9 +32,9 @@
 
             <!--
                 Row 1: Field. Label left, picker right of center.
-                Labels reuse existing P1-4a keys
+                Labels reuse existing keys
                 (rl_menu_filters_field_label / cmp_label / value_label).
-                RLRM-280 item 7: explicit size + textAlignment="right" so all
+                Explicit size + textAlignment="right" so all
                 three labels right-align toward the widget column at x=50px.
                 Without an explicit width, textAlignment has no bounding box
                 to align within and the change is a no-op.
@@ -53,7 +53,7 @@
 
             <!--
                 Row 2: Comparator. Editable cmps filtered to exclude
-                in / notin (multi-value editor deferred to P1-4b).
+                in / notin (multi-value editor deferred).
             -->
             <Text profile="fs25_dialogText" id="cmpLabel"
                   size="160px 28px"
@@ -76,7 +76,7 @@
                   textAlignment="right"
                   position="-200px -230px"
                   text="$l10n_rl_menu_filters_value_label"/>
-            <!-- RLRM-280 item 6: bg + iconBox use local profiles that pin
+            <!-- Bg + iconBox use local profiles that pin
                  the visible extent to the parent's 280px box so the field
                  lines up with the Field/Compare pickers. See
                  rl_filterDialog_textInputBg / rl_filterDialog_textInputIconBox
@@ -103,7 +103,7 @@
             </MultiTextOption>
 
             <!--
-                P1-4b: enum value picker (gender / subType single-pick). Shares
+                Enum value picker (gender / subType single-pick). Shares
                 the value-row slot with the number / bool widgets; Lua toggles
                 visibility per catalog type. Reuses the same rl_filterDialog_picker
                 profile as the field/cmp pickers (no new profile per spec).
@@ -115,13 +115,13 @@
             </MultiTextOption>
 
             <!--
-                P1-4b: string value input (name contains/notcontains). Shares
+                String value input (name contains/notcontains). Shares
                 the value-row slot. Reuses the rl_filterDialog_textInput profile
                 from the number input (length cap 30 already declared on the
                 profile). Empty-string commit is rejected at OK click and
                 surfaces hintText.
             -->
-            <!-- RLRM-280 item 6: same bg + iconBox local profile usage as
+            <!-- Same bg + iconBox local profile usage as
                  valueNumberInput above. -->
             <TextInput profile="rl_filterDialog_textInput" id="valueStringInput"
                        position="50px -230px"
@@ -140,7 +140,7 @@
             </TextInput>
 
             <!--
-                P1-4b-2: summary button shown in the value-row slot when cmp =
+                Summary button shown in the value-row slot when cmp =
                 `in`/`notin`. Opens RLFilterValueSetDialog for multi-select.
                 Lua sets text to "N selected" via refreshValueSetSummary; size
                 matches the 280x36 value-row slot so the swap visually replaces
@@ -155,10 +155,10 @@
             </Button>
 
             <!--
-                P1-4b: inline hint surface for reject paths (empty-string,
+                Inline hint surface for reject paths (empty-string,
                 subType-domain-empty refuse). Hidden by default; populated via
                 RLFilterConditionDialog:showHint(l10nKey). Also unblocks the
-                P1-4a deferred silent-numeric-reject hint (RLRM-271).
+                 deferred silent-numeric-reject hint.
             -->
             <Text profile="fs25_dialogText" id="hintText"
                   position="0px -290px"
@@ -193,7 +193,7 @@
             <maxInputTextWidth value="250px"/>
         </Profile>
         <!--
-            RLRM-280 item 6: the inherited bg renders wider than the parent
+            The inherited bg renders wider than the parent
             TextInput's 280px box, so the value field looks visibly wider
             than the Field/Compare pickers. Reset absoluteSizeOffset to 0
             so the bg fills exactly the parent box and matches the picker
@@ -203,7 +203,7 @@
             <absoluteSizeOffset value="0px 0px"/>
         </Profile>
         <!--
-            RLRM-280 item 6: the inherited iconBox renders the pencil
+            The inherited iconBox renders the pencil
             outside the parent TextInput's right edge, adding visual width
             past the picker outline. Override position so the iconBox sits
             flush inside the parent's right edge instead, keeping the
@@ -214,7 +214,7 @@
             <position value="0px 0px"/>
         </Profile>
         <!--
-            P1-4b-2: summary button at the value-row slot. Mirrors the RLRM
+            Summary button at the value-row slot. Mirrors the RLRM
             General-tab settings-action button pattern (our mod's
             rl_settingsButton profile + the fs25_settingsButtonBg child for
             the bordered bitmap background); diff from that pattern is only

@@ -475,7 +475,7 @@
     <Profile name="rlMenu_filterChip" extends="fs25_textDefault" with="anchorTopLeft"/>
 
     <!--
-        Right-pane container for the Saveable Filters editor (P1-3). Sits
+        Right-pane container for the Saveable Filters editor. Sits
         as sibling to filtersListContainer (fs25_subCategoryContainer, 410px
         fixed width) inside subCategoryPages[2].
 
@@ -502,7 +502,7 @@
     <!--
         rlMenu_filterEditorMiddle
 
-        Stretching middle region for the P1-4a filter editor's conditions
+        Stretching middle region for the filter editor's conditions
         list container. Sits between the fixed-height metadata layout at
         top and the bottom-anchored footer row. Uses anchorStretchingY so
         the height adapts to the editor pane's actual height (varies with
@@ -613,7 +613,7 @@
     </Profile>
 
     <!--
-        RLRM-280 polish (item 6): preserved-conditions / subType-refuse
+        Polish: preserved-conditions / subType-refuse
         banner. Anchored above the conditions list so warnings render
         above the list rows rather than inside them. x=50 aligns the
         banner's left edge with the conditions-row text inset.

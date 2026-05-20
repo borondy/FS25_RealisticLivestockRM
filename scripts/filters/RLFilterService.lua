@@ -402,7 +402,7 @@ function RLFilterService:applyIncomingCreate(filter)
             tostring(filter.id))
     end
 
-    -- Defense-in-depth on the usage axis (P1-3b code-review patch). The wire
+    -- Defense-in-depth on the usage axis. The wire
     -- decoder already coerces unknown bytes, so today this is redundant; the
     -- guard exists so a future non-wire caller (state-event replay path,
     -- savegame-import hook, debug command) inherits the same boundary policy
@@ -441,7 +441,7 @@ function RLFilterService:applyIncomingUpdate(filter)
             tostring(filter.id))
     end
 
-    -- Defense-in-depth on the usage axis (P1-3b code-review patch). Mirrors
+    -- Defense-in-depth on the usage axis. Mirrors
     -- applyIncomingCreate; see the comment there for rationale. Unlike the
     -- caller-side :update which REJECTS nil-usage, the wire-receive path is
     -- a defensive coerce because rejecting here would silently drop a server-

@@ -19,21 +19,20 @@ RLFilterConditionDialog = {}
 local RLFilterConditionDialog_mt = Class(RLFilterConditionDialog, MessageDialog)
 local modDirectory = g_currentModDirectory
 
--- Editor-side cmp gate. P1-4b-2 lifts `in`/`notin` to ENUM fields (multi-value
+-- Editor-side cmp gate. Lifts `in`/`notin` to ENUM fields (multi-value
 -- editor via RLFilterValueSetDialog). STRING fields stay scalar-only;
 -- `STRING_CMPS` already excludes `in`/`notin` upstream in the catalog so this
 -- gate is defensive belt-and-suspenders for the string branch.
 local UNSUPPORTED_CMPS_BY_TYPE = {
     number = { ["in"] = true, ["notin"] = true },  -- multi-value numeric editor never specced
     bool   = {},                                    -- BOOL_CMPS = {"=="} only; no exclusions needed
-    enum   = {},                                    -- P1-4b-2: in/notin now editable
+    enum   = {},                                    -- In/notin now editable
     string = { ["in"] = true, ["notin"] = true },  -- substring cmps only
 }
 
--- Field types this dialog can render. P1-4a covered number + bool; P1-4b
--- (2026-05-18) extends to enum (gender / subType single-pick) and string
--- (name contains / notcontains). Multi-value editor for in/notin deferred
--- to P1-4b-2 / RLRM-274.
+-- Field types this dialog can render: number, bool, enum (gender / subType
+-- single-pick), and string (name contains / notcontains). Multi-value
+-- editor for in/notin (ENUM only) opens RLFilterValueSetDialog.
 local SUPPORTED_TYPES_DIALOG = { number = true, bool = true, enum = true, string = true }
 
 -- =============================================================================
@@ -112,7 +111,7 @@ function RLFilterConditionDialog:onGuiSetupFinished()
     self.valueSetButton   = self:getDescendantById("valueSetButton")
     self.hintText         = self:getDescendantById("hintText")
     self.okButton         = self:getDescendantById("okButton")
-    -- RLRM-280 measurement: resolve label elements too so onOpen can log
+    -- Measurement: resolve label elements too so onOpen can log
     -- their rendered geometry for position/width math.
     self.fieldLabel       = self:getDescendantById("fieldLabel")
     self.cmpLabel         = self:getDescendantById("cmpLabel")
@@ -136,7 +135,7 @@ function RLFilterConditionDialog:onGuiSetupFinished()
 end
 
 -- =============================================================================
--- RLRM-280 measurement helper. Logs absolute on-screen geometry for a list of
+-- Measurement helper. Logs absolute on-screen geometry for a list of
 -- (name, element) pairs at DEBUG. Coordinates are scaled to a 1920x1080
 -- reference (matches the `element.size * 1920` pattern from session rule 4).
 -- Used once per dialog open to ground position math in actual rendered values.
@@ -159,7 +158,7 @@ function RLFilterConditionDialog:_logGeometry(label, items)
 end
 
 -- =============================================================================
--- Hint surface (P1-4b)
+-- Hint surface
 -- =============================================================================
 
 --- Show a translated hint in the dialog's hintText element. Called by reject
@@ -195,7 +194,7 @@ end
 -- =============================================================================
 
 --- Filter newField.cmps down to the editable subset per field type.
---- P1-4b-2: ENUM now exposes `in`/`notin`; STRING and NUMBER keep the
+--- ENUM now exposes `in`/`notin`; STRING and NUMBER keep the
 --- multi-value cmps gated. The catalog has full cmp lists per field type;
 --- this gate is the dialog's view of what it can actually edit.
 local function editableCmpsFor(field)
@@ -245,7 +244,7 @@ function RLFilterConditionDialog:onOpen()
     self.fieldOptions = {}
     for _, f in ipairs(catalogFields) do
         if f.type == "enum" then
-            -- P1-4b-2: subType under animalType=nil routes through the
+            -- SubType under animalType=nil routes through the
             -- cross-species union helper (the value-set dialog can now
             -- author cross-type lists). gender + scoped subType still go
             -- through the scoped getEnumDomain. The empty-domain exclusion
@@ -287,7 +286,7 @@ function RLFilterConditionDialog:onOpen()
         self.workingCmp     = RLFilterFieldCatalog.getDefaultCmpForField(firstField)
         self.workingValue   = RLFilterFieldCatalog.getDefaultValueForType(firstField.type)
         self.workingRawText = nil
-        -- P1-4b: enum default value is domain-driven (catalog returns nil for
+        -- Enum default value is domain-driven (catalog returns nil for
         -- enum; RLFilterFieldDisplay owns the domain). Seed domain[1] when the
         -- starting field is enum so refreshValueWidget has something to render.
         if firstField.type == "enum" then
@@ -299,7 +298,7 @@ function RLFilterConditionDialog:onOpen()
 
     -- Reset hint surface so a previous reject hint doesn't bleed across dialogs.
     self:clearHint()
-    -- P1-4b-2 triage fix #2: also reset the drift flag at open. The dialog
+    -- Triage fix #2: also reset the drift flag at open. The dialog
     -- is a singleton; without this reset, a cancelled drifted edit would
     -- leak its flag into the next valid edit and refuse OK on a clean row.
     self.valueDrifted = false
@@ -308,7 +307,7 @@ function RLFilterConditionDialog:onOpen()
     self:refreshCmpPicker()
     self:refreshValueWidget()
 
-    -- RLRM-280 one-shot geometry log so position math is grounded in actual
+    -- One-shot geometry log so position math is grounded in actual
     -- rendered values. Logged on every onOpen (cheap, DEBUG level, only when
     -- dialog is opened).
     self:_logGeometry("onOpen", {
@@ -329,7 +328,7 @@ end
 
 --- Resolve domain[1] for an enum field. Routes subType-under-unscoped-filter
 --- through the cross-species union helper so the scalar default seed matches
---- the field-picker exposure (P1-4b-2: triage fix #1). Returns nil when the
+--- the field-picker exposure (triage fix #1). Returns nil when the
 --- domain is empty.
 ---@param fieldKey string
 ---@return string|nil
@@ -352,8 +351,8 @@ end
 -- Picker refreshers (rebuild widget contents from working state)
 -- =============================================================================
 
---- Resolve a localized field label using the existing P1-4a key namespace.
---- Falls back to the raw key when no l10n entry exists (P1-4b extends).
+--- Resolve a localized field label using the existing key namespace.
+--- Falls back to the raw key when no l10n entry exists.
 local function resolveFieldLabel(key)
     if key == nil then return "" end
     local safe = key:gsub("%.", "_")
@@ -401,7 +400,7 @@ function RLFilterConditionDialog:_hideAllValueWidgets()
 end
 
 --- Resolve the active enum domain for the current working field, honoring
---- the P1-4b-2 subType cross-species union when animalType=nil. Used by the
+--- the subType cross-species union when animalType=nil. Used by the
 --- enum picker + list-mode drift check + summary widget.
 function RLFilterConditionDialog:_resolveActiveEnumDomain()
     if self.workingField == "subType" and self.animalType == nil then
@@ -411,7 +410,7 @@ function RLFilterConditionDialog:_resolveActiveEnumDomain()
 end
 
 --- Update the summary button text to reflect the current list length.
---- P1-4b-2 design decision #6: count-only ("N selected"), no label suffix
+--- Design decision #6: count-only ("N selected"), no label suffix
 --- (the label list lives one click away in the value-set dialog). Reads
 --- workingValue directly so callers can invoke this after any list mutation.
 function RLFilterConditionDialog:refreshValueSetSummary()
@@ -439,19 +438,19 @@ function RLFilterConditionDialog:refreshValueWidget()
 
     self:_hideAllValueWidgets()
 
-    -- P1-4b-2 triage fix #2: clear drift flag at the top of every refresh.
+    -- Triage fix #2: clear drift flag at the top of every refresh.
     -- The drift checks below re-set it only when the current value actually
     -- falls outside the live domain. Without this reset a stale flag from
     -- an earlier widget swap or session could leak into a clean refresh.
     self.valueDrifted = false
 
-    -- P1-4b-2: list-shape branch. When cmp is `in`/`notin` on an enum field,
+    -- List-shape branch. When cmp is `in`/`notin` on an enum field,
     -- show the summary button instead of the per-type scalar widget. Drift
     -- detection runs against the resolved domain (same data source as the
     -- scalar enum picker), and any value in workingValue not in the domain
     -- sets self.valueDrifted so onClickOk refuses commit until the user
     -- explicitly re-commits via the value-set dialog (which strips drifted
-    -- keys; mirrors P1-4b's scalar drift contract).
+    -- keys; mirrors the scalar drift contract).
     if field.type == "enum" and (self.workingCmp == "in" or self.workingCmp == "notin") then
         local domain = self:_resolveActiveEnumDomain() or {}
         self.valueEnumDomain = domain
@@ -515,9 +514,9 @@ function RLFilterConditionDialog:refreshValueWidget()
         Log:trace("RLFilterConditionDialog:refreshValueWidget: bool, value=%s",
             tostring(self.workingValue))
     elseif field.type == "enum" then
-        -- P1-4b: enum picker (gender / subType). Domain + display name resolve
+        -- Enum picker (gender / subType). Domain + display name resolve
         -- via RLFilterFieldDisplay; storage uses stable internal key only.
-        -- P1-4b-2 triage fix #1: route through _resolveActiveEnumDomain so
+        -- Triage fix #1: route through _resolveActiveEnumDomain so
         -- subType under animalType=nil uses the cross-species union (matches
         -- the field-picker exposure + list-mode branch).
         local domain = self:_resolveActiveEnumDomain()
@@ -615,7 +614,7 @@ function RLFilterConditionDialog:onFieldChanged(state, _widget)
     if result.patch.value ~= nil then self.workingValue = result.patch.value end
 
     -- Apply clearKeys (F2 lesson: nil-valued keys vanish in patch tables).
-    -- P1-4b adds "value" to the clear set when the catalog's enum-divergence
+    -- Adds "value" to the clear set when the catalog's enum-divergence
     -- path can't seed a default (enum default is domain-driven). After the
     -- clear the dialog patches in domain[1] via resolveDefaultEnumValue so
     -- refreshValueWidget has something to render.
@@ -627,7 +626,7 @@ function RLFilterConditionDialog:onFieldChanged(state, _widget)
         end
     end
 
-    -- P1-4b: when divergence cleared value AND the new type is enum, patch
+    -- When divergence cleared value AND the new type is enum, patch
     -- in domain[1] so the picker starts on a real value. For string, the
     -- catalog already returns "" via getDefaultValueForType. For number /
     -- bool, the catalog returns 0 / false directly.
@@ -666,7 +665,7 @@ function RLFilterConditionDialog:onCmpChanged(state, _widget)
         return
     end
 
-    -- P1-4b-2: route cmp transitions through the catalog coerce helper so
+    -- Route cmp transitions through the catalog coerce helper so
     -- scalar<->list shape changes wrap/unwrap the value consistently.
     -- Substring<->list / scalar<->substring cross-shape transitions are
     -- caught by the catalog helper's illegal-transition branch and clear
@@ -692,7 +691,7 @@ function RLFilterConditionDialog:onCmpChanged(state, _widget)
             end
         end
 
-        -- P1-4b-2 triage fix #3: drift-aware list->scalar collapse. The
+        -- Triage fix #3: drift-aware list->scalar collapse. The
         -- catalog is pure-data and cannot consult the live domain; it
         -- returns value[1] verbatim. We apply the spec's "skip drifted
         -- values during collapse" rule here at the dialog layer where
@@ -739,7 +738,7 @@ function RLFilterConditionDialog:onCmpChanged(state, _widget)
 end
 
 -- =============================================================================
--- P1-4b-2: value-set dialog handoff
+-- Value-set dialog handoff
 -- =============================================================================
 
 --- Open RLFilterValueSetDialog for the current field + value list. Passes
@@ -785,14 +784,14 @@ function RLFilterConditionDialog:onValueBoolChanged(state, _widget)
         tostring(self.workingValue))
 end
 
---- P1-4b post-triage: any keystroke in the value TextInput (number or
+--- Post-triage: any keystroke in the value TextInput (number or
 --- string variant) clears the reject hint so it tracks current input.
 --- Both XML elements wire `onTextChanged="onTextChanged"`.
 function RLFilterConditionDialog:onTextChanged(_element, _text)
     self:clearHint()
 end
 
---- P1-4b: enum picker advanced. Maps the picker state index to the stable
+--- Enum picker advanced. Maps the picker state index to the stable
 --- internal key from the cached domain. Never stores the translated label;
 --- domain[state] is always a stable key (e.g. "male", "<subtype-name>").
 function RLFilterConditionDialog:onValueEnumChanged(state, _widget)
@@ -818,7 +817,7 @@ end
 
 --- Validate working state, build coerced newCondition, deliver to caller, close.
 ---
---- Note: an earlier draft of RLRM-280 intercepted Enter-on-valueSetButton
+--- Note: an earlier draft intercepted Enter-on-valueSetButton
 --- here via a focused-element check, but that guard could also hijack a
 --- real mouse click on OK when focus had not yet moved off the button. The
 --- guard has been removed; Enter on the multi-value picker button relies
@@ -898,7 +897,7 @@ function RLFilterConditionDialog:onClickOk()
             return
         end
 
-        -- P1-4b-2: list-shape commit for in/notin. workingValue is a table
+        -- List-shape commit for in/notin. workingValue is a table
         -- of stable internal keys (committed via onValueSetCommitted, or
         -- coerceConditionOnCmpChange wrapped a scalar on cmp swap). Empty
         -- list reject mirrors the value-set dialog's own empty-set reject.
@@ -1013,7 +1012,7 @@ end
 ---   4a. TextInput case: `not focused.forcePressed`      skip when IME is already active so the
 ---                                                       existing IME-Enter (commit) path is not
 ---                                                       interrupted by a forcePressed toggle
----   4b. Button case: `focused:getIsActive() and         guarantee activation will fire a
+---   4b. Button case: `focused:getIsActive() and guarantee activation will fire a
 ---                    focused.onClickCallback ~= nil`    callback (no dead-key activation)
 ---
 --- On match: DEBUG log + `focused:onFocusActivate()` + return true.

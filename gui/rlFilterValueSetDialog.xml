@@ -2,7 +2,7 @@
 <!--
     rlFilterValueSetDialog.xml
 
-    P1-4b-2 multi-select dialog. Opened from RLFilterConditionDialog's value
+    Multi-select dialog. Opened from RLFilterConditionDialog's value
     row when cmp = `in`/`notin`. Mirrors the AnimalMoveDestinationDialog shape
     (modal with embedded SmoothList) and the Sell/Buy/Move-frame row-checkmark
     pattern (cell:getAttribute("checkbox") + name="check" bitmap).
@@ -68,7 +68,7 @@
                 Empty-set reject + drift hint surface. Hidden by default;
                 populated via RLFilterValueSetDialog:showHint(l10nKey).
                 Sits between the list bottom and the action bar.
-                RLRM-280 item 1: position tuned via in-game measurement so
+                Position tuned via in-game measurement so
                 the hint sits centered in the gap above the action bar,
                 without overlapping the list's bottom rows or clipping the
                 footer.

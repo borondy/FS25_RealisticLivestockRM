@@ -24,6 +24,23 @@ Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivest
 
 Changelog
 
+1.2.5.0-dev.3:
+
+Improved:
+- Hereford calves now use the breed-accurate red-and-white coat (adults shipped in 1.2.4.0; UV-layout tip from [MA] BavarianRedneck).
+
+RL Menu (preview - work in progress):
+- Animal Dealer now opens the new RL Menu (Buy tab) at the shop counter and on walk-up. Trailer loading still uses the old screen.
+- RL Menu tab and header icons now render at the proper size (previously about half base-game size).
+- Saveable Filters are now editable in-game from Settings -> Filters. All engine field types supported (numeric, boolean, gender, subType, name); multi-value "in" / "not in" via a Select Values dialog; cross-species matching when Animal type = ANY.
+- Saveable Filters gain a per-screen "Show on" axis (All / Owned-herd / Dealer) so the F-cycle stays uncrowded once you have several filters.
+- Multiplayer: filter create / rename / delete now refresh peer Info / Buy / Sell / Move tabs live, no menu reopen needed.
+- Saved-filters list cards now use the dealer-card visual style; more filters fit on screen.
+- Note: the in-game filter editor has only been lightly tested in multiplayer so far; please report any sync or permission issues you hit.
+
+Fixed:
+- Settings -> General is now admin-only end-to-end. Non-admin players could previously edit most rows; changes would revert or briefly affect the server.
+
 1.2.4.0:
 
 Added:

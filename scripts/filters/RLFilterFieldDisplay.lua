@@ -127,7 +127,7 @@ function RLFilterFieldDisplay.getEnumDomain(fieldKey, animalTypeIndex)
     return {}
 end
 
---- P1-4b-2: cross-species union of subTypes for unscoped filters
+--- Cross-species union of subTypes for unscoped filters
 --- (filter.animalType == nil). Returns the flat global subType-name array
 --- straight off `g_currentMission.animalSystem.subTypes`. Subtype names are
 --- globally unique (the AnimalSystem XML loader rejects duplicates), so the
@@ -297,7 +297,7 @@ function RLFilterFieldDisplay.formatConditionDisplay(condition, fieldEntry, anim
     local fieldLabel = resolveFieldLabel(condition.field)
     local cmpDisplay = tostring(condition.cmp or "?")
     local valueDisplay
-    -- P1-4b-2: list-shaped values (cmp = in/notin) render as "[Lab1, Lab2, ...]"
+    -- List-shaped values (cmp = in/notin) render as "[Lab1, Lab2, ...]"
     -- with each element passed through the enum label resolver. Only enum
     -- fields use list-shape today (in/notin gated to enum); number lists
     -- would render via tostring per element if/when a future cmp adds them.

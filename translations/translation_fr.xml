@@ -719,7 +719,7 @@
 		<!-- Menu à onglets RL -->
 <text name="input_RL_MENU" text="Ouvrir le menu RL (nouveau)"/>
 
-<!-- Phase 1 : Onglet Messages -->
+<!-- Onglet Messages -->
 <text name="rl_menu_messages_title" text="Messages"/>
 <text name="rl_menu_messages_empty" text="Aucun message"/>
 <text name="rl_menu_messages_no_farm" text="Vous devez posséder une ferme pour voir les messages"/>
@@ -736,7 +736,7 @@
 <text name="rl_menu_messages_delete_all_button" text="Tout supprimer"/>
 <text name="rl_menu_messages_confirm_delete_all" text="Supprimer les %s messages ? Cette action est irréversible."/>
 
-<!-- Phase 2a : Onglet Infos -->
+<!-- Onglet Infos -->
 <text name="rl_menu_info_title" text="Gestion"/>
 <text name="rl_menu_info_empty_no_husbandries" text="Vous devez avoir au moins un élevage pour voir les animaux"/>
 <text name="rl_menu_info_empty_no_animals" text="Aucun animal dans cet élevage"/>
@@ -751,24 +751,24 @@
 <text name="rl_menu_info_output_header" text="Sortie (surveillée)"/>
 <text name="rl_menu_info_children" text="Descendance"/>
 
-<!-- Phase 3 : Onglet Déplacement -->
+<!-- Onglet Déplacement -->
 <text name="rl_menu_move_title" text="Déplacer"/>
 <text name="rl_menu_move_summary" text="%d animaux"/>
 
-<!-- Phase 4 : Onglet Vente -->
+<!-- Onglet Vente -->
 <text name="rl_menu_sell_title" text="Vendre"/>
 <text name="rl_menu_sell_cart_header" text="Résumé de la vente"/>
 <text name="rl_menu_sell_cart_selected" text="Sélectionnés"/>
 <text name="rl_menu_sell_cart_empty" text="Sélectionnez des animaux à vendre"/>
 
-<!-- Phase 5 : Onglet Achat -->
+<!-- Onglet Achat -->
 <text name="rl_menu_buy_title" text="Acheter"/>
 <text name="rl_menu_buy_empty_no_types" text="Le marchand n’a aucun type d’animaux disponible"/>
 <text name="rl_menu_buy_empty_no_animals" text="Aucun animal disponible chez le marchand pour ce type"/>
 <text name="rl_menu_buy_cart_header" text="Résumé de l’achat"/>
 <text name="rl_menu_buy_cart_selected" text="Sélectionnés"/>
 
-<!-- Phase 6 : Onglet IA -->
+<!-- Onglet IA -->
 <text name="rl_menu_ai_title" text="Insémination artificielle"/>
 <text name="rl_menu_ai_quantity" text="Quantité"/>
 <text name="rl_menu_ai_price" text="Prix"/>
@@ -794,7 +794,7 @@
 <text name="rl_menu_filters_new_button" text="New filter"/>
 <text name="rl_menu_filters_default_name" text="New filter"/>
 <text name="rl_menu_filters_detail_placeholder" text="To be implemented"/>
-		<!-- Phase 1 P1-3: Editor + Duplicate/Delete (English fallback) -->
+		<!-- Editor + Duplicate/Delete (English fallback) -->
 		<text name="rl_menu_filters_empty_editor" text="Select a filter to edit"/>
 		<text name="rl_menu_filters_editor_title_name" text="Name"/>
 		<text name="rl_menu_filters_editor_title_animal_type" text="Animal type"/>
@@ -808,7 +808,7 @@
 		<text name="rl_menu_filters_duplicate_suffix" text=" (copy)"/>
 		<text name="rl_menu_filters_duplicate_suffix_n" text=" (copy %d)"/>
 		<text name="rl_menu_filters_delete_confirm_text" text="Delete filter &quot;%s&quot;? This cannot be undone."/>
-		<!-- Phase 1 P1-3b: Usage scope axis -->
+		<!-- Usage scope axis -->
 		<text name="rl_menu_filters_editor_title_usage" text="Show on"/>
 		<text name="rl_menu_filters_usage_any" text="All screens"/>
 		<text name="rl_menu_filters_usage_owned" text="Owned-herd screens"/>

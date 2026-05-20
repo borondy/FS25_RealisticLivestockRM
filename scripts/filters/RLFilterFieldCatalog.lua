@@ -49,9 +49,9 @@ local STRING_CMPS = { "contains", "notcontains" }
 -- "matches every animal at the default value" so the user can tighten from
 -- there: NUMBER -> `>=` (the naive cmps[1] is `<`, which would default to
 -- `age < 0` matching nothing); BOOL -> `==` (the only sensible bool cmp);
--- ENUM -> `==` (the only single-value cmp the P1-4b dialog exposes; `in`/
--- `notin` are gated out of editableCmps until P1-4b-2); STRING -> `contains`
--- (the only positive-match cmp the P1-4b dialog exposes).
+-- ENUM -> `==` (the only single-value cmp the dialog exposes for scalar
+-- enum; `in`/`notin` route through the value-set dialog); STRING -> `contains`
+-- (the only positive-match cmp the dialog exposes).
 local DEFAULT_CMP_BY_TYPE = {
     number = ">=",
     bool   = "==",
@@ -417,7 +417,7 @@ end
 
 --- Return the default cmp for the given field. Consults
 --- `DEFAULT_CMP_BY_TYPE` first; on miss falls back to `field.cmps[1]` so a
---- future field type (e.g. enum / string when P1-4b extends the editor)
+--- future field type still gets a deterministic default when added later
 --- still gets a deterministic default. Returns nil only when the field has
 --- neither a default-by-type entry nor any cmps configured (treated as a
 --- catalog defect; logged at TRACE).
@@ -454,7 +454,7 @@ RLFilterFieldCatalog._DEFAULT_CMP_BY_TYPE = DEFAULT_CMP_BY_TYPE
 ---   3. Number -> Number (or bool -> bool) preserves value + rawText.
 ---
 --- Caller decides what "editable" means for cmp validity: the editor strips
---- multi-value cmps (`in`, `notin`) until P1-4b lands a multi-value widget,
+--- multi-value cmps (`in`, `notin`) for field types without a multi-value widget,
 --- so the caller passes its filtered list via `editableCmps`. When nil, the
 --- helper falls back to newField.cmps (all catalog cmps).
 ---
@@ -518,7 +518,7 @@ function RLFilterFieldCatalog.coerceConditionOnFieldChange(oldCond, newFieldKey,
 end
 
 -- =============================================================================
--- Cmp-change coercion (P1-4b-2: scalar <-> list value shape)
+-- Cmp-change coercion (scalar <-> list value shape)
 -- =============================================================================
 
 --- Cmp groups by value-shape. Scalar cmps store value as a single primitive;

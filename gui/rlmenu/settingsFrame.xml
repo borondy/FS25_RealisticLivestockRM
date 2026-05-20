@@ -174,7 +174,7 @@
 
             </ScrollingLayout>
 
-            <!-- RLRM-280 item 10: sliderBox moved out to top level under
+            <!-- SliderBox moved out to top level under
                  <GUI>; see end-of-file. Visibility toggle in
                  RLMenuSettingsFrame.lua (updateSubCategoryPages) hides
                  it on the Filters tab. -->
@@ -207,7 +207,7 @@
                 </ThreePartBitmap>
             </GuiElement>
 
-            <!-- P1-3 editor pane: right-side sibling of filtersListContainer.
+            <!-- Editor pane: right-side sibling of filtersListContainer.
                  Uses RL-local profile rlMenu_filterEditorContainer (defined
                  in rlMenuProfiles.xml) which stretches both axes inside the
                  parent subCategoryPages[2] and trims width by 410px to leave
@@ -224,7 +224,7 @@
                       id="filterEditorEmpty"
                       text="$l10n_rl_menu_filters_empty_editor"/>
 
-                <!-- P1-4a robust layout (2026-05-17): cap the metadata
+                <!-- Robust layout (2026-05-17): cap the metadata
                      ScrollingLayout to 280px so it occupies just enough room
                      for the 4 rows. The remaining vertical space below is
                      used by the conditions list (stretches) + footer row
@@ -262,12 +262,12 @@
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_animal_type"/>
                     </Bitmap>
 
-                    <!-- Row 3: Usage scope (P1-3b) - which consumer frames the
+                    <!-- Row 3: Usage scope - which consumer frames the
                          filter appears on. State 1=ANY, 2=OWNED, 3=DEALER per
                          spec Boundaries "Editor row" bullet; wire byte order
                          (0/1/2) matches state-index minus 1 for cognitive
                          parity with the wire codec.
-                         RLRM-280 item 4: moved from row 4 to row 3 so the
+                         Moved from row 4 to row 3 so the
                          match-logic (Conditions) row sits at the bottom of
                          the metadata block. Source-order swap also reorders
                          keyboard/gamepad focus traversal - intentional. -->
@@ -277,7 +277,7 @@
                     </Bitmap>
 
                     <!-- Row 4: Conditions match-logic (stored AND/OR; displayed
-                         "Match ALL" / "Match ANY" per RLRM-280 item 5). -->
+                         "Match ALL" / "Match ANY" per item 5). -->
                     <Bitmap profile="fs25_multiTextOptionContainer">
                         <MultiTextOption profile="fs25_settingsMultiTextOption" id="filterOpSelector" onClick="onOpChanged"/>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_op"/>
@@ -285,7 +285,7 @@
 
                 </ScrollingLayout>
 
-                <!-- P1-4a layout fix (2026-05-17 in-game playtest): the docked
+                <!-- Layout fix (2026-05-17 in-game playtest): the docked
                      slider for filterEditorLayout (fs25_sliderDockedBg) was
                      present but useless - only 4 fixed metadata rows, never
                      scrolls. Its full-height dark right-edge bar was visible
@@ -294,12 +294,12 @@
                      Removed entirely. The ScrollingLayout still works without
                      a visible scroll thumb. -->
 
-                <!-- P1-4a: preserved-node banner. Shows "%d condition(s)
+                <!-- Preserved-node banner. Shows "%d condition(s)
                      hidden - editable in a later phase. Saved on close." when
                      the partition step finds nested groups or enum/string/
-                     in/notin conditions that the P1-4a editor cannot render.
+                     in/notin conditions that the editor cannot render.
                      Hidden when preserved count == 0.
-                     RLRM-280 item 6: profile rl_filterConditionsBanner pins
+                     Profile rl_filterConditionsBanner pins
                      this element just above the conditions list (was floating
                      mid-list at the old position="20px 290px" with default
                      anchorBottomLeft). Same element is also reused as a
@@ -308,7 +308,7 @@
                 <Text profile="rl_filterConditionsBanner" id="filterConditionsBanner"
                       visible="false"/>
 
-                <!-- P1-4a: conditions list container. SmoothList of condition
+                <!-- Conditions list container. SmoothList of condition
                      rows + paired Slider; mirrors the structure of the left-
                      pane `filtersList` (lines 192-212 above). Row template
                      carries a field picker, cmp picker, two value widgets
@@ -326,7 +326,7 @@
                                 id="filterConditionsList"
                                 startClipperElementName="filterConditionsStartClipper"
                                 endClipperElementName="filterConditionsEndClipper">
-                        <!-- v2 modal editor (2026-05-17): row template is
+                        <!-- V2 modal editor (2026-05-17): row template is
                              a single read-only Text widget showing the
                              formatted condition ("age >= 30"). Edits go
                              through RLFilterConditionDialog (Tier 3 action
@@ -358,7 +358,7 @@
                     </ThreePartBitmap>
                 </GuiElement>
 
-                <!-- P1-4a (2026-05-17): in-pane [+ condition] footer
+                <!-- (2026-05-17): in-pane [+ condition] footer
                      removed. The action lives on the action bar via
                      RLMenuSettingsFrame.addConditionButtonInfo
                      (MENU_ACCEPT) appended in updateButtonVisibility
@@ -373,7 +373,7 @@
 
     </GuiElement>
 
-    <!-- RLRM-280 item 10: docked vertical scrollbar for the General tab
+    <!-- Docked vertical scrollbar for the General tab
          settings list. TOP-LEVEL sibling of the menu container so its
          right edge lands at the screen right edge instead of inside the
          menu chrome. Matches the slider placement used in our other
