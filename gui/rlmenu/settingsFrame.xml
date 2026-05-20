@@ -193,11 +193,6 @@
                             id="filtersList"
                             startClipperElementName="filtersStartClipper"
                             endClipperElementName="filtersEndClipper">
-                    <!-- RLRM-280 items 2/3: rl_filterListItem replaces the
-                         icon-padded card variant with a flat colored card;
-                         rl_filterListItemName vertical-centers the title and
-                         reclaims the freed left-icon width. See
-                         rlMenuProfiles.xml end-of-file. -->
                     <ListItem profile="rl_filterListItem" name="defaultCell">
                         <Text profile="rl_filterListItemName" name="filterName"/>
                     </ListItem>

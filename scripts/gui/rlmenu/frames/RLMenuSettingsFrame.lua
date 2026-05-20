@@ -73,10 +73,8 @@ function RLMenuSettingsFrame.new()
     -- paging lifecycle; see RLMenu:setupMenuPages).
     self.didMeasureFiltersPane = false
 
-    -- RLRM-280 items 2/3: counter for the first 2 filter list cells populated.
-    -- Logs cell + title geometry + text constraints (textWrapWidth, etc) so
-    -- the rl_filterListItem profile can be tuned against real geometry
-    -- (session rule 4). Reset on every list reload.
+    -- Capped at 2 in populateCellForItemInSection: enough to compute inter-row
+    -- pitch + per-cell geometry from the measurement log. Reset in onFrameOpen.
     self.didMeasureFilterCellCount = 0
 
     -- P1-3 editor pane measure log flag. Once-per-process (NOT once-per-open):
@@ -425,6 +423,7 @@ function RLMenuSettingsFrame:onFrameOpen()
     self.subCategoryPaging:setState(RLMenuSettingsFrame.SUB_CATEGORY.GENERAL, true)
     self.didMeasureFiltersPane = false
     self.didMeasureGeneralPane = false
+    self.didMeasureFilterCellCount = 0
 
     -- Push current RLSettings state into General subtab widgets and run
     -- the per-row admin gate + dependency cascade. State may have changed
@@ -3027,13 +3026,9 @@ function RLMenuSettingsFrame:populateCellForItemInSection(list, _section, index,
             nameCell:setText(displayName)
         end
 
-        -- RLRM-280 items 2/3 runtime measurement: log the first two cells so
-        -- we can compute actual rendered Y spacing (parent profile sets
-        -- listItemSpacing=-20px, so cells overlap by 20px; the rl_filterListItem
-        -- flat-color override exposed this without a fade gradient). Also log
-        -- the title text constraints (textWrapWidth, maxInputTextWidth,
-        -- textLayoutMode) because the visible truncation point was 250-280px
-        -- despite the size element being 380px wide.
+        -- One-shot first-two-cell log: validates rl_filterListItem geometry
+        -- (cell + title pos / size + text constraints) against the rendered
+        -- row metrics. Two cells = inter-row pitch + per-cell geometry.
         local idx = self.didMeasureFilterCellCount or 0
         if idx < 2 then
             self.didMeasureFilterCellCount = idx + 1
