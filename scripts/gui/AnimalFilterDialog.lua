@@ -3,6 +3,8 @@ AnimalFilterDialog = {}
 local animalFilterDialog_mt = Class(AnimalFilterDialog, MessageDialog)
 local modDirectory = g_currentModDirectory
 
+local Log = RmLogging.getLogger("RLRM")
+
 function AnimalFilterDialog.register()
 
     local dialog = AnimalFilterDialog.new()
@@ -55,6 +57,22 @@ end
 function AnimalFilterDialog:onOpen()
 
     AnimalFilterDialog:superClass().onOpen(self)
+
+    local dialog = self.dialogElement
+    local content = self.contentContainer
+    local title = self.titleText
+    local list = self.filterList
+    local rail = self.filterRail
+    local buttons = self.buttonsPC
+    Log:debug(string.format(
+        "[AnimalFilterDialog] onOpen: dialog pos=%.1f,%.1f size=%.1fx%.1f | content pos=%.1f,%.1f size=%.1fx%.1f | title pos=%.1f,%.1f size=%.1fx%.1f | list pos=%.1f,%.1f size=%.1fx%.1f | rail pos=%.1f,%.1f size=%.1fx%.1f | buttons pos=%.1f,%.1f size=%.1fx%.1f",
+        dialog.absPosition[1] * 1920, dialog.absPosition[2] * 1080, dialog.absSize[1] * 1920, dialog.absSize[2] * 1080,
+        content.absPosition[1] * 1920, content.absPosition[2] * 1080, content.absSize[1] * 1920, content.absSize[2] * 1080,
+        title.absPosition[1] * 1920, title.absPosition[2] * 1080, title.absSize[1] * 1920, title.absSize[2] * 1080,
+        list.absPosition[1] * 1920, list.absPosition[2] * 1080, list.absSize[1] * 1920, list.absSize[2] * 1080,
+        rail.absPosition[1] * 1920, rail.absPosition[2] * 1080, rail.absSize[1] * 1920, rail.absSize[2] * 1080,
+        buttons.absPosition[1] * 1920, buttons.absPosition[2] * 1080, buttons.absSize[1] * 1920, buttons.absSize[2] * 1080
+    ))
 
     self.filters = {}
 
