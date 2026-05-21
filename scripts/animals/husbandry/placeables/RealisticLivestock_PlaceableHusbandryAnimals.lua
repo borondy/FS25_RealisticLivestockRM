@@ -369,6 +369,11 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
         local spec = self.spec_husbandryAnimals
         local animals = spec.clusterSystem:getAnimals()
 
+        -- Per-pen, per-day-change gate for the overcap WARNING in
+        -- AnimalReproduction.reproduce (RLRM-228). Reset here so successive
+        -- mothers in this tick emit at most one WARNING line per pen.
+        spec.rlOvercapWarnedThisTick = false
+
         local totalChildren, deadParents, childrenToSell, childrenToSellMoney, lowHealthDeaths, oldAgeDeaths, randomDeaths, randomDeathsMoney = 0, 0, 0, 0, 0, 0, 0, 0
 
         -- Per-pen day-change instrumentation: per-iteration timer feeds

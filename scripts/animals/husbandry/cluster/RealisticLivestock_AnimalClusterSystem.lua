@@ -624,6 +624,83 @@ end
 AnimalClusterSystem.updateClusters = Utils.overwrittenFunction(AnimalClusterSystem.updateClusters, RealisticLivestock_AnimalClusterSystem.updateClusters)
 
 
+--- Sum the pending net change against the cluster system's two queues.
+--- Mirrors the shape walk in updateClusters() (clustersToAdd) and the
+--- live-key iteration in the per-animal loop (clustersToRemove).
+---
+--- Used by AnimalReproduction.reproduce() so successive mothers in the same
+--- onDayChanged tick see each other's queued newborns when computing
+--- freeSlots. Without this, every mother reads the same pre-loop
+--- getNumOfAnimals() snapshot and the pen overflows past maxNumAnimals.
+--- The tail flush in PlaceableHusbandryAnimals:onDayChanged is where the
+--- queue commits; this helper is read-only.
+---
+--- @return number pendingAdds Sum of pending birth/move-in arrivals
+--- @return number pendingRemoves Sum of pending sale/death/move-out departures
+--- @return number delta pendingAdds - pendingRemoves (signed)
+function RealisticLivestock_AnimalClusterSystem:getPendingDelta()
+    local pendingAdds = 0
+    local nIndividual = 0
+    local nVanillaCluster = 0
+    local nMixedTable = 0
+
+    for animalsToAdd, pending in pairs(self.clustersToAdd) do
+        if pending == false then continue end
+
+        if animalsToAdd.isIndividual ~= nil then
+            pendingAdds = pendingAdds + 1
+            nIndividual = nIndividual + 1
+            continue
+        end
+
+        if animalsToAdd.numAnimals ~= nil then
+            if animalsToAdd.numAnimals >= 1 then
+                pendingAdds = pendingAdds + animalsToAdd.numAnimals
+                nVanillaCluster = nVanillaCluster + 1
+            end
+            continue
+        end
+
+        for _, animalToAdd in pairs(animalsToAdd) do
+            if animalToAdd.isIndividual then
+                pendingAdds = pendingAdds + 1
+                nMixedTable = nMixedTable + 1
+            elseif animalToAdd.numAnimals ~= nil and animalToAdd.numAnimals >= 1 then
+                pendingAdds = pendingAdds + animalToAdd.numAnimals
+                nMixedTable = nMixedTable + 1
+            end
+        end
+    end
+
+    local pendingRemoves = 0
+    for key, _ in pairs(self.clustersToRemove) do
+        -- Trust key:getNumAnimals() when available (it may legitimately return
+        -- 0 for an already-dead animal still queued for removal - in which case
+        -- numOf already counts it as 0 too, so the removal frees no slots).
+        -- Fall back to 1 only when the key exposes no num-count surface.
+        local n
+        if type(key) == "table" and type(key.getNumAnimals) == "function" then
+            n = key:getNumAnimals() or 0
+        elseif type(key) == "table" and type(key.numAnimals) == "number" then
+            n = key.numAnimals
+        else
+            n = 1
+        end
+        if n < 0 then n = 0 end
+        pendingRemoves = pendingRemoves + n
+    end
+
+    local delta = pendingAdds - pendingRemoves
+
+    Log:trace("getPendingDelta: pendingAdds=%d (individual=%d vanillaCluster=%d mixedTable=%d) pendingRemoves=%d -> delta=%d",
+        pendingAdds, nIndividual, nVanillaCluster, nMixedTable, pendingRemoves, delta)
+
+    return pendingAdds, pendingRemoves, delta
+end
+
+AnimalClusterSystem.getPendingDelta = RealisticLivestock_AnimalClusterSystem.getPendingDelta
+
+
 --- Rebuild self.idToIndex from self.animals. Pure index rebuild:
 --- the publish + broadcast + direct owner.updatedClusters call previously embedded
 --- here moved to the tail of updateClusters (gated on the local isDirty accumulator).
