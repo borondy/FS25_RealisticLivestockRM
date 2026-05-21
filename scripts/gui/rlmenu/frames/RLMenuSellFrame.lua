@@ -391,6 +391,29 @@ end
 -- Animal list
 -- =============================================================================
 
+--- Build the dialog source list for the Quick filter dialog.
+--- Mirrors reloadAnimalList's universe construction MINUS the Quick filter:
+--- query without Quick filter -> strip unsellable -> apply saved filter.
+--- Sellability stripping is load-bearing: otherwise the slider range would
+--- widen to include animals the player can never actually sell.
+--- Parity with reloadAnimalList is enforceable by eye (the two are stacked).
+---@return table base     full unfiltered husbandry universe
+---@return table sellable base after dropping cluster:getCanBeSold()==false
+---@return table narrowed sellable after saved-filter layer
+function RLMenuSellFrame:buildDialogSourceList()
+    if self.selectedHusbandry == nil then return {}, {}, {} end
+    local base = RLAnimalQuery.listAnimalsForHusbandry(self.selectedHusbandry, nil)
+    local sellable = {}
+    for _, item in ipairs(base) do
+        if item.cluster ~= nil and item.cluster:getCanBeSold() then
+            table.insert(sellable, item)
+        end
+    end
+    local narrowed = RLFilterCycleHelper.applyFilter(sellable, self.activeFilter)
+    return base, sellable, narrowed
+end
+
+
 --- Requery the current husbandry, filter unsellable animals, group into
 --- sections, refresh the SmoothList, restore selection by identity.
 function RLMenuSellFrame:reloadAnimalList()
@@ -765,6 +788,10 @@ end
 -- =============================================================================
 
 --- Open AnimalFilterDialog for the current husbandry's animals.
+--- Source list is built from the render universe MINUS the Quick filter so
+--- slider ranges always reflect the full pen (sellability-stripped, then
+--- saved-filter-narrowed), never the already-Quick-filtered subset. See
+--- RLRM-292.
 function RLMenuSellFrame:onClickFilter()
     if self.selectedHusbandry == nil then return end
     if AnimalFilterDialog == nil or AnimalFilterDialog.show == nil then
@@ -777,8 +804,11 @@ function RLMenuSellFrame:onClickFilter()
         animalTypeIndex = self.selectedHusbandry:getAnimalTypeIndex()
     end
 
-    Log:debug("RLMenuSellFrame:onClickFilter: opening dialog for %d items", #self.items)
-    AnimalFilterDialog.show(self.items, animalTypeIndex, self.onFilterApplied, self, false)
+    local base, sellable, narrowed = self:buildDialogSourceList()
+    Log:debug("RLMenuSellFrame:onClickFilter: opening dialog (savedFilterId=%s, base=%d, sellable=%d, narrowed=%d, animalTypeIndex=%s)",
+        tostring(self.activeFilterId), #base, #sellable, #narrowed, tostring(animalTypeIndex))
+
+    AnimalFilterDialog.show(narrowed, animalTypeIndex, self.onFilterApplied, self, false)
 end
 
 

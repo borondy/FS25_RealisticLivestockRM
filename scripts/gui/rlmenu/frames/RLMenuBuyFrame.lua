@@ -349,6 +349,21 @@ end
 -- Animal list
 -- =============================================================================
 
+--- Build the dialog source list for the Quick filter dialog.
+--- Mirrors reloadAnimalList's universe construction MINUS the Quick filter,
+--- so the dialog's slider min/max derivation sees the full dealer pool (or
+--- saved-filter-narrowed pool) instead of the already-Quick-filtered subset.
+--- Parity with reloadAnimalList is enforceable by eye (the two are stacked).
+---@return table base   full dealer-pool universe for active animal type
+---@return table narrowed base after saved-filter layer (== base when none)
+function RLMenuBuyFrame:buildDialogSourceList()
+    if self.activeAnimalTypeIndex == nil then return {}, {} end
+    local base = RLDealerQuery.listDealerAnimalsForType(self.activeAnimalTypeIndex)
+    local narrowed = RLFilterCycleHelper.applyFilter(base, self.activeFilter)
+    return base, narrowed
+end
+
+
 --- Requery dealer stock for the active type, group into sections, refresh
 --- the SmoothList, restore selection by identity.
 --- No canBeSold filter: dealer animals are freshly generated and always
@@ -364,7 +379,11 @@ function RLMenuBuyFrame:reloadAnimalList()
 
         if self.filters ~= nil and next(self.filters) ~= nil
             and AnimalFilterDialog ~= nil and AnimalFilterDialog.applyFilters ~= nil then
-            self.items = AnimalFilterDialog.applyFilters(self.items, self.filters, false)
+            -- Buy frame is buy-mode by definition. Match the dialog-open path
+            -- (onClickFilter passes isBuyMode=true) so the list-rebuild filter
+            -- evaluates Value with the 1.075 markup, not raw sell-price.
+            -- Closes the second half of RLRM-295.
+            self.items = AnimalFilterDialog.applyFilters(self.items, self.filters, true)
         end
 
         -- Saved-filter narrowing (AND with ad-hoc). Dealer animals may fail
@@ -992,6 +1011,11 @@ end
 -- =============================================================================
 
 --- Open AnimalFilterDialog for the current type's sale animals.
+--- Source list is built from the dealer pool MINUS the Quick filter so
+--- slider ranges always reflect the full dealer pool (or saved-filter-
+--- narrowed pool), never the already-Quick-filtered subset. See RLRM-292.
+--- isBuyMode=true so the Value slider applies the 1.075 buy-markup matching
+--- AnimalFilterDialog.applyFilters (corrects the prior false; RLRM-295).
 function RLMenuBuyFrame:onClickFilter()
     if self.activeAnimalTypeIndex == nil then return end
     if AnimalFilterDialog == nil or AnimalFilterDialog.show == nil then
@@ -999,8 +1023,11 @@ function RLMenuBuyFrame:onClickFilter()
         return
     end
 
-    Log:debug("RLMenuBuyFrame:onClickFilter: opening dialog for %d items", #self.items)
-    AnimalFilterDialog.show(self.items, self.activeAnimalTypeIndex, self.onFilterApplied, self, false)
+    local base, narrowed = self:buildDialogSourceList()
+    Log:debug("RLMenuBuyFrame:onClickFilter: opening dialog (savedFilterId=%s, base=%d, narrowed=%d, animalTypeIndex=%s)",
+        tostring(self.activeFilterId), #base, #narrowed, tostring(self.activeAnimalTypeIndex))
+
+    AnimalFilterDialog.show(narrowed, self.activeAnimalTypeIndex, self.onFilterApplied, self, true)
 end
 
 

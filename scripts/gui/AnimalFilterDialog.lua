@@ -228,7 +228,11 @@ function AnimalFilterDialog:onOpen()
             },
             ["min"] = 0,
             ["max"] = 1,
-            ["multiplier"] = self.isBuyMode and 1.075 or 1
+            -- No multiplier here: in buy mode, markup is baked into the
+            -- derived value (see onOpen below) and into applyFilters, so
+            -- filter.min / filter.max are in display (marked-up) space
+            -- throughout. Closes RLRM-292 triage Edge Case #1 (top-of-range
+            -- drop after dialog OK).
         },
 
         {
@@ -387,6 +391,14 @@ function AnimalFilterDialog:onOpen()
             elseif filter.isFunction then
 
                 value = animal[filter.target](animal)
+
+                -- Mirror the buy-mode markup applied in applyFilters (line
+                -- ~628) so filter.min / filter.max are derived in the SAME
+                -- space the predicate later compares against. Without this,
+                -- top-of-range items would compare value*1.075 > raw_max
+                -- and silently drop after dialog OK. RLRM-292 triage Edge
+                -- Case #1.
+                if filter.target == "getSellPrice" and self.isBuyMode then value = value * 1.075 end
 
             else
 
@@ -619,7 +631,10 @@ function AnimalFilterDialog.applyFilters(items, filters, isBuyMode)
 
                     value = animal[filter.target](animal)
 
-                    if filter.name == "Value" and isBuyMode then value = value * 1.075 end
+                    -- Key off the stable function-name target, NOT the
+                    -- localized filter.name (e.g. "Wert", "Valor"). Closes
+                    -- RLRM-292 triage finding [2].
+                    if filter.target == "getSellPrice" and isBuyMode then value = value * 1.075 end
 
                 else
 

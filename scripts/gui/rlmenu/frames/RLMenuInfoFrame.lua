@@ -396,6 +396,21 @@ end
 -- Animal list
 -- =============================================================================
 
+--- Build the dialog source list for the Quick filter dialog.
+--- Mirrors reloadAnimalList's universe construction MINUS the Quick filter,
+--- so the dialog's slider min/max derivation sees the full pen (or saved-
+--- filter-narrowed pen) instead of the already-Quick-filtered subset.
+--- Parity with reloadAnimalList is enforceable by eye (the two are stacked).
+---@return table base   full unfiltered husbandry universe
+---@return table narrowed base after saved-filter layer (== base when none)
+function RLMenuInfoFrame:buildDialogSourceList()
+    if self.selectedHusbandry == nil then return {}, {} end
+    local base = RLAnimalQuery.listAnimalsForHusbandry(self.selectedHusbandry, nil)
+    local narrowed = RLFilterCycleHelper.applyFilter(base, self.activeFilter)
+    return base, narrowed
+end
+
+
 --- Requery the current husbandry, group into sections, refresh the SmoothList,
 --- restore selection by (farmId, uniqueId, country) identity.
 function RLMenuInfoFrame:reloadAnimalList()
@@ -627,6 +642,9 @@ end
 -- =============================================================================
 
 ---Open AnimalFilterDialog for the current husbandry's animals.
+---Source list is built from the render universe MINUS the Quick filter so
+---slider ranges always reflect the full pen (or saved-filter-narrowed pen),
+---never the already-Quick-filtered subset. See RLRM-292.
 function RLMenuInfoFrame:onClickFilter()
     if self.selectedHusbandry == nil then return end
     if AnimalFilterDialog == nil or AnimalFilterDialog.show == nil then
@@ -639,10 +657,11 @@ function RLMenuInfoFrame:onClickFilter()
         animalTypeIndex = self.selectedHusbandry:getAnimalTypeIndex()
     end
 
-    Log:debug("RLMenuInfoFrame:onClickFilter: opening dialog for %d items, animalTypeIndex=%s",
-        #self.items, tostring(animalTypeIndex))
+    local base, narrowed = self:buildDialogSourceList()
+    Log:debug("RLMenuInfoFrame:onClickFilter: opening dialog (savedFilterId=%s, base=%d, narrowed=%d, animalTypeIndex=%s)",
+        tostring(self.activeFilterId), #base, #narrowed, tostring(animalTypeIndex))
 
-    AnimalFilterDialog.show(self.items, animalTypeIndex, self.onFilterApplied, self, false)
+    AnimalFilterDialog.show(narrowed, animalTypeIndex, self.onFilterApplied, self, false)
 end
 
 ---AnimalFilterDialog callback fired on OK. Stores filters and re-queries.
