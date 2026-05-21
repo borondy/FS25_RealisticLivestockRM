@@ -11,6 +11,13 @@ function AnimalFilterDialog.register()
     g_gui:loadGui(modDirectory .. "gui/AnimalFilterDialog.xml", "AnimalFilterDialog", dialog)
     AnimalFilterDialog.INSTANCE = dialog
 
+    -- Wire the persist callback ONCE on each master template. Every clone produced
+    -- by :clone() inherits the callback target+name, so per-clone wiring is unnecessary.
+    dialog.binaryOptionTemplate:setCallback("onClickCallback", "onFilterStateChanged")
+    dialog.sliderTemplate:setCallback("onClickCallback", "onFilterStateChanged")
+
+    Log:debug("[AnimalFilterDialog] register: onClickCallback -> onFilterStateChanged wired on binaryOptionTemplate + sliderTemplate")
+
 end
 
 
@@ -78,8 +85,10 @@ function AnimalFilterDialog:onOpen()
 
     for i = #self.elementsToDelete, 1, -1 do
         if self.elementsToDelete[i] ~= nil then self.elementsToDelete[i]:delete() end
-        table.remove(self.elementsToDelete, i)
     end
+    -- Full reset so reopen has zero residue. Authority for active widget state lives on
+    -- filter.ui*; self.elementsToDelete is cleanup-only and must not be read elsewhere.
+    self.elementsToDelete = {}
 
     local items = self.items
     local anyText = g_i18n:getText("rl_ui_any")
@@ -423,7 +432,49 @@ function AnimalFilterDialog:onOpen()
     end
 
 
+    -- Build slider text caches and seed per-filter view-state. After this pass each filter
+    -- carries authoritative widget state on the filter table itself, so the populate cell
+    -- (recyclable by SmoothList) is a pure view and clicks persist back via onFilterStateChanged.
+    local function buildCachedTexts(filter)
+        local texts = {}
+        local multiplier = filter.multiplier or 1
+        for i = filter.min * multiplier, filter.max * multiplier do
+            if filter.text.formatFunction ~= nil then
+                local args = table.clone(filter.text.args or {})
+                for argIndex, arg in pairs(args) do if arg == "value" then args[argIndex] = i end end
+                table.insert(texts, filter.text.formatFunction(filter.text.target, args[1], args[2], args[3], args[4]))
+            else
+                table.insert(texts, string.format(filter.text[i == 1 and "single" or "multiple"], i))
+            end
+        end
+        return texts
+    end
+
+    local binaryCount, sliderCount = 0, 0
+    local sliderSummary = {}
+    for _, filter in ipairs(filters) do
+        if filter.template == "binaryOptionTemplate" then
+            filter.uiState = filter.default or 1
+            binaryCount = binaryCount + 1
+        elseif filter.template == "sliderTemplate" then
+            filter.cachedTexts = buildCachedTexts(filter)
+            filter.uiLeftState = 1
+            filter.uiRightState = #filter.cachedTexts
+            sliderCount = sliderCount + 1
+            local label = type(filter.target) == "table" and filter.target[2] or tostring(filter.target)
+            table.insert(sliderSummary, string.format("%s=%d", label, #filter.cachedTexts))
+            if #filter.cachedTexts == 0 then
+                Log:warning(string.format("[AnimalFilterDialog] slider filter '%s' survived prune but built empty cachedTexts (min=%s max=%s mult=%s)",
+                    filter.name, tostring(filter.min), tostring(filter.max), tostring(filter.multiplier)))
+            end
+        end
+    end
+
+
     self.filters = filters
+
+    Log:debug(string.format("[AnimalFilterDialog] onOpen init: %d filters (%d binary, %d slider). Slider cachedTexts: %s",
+        #filters, binaryCount, sliderCount, table.concat(sliderSummary, " ")))
 
     self.filterList:reloadData()
 
@@ -437,24 +488,58 @@ function AnimalFilterDialog:onClose()
 end
 
 
+---Persist callback target wired in register(); fires on every TripleOption click and
+---every DoubleOptionSlider drag step. Writes the latest widget state back to the
+---originating filter so it survives cell recycle.
+---@param state number          # the segment / step index at the moment of the callback
+---@param element table         # the cloned widget that fired; carries filterRef set in populate
+---@param isLeftButtonEvent boolean # unused; carried for signature parity
+function AnimalFilterDialog:onFilterStateChanged(state, element, isLeftButtonEvent)
+
+    local filter = element and element.filterRef
+
+    if filter == nil then
+        Log:warning("[AnimalFilterDialog] onFilterStateChanged: element missing filterRef; discarding state change")
+        return
+    end
+
+    if filter.template == "binaryOptionTemplate" then
+        filter.uiState = state
+    elseif filter.template == "sliderTemplate" then
+        -- Both thumb positions are current on the element when this callback fires,
+        -- even though only one moved this step.
+        filter.uiLeftState = element.leftState
+        filter.uiRightState = element.rightState
+    end
+
+    Log:trace(string.format("[AnimalFilterDialog] persist %s -> L=%s M=%s R=%s",
+        filter.name, tostring(filter.uiLeftState), tostring(filter.uiState), tostring(filter.uiRightState)))
+
+end
+
+
 function AnimalFilterDialog:onClickOk()
 
+    -- Reads filter.ui*; never touches self.elementsToDelete (cleanup-only, can be stale after cell recycle).
     for i = #self.filters, 1, -1 do
 
         local filter = self.filters[i]
-        local element = self.elementsToDelete[i]
 
-        if filter.template == "sliderTemplate" and element ~= nil then
+        if filter.template == "sliderTemplate" then
 
             local multiplier = filter.multiplier or 1
-
-            filter.min, filter.max = (element:getLowestState() - 1) / multiplier , (element:getHighestState() - 1) / multiplier
+            -- min/max via math.min/math.max preserves legacy getLowestState/getHighestState
+            -- parity when thumbs are crossed (left thumb may be > right thumb).
+            local left = filter.uiLeftState or 1
+            local right = filter.uiRightState or 1
+            filter.min = (math.min(left, right) - 1) / multiplier
+            filter.max = (math.max(left, right) - 1) / multiplier
 
         end
 
         if filter.template == "binaryOptionTemplate" then
 
-            local state = element == nil and (filter.default or 1) or element:getState()
+            local state = filter.uiState or filter.default or 1
             local value = filter.text[state].value
 
             if value == "ignore" then
@@ -466,6 +551,15 @@ function AnimalFilterDialog:onClickOk()
 
         end
 
+    end
+
+    -- Scrub transient dialog-internal keys so consumer callbacks (Info/Move/Sell/Buy frames +
+    -- AnimalScreen) receive clean filter tables. Matches RLRM-294 spec F1+F2 (boundary discipline).
+    for _, filter in pairs(self.filters) do
+        filter.uiState = nil
+        filter.uiLeftState = nil
+        filter.uiRightState = nil
+        filter.cachedTexts = nil
     end
 
     self.items = AnimalFilterDialog.applyFilters(self.items, self.filters, self.isBuyMode)
@@ -508,7 +602,7 @@ end
 
 function AnimalFilterDialog:populateCellForItemInSection(list, section, index, cell)
 
-	local filter = self.filters[index]
+    local filter = self.filters[index]
 
     cell:findAllAttributes()
 
@@ -516,91 +610,61 @@ function AnimalFilterDialog:populateCellForItemInSection(list, section, index, c
 
     if filter.template ~= nil then
 
+        -- Cell pool can recycle: drop the prior clone (if any) and rebuild fresh from master.
+        -- All widget state is read from filter.ui* (authoritative); the clone is a pure view.
         if self.elementsToDelete[index] ~= nil then
+            self.elementsToDelete[index]:delete()
+            self.elementsToDelete[index] = nil
+        end
 
-            local oldTemplate = self.elementsToDelete[index]
-            local template = self[filter.template]:clone(cell, false, false)
+        local template = self[filter.template]:clone(cell, false, false)
+        -- filterRef routes user interactions back to the originating filter via onFilterStateChanged.
+        template.filterRef = filter
+        template:setPosition(self[filter.template .. "Offset"][1], self[filter.template .. "Offset"][2])
+        template:setVisible(true)
 
-            local texts = table.clone(oldTemplate.texts)
-            template:setTexts(texts)
+        if filter.template == "sliderTemplate" then
 
-            template:setPosition(self[filter.template .. "Offset"][1], self[filter.template .. "Offset"][2])
-            template:setVisible(true)
+            -- Load-bearing order: setTexts resets leftState=1, rightState=#texts as a
+            -- side-effect. Restore the user-set range AFTER, then repaint.
+            template:setTexts(filter.cachedTexts)
+            template.leftState = filter.uiLeftState
+            template.rightState = filter.uiRightState
+            template:updateContentElement()
+            template:updateSlider()
 
-            if filter.template == "sliderTemplate" then
+        elseif filter.template == "binaryOptionTemplate" then
 
-                template.leftState = oldTemplate.leftState
-                template.rightState = oldTemplate.rightState
-
-                template:updateContentElement()
-                template:updateSlider()
-
-            end
-
-            if filter.template == "binaryOptionTemplate" then
-
-                template:setState(oldTemplate:getState(), false, true)
-
-            end
-
-            oldTemplate:delete()
-            self.elementsToDelete[index] = template
-
-
-        else
-
-            local template = self[filter.template]:clone(cell, false, false)
             local templateTexts = {}
-
-            if filter.template == "sliderTemplate" then
-
-                local multiplier = filter.multiplier or 1
-
-                for i = filter.min * multiplier, filter.max * multiplier do
-
-                    if filter.text.formatFunction ~= nil then
-
-                        local args = table.clone(filter.text.args or {})
-
-                        for argIndex, arg in pairs(args) do if arg == "value" then args[argIndex] = i end end
-
-                        local text = filter.text.formatFunction(filter.text.target, args[1], args[2], args[3], args[4])
-                        table.insert(templateTexts, text)
-                
-                    else
-
-                        table.insert(templateTexts, string.format(filter.text[i == 1 and "single" or "multiple"], i))
-
-                    end
-
-                end
-
-            end
-
-            if filter.template == "binaryOptionTemplate" then
-
-                for _, data in pairs(filter.text) do table.insert(templateTexts, data.text) end
-
-            end
-
+            for _, data in pairs(filter.text) do table.insert(templateTexts, data.text) end
             template:setTexts(templateTexts)
-            template:setPosition(self[filter.template .. "Offset"][1], self[filter.template .. "Offset"][2])
-            template:setVisible(true)
-
-            if filter.template == "binaryOptionTemplate" then template:setState(filter.default or 1) end
-
-            self.elementsToDelete[index] = template
+            -- Direct state seed: TripleOption's setState with skipAnimation=true routes through
+            -- a slider animation-skip path that always snaps the highlight to an extreme based on
+            -- the sliding direction - it has no concept of "snap to MIDDLE". For non-extreme
+            -- targets (state=2 / ANY), this lands the visual highlight on the wrong button.
+            -- Seed state + slider geometry directly instead.
+            template.state = filter.uiState
+            template.oldState = filter.uiState
+            template:updateSelection()
+            template:updateContentElement()
+            template.sliderState = (filter.uiState - 1) * (TripleOptionElement.NUM_SLIDER_STATES / 2)
+            template.sliderMovingDirection = 0
+            if template.sliderElement ~= nil then
+                template.sliderElement:setPosition(template.sliderDelta * template.sliderState, nil)
+            end
 
         end
+
+        self.elementsToDelete[index] = template
 
     end
 
     for name, element in pairs(cell.attributes) do
-    
+
         if name ~= "name" and name ~= "separator" then element:delete() end
 
     end
-    
+
 end
 
 
