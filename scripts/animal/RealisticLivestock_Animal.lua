@@ -10,6 +10,20 @@ function Animal.resolveSubType(subTypeIndex, subTypeName)
     local animalSystem = g_currentMission.animalSystem
     local subType = animalSystem:getSubTypeByIndex(subTypeIndex)
 
+    -- RLRM-300: index resolved to a subtype whose name differs from the streamed name.
+    -- Means the wire index came from a peer with a different subtype registry
+    -- (typically MP DLC asymmetry: server registered Highland Cattle, client did not,
+    -- so all later indices shift). Reject the index and let the name-based fallback
+    -- below resolve to the client-local index. Without this guard, the bug is silent:
+    -- subTypes[N] returns a valid-but-wrong subType (e.g. PIG_LANDRACE) and the animal
+    -- renders as the wrong breed/species on the client.
+    if subType ~= nil and subTypeName ~= nil and subTypeName ~= ""
+            and subType.name ~= subTypeName then
+        Log:warning("resolveSubType: subTypeIndex %d resolved to '%s' but stream named '%s' - using name lookup (DLC asymmetry?)",
+            subTypeIndex, subType.name, subTypeName)
+        subType = nil
+    end
+
     -- Try name-based lookup if index failed and name provided
     if subType == nil and subTypeName ~= nil and subTypeName ~= "" then
         local mappedIndex = animalSystem:getSubTypeIndexByName(subTypeName)
@@ -1106,7 +1120,7 @@ end
 
 function Animal:getHealthFactor() return AnimalHealth.getHealthFactor(self) end
 
--- Fertility/reproduction delegates → AnimalReproduction module
+-- Fertility/reproduction delegates -> AnimalReproduction module
 function Animal:getReproductionFactor() return AnimalReproduction.getReproductionFactor(self) end
 
 function Animal:getSupportsReproduction() return AnimalReproduction.getSupportsReproduction(self) end
@@ -1215,7 +1229,7 @@ function Animal:onDayChanged(spec, isServer, day, month, year, currentDayInPerio
     local children, deadAnimals, childrenSold, childrenSoldAmount =
         AnimalReproduction.processDaily(self, spec, day, month, year, isSaleAnimal)
 
-    -- Death evaluation: low health → old age → random accidents (with AnimalDeathEvent broadcast)
+    -- Death evaluation: low health -> old age -> random accidents (with AnimalDeathEvent broadcast)
     local lowHealthDeath, oldDeath, randomDeath, randomDeathMoney =
         AnimalHealth.evaluateDaily(self, spec)
 
@@ -1223,7 +1237,7 @@ function Animal:onDayChanged(spec, isServer, day, month, year, currentDayInPerio
         randomDeathMoney
 end
 
--- Reproduction delegates → AnimalReproduction module
+-- Reproduction delegates -> AnimalReproduction module
 function Animal:createPregnancy(childNum, month, year, father) AnimalReproduction.createPregnancy(self, childNum, month,
         year, father) end
 
@@ -1236,7 +1250,7 @@ function Animal:getAnimalTypeIndex()
     return g_currentMission.animalSystem:getTypeIndexBySubTypeIndex(self.subTypeIndex)
 end
 
--- Health/death delegates → AnimalHealth module
+-- Health/death delegates -> AnimalHealth module
 function Animal:die(reason) AnimalHealth.die(self, reason) end
 
 function Animal:calculateLowHealthMonthlyAnimalDeaths() return AnimalHealth.calculateLowHealthMonthlyAnimalDeaths(self) end
@@ -1540,7 +1554,7 @@ function Animal:getHighestPriorityMark()
     return highest.key
 end
 
--- Insemination delegates → AnimalReproduction module
+-- Insemination delegates -> AnimalReproduction module
 function Animal:getCanBeInseminatedByAnimal(animal) return AnimalReproduction.getCanBeInseminatedByAnimal(self, animal) end
 
 function Animal:setInsemination(animal) AnimalReproduction.setInsemination(self, animal) end
