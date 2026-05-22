@@ -532,6 +532,21 @@ function AnimalFilterDialog:onClickOk()
             -- parity when thumbs are crossed (left thumb may be > right thumb).
             local left = filter.uiLeftState or 1
             local right = filter.uiRightState or 1
+
+            -- Prune no-op (full-range) sliders for symmetry with the binary
+            -- "ignore" prune below, so next(self.filters) ~= nil remains a
+            -- truthful "Quick filter active" predicate.
+            local cachedCount = filter.cachedTexts ~= nil and #filter.cachedTexts or 0
+            if cachedCount > 0
+                and math.min(left, right) == 1
+                and math.max(left, right) == cachedCount then
+                Log:trace(string.format(
+                    "[AnimalFilterDialog] prune full-range slider '%s' (left=%d right=%d range=1..%d)",
+                    tostring(filter.name), left, right, cachedCount))
+                table.remove(self.filters, i)
+                continue
+            end
+
             filter.min = (math.min(left, right) - 1) / multiplier
             filter.max = (math.max(left, right) - 1) / multiplier
 

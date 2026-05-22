@@ -211,6 +211,16 @@ function RLMenuMoveFrame:onFrameClose()
             tostring(self.activeFilterId))
     end
 
+    -- Quick filter is a per-frame session affordance;
+    -- clear it on tab close so a sibling tab open starts clean. Log only
+    -- when something was actually cleared to keep tab-switch traffic quiet.
+    if next(self.filters) ~= nil then
+        local count = 0
+        for _ in pairs(self.filters) do count = count + 1 end
+        Log:debug("RLMenuMoveFrame:onFrameClose: cleared %d Quick filter condition(s)", count)
+        self.filters = {}
+    end
+
     RLMenuMoveFrame:superClass().onFrameClose(self)
     self.isFrameOpen = false
 end
@@ -665,13 +675,14 @@ end
 
 
 --- AnimalFilterDialog callback. Stores filters, clears selections (matching
---- legacy onApplyFilters at AnimalScreen.lua:2830), and re-queries.
+--- legacy onApplyFilters flow), and re-queries.
 --- @param filters table
 --- @param _items table unused
 function RLMenuMoveFrame:onFilterApplied(filters, _items)
     Log:debug("RLMenuMoveFrame:onFilterApplied: clearing selections + applying filters")
     self.filters = filters or {}
     self.selectedAnimals = {}
+    self:updateFilterChip()
     self:reloadAnimalList()
 end
 
@@ -807,7 +818,7 @@ function RLMenuMoveFrame:populateCellForItemInSection(list, section, index, cell
     end
 
     -- Checkbox: show check mark + wire onClick callback for direct clicking.
-    -- Mirrors legacy AnimalScreen.lua:2421 onClickCallback pattern.
+    -- Mirrors the legacy onClickCallback pattern.
     local checkbox = cell:getAttribute("checkbox")
     local check = cell:getAttribute("check")
     if checkbox ~= nil then
@@ -1100,22 +1111,40 @@ function RLMenuMoveFrame:onCycleFilter()
     self:reloadAnimalList()
 end
 
+--- Render the filterChip Text element to reflect the combined Quick filter
+--- + saved filter state. Delegates branch resolution to the
+--- shared RLFilterChipHelper so all four RL Menu frames render consistently.
+--- No-op + WARNING if the XML element is missing.
 function RLMenuMoveFrame:updateFilterChip()
     local chip = self.filterChip
     if chip == nil then
         Log:warning("RLMenuMoveFrame:updateFilterChip: filterChip element missing from XML")
         return
     end
-    if self.activeFilter == nil then
-        chip:setVisible(false)
-        Log:trace("RLMenuMoveFrame:updateFilterChip: hidden (no filter)")
-        return
+
+    local s = RLFilterChipHelper.composeChipState(self.filters, self.activeFilter)
+    chip:setVisible(s.visible)
+    if s.visible then
+        if s.savedName ~= nil then
+            chip:setText(string.format(g_i18n:getText(s.textKey), s.savedName))
+        else
+            chip:setText(g_i18n:getText(s.textKey))
+        end
     end
-    chip:setVisible(true)
-    local name = self.activeFilter.name or g_i18n:getText("rl_menu_filter_chip_unnamed")
-    chip:setText(string.format(g_i18n:getText("rl_menu_filter_chip_active"), name))
-    Log:debug("RLMenuMoveFrame:updateFilterChip: Filter: %s (id=%s)",
-        name, tostring(self.activeFilterId))
+
+    local branch
+    if not s.visible then
+        branch = "hidden"
+    elseif s.textKey == "rl_menu_filter_chip_quick" then
+        branch = "quick-only"
+    elseif s.textKey == "rl_menu_filter_chip_active" then
+        branch = "saved-only"
+    else
+        branch = "quick+saved"
+    end
+    Log:trace("RLMenuMoveFrame:updateFilterChip: branch=%s saved=%s",
+        branch, tostring(s.savedName))
+
     if chip.absPosition ~= nil and chip.size ~= nil then
         Log:debug("RLMenuMoveFrame:updateFilterChip: absPos=(%.0f,%.0f)px size=(%.0f,%.0f)px",
             chip.absPosition[1] * 1920, chip.absPosition[2] * 1080,

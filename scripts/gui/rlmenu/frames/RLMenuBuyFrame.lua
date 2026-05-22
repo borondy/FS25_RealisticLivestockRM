@@ -123,7 +123,7 @@ end
 --- so it can be cloned at runtime. Also permanently hides the pen-info row
 --- (inherited from sellFrame.xml) because the Buy tab views the dealer, not
 --- a pen - "Pen Information: Name / Count / Icon" is semantically meaningless
---- here and base-game has no dealer-icon asset to substitute. Hiding once in
+--- here and no dealer-icon asset is provided to substitute. Hiding once in
 --- initialize is cheaper than toggling in every frame-open / reload path.
 --- Called by RLMenu:setupMenuPages.
 function RLMenuBuyFrame:initialize()
@@ -184,6 +184,17 @@ end
 --- Isolated selection - does NOT export to g_rlMenu.sharedSelection.
 function RLMenuBuyFrame:onFrameClose()
     Log:debug("RLMenuBuyFrame:onFrameClose")
+
+    -- Quick filter is a per-frame session affordance;
+    -- clear it on tab close so a sibling tab open starts clean. Log only
+    -- when something was actually cleared to keep tab-switch traffic quiet.
+    if next(self.filters) ~= nil then
+        local count = 0
+        for _ in pairs(self.filters) do count = count + 1 end
+        Log:debug("RLMenuBuyFrame:onFrameClose: cleared %d Quick filter condition(s)", count)
+        self.filters = {}
+    end
+
     g_messageCenter:unsubscribe(MessageType.MONEY_CHANGED, self)
     RLMenuBuyFrame:superClass().onFrameClose(self)
     self.isFrameOpen = false
@@ -520,8 +531,8 @@ end
 --- Rebuild the footer button info. Back + Filter always; Buy/BuySelected/Select/SelectAll
 --- conditional on state. Buy requires a focused animal; Buy Selected requires at
 --- least one checked animal; both require `tradeAnimals` farm permission
---- (client-side gate - server has matching defense-in-depth at
---- AnimalBuyEvent.lua:74).
+--- (client-side gate - server has matching defense-in-depth in the
+--- corresponding event handler).
 function RLMenuBuyFrame:updateButtonVisibility()
     self.menuButtonInfo = { self.backButtonInfo }
 
@@ -659,7 +670,7 @@ end
 
 --- Open the destination picker for the confirmed purchase.
 --- EPPs are filtered: AnimalBuyEvent:run dispatches via
---- `self.object:addAnimals(self.animals)` (AnimalBuyEvent.lua:101) and RLRM
+--- `self.object:addAnimals(self.animals)`, and RLRM
 --- has no `addAnimals(animals)` override for ExtendedProductionPoint - only
 --- for PlaceableHusbandryAnimals and LivestockTrailer. Dispatching Buy to an
 --- EPP would crash the server. Future enhancement may add EPP support.
@@ -897,7 +908,7 @@ function RLMenuBuyFrame:computeCartTotals()
                     local identityKey = RLAnimalUtil.toKey(cluster.farmId, cluster.uniqueId,
                         cluster.birthday and cluster.birthday.country or "")
                     if self.selectedAnimals[identityKey] then
-                        -- 1.075 dealer markup: scripts/animals/shop/AnimalItemNew.lua:158-160
+                        -- 1.075 dealer markup matches the in-game buy-screen pricing
                         totalPrice = totalPrice + (cluster:getSellPrice() or 0) * 1.075
                         totalFee = totalFee + (cluster:getTranportationFee(1) or 0)
                         count = count + 1
@@ -1038,6 +1049,7 @@ function RLMenuBuyFrame:onFilterApplied(filters, _items)
     Log:debug("RLMenuBuyFrame:onFilterApplied: clearing selections + applying filters")
     self.filters = filters or {}
     self.selectedAnimals = {}
+    self:updateFilterChip()
     self:reloadAnimalList()
 end
 
@@ -1134,7 +1146,7 @@ function RLMenuBuyFrame:populateCellForItemInSection(list, section, index, cell)
     end
 
     -- Populate inherited `price` cell with the dealer-marked-up buy price.
-    -- 1.075 dealer markup: scripts/animals/shop/AnimalItemNew.lua:158-160.
+    -- 1.075 dealer markup matches the in-game buy-screen pricing.
     local priceCell = cell:getAttribute("price")
     if priceCell ~= nil and item.cluster ~= nil then
         local buyPrice = (item.cluster:getSellPrice() or 0) * 1.075
@@ -1237,22 +1249,40 @@ function RLMenuBuyFrame:onCycleFilter()
     self:reloadAnimalList()
 end
 
+--- Render the filterChip Text element to reflect the combined Quick filter
+--- + saved filter state. Delegates branch resolution to the
+--- shared RLFilterChipHelper so all four RL Menu frames render consistently.
+--- No-op + WARNING if the XML element is missing.
 function RLMenuBuyFrame:updateFilterChip()
     local chip = self.filterChip
     if chip == nil then
         Log:warning("RLMenuBuyFrame:updateFilterChip: filterChip element missing from XML")
         return
     end
-    if self.activeFilter == nil then
-        chip:setVisible(false)
-        Log:trace("RLMenuBuyFrame:updateFilterChip: hidden (no filter)")
-        return
+
+    local s = RLFilterChipHelper.composeChipState(self.filters, self.activeFilter)
+    chip:setVisible(s.visible)
+    if s.visible then
+        if s.savedName ~= nil then
+            chip:setText(string.format(g_i18n:getText(s.textKey), s.savedName))
+        else
+            chip:setText(g_i18n:getText(s.textKey))
+        end
     end
-    chip:setVisible(true)
-    local name = self.activeFilter.name or g_i18n:getText("rl_menu_filter_chip_unnamed")
-    chip:setText(string.format(g_i18n:getText("rl_menu_filter_chip_active"), name))
-    Log:debug("RLMenuBuyFrame:updateFilterChip: Filter: %s (id=%s)",
-        name, tostring(self.activeFilterId))
+
+    local branch
+    if not s.visible then
+        branch = "hidden"
+    elseif s.textKey == "rl_menu_filter_chip_quick" then
+        branch = "quick-only"
+    elseif s.textKey == "rl_menu_filter_chip_active" then
+        branch = "saved-only"
+    else
+        branch = "quick+saved"
+    end
+    Log:trace("RLMenuBuyFrame:updateFilterChip: branch=%s saved=%s",
+        branch, tostring(s.savedName))
+
     if chip.absPosition ~= nil and chip.size ~= nil then
         Log:debug("RLMenuBuyFrame:updateFilterChip: absPos=(%.0f,%.0f)px size=(%.0f,%.0f)px",
             chip.absPosition[1] * 1920, chip.absPosition[2] * 1080,

@@ -878,6 +878,8 @@
 		<!-- Filter cycle + chip MVP -->
 		<text name="rl_menu_filter_chip_none" text="No filter"/>
 		<text name="rl_menu_filter_chip_active" text="Filter: %s"/>
+		<text name="rl_menu_filter_chip_quick" text="Filter: QF"/>
+		<text name="rl_menu_filter_chip_quick_plus_saved" text="Filter: QF + %s"/>
 		<text name="rl_menu_cycle_filter_button" text="Cycle filter"/>
 		<text name="rl_menu_filter_chip_unnamed" text="(unnamed)"/>
 
