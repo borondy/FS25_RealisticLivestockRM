@@ -72,7 +72,7 @@ For the curious, here's the real science behind the simulation:
 
 ## What breed will my cross-bred offspring be?
 
-**Short answer:** Each offspring independently has a 50/50 chance of being either parent's breed. There's no visual blending — the calf, piglet, or lamb will look exactly like one parent's breed or the other.
+**Short answer:** Each offspring independently has a 50/50 chance of being either parent's breed. There's no visual blending - the calf, piglet, or lamb will look exactly like one parent's breed or the other.
 
 ### How it works
 
@@ -91,24 +91,24 @@ Each offspring in a litter or set of twins rolls independently, so siblings from
 
 ### Artificial insemination is different
 
-When using artificial insemination (AI), offspring **always** inherit the mother's breed. The AI system doesn't carry breed-specific sire information, so there's no coin flip — it defaults to the mother's breed every time.
+When using artificial insemination (AI), offspring **always** inherit the mother's breed. The AI system doesn't carry breed-specific sire information, so there's no coin flip - it defaults to the mother's breed every time.
 
 If you want all offspring to match a specific breed, AI gives you that control.
 
 ### Breed is not the same as genetics
 
-This is the most common point of confusion. Breed determines **appearance** — what the animal looks like. Genetics determine **traits** — productivity, health, fertility, quality, and metabolism.
+This is the most common point of confusion. Breed determines **appearance** - what the animal looks like. Genetics determine **traits** - productivity, health, fertility, quality, and metabolism.
 
 When cross-breeding:
 
 - **Breed:** One parent or the other (coin flip)
 - **Genetic traits:** Always a blend of both parents
 
-So an Angus calf born from an Angus bull × Holstein cow pairing will *look* Angus, but its milk productivity, health genetics, and other traits are still influenced by the Holstein mother. The breed coin flip doesn't affect genetic inheritance at all.
+So an Angus calf born from an Angus bull x Holstein cow pairing will *look* Angus, but its milk productivity, health genetics, and other traits are still influenced by the Holstein mother. The breed coin flip doesn't affect genetic inheritance at all.
 
 ### What about breed-locked animals?
 
-Water Buffalo and Goats can only breed within their own breed (see [Breed Restrictions](guide-breeding.md#breed-restrictions)), so the question of offspring breed doesn't arise — both parents are always the same breed.
+Water Buffalo and Goats can only breed within their own breed (see [Breed Restrictions](guide-breeding.md#breed-restrictions)), so the question of offspring breed doesn't arise - both parents are always the same breed.
 
 ### Quick reference
 
@@ -125,16 +125,16 @@ See the [Breeding Guide](guide-breeding.md#offspring-breed) for examples and pra
 
 ## Can you add more breeds or animal types?
 
-**Short answer:** Yes — the mod supports **[Animal Packs](guide-animal-packs.md)**, third-party mods that can add new breeds or adjust animal balance. Modders can create packs that range from simple balance tweaks to full breed additions with custom visuals.
+**Short answer:** Yes - the mod supports **[Animal Packs](guide-animal-packs.md)**, third-party mods that can add new breeds or adjust animal balance. Modders can create packs that range from simple balance tweaks to full breed additions with custom visuals.
 
 ### Animal Packs
 
-Animal packs are the recommended way to add breeds or customise animal properties. A pack is a standard FS25 mod that RLRM discovers and loads automatically — just enable it alongside the main mod. No manual XML editing required.
+Animal packs are the recommended way to add breeds or customise animal properties. A pack is a standard FS25 mod that RLRM discovers and loads automatically - just enable it alongside the main mod. No manual XML editing required.
 
 Packs can:
 
 - **Add new breeds** with custom 3D models, textures, and store images
-- **Adjust balance** on existing breeds — prices, food consumption, production rates, reproduction timing
+- **Adjust balance** on existing breeds - prices, food consumption, production rates, reproduction timing
 
 See [Animal Packs](guide-animal-packs.md) for how to install and use them, or [Creating Animal Packs](guide-creating-packs.md) if you're a modder interested in making your own.
 
@@ -151,7 +151,7 @@ Ritter can do part 2 but not part 1. The animal pack system makes it possible fo
 
 ### Map-based animals
 
-When a map includes its own animal types or breeds, the mod can add built-in support with full breeding and reproduction. **[Hof Bergmann](map-hof-bergmann.md)** adds exotic animal *species* (ducks, geese, cats, rabbits, alpacas, quail). **[Witcombe](map-witcombe.md)** instead adds new *breeds* within the standard cow, pig, sheep, and rabbit types (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) — and corrects Hereford on the map with a heritage profile.
+When a map includes its own animal types or breeds, the mod can add built-in support with full breeding and reproduction. **[Hof Bergmann](map-hof-bergmann.md)** adds exotic animal *species* (ducks, geese, cats, rabbits, alpacas, quail). **[Witcombe](map-witcombe.md)** instead adds new *breeds* within the standard cow, pig, sheep, and rabbit types (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) - and corrects Hereford on the map with a heritage profile.
 
 The mod uses **version-aware map support**. It detects which version of a supported map you have installed and loads the matching configuration automatically. This means:
 
@@ -162,7 +162,7 @@ If you're playing a map with custom animals that aren't supported yet, [open an 
 
 ### Legacy: Custom Animals setting
 
-Before the pack system existed, the only way to add breeds was by manually merging XML files and loading them through the [Custom Animals](reference-settings.md#custom-animals) setting. This approach still works for singleplayer but has limitations — it requires manual XML editing, doesn't work in multiplayer, and replaces all animal definitions rather than layering on top.
+Before the pack system existed, the only way to add breeds was by manually merging XML files and loading them through the [Custom Animals](reference-settings.md#custom-animals) setting. This approach still works for singleplayer but has limitations - it requires manual XML editing, doesn't work in multiplayer, and replaces all animal definitions rather than layering on top.
 
 If you previously used this method, consider migrating to an animal pack instead.
 
@@ -178,7 +178,7 @@ Some breed packs floating around online are stolen copies of other mods with min
 
 ### The technical reason
 
-In FS25, every animal belongs to an **animal type** — COW, PIG, SHEEP, CHICKEN, and so on. Breeding only works between animals of the same type. RLRM's cattle bulls (Holstein Bull, Angus Bull, etc.) are all subtypes of the **COW** type, which is why they can breed with cows.
+In FS25, every animal belongs to an **animal type** - COW, PIG, SHEEP, CHICKEN, and so on. Breeding only works between animals of the same type. RLRM's cattle bulls (Holstein Bull, Angus Bull, etc.) are all subtypes of the **COW** type, which is why they can breed with cows.
 
 Hof Bergmann adds a separate **BULL** animal type for its decorative pasture bulls. As far as the game engine is concerned, a BULL-type animal and a COW-type animal are as different as a cow and a chicken. They have separate husbandries, separate slot systems, and no mechanism to interact.
 
@@ -208,14 +208,22 @@ There are two theoretical approaches, neither of which is practical:
 
 ### "Can't you just use the pasture bull models?"
 
-This is a natural question. The base game doesn't include separate bull 3D models — RLRM's breeding bulls (Holstein Bull, Angus Bull, etc.) reuse the female cow models, so visually they look the same as cows. Meanwhile, HB's pasture bulls have their own distinct bull visuals, which is exactly what you'd want on your breeding bulls.
+This is a natural question. The base game doesn't include separate bull 3D models - RLRM's breeding bulls (Holstein Bull, Angus Bull, etc.) reuse the female cow models, so visually they look the same as cows. Meanwhile, HB's pasture bulls have their own distinct bull visuals, which is exactly what you'd want on your breeding bulls.
 
-Unfortunately, each animal type loads its own set of 3D models from the map's configuration — the COW type has one model pool, the BULL type has a completely separate one. To use HB's bull models on COW-type animals, you'd have to rebuild the map's entire animal model loading infrastructure from a script mod and apply it on top. This is extremely brittle: any map update can shift model indices, causing wrong or missing visuals. It's not a reliable approach for a mod that needs to work across map versions.
+Unfortunately, each animal type loads its own set of 3D models from the map's configuration - the COW type has one model pool, the BULL type has a completely separate one. To use HB's bull models on COW-type animals, you'd have to rebuild the map's entire animal model loading infrastructure from a script mod and apply it on top. This is extremely brittle: any map update can shift model indices, causing wrong or missing visuals. It's not a reliable approach for a mod that needs to work across map versions.
 
 ### What you still get
 
-The pasture bull still gets the full RLRM individual tracking treatment — it has a unique name, genetics, and identity. It just can't participate in the cattle breeding cycle.
+The pasture bull still gets the full RLRM individual tracking treatment - it has a unique name, genetics, and identity. It just can't participate in the cattle breeding cycle.
 
-If you want bulls that breed with your cows, use the cattle bulls available in the cow husbandry (Holstein Bull, Angus Bull, etc.) — those are COW-type animals and work normally with the breeding system.
+If you want bulls that breed with your cows, use the cattle bulls available in the cow husbandry (Holstein Bull, Angus Bull, etc.) - those are COW-type animals and work normally with the breeding system.
 
 For the full picture of what Hof Bergmann support includes, see [Hof Bergmann Map Support](map-hof-bergmann.md).
+
+## Why doesn't the Hof Bergmann bull stable produce sperm under RLRM?
+
+Hof Bergmann models bull sperm (BULLSPERM) as a milk output on the dedicated BULL animal type. In vanilla FS25 this works because the husbandry building generates milk from cluster-level production, regardless of subtype gender. RLRM replaces that pipeline with per-animal output that only produces milk for lactating female cows that have given birth within the last 10 months. The BULL animal type is a separate species from COW (see the previous question), so its animals never qualify and the bull stable's BULLSPERM trigger stays empty.
+
+There is no mod-side fix that wouldn't have side effects on every other animal type, so this is a documented incompatibility rather than a patched one. With RLRM active the HB pasture bulls and their stable are essentially decorative: the animals still get individual tracking, genetics, and visuals, but the bull stable doesn't yield sperm for artificial insemination workflows that depend on it.
+
+See [Hof Bergmann Map Support](map-hof-bergmann.md#pasture-bulls-are-not-cattle) for the full set of HB-under-RLRM caveats.
