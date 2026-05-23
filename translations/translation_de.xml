@@ -778,6 +778,9 @@
 		<text name="rl_menu_filters_usage_any" text="All screens"/>
 		<text name="rl_menu_filters_usage_owned" text="Owned-herd screens"/>
 		<text name="rl_menu_filters_usage_dealer" text="Dealer screens"/>
+		<text name="rl_menu_filters_valueOutOfRange_both" text="Value must be between %d and %d"/>
+		<text name="rl_menu_filters_valueOutOfRange_min" text="Value must be at least %d"/>
+		<text name="rl_menu_filters_valueOutOfRange_max" text="Value must be at most %d"/>
 
 		<!-- Filter cycle + chip MVP -->
 		<text name="rl_menu_filter_chip_none" text="No filter"/>

@@ -18,6 +18,15 @@
 --     getter       = function(animal) -> value | nil,
 --     monitorGated = true | false,   -- true means getter requires monitor.active
 --     scale        = "0-99" | nil,   -- presentation scale hint for UI
+--     min          = number | nil,   -- inclusive lower bound enforced by the
+--                                    -- editor on OK. nil = unbounded on that
+--                                    -- side. Number fields only; ignored
+--                                    -- elsewhere. The evaluator does NOT
+--                                    -- consult these bounds (out-of-range
+--                                    -- values still evaluate correctly; this
+--                                    -- is editor-only UX polish).
+--     max          = number | nil,   -- inclusive upper bound enforced by the
+--                                    -- editor on OK. See `min`.
 --   }
 --
 -- Canonical genetics scale is 0-99 via RLScaleHelper.scaleToNinetyNine.
@@ -111,6 +120,12 @@ RLFilterFieldCatalog.FIELDS = {
         animalTypes = "all",
         getter      = function(animal) return animal.age end,
         monitorGated = false,
+        -- Best-effort upper bound: HORSE's 360-month max (RealisticLivestock.lua:664)
+        -- plus headroom. Editor renders with animalType=nil for cross-species filters
+        -- so a per-species cap isn't reachable here. Map mods adding longer-lived
+        -- animals can override via a future catalog hook if needed.
+        min          = 0,
+        max          = 400,
     },
     {
         key         = "gender",
@@ -216,6 +231,12 @@ RLFilterFieldCatalog.FIELDS = {
             if not monitorActive(animal) then return nil end
             return animal.weight
         end,
+        -- Only the floor is knowable. Per-species target weights are derived
+        -- at runtime from model dimensions and vary across map mods, so the
+        -- realistic ceiling isn't a fixed constant. `min=0` rejects nonsensical
+        -- negatives without imposing a guessed cap; per-species caps tracked
+        -- separately if data warrants.
+        min          = 0,
     },
     {
         key         = "health",
@@ -227,9 +248,14 @@ RLFilterFieldCatalog.FIELDS = {
             if not monitorActive(animal) then return nil end
             return animal.health
         end,
+        min          = 0,
+        max          = 100,
     },
 
     -- ---------- Genetics (0-99 scale) ----------
+    -- All genetics fields use min=0, max=99 to match the canonical
+    -- presentation scale (scaled(rawValue) -> 0..99). The evaluator
+    -- compares scaled values, so the bounds mirror the visible domain.
     {
         key         = "genetics.metabolism",
         type        = "number",
@@ -240,6 +266,8 @@ RLFilterFieldCatalog.FIELDS = {
             return animal.genetics and scaled(animal.genetics.metabolism) or nil
         end,
         monitorGated = false,
+        min          = 0,
+        max          = 99,
     },
     {
         key         = "genetics.health",
@@ -251,6 +279,8 @@ RLFilterFieldCatalog.FIELDS = {
             return animal.genetics and scaled(animal.genetics.health) or nil
         end,
         monitorGated = false,
+        min          = 0,
+        max          = 99,
     },
     {
         key         = "genetics.fertility",
@@ -262,6 +292,8 @@ RLFilterFieldCatalog.FIELDS = {
             return animal.genetics and scaled(animal.genetics.fertility) or nil
         end,
         monitorGated = false,
+        min          = 0,
+        max          = 99,
     },
     {
         key         = "genetics.quality",
@@ -273,6 +305,8 @@ RLFilterFieldCatalog.FIELDS = {
             return animal.genetics and scaled(animal.genetics.quality) or nil
         end,
         monitorGated = false,
+        min          = 0,
+        max          = 99,
     },
     {
         key         = "genetics.productivity",
@@ -284,6 +318,8 @@ RLFilterFieldCatalog.FIELDS = {
             return animal.genetics and scaled(animal.genetics.productivity) or nil
         end,
         monitorGated = false,
+        min          = 0,
+        max          = 99,
     },
     {
         key         = "genetics.overall",
@@ -306,6 +342,8 @@ RLFilterFieldCatalog.FIELDS = {
             return scaled(total / count)
         end,
         monitorGated = false,
+        min          = 0,
+        max          = 99,
     },
 
     -- ---------- Subtype / breed ----------
@@ -336,6 +374,48 @@ end
 ---@return table|nil field entry
 function RLFilterFieldCatalog.get(key)
     return RLFilterFieldCatalog._BY_KEY[key]
+end
+
+--- Pure-data inclusive-range check for editor commits. The dialog calls
+--- this after the NaN/Inf reject in onClickOk so absurd-but-finite numbers
+--- (e.g. age >= 1e+30) refuse to commit instead of silently producing a
+--- no-op filter.
+---
+--- The check is type-aware: non-number fields and number fields without
+--- bounds short-circuit to `true, nil`. The evaluator never consults
+--- min/max - out-of-range values still evaluate correctly; this is
+--- editor-only UX polish.
+---
+---@param field table|nil entry from FIELDS (nil-tolerant; treated as in-range)
+---@param num number value to check
+---@return boolean ok true when in range, false otherwise
+---@return table|nil bounds {min=number|nil, max=number|nil} on reject; nil on accept
+function RLFilterFieldCatalog.isValueInRange(field, num)
+    if field == nil or field.type ~= "number" then
+        Log:trace("RLFilterFieldCatalog.isValueInRange: non-number field (key=%s type=%s); returning true",
+            field and tostring(field.key) or "nil",
+            field and tostring(field.type) or "nil")
+        return true, nil
+    end
+
+    local minB, maxB = field.min, field.max
+    if minB == nil and maxB == nil then
+        Log:trace("RLFilterFieldCatalog.isValueInRange: field=%s unbounded; num=%s -> true",
+            tostring(field.key), tostring(num))
+        return true, nil
+    end
+
+    local belowMin = (minB ~= nil) and (num < minB)
+    local aboveMax = (maxB ~= nil) and (num > maxB)
+    if belowMin or aboveMax then
+        Log:trace("RLFilterFieldCatalog.isValueInRange: field=%s num=%s bounds(min=%s,max=%s) ok=false",
+            tostring(field.key), tostring(num), tostring(minB), tostring(maxB))
+        return false, { min = minB, max = maxB }
+    end
+
+    Log:trace("RLFilterFieldCatalog.isValueInRange: field=%s num=%s bounds(min=%s,max=%s) ok=true",
+        tostring(field.key), tostring(num), tostring(minB), tostring(maxB))
+    return true, nil
 end
 
 --- Process-lifetime flag: emit the AnimalType-missing warning exactly once.

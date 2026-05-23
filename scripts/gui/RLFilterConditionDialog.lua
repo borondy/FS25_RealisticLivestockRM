@@ -162,10 +162,16 @@ end
 -- =============================================================================
 
 --- Show a translated hint in the dialog's hintText element. Called by reject
---- paths (empty-string commit, unsupported coercion transition). Logged at
---- DEBUG so a manual playtest can confirm the hint fired.
+--- paths (empty-string commit, unsupported coercion transition, out-of-range
+--- numeric value). Logged at DEBUG so a manual playtest can confirm the hint
+--- fired. Trailing varargs are interpolated via string.format AFTER the i18n
+--- lookup so reject paths can pass numeric bounds (e.g. min/max for the
+--- valueOutOfRange keys). Existing no-varargs callers behave identically -
+--- string.format with no varargs is a no-op when the lookup text has no
+--- format specifiers.
 ---@param l10nKey string
-function RLFilterConditionDialog:showHint(l10nKey)
+---@param ... any optional format arguments interpolated into the resolved text
+function RLFilterConditionDialog:showHint(l10nKey, ...)
     if self.hintText == nil then
         Log:warning("RLFilterConditionDialog:showHint: hintText element missing; cannot surface key=%s",
             tostring(l10nKey))
@@ -174,6 +180,15 @@ function RLFilterConditionDialog:showHint(l10nKey)
     local text = (g_i18n ~= nil and g_i18n.hasText ~= nil and g_i18n:hasText(l10nKey))
                  and g_i18n:getText(l10nKey)
                  or tostring(l10nKey)
+    if select("#", ...) > 0 then
+        local ok, formatted = pcall(string.format, text, ...)
+        if ok then
+            text = formatted
+        else
+            Log:warning("RLFilterConditionDialog:showHint: string.format failed for key=%s; falling back to raw text. err=%s",
+                tostring(l10nKey), tostring(formatted))
+        end
+    end
     self.hintText:setText(text)
     if self.hintText.setVisible ~= nil then self.hintText:setVisible(true) end
     Log:debug("RLFilterConditionDialog:showHint: key=%s text='%s'",
@@ -865,6 +880,38 @@ function RLFilterConditionDialog:onClickOk()
                 tostring(text), tostring(self.workingField))
             self.workingRawText = text
             self:showHint("rl_menu_filters_invalidNumber")
+            return
+        end
+        -- Range reject: absurd-but-finite numbers (e.g. age >= 1e+30) refuse to
+        -- commit instead of silently producing a no-op filter. Mirrors the
+        -- NaN/Inf block above (WARN + preserve workingRawText + translated hint
+        -- + return). Bounds live in the catalog (RLFilterFieldCatalog field
+        -- entries); evaluator does not consult them.
+        local ok, bounds = RLFilterFieldCatalog.isValueInRange(field, num)
+        if not ok then
+            local minB, maxB = bounds and bounds.min or nil, bounds and bounds.max or nil
+            -- Bounds rendering matches AC: table-style with the nil side dropped
+            -- for one-sided bounds (so weight rejects log `bounds={min=0}` not
+            -- `bounds={min=0,max=nil}`).
+            local boundsStr
+            if minB ~= nil and maxB ~= nil then
+                boundsStr = string.format("{min=%s,max=%s}", tostring(minB), tostring(maxB))
+            elseif minB ~= nil then
+                boundsStr = string.format("{min=%s}", tostring(minB))
+            else
+                boundsStr = string.format("{max=%s}", tostring(maxB))
+            end
+            Log:warning("RLFilterConditionDialog:onClickOk: rejecting out-of-range value '%s' for field=%s (bounds=%s)",
+                tostring(text), tostring(self.workingField), boundsStr)
+            self.workingRawText = text
+            if minB ~= nil and maxB ~= nil then
+                self:showHint("rl_menu_filters_valueOutOfRange_both", minB, maxB)
+            elseif minB ~= nil then
+                self:showHint("rl_menu_filters_valueOutOfRange_min", minB)
+            else
+                -- maxB ~= nil; one of (min, max) is guaranteed non-nil when ok=false.
+                self:showHint("rl_menu_filters_valueOutOfRange_max", maxB)
+            end
             return
         end
         newCondition.value = num
