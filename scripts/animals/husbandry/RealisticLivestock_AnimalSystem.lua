@@ -1235,6 +1235,167 @@ function AnimalSystem:saveToXMLFile(_)
 end
 
 
+--- Pick a sale-animal age that honours per-visual `canBeBought`.
+---
+--- Builds the buyable-age union from `subType.visuals` (each buyable visual
+--- contributes `[v.minAge, nextMinAge-1]`; the last buyable visual extends to
+--- `maxBuyAge`). Intersects today's three skew buckets with that union, drops
+--- empty buckets and renormalises remaining weights, then uniformly draws an
+--- integer age across the chosen bucket's intersected integer ages. When a
+--- bucket's intersection splits into multiple disjoint segments, the segment
+--- choice is weighted by integer count so the draw is uniform over the union.
+---
+--- Helper is `g_currentMission`-free so it can be unit-tested with synthetic
+--- subTypes and a deterministic `randomFn`. Visuals are assumed ascending by
+--- minAge (an invariant maintained by the XML loader).
+---
+--- @param subType table SubType table with `visuals = { {minAge, store={canBeBought}}, ... }`
+--- @param averageBuyAge number Animal-type average buy age (cluster centre)
+--- @param maxBuyAge number Animal-type maximum buy age (upper bound)
+--- @param randomFn function|nil `function(lo, hi) -> int` for integer draws; defaults to math.random
+--- @return number|nil age Integer age in months, or nil if no buyable visuals exist
+function AnimalSystem:_pickSaleAnimalAge(subType, averageBuyAge, maxBuyAge, randomFn)
+    randomFn = randomFn or math.random
+
+    -- 1. Build buyable union: ascending list of [lo, hi] integer intervals.
+    local union = {}
+    if subType ~= nil and subType.visuals ~= nil then
+        local n = #subType.visuals
+        for i = 1, n do
+            local visual = subType.visuals[i]
+            if visual.store ~= nil and visual.store.canBeBought then
+                local lo = visual.minAge
+                local hi
+                if i < n then
+                    hi = subType.visuals[i + 1].minAge - 1
+                else
+                    hi = maxBuyAge
+                end
+                if hi >= lo then
+                    -- Merge with previous if adjacent / overlapping.
+                    local last = union[#union]
+                    if last ~= nil and lo <= last[2] + 1 then
+                        last[2] = math.max(last[2], hi)
+                    else
+                        table.insert(union, { lo, hi })
+                    end
+                end
+            end
+        end
+    end
+
+    if #union == 0 then
+        Log:warning("_pickSaleAnimalAge: empty buyable union for subType=%s (buyableSubTypes filter should have excluded this)",
+            subType and subType.name or "?")
+        return nil
+    end
+
+    Log:trace("_pickSaleAnimalAge: subType=%s union segments=%d avg=%s max=%s",
+        subType.name, #union, tostring(averageBuyAge), tostring(maxBuyAge))
+
+    -- 2. Three skew buckets with today's weights and boundary formulae.
+    --    math.floor matches Lua 5.1 trunc-to-int semantics used by the
+    --    legacy inline picker (math.random(a, b) coerces via tonumber+floor).
+    local nearLo = math.floor(averageBuyAge * 0.85)
+    local nearHi = math.floor(averageBuyAge * 1.15)
+    local buckets = {
+        { name = "near",  lo = nearLo, hi = nearHi,    weight = 0.500 },
+        { name = "below", lo = 0,      hi = nearLo,    weight = 0.375 },
+        { name = "above", lo = nearHi, hi = maxBuyAge, weight = 0.125 },
+    }
+
+    -- 3. Intersect each bucket with the union. Drop empties; renormalise.
+    local kept = {}
+    local totalWeight = 0
+    for _, bucket in ipairs(buckets) do
+        local segments = {}
+        local segmentTotal = 0
+        for _, iv in ipairs(union) do
+            local lo = math.max(bucket.lo, iv[1])
+            local hi = math.min(bucket.hi, iv[2])
+            if hi >= lo then
+                table.insert(segments, { lo, hi })
+                segmentTotal = segmentTotal + (hi - lo + 1)
+            end
+        end
+        if segmentTotal > 0 then
+            table.insert(kept, {
+                name = bucket.name,
+                segments = segments,
+                segmentTotal = segmentTotal,
+                weight = bucket.weight,
+            })
+            totalWeight = totalWeight + bucket.weight
+        end
+    end
+
+    if #kept == 0 then
+        -- Defensive: a non-empty union means [0, nearLo] (the "below" bucket)
+        -- must intersect it, so this branch should be unreachable in practice.
+        Log:warning("_pickSaleAnimalAge: all three buckets empty after intersection (subType=%s)",
+            subType and subType.name or "?")
+        return nil
+    end
+
+    -- Renormalise weights of surviving buckets.
+    for _, b in ipairs(kept) do
+        b.weight = b.weight / totalWeight
+    end
+
+    Log:trace("_pickSaleAnimalAge: kept buckets=%d totalWeightPre=%.4f", #kept, totalWeight)
+    -- Post-redistribution per-bucket weights (one TRACE line per kept bucket).
+    for _, b in ipairs(kept) do
+        Log:trace("_pickSaleAnimalAge:   bucket=%s weight=%.4f segments=%d segmentTotal=%d",
+            b.name, b.weight, #b.segments, b.segmentTotal)
+    end
+
+    -- 4. Pick a bucket by weight. randomFn returns ints, so scale to 1e6 grid.
+    local roll = randomFn(1, 1000000)
+    local cumulative = 0
+    local chosen
+    for _, b in ipairs(kept) do
+        cumulative = cumulative + b.weight * 1000000
+        if roll <= cumulative then
+            chosen = b
+            break
+        end
+    end
+    -- Floating-point safety: if rounding leaves roll past cumulative, take last.
+    if chosen == nil then chosen = kept[#kept] end
+
+    Log:trace("_pickSaleAnimalAge: bucket-roll=%d cumulative=%.0f chosen=%s",
+        roll, cumulative, chosen.name)
+
+    -- 5. Pick a segment within the bucket, weighted by integer count.
+    local segChoice = randomFn(1, chosen.segmentTotal)
+    local chosenSeg
+    local seen = 0
+    for _, seg in ipairs(chosen.segments) do
+        local count = seg[2] - seg[1] + 1
+        if segChoice <= seen + count then
+            chosenSeg = seg
+            break
+        end
+        seen = seen + count
+    end
+
+    Log:trace("_pickSaleAnimalAge: seg-roll=%d of segmentTotal=%d chosen=[%d,%d]",
+        segChoice, chosen.segmentTotal, chosenSeg[1], chosenSeg[2])
+
+    -- 6. Uniform integer draw within the chosen segment.
+    local age = randomFn(chosenSeg[1], chosenSeg[2])
+
+    -- TRACE (not DEBUG) because this fires per dealer-spawn animal (~1200 per
+    -- dealer reset across all types). The dealer-reset event emits a single
+    -- INFO summary at the loop boundary, so DEBUG-level dealer signal is
+    -- preserved without flooding. Investigation: `rmSetLoglevel * TRACE`.
+    Log:trace("_pickSaleAnimalAge: subType=%s age=%d (bucket=%s segment=[%d,%d])",
+        subType.name, age, chosen.name, chosenSeg[1], chosenSeg[2])
+
+    return age
+end
+
+
 --- Build a new sale animal for the dealer of the given animal type.
 --- Selects a buyable subtype (respecting bridge `canBeBought` overrides), assigns
 --- random genetics + age, and may create an in-progress pregnancy. If the
@@ -1243,6 +1404,7 @@ end
 --- so the canonical four-field clear runs (pregnancy + impregnatedBy +
 --- isPregnant + reproduction) - mirrors the in-game pen-side cleanup so the
 --- invariant `isPregnant <=> pregnancy ~= nil` holds for sale animals too.
+--- Age picker honours per-visual `canBeBought` via `_pickSaleAnimalAge`.
 --- @param animalTypeIndex number Index into the animal-type registry
 --- @return table|nil animal Newly built sale animal, or nil if the animal-type lookup fails
 function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
@@ -1319,23 +1481,12 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
 
     local averageBuyAge = animalType.averageBuyAge or 12
     local maxBuyAge = animalType.maxBuyAge or 60
-    local age
 
-    if math.random() >= 0.5 then
-
-        age = math.random(averageBuyAge * 0.85, averageBuyAge * 1.15)
-
-    elseif math.random() >= 0.25 then
-
-        age = math.random(0, averageBuyAge * 0.85)
-
-    else
-
-        age = math.random(averageBuyAge * 1.15, maxBuyAge)
-
-    end
-
-    age = math.clamp(age, 0, maxBuyAge)
+    -- per-stage canBeBought-aware age picker. Helper guarantees range and
+    -- returns nil only if subType has zero buyable visuals (which the
+    -- buyableSubTypes filter above already excludes).
+    local age = self:_pickSaleAnimalAge(subType, averageBuyAge, maxBuyAge)
+    if age == nil then return nil end
     local viableReproductionMonths = age - (subType.reproductionMinAgeMonth + subType.reproductionDurationMonth)
     local isParent, isPregnant, monthsSinceLastBirth = false, false, 12
     local animalGender = subType.gender
