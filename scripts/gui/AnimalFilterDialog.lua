@@ -240,8 +240,7 @@ function AnimalFilterDialog:onOpen()
             -- No multiplier here: in buy mode, markup is baked into the
             -- derived value (see onOpen below) and into applyFilters, so
             -- filter.min / filter.max are in display (marked-up) space
-            -- throughout. Closes RLRM-292 triage Edge Case #1 (top-of-range
-            -- drop after dialog OK).
+            -- throughout. Prevents top-of-range drop after dialog OK.
         },
 
         {
@@ -405,8 +404,7 @@ function AnimalFilterDialog:onOpen()
                 -- ~628) so filter.min / filter.max are derived in the SAME
                 -- space the predicate later compares against. Without this,
                 -- top-of-range items would compare value*1.075 > raw_max
-                -- and silently drop after dialog OK. RLRM-292 triage Edge
-                -- Case #1.
+                -- and silently drop after dialog OK.
                 if filter.target == "getSellPrice" and self.isBuyMode then value = value * 1.075 end
 
             else
@@ -569,7 +567,7 @@ function AnimalFilterDialog:onClickOk()
     end
 
     -- Scrub transient dialog-internal keys so consumer callbacks (Info/Move/Sell/Buy frames +
-    -- AnimalScreen) receive clean filter tables. Matches RLRM-294 spec F1+F2 (boundary discipline).
+    -- AnimalScreen) receive clean filter tables. Boundary discipline.
     for _, filter in pairs(self.filters) do
         filter.uiState = nil
         filter.uiLeftState = nil
@@ -711,8 +709,7 @@ function AnimalFilterDialog.applyFilters(items, filters, isBuyMode)
                     value = animal[filter.target](animal)
 
                     -- Key off the stable function-name target, NOT the
-                    -- localized filter.name (e.g. "Wert", "Valor"). Closes
-                    -- RLRM-292 triage finding [2].
+                    -- localized filter.name (e.g. "Wert", "Valor").
                     if filter.target == "getSellPrice" and isBuyMode then value = value * 1.075 end
 
                 else

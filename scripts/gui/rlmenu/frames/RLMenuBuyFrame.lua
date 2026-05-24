@@ -393,7 +393,6 @@ function RLMenuBuyFrame:reloadAnimalList()
             -- Buy frame is buy-mode by definition. Match the dialog-open path
             -- (onClickFilter passes isBuyMode=true) so the list-rebuild filter
             -- evaluates Value with the 1.075 markup, not raw sell-price.
-            -- Closes the second half of RLRM-295.
             self.items = AnimalFilterDialog.applyFilters(self.items, self.filters, true)
         end
 
@@ -1024,9 +1023,9 @@ end
 --- Open AnimalFilterDialog for the current type's sale animals.
 --- Source list is built from the dealer pool MINUS the Quick filter so
 --- slider ranges always reflect the full dealer pool (or saved-filter-
---- narrowed pool), never the already-Quick-filtered subset. See RLRM-292.
+--- narrowed pool), never the already-Quick-filtered subset.
 --- isBuyMode=true so the Value slider applies the 1.075 buy-markup matching
---- AnimalFilterDialog.applyFilters (corrects the prior false; RLRM-295).
+--- AnimalFilterDialog.applyFilters.
 function RLMenuBuyFrame:onClickFilter()
     if self.activeAnimalTypeIndex == nil then return end
     if AnimalFilterDialog == nil or AnimalFilterDialog.show == nil then

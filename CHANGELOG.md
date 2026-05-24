@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.2.5.0-dev.4
+
+### Documentation
+- Hof Bergmann support page + FAQ note: the HB bull stable's BULLSPERM trigger stays empty under RLRM (HB models bull sperm as a milk output, RLRM only produces milk for lactating female cows). HB pasture bulls remain decorative under RLRM.
+
+### Fixed
+- Per-visual `canBeBought="false"` on animal sale stages now takes effect at the dealer (previously silently ignored). Packs can restrict a breed to juvenile-only or adult-only sales; the dealer's age picker clips draws to buyable stages. Default bundle behavior unchanged.
+- Pen no longer overflows past capacity when multiple pregnancies mature on the same day-change. Existing overcap saves heal gradually via natural deaths or sold animals.
+- Quick filter dialog gains a "Quick filter" title and the list + scrollbar now sit cleanly inside the dialog body (previously: no title, scrollbar pushed off the right edge). Applies to both the new RL Menu (Backspace) and the legacy R-key animal screen.
+- Quick filter dialog no longer clamps slider ranges to a previously-applied Quick filter; sliders show the full pen (or saved-filter-narrowed) range when reopened. Buy frame also applies the buy-markup to the Value slider as intended.
+- Quick filter dialog options no longer drift to the wrong segment or slider thumb after scrolling. TripleOption rows (Pregnancy / Gender / Disease / Has-name / Lactating) and slider rows now reliably reflect what you set.
+- Quick filter persistence is now tab-local and visibly indicated; the chip shows "QF" alone or combined with the saved-filter name, and is cleared automatically when leaving a tab.
+- Multiplayer: animal lists no longer show wrong breeds or species on clients missing a DLC the server has installed (e.g. Highland Cattle rendering as Water Buffalo). Server data was always correct; only the receiving client misrendered.
+- Multiplayer: player-initiated insemination from non-host clients now propagates to the server and other clients within one network frame (previously applied locally only).
+- Empty dewars (0 straws remaining) no longer survive save/load or storage round-trip; they self-delete on the server in every code path. Affected saves clean up on next load.
+
+### RL Menu (preview - work in progress)
+- Saveable-filter condition editor now rejects out-of-range numeric values with a visible hint instead of silently committing absurd values that produced no-op filters.
+
 ## v1.2.5.0-dev.3
 
 ### Improved

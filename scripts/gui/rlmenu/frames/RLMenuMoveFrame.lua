@@ -653,7 +653,7 @@ end
 --- Open AnimalFilterDialog for the current husbandry's animals.
 --- Source list is built from the render universe MINUS the Quick filter so
 --- slider ranges always reflect the full pen (or saved-filter-narrowed pen),
---- never the already-Quick-filtered subset. See RLRM-292.
+--- never the already-Quick-filtered subset.
 function RLMenuMoveFrame:onClickFilter()
     if self.selectedHusbandry == nil then return end
     if AnimalFilterDialog == nil or AnimalFilterDialog.show == nil then

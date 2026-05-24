@@ -10,7 +10,7 @@ function Animal.resolveSubType(subTypeIndex, subTypeName)
     local animalSystem = g_currentMission.animalSystem
     local subType = animalSystem:getSubTypeByIndex(subTypeIndex)
 
-    -- RLRM-300: index resolved to a subtype whose name differs from the streamed name.
+    -- Index resolved to a subtype whose name differs from the streamed name.
     -- Means the wire index came from a peer with a different subtype registry
     -- (typically MP DLC asymmetry: server registered Highland Cattle, client did not,
     -- so all later indices shift). Reject the index and let the name-based fallback

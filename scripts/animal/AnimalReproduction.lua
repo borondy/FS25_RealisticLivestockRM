@@ -679,7 +679,7 @@ function AnimalReproduction.reproduce(animal, spec, day, month, year, isSaleAnim
     -- Sample the cluster-system pending queues so successive mothers in the
     -- same onDayChanged tick see each other's already-queued newborns.
     -- Without this, every mother reads the same pre-loop getNumOfAnimals()
-    -- snapshot and the pen overflows past maxNumAnimals (RLRM-228).
+    -- snapshot and the pen overflows past maxNumAnimals.
     local pendingAdds, pendingRemoves, pendingDelta = 0, 0, 0
     if not isSaleAnimal and animal.clusterSystem ~= nil
         and type(animal.clusterSystem.getPendingDelta) == "function" then
@@ -734,8 +734,8 @@ function AnimalReproduction.reproduce(animal, spec, day, month, year, isSaleAnim
     end
 
     -- Clamp animalsToSell to [0, litterSize] so a negative freeSlots from a
-    -- legacy-overshoot save cannot drive childNum negative (RLRM-228 root
-    -- cause for the -46984 accumulator symptom).
+    -- legacy-overshoot save cannot drive childNum negative (root cause for
+    -- the negative accumulator symptom).
     local clampedSell = math.max(0, math.min(animalsToSell, #pregnancies))
     if clampedSell ~= animalsToSell then
         Log:debug("reproduce: animalsToSell clamped from %d to %d (litterSize=%d)",
