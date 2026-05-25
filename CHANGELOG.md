@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.2.5.0-dev.5
+
+### Added
+- Mod compatibility bridge: RLRM can now coexist with some foreign mods that overlap its hooks via per-mod shim files in `mod_support/<ModName>/` (same folder layout as the existing map-support bridges). The framework activates automatically when a registered foreign mod is detected; shim files self-disable cleanly when their target mod is absent, with no impact on RLRM-only setups.
+
+### Compatibility
+- Seasonal Wool Production (Argsy Gaming): RLRM + SWP now coexist without the previous double-production of wool (RL continuous wool plus SWP's twice-yearly bulk on top). SWP handles wool production as a seasonal event with a single wool output per sheep per season. The per-pen wool yield matches what vanilla SWP would deliver based on flock size (count of mature sheep at age >= 8 months). Trade-off: wool yield does not reflect RLRM per-animal genetics.
+
 ## v1.2.5.0-dev.4
 
 ### Documentation
