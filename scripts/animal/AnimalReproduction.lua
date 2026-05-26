@@ -758,6 +758,8 @@ function AnimalReproduction.reproduce(animal, spec, day, month, year, isSaleAnim
     if not isSaleAnimal and animal.impregnatedBy ~= nil and animal.impregnatedBy.uniqueId ~= nil and animal.impregnatedBy.uniqueId ~= "-1" then
 
         local placeables = g_currentMission.placeableSystem.placeables
+        local motherTypeIndex = animal.animalTypeIndex
+        local crossSpeciesSkips = 0
 
         for _, placeable in ipairs(placeables) do
 
@@ -775,6 +777,21 @@ function AnimalReproduction.reproduce(animal, spec, day, month, year, isSaleAnim
 
             local animals = clusterSystem:getAnimals()
             for _, otherAnimal in ipairs(animals) do
+                -- Identity guard: identifiers are not species-unique because
+                -- FarmStats keeps per-species id counters, so the Nth sheep and the Nth
+                -- chicken on the same farm can share the (country,farmId,uniqueId) triple.
+                -- Skip cross-species matches before the identifier compare so the wrong
+                -- species cannot be selected as fatherFull and absorb childInfo via the
+                -- table.insert below.
+                if otherAnimal.animalTypeIndex ~= motherTypeIndex then
+                    if otherAnimal:getIdentifiers() == animal.impregnatedBy.uniqueId then
+                        crossSpeciesSkips = crossSpeciesSkips + 1
+                        Log:debug("reproduce: fatherFull lookup skipped cross-species collision (motherType=%s otherType=%s identifiers=%s)",
+                            tostring(motherTypeIndex), tostring(otherAnimal.animalTypeIndex), tostring(animal.impregnatedBy.uniqueId))
+                    end
+                    continue
+                end
+
                 if otherAnimal:getIdentifiers() ~= animal.impregnatedBy.uniqueId then continue end
 
                 fatherFull = otherAnimal
@@ -784,6 +801,10 @@ function AnimalReproduction.reproduce(animal, spec, day, month, year, isSaleAnim
             if fatherFull ~= nil then break end
 
         end
+
+        Log:trace("reproduce: fatherFull lookup result motherType=%s impregnatedBy=%s found=%s crossSpeciesSkips=%d",
+            tostring(motherTypeIndex), tostring(animal.impregnatedBy.uniqueId),
+            tostring(fatherFull ~= nil), crossSpeciesSkips)
 
     end
 
