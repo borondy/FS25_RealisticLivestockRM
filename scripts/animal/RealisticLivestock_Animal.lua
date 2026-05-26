@@ -1351,6 +1351,33 @@ function Animal.onSettingChanged(name, state)
     Animal[name] = state
 end
 
+--- Pure daily-food formula extracted from Animal:updateInput so both the live
+--- path and the pen feed forecast (RLPenFeedForecast) share one source of truth.
+--- Mirrors the legacy `if fillType == "food"` branch verbatim.
+---@param age number               Animal age in months (reserved; not used yet -- kept for symmetry with forecast scratch state).
+---@param isLactating boolean      Lactation flag.
+---@param reproduction number|nil  Reproduction counter [0, 100].
+---@param numPregnancies number    Count of expected offspring; pass 0 when not pregnant.
+---@param metabolism number|nil    Genetics metabolism multiplier.
+---@param baseCurveValue number    `subType.input.food:get(age)` from the caller.
+---@param foodScale number|nil     Global food-scale setting (`RealisticLivestock_PlaceableHusbandryFood.foodScale`); defaults to 1 when nil.
+---@return number litersPerDay
+function Animal._computeDailyFood(age, isLactating, reproduction, numPregnancies, metabolism, baseCurveValue, foodScale)
+    local litersPerDay = baseCurveValue
+
+    if isLactating then litersPerDay = litersPerDay * 1.25 end
+
+    if reproduction ~= nil and reproduction > 0 and numPregnancies > 0 then
+        litersPerDay = litersPerDay * math.min(math.pow(1 + ((reproduction / 100) / 5), numPregnancies), 2.0)
+    end
+
+    if metabolism ~= nil then litersPerDay = litersPerDay * metabolism end
+
+    litersPerDay = litersPerDay * (foodScale or 1)
+
+    return litersPerDay
+end
+
 function Animal:updateInput()
     local subType = self:getSubType()
 
@@ -1359,15 +1386,17 @@ function Animal:updateInput()
         local litersPerDay = input:get(self.age)
 
         if fillType == "food" then
-            if self.isLactating then litersPerDay = litersPerDay * 1.25 end
-
-            if self.reproduction ~= nil and self.reproduction > 0 and self.pregnancy ~= nil and self.pregnancy.pregnancies ~= nil then
-                litersPerDay = litersPerDay * math.min(math.pow(1 + ((self.reproduction / 100) / 5), #self.pregnancy.pregnancies), 2.0)
-            end
-
-            if self.genetics.metabolism ~= nil then litersPerDay = litersPerDay * self.genetics.metabolism end
-
-            litersPerDay = litersPerDay * (RealisticLivestock_PlaceableHusbandryFood.foodScale or 1)
+            local numPregnancies = (self.pregnancy ~= nil and self.pregnancy.pregnancies ~= nil)
+                and #self.pregnancy.pregnancies or 0
+            litersPerDay = Animal._computeDailyFood(
+                self.age,
+                self.isLactating,
+                self.reproduction,
+                numPregnancies,
+                self.genetics.metabolism,
+                litersPerDay,
+                RealisticLivestock_PlaceableHusbandryFood.foodScale
+            )
         end
 
         if fillType == "water" then

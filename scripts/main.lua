@@ -154,6 +154,7 @@ source(modDirectory .. "scripts/gui/RealisticLivestock_InGameMenuAnimalsFrame.lu
 source(modDirectory .. "scripts/gui/rlmenu/services/RLMessageService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalQuery.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLGeneticsFormatter.lua")
+source(modDirectory .. "scripts/gui/rlmenu/services/RLPenFeedForecast.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalInfoService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLDetailPaneHelper.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalMoveService.lua")
