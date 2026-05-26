@@ -195,7 +195,7 @@ function AnimalFilterDialog:onOpen()
                     ["value"] = true
                 }
             },
-            ["default"] = 1
+            ["default"] = 2
         },
 
         {
