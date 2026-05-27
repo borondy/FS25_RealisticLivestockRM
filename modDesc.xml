@@ -1,6 +1,6 @@
 <modDesc descVersion="107">
     <author>Ritter</author>
-    <version>1.2.5.0.dev.5</version>
+    <version>1.2.5.0.dev.6</version>
     <title>
         <en>Realistic Livestock - Ritter version</en>
         <it>Allevamento Realistico - Versione Ritter</it>
@@ -23,6 +23,22 @@ Documentation: https://rittermod.github.io/FS25_RealisticLivestockRM
 Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivestockRM
 
 Changelog
+
+1.2.5.0-dev.6:
+
+Fixed:
+- Artificial Insemination dialog: the Inseminate button now enables/disables per selected dewar instead of staying latched to the first row -- so an unsuitable first dewar no longer blocks insemination from valid ones.
+- Newborns of the same farm no longer inherit "Children" counts from another species' male with the same identifier (e.g. a Texel ram showing 61 children due to a rooster collision). Existing bogus counts are not auto-cleaned.
+- Quick filter dialog no longer silently applies a "Healthy animals only" filter on open + OK; the disease filter now defaults to any.
+- Selling or buying animals via a livestock trailer at the dealer no longer logs `Error in AnimalSellEvent` / `Error in AnimalBuyEvent ... missing method 'addRLMessage'`. The sales themselves were always completing.
+- AI insemination "not enough money" check now correctly blocks dewar purchases priced above farm balance (both RL Menu AI tab and the legacy R-key flow).
+- Defensive pregnancy backfill on legacy / orphaned saves now uses the mother's quality for offspring of mothers missing `impregnatedBy.quality`, instead of nil. Normal pregnancies were always correct.
+
+RL Menu (preview - work in progress):
+- Pen Info and Move tabs now estimate feed runway in the "Total Capacity" row: a `(~N-Mm)` range shows how many in-game months the current feed will last for the herd that lives there. Accounts for lactation, pregnancy gestation surge, scheduled births, and per-animal metabolism. Shows `( <1m )` when feed runs out in the first month; caps at `~12+m`.
+- Low-feed visual alert: when the runway estimate drops below 2 months, the capacity status bar and text turn red on Info and Move. Sell tab unaffected.
+- Quick Filter dialog gains a *Save filter* button that turns the current dialog state into a new saveable filter and opens Settings -> Filters on the new row. Hidden in the legacy R-key flow, without the `tradeAnimals` permission, or during dealer walk-up. Price conditions cannot be saved and are dropped with a warning.
+- Settings -> Filters: *New filter* / *Duplicate* now picks the next free suffix as max existing N + 1 instead of by row count, so names no longer collide after deleting earlier-numbered entries.
 
 1.2.5.0-dev.5:
 

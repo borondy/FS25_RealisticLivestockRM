@@ -106,7 +106,7 @@ end
 
 -- SmoothListElement fires (list, section, index); the previous (list, index) signature
 -- silently captured the section (always 1) and recomputed the OK button against dewars[1]
--- on every click. RLRM-307.
+-- on every click.
 function AnimalAIDialog:onListSelectionChanged(list, section, index)
 
     local dewar = self.dewars[index]
