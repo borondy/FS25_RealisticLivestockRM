@@ -131,10 +131,16 @@ function AnimalSellEvent:run(connection)
 		g_currentMission:addMoney(self.price + self.transportPrice, farmId, MoneyType.SOLD_ANIMALS, true, true)
 		connection:sendEvent(AnimalSellEvent.newServerToClient(AnimalSellEvent.SELL_SUCCESS))
 
-		if #self.animals == 1 then
-			self.object:addRLMessage("SOLD_ANIMALS_SINGLE", nil, { g_i18n:formatMoney(math.abs(self.price + self.transportPrice), 2, true, true) })
-		elseif #self.animals > 0 then
-			self.object:addRLMessage("SOLD_ANIMALS_MULTIPLE", nil, { #self.animals, g_i18n:formatMoney(math.abs(self.price + self.transportPrice), 2, true, true) })
+		-- Object may be a trailer on trailer-based dealer sales; only husbandry
+		-- placeables carry addRLMessage.
+		if self.object.addRLMessage ~= nil then
+			if #self.animals == 1 then
+				self.object:addRLMessage("SOLD_ANIMALS_SINGLE", nil, { g_i18n:formatMoney(math.abs(self.price + self.transportPrice), 2, true, true) })
+			elseif #self.animals > 0 then
+				self.object:addRLMessage("SOLD_ANIMALS_MULTIPLE", nil, { #self.animals, g_i18n:formatMoney(math.abs(self.price + self.transportPrice), 2, true, true) })
+			end
+		else
+			Log:trace("SellEvent:run: skipping addRLMessage (object has no husbandryAnimals spec, likely trailer sale) N=%d", #self.animals)
 		end
 
 		Log:debug("SellEvent:run: sold %d animals farmId=%s total=%s",

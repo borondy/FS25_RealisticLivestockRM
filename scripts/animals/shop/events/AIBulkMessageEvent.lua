@@ -74,6 +74,13 @@ end
 
 function AIBulkMessageEvent:run(connection)
 
+	-- Object must carry the husbandryAnimals spec to receive RL messages.
+	-- Guard hoisted outside the loop since self.object is invariant per event.
+	if self.object.addRLMessage == nil then
+		Log:trace("AIBulkMessageEvent:run: skipping %d messages (object has no husbandryAnimals spec)", #self.messages)
+		return
+	end
+
 	for i = 1, #self.messages do
 
 		local message = self.messages[i]
