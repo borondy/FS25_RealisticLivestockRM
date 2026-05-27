@@ -135,7 +135,7 @@ local function advancePregnancy(animal, spec, day, month, year, isSaleAnimal)
 
             if animal.impregnatedBy.uniqueId == nil then animal.impregnatedBy.uniqueId = "-1" end
             if animal.impregnatedBy.metabolism == nil then animal.impregnatedBy.metabolism = animal.genetics.metabolism end
-            if animal.impregnatedBy.quality == nil then animal.impregnatedBy.quality = animal.genetics.meatQuality end
+            if animal.impregnatedBy.quality == nil then animal.impregnatedBy.quality = animal.genetics.quality end
             if animal.impregnatedBy.health == nil then animal.impregnatedBy.health = animal.genetics.health end
             if animal.impregnatedBy.fertility == nil then animal.impregnatedBy.fertility = animal.genetics.fertility end
             if animal.impregnatedBy.productivity == nil then
