@@ -1139,23 +1139,35 @@ local function static_computeDefaultFilterName(names)
     -- Match "<base> (N)" where N is one or more digits, anchored end-to-end
     -- (Lua patterns: %( and %) are literal parens, (%d+) captures digits).
     local pattern = "^" .. base:gsub("(%W)", "%%%1") .. " %((%d+)%)$"
-    local count = 0
+    -- Track the MAX N seen, NOT the count: with sparse rows (e.g. only
+    -- "<base> (3)" present after deletes), count-based logic emits "(2)"
+    -- and the second click collides on "(3)". Bare base counts as N=1
+    -- because user-visible numbering starts at 2.
+    local maxN = 0
     if names ~= nil then
         for _, name in ipairs(names) do
             local n = name or ""
-            if n == base or n:match(pattern) then
-                count = count + 1
+            if n == base then
+                if maxN < 1 then maxN = 1 end
+            else
+                local capture = n:match(pattern)
+                if capture ~= nil then
+                    local num = tonumber(capture)
+                    if num ~= nil and num > maxN then
+                        maxN = num
+                    end
+                end
             end
         end
     end
     local result
-    if count == 0 then
+    if maxN == 0 then
         result = base
     else
-        result = string.format("%s (%d)", base, count + 1)
+        result = string.format("%s (%d)", base, maxN + 1)
     end
-    Log:trace("static_computeDefaultFilterName: base='%s' count=%d result='%s'",
-        base, count, result)
+    Log:trace("static_computeDefaultFilterName: base='%s' maxN=%d result='%s'",
+        base, maxN, result)
     return result
 end
 
@@ -2789,22 +2801,37 @@ function RLMenuSettingsFrame:computeDuplicateName(baseName)
         :gsub(placeholder, "(%%d+)")
     local countPattern = "^" .. escapePattern(base) .. templatePat .. "$"
 
-    local count = 0
+    -- Track the MAX N seen, NOT the count: with sparse rows (e.g. only
+    -- "<base> (copy 3)" present after deletes), count-based logic emits
+    -- "(copy 2)" and the second click collides on "(copy 3)". The bare
+    -- suffix form (`<base> (copy)`, no number) counts as N=1 because
+    -- user-visible numbering starts at 2 (no "(copy 1)" anywhere). Note:
+    -- the source row's bare name (`<base>` alone) is NOT counted - only
+    -- existing copies contribute.
+    local maxN = 0
     for _, row in ipairs(self.rows) do
         local pending = self.pendingChanges[row.id]
         local name = (pending and pending.name) or row.name or ""
-        if name == first or name:match(countPattern) then
-            count = count + 1
+        if name == first then
+            if maxN < 1 then maxN = 1 end
+        else
+            local capture = name:match(countPattern)
+            if capture ~= nil then
+                local num = tonumber(capture)
+                if num ~= nil and num > maxN then
+                    maxN = num
+                end
+            end
         end
     end
     local result
-    if count == 0 then
+    if maxN == 0 then
         result = first
     else
-        result = base .. suffixNFmt:format(count + 1)
+        result = base .. suffixNFmt:format(maxN + 1)
     end
-    Log:trace("RLMenuSettingsFrame:computeDuplicateName: base='%s' count=%d result='%s'",
-        base, count, result)
+    Log:trace("RLMenuSettingsFrame:computeDuplicateName: base='%s' maxN=%d result='%s'",
+        base, maxN, result)
     return result
 end
 
