@@ -244,6 +244,18 @@ function RLMenu:onClose()
         Log:debug("RLMenu:onClose: reset activeFilterId on %d frame(s)", cleared)
     end
 
+    -- Save-from-QF handshake cleanup. openSettingsFilter stashes pendingSelectedFilterId
+    -- and then asks the page selector to switch to Settings. RLMenuSettingsFrame:onFrameOpen
+    -- consumes-and-clears the id on the next open. If the user ESCs out of the menu
+    -- between the Save and Settings paint (or any failure interleaves), a leftover id
+    -- would hijack-select an unrelated filter on the next legitimate menu open.
+    -- Cleared here so the next open always starts clean.
+    if self.pendingSelectedFilterId ~= nil then
+        Log:debug("RLMenu:onClose: clearing leftover pendingSelectedFilterId=%s",
+            tostring(self.pendingSelectedFilterId))
+        self.pendingSelectedFilterId = nil
+    end
+
     -- Clear the cross-frame shared filter id too so the next menu open starts
     -- clean. Info/Move/Sell read + write sharedSelection.activeFilterId for
     -- tab-switch preservation.
@@ -365,6 +377,36 @@ function RLMenu.openFromBridge(startPageId, mode)
         g_rlMenu.restorePage = priorRestorePage
     end
 end
+
+--- Switch the menu to Settings -> Filters with a specific saved-filter id
+--- pre-selected. Invoked from AnimalFilterDialog:doCreateAndNavigate after the
+--- service `:create` succeeds.
+---
+--- The handshake is a two-step relay:
+---   1. Here: stash `pendingSelectedFilterId` on the menu instance, then ask
+---      the pageSelector to switch to Settings (page id 7).
+---   2. RLMenuSettingsFrame:onFrameOpen consumes-and-clears the id BEFORE its
+---      refreshData call so resolveSelectionById lights the new row in the
+---      same pass; at the end of onFrameOpen it flips the subCategoryPaging
+---      to FILTERS so the editor lands on the new filter.
+---
+--- `MultiTextOptionElement:setState(state, true)` returns nil (no refusal value
+--- to branch on); the MODE_FULL gate on the Save filter button guarantees Settings
+--- is reachable when this fires, so there is no "setState refused" path to clean
+--- up from. The matched cleanup for the ESC-during-handshake race lives in `onClose`.
+--- @param filterId string saved-filter id (return value of g_rlFilterService:create)
+function RLMenu:openSettingsFilter(filterId)
+    if self.pageSelector == nil then
+        Log:warning("RLMenu:openSettingsFilter: pageSelector nil; aborting (filterId=%s)",
+            tostring(filterId))
+        return
+    end
+    self.pendingSelectedFilterId = filterId
+    self.pageSelector:setState(7, true)
+    Log:info("RLMenu:openSettingsFilter: filterId=%s (switched to Settings tab)",
+        tostring(filterId))
+end
+
 
 -- =============================================================================
 -- INPUT BINDING

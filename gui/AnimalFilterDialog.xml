@@ -33,6 +33,8 @@
 		</GuiElement>
 
 		<BoxLayout profile="fs25_dialogButtonBox" id="buttonsPC">
+			<Button profile="buttonActivate" text="$l10n_rl_ui_qf_saveFilter" onClick="onClickSaveFilter" id="saveFilterButton"/>
+			<Bitmap profile="fs25_dialogButtonBoxSeparator" id="saveFilterSeparator"/>
 			<Button profile="buttonOK" text="$l10n_rl_button_confirm" onClick="onClickOk" id="yesButton"/>
 			<Bitmap profile="fs25_dialogButtonBoxSeparator"/>
 			<Button profile="buttonBack" text="$l10n_rl_button_cancel" onClick="onClickBack" id="noButton"/>

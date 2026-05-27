@@ -481,6 +481,21 @@ function RLMenuSettingsFrame:onFrameOpen()
     -- settled.
     self:updateAlternatingElements(genLayout)
 
+    -- Save-from-QF handshake: consume any pending-select id from RLMenu BEFORE
+    -- refreshData so resolveSelectionById picks the new row in the same pass.
+    -- Function-scope local so the trailing subCategoryPaging:setState at the end
+    -- of onFrameOpen can branch on it. AnimalFilterDialog:doCreateAndNavigate
+    -- stashes the id via g_rlMenu:openSettingsFilter; we clear it on consume
+    -- and RLMenu:onClose covers the ESC-during-handshake race.
+    local didPendingSelect = false
+    if g_rlMenu ~= nil and g_rlMenu.pendingSelectedFilterId ~= nil then
+        self.selectedFilterId = g_rlMenu.pendingSelectedFilterId
+        g_rlMenu.pendingSelectedFilterId = nil
+        didPendingSelect = true
+        Log:debug("RLMenuSettingsFrame:onFrameOpen: pending-select filterId=%s",
+            tostring(self.selectedFilterId))
+    end
+
     -- Pull filter rows + seed empty-state + footer buttons for whichever
     -- subtab ends up active. Safe to call even though [General] is the
     -- initial pane; rows are cached for when the user switches to [Filters].
@@ -549,6 +564,18 @@ function RLMenuSettingsFrame:onFrameOpen()
     -- no content to focus. updateSubCategoryPages shifts focus to the list
     -- when the user switches to [Filters].
     FocusManager:setFocus(self.subCategoryPaging)
+
+    -- Save-from-QF handshake tail: when a pending-select fired earlier in this
+    -- onFrameOpen, flip the subcategory paging to [Filters]. setState(FILTERS, true)
+    -- re-fires updateSubCategoryPages which handles pane visibility, footer
+    -- rebuild, AND shifts focus to filtersList (lines 778-779) - leaving the new
+    -- row both visible and focused. The unconditional setState(GENERAL, true) at
+    -- the start of onFrameOpen runs first; this override is the final word so the
+    -- user lands on the editor for the just-created filter.
+    if didPendingSelect then
+        Log:debug("RLMenuSettingsFrame:onFrameOpen: pending-select tail; switching to FILTERS subtab")
+        self.subCategoryPaging:setState(RLMenuSettingsFrame.SUB_CATEGORY.FILTERS, true)
+    end
 end
 
 --- Apply an alternating dark tint to each visible row container in the
@@ -1100,17 +1127,25 @@ end
 --- localized "New filter" string; the " (N)" suffix is numeric so locales
 --- can keep the base and get a universal index. "New filter", "New filter (2)",
 --- "New filter (3)" in English.
---- @return string
-function RLMenuSettingsFrame:computeDefaultFilterName()
+---
+--- File-local static so both the Settings-side `:onClickNewFilter` and the
+--- QF-side `AnimalFilterDialog:onClickSaveFilter` produce the same sequence
+--- without depending on a live RLMenuSettingsFrame instance. Takes a plain
+--- name iterator (any array-like with string entries).
+---@param names string[] existing filter names
+---@return string
+local function static_computeDefaultFilterName(names)
     local base = g_i18n:getText("rl_menu_filters_default_name")
     -- Match "<base> (N)" where N is one or more digits, anchored end-to-end
     -- (Lua patterns: %( and %) are literal parens, (%d+) captures digits).
     local pattern = "^" .. base:gsub("(%W)", "%%%1") .. " %((%d+)%)$"
     local count = 0
-    for _, row in ipairs(self.rows) do
-        local name = row.name or ""
-        if name == base or name:match(pattern) then
-            count = count + 1
+    if names ~= nil then
+        for _, name in ipairs(names) do
+            local n = name or ""
+            if n == base or n:match(pattern) then
+                count = count + 1
+            end
         end
     end
     local result
@@ -1119,9 +1154,34 @@ function RLMenuSettingsFrame:computeDefaultFilterName()
     else
         result = string.format("%s (%d)", base, count + 1)
     end
-    Log:trace("RLMenuSettingsFrame:computeDefaultFilterName: base='%s' count=%d result='%s'",
+    Log:trace("static_computeDefaultFilterName: base='%s' count=%d result='%s'",
         base, count, result)
     return result
+end
+
+--- Exported static wrapper so AnimalFilterDialog (and any future caller)
+--- can produce the same default name from a plain name list, without holding
+--- a RLMenuSettingsFrame instance. Pair with `g_rlFilterService:list()` to
+--- get the current registry's names.
+---@param names string[] existing filter names
+---@return string
+function RLMenuSettingsFrame.computeDefaultFilterNameForNames(names)
+    return static_computeDefaultFilterName(names)
+end
+
+--- Instance wrapper: extract names from `self.rows` then delegate to the
+--- static helper. Behavioural contract is identical to the previous inline
+--- implementation; the refactor only moves the math to a pure function so
+--- the QF-side save flow can reuse it.
+---@return string
+function RLMenuSettingsFrame:computeDefaultFilterName()
+    local names = {}
+    if self.rows ~= nil then
+        for _, row in ipairs(self.rows) do
+            table.insert(names, row.name or "")
+        end
+    end
+    return static_computeDefaultFilterName(names)
 end
 
 --- Footer New filter handler. Creates a placeholder filter scoped to the

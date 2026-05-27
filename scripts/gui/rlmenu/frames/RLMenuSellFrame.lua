@@ -817,7 +817,8 @@ function RLMenuSellFrame:onClickFilter()
     Log:debug("RLMenuSellFrame:onClickFilter: opening dialog (savedFilterId=%s, base=%d, sellable=%d, narrowed=%d, animalTypeIndex=%s)",
         tostring(self.activeFilterId), #base, #sellable, #narrowed, tostring(animalTypeIndex))
 
-    AnimalFilterDialog.show(narrowed, animalTypeIndex, self.onFilterApplied, self, false)
+    -- allowSave=true + sourceUsage=OWNED: see RLMenuInfoFrame:onClickFilter rationale.
+    AnimalFilterDialog.show(narrowed, animalTypeIndex, self.onFilterApplied, self, false, true, RLFilterUsage.OWNED)
 end
 
 

@@ -671,7 +671,10 @@ function RLMenuInfoFrame:onClickFilter()
     Log:debug("RLMenuInfoFrame:onClickFilter: opening dialog (savedFilterId=%s, base=%d, narrowed=%d, animalTypeIndex=%s)",
         tostring(self.activeFilterId), #base, #narrowed, tostring(animalTypeIndex))
 
-    AnimalFilterDialog.show(narrowed, animalTypeIndex, self.onFilterApplied, self, false)
+    -- allowSave=true + sourceUsage=OWNED: this frame views owned animals, so saving
+    -- from QF produces a filter scoped to the OWNED cycle bucket (Info/Sell/Move).
+    -- The user can flip to ANY in the Settings editor that opens post-Save.
+    AnimalFilterDialog.show(narrowed, animalTypeIndex, self.onFilterApplied, self, false, true, RLFilterUsage.OWNED)
 end
 
 ---AnimalFilterDialog callback fired on OK. Stores filters and re-queries.

@@ -670,7 +670,8 @@ function RLMenuMoveFrame:onClickFilter()
     Log:debug("RLMenuMoveFrame:onClickFilter: opening dialog (savedFilterId=%s, base=%d, narrowed=%d, animalTypeIndex=%s)",
         tostring(self.activeFilterId), #base, #narrowed, tostring(animalTypeIndex))
 
-    AnimalFilterDialog.show(narrowed, animalTypeIndex, self.onFilterApplied, self, false)
+    -- allowSave=true + sourceUsage=OWNED: see RLMenuInfoFrame:onClickFilter rationale.
+    AnimalFilterDialog.show(narrowed, animalTypeIndex, self.onFilterApplied, self, false, true, RLFilterUsage.OWNED)
 end
 
 

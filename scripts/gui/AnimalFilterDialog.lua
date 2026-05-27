@@ -44,7 +44,15 @@ function AnimalFilterDialog.createFromExistingGui(gui)
 end
 
 
-function AnimalFilterDialog.show(items, animalTypeIndex, callback, target, isBuyMode)
+--- Open the AnimalFilterDialog.
+--- @param items table source list (cluster/animal items)
+--- @param animalTypeIndex integer|nil AnimalType for genetics/lactating row gates
+--- @param callback function consumer callback fired on OK
+--- @param target table|nil callback target (called via `callback(target, filters, items)`)
+--- @param isBuyMode boolean true when opened from Buy frame; applies the 1.075 markup to Value
+--- @param allowSave boolean|nil opt-in to render the Save filter button (default false; only the four RLMenu frames pass true; legacy R-key AnimalScreen path keeps default false)
+--- @param sourceUsage string|nil canonical RLFilterUsage value derived from the source frame (OWNED for Info/Sell/Move, DEALER for Buy); threaded into the saved-filter payload when the user clicks Save
+function AnimalFilterDialog.show(items, animalTypeIndex, callback, target, isBuyMode, allowSave, sourceUsage)
 
     if AnimalFilterDialog.INSTANCE == nil then AnimalFilterDialog.register() end
 
@@ -55,9 +63,24 @@ function AnimalFilterDialog.show(items, animalTypeIndex, callback, target, isBuy
     dialog.callback = callback
     dialog.target = target
     dialog.isBuyMode = isBuyMode
+    dialog.allowSave = allowSave == true
+    dialog.sourceUsage = sourceUsage
 
     g_gui:showDialog("AnimalFilterDialog")
 
+end
+
+
+--- Permission gate for the Save filter button.
+--- Mirrors RLMenuSettingsFrame:hasCreatePermission ([RLMenuSettingsFrame.lua:1087](rlmenu/frames/RLMenuSettingsFrame.lua)) - if [New filter] in
+--- Settings is hidden for this client, Save-from-QF must be too.
+--- Nil-guards g_currentMission + getHasPlayerPermission for early-init paths.
+--- @return boolean
+local function hasCreatePermission()
+    if g_currentMission == nil or g_currentMission.getHasPlayerPermission == nil then
+        return false
+    end
+    return g_currentMission:getHasPlayerPermission("tradeAnimals") == true
 end
 
 
@@ -474,6 +497,43 @@ function AnimalFilterDialog:onOpen()
     Log:debug(string.format("[AnimalFilterDialog] onOpen init: %d filters (%d binary, %d slider). Slider cachedTexts: %s",
         #filters, binaryCount, sliderCount, table.concat(sliderSummary, " ")))
 
+    -- Save filter button + leading separator visibility. Three gates (per spec):
+    --   1. self.allowSave (caller opt-in - only the four RLMenu frames pass true)
+    --   2. tradeAnimals permission (matches RLMenuSettingsFrame:hasCreatePermission)
+    --   3. g_rlMenu.openMode == MODE_FULL (Settings tab unreachable in MODE_DEALER,
+    --      so Save+redirect is meaningless)
+    -- Both the button and its leading separator are toggled together so the dialog
+    -- footer never shows an orphan divider. The button row uses SIBLING separators,
+    -- so the visibility cascade does not auto-hide the separator when the button hides.
+    local rlMenuOpenMode = (g_rlMenu ~= nil) and g_rlMenu.openMode or nil
+    local saveVisible = self.allowSave
+        and hasCreatePermission()
+        and (rlMenuOpenMode == RLMenu.MODE_FULL)
+    if self.saveFilterButton ~= nil then
+        self.saveFilterButton:setVisible(saveVisible)
+    end
+    if self.saveFilterSeparator ~= nil then
+        self.saveFilterSeparator:setVisible(saveVisible)
+    end
+    Log:debug("[AnimalFilterDialog] onOpen saveButton: visible=%s (allowSave=%s perm=%s rlMenuOpenMode=%s)",
+        tostring(saveVisible),
+        tostring(self.allowSave),
+        tostring(hasCreatePermission()),
+        tostring(rlMenuOpenMode))
+
+    -- One-shot runtime-measurement log (session rule 4). Fires on first frame where
+    -- the Save button is actually visible AND has settled absSize axes.
+    if saveVisible and not self.didMeasureSaveButton
+        and self.saveFilterButton ~= nil
+        and self.saveFilterButton.absSize ~= nil
+        and self.saveFilterButton.absSize[1] ~= nil
+        and self.saveFilterButton.absSize[2] ~= nil then
+        Log:debug("[AnimalFilterDialog] saveFilterButton measured: %.2fpx x %.2fpx",
+            self.saveFilterButton.absSize[1] * 1920,
+            self.saveFilterButton.absSize[2] * 1080)
+        self.didMeasureSaveButton = true
+    end
+
     self.filterList:reloadData()
 
 end
@@ -588,6 +648,159 @@ function AnimalFilterDialog:onClickOk()
     end
 
     self:close()
+
+end
+
+
+--- Save filter button handler. Three-stage pipeline:
+---   1. Nil-guard the runtime collaborators (g_rlFilterService, g_rlMenu,
+---      g_rlMenu.pageSelector). On any nil, log a warning and leave the QF open
+---      so the user can retry (or click Confirm/Cancel as usual).
+---   2. Mirror onClickOk's prune-then-extract logic for slider/binary rows so the
+---      saved expression matches what Apply would produce on identical state.
+---      Uses the pure RLQuickFilterToSavedFilter module to keep the math testable.
+---   3. If `droppedValue` (a getSellPrice row was narrowed), surface an InfoDialog
+---      warning. The accept callback `onSaveValueWarningDismissed` is invoked with
+---      `(target, args)` and chains into doCreateAndNavigate. Without a drop, call
+---      doCreateAndNavigate inline.
+function AnimalFilterDialog:onClickSaveFilter()
+
+    -- Click-time permission re-check. onOpen hides the button when permission is
+    -- absent, but permission can flip while the dialog is open (MP admin role
+    -- changes, broadcast settings updates). The local :create mutation runs
+    -- before the server's event-side permission check (Pattern A caller-mutates-
+    -- first), so without this gate a permission loss mid-dialog produces a
+    -- phantom local filter the server then refuses to authorize. Mirrors the
+    -- Settings handler's gate at RLMenuSettingsFrame:onClickNewFilter (line 1196).
+    if not hasCreatePermission() then
+        Log:warning("[AnimalFilterDialog] onClickSaveFilter: aborting (reason=no_tradeAnimals_permission)")
+        return
+    end
+
+    -- No-farm guard. RLMenuSettingsFrame:refreshData filters its row list to
+    -- farmId-matching records (line 831-846), so a filter created with farmId=0
+    -- would silently disappear from the destination tab and the "open Settings
+    -- on the new row" handshake could never resolve. Mirrors the Settings
+    -- handler's gate at RLMenuSettingsFrame:onClickNewFilter (line 1200).
+    local farmId
+    if g_currentMission ~= nil and g_currentMission.getFarmId ~= nil then
+        farmId = g_currentMission:getFarmId()
+    end
+    if farmId == nil or farmId == 0 then
+        Log:warning("[AnimalFilterDialog] onClickSaveFilter: aborting (reason=no_farm, farmId=%s)",
+            tostring(farmId))
+        return
+    end
+
+    if g_rlFilterService == nil then
+        Log:warning("[AnimalFilterDialog] onClickSaveFilter: aborting (reason=g_rlFilterService_nil)")
+        return
+    end
+    if g_rlMenu == nil then
+        Log:warning("[AnimalFilterDialog] onClickSaveFilter: aborting (reason=g_rlMenu_nil)")
+        return
+    end
+    if g_rlMenu.pageSelector == nil then
+        Log:warning("[AnimalFilterDialog] onClickSaveFilter: aborting (reason=pageSelector_nil)")
+        return
+    end
+
+    -- Compute current widget state into save-shape children. We DON'T mutate
+    -- self.filters here (unlike onClickOk which destructively prunes) because
+    -- the dialog may stay open if create fails; preserving filter state for a
+    -- retry / Confirm / Cancel keeps the UX consistent. farmId is already
+    -- resolved above by the no-farm guard.
+
+    -- Use RLMenuSettingsFrame's static helper so the default-name disambiguation
+    -- ("New filter", "New filter (2)", ...) stays consistent across both creation
+    -- paths ([New filter] in Settings + Save from QF).
+    local existingNames = {}
+    local existing = g_rlFilterService:list() or {}
+    for _, f in ipairs(existing) do
+        if f.name ~= nil then table.insert(existingNames, f.name) end
+    end
+    local defaultName
+    if RLMenuSettingsFrame ~= nil and RLMenuSettingsFrame.computeDefaultFilterNameForNames ~= nil then
+        defaultName = RLMenuSettingsFrame.computeDefaultFilterNameForNames(existingNames)
+    else
+        Log:warning("[AnimalFilterDialog] onClickSaveFilter: RLMenuSettingsFrame.computeDefaultFilterNameForNames unavailable; using bare l10n fallback")
+        defaultName = g_i18n:getText("rl_menu_filters_default_name")
+    end
+
+    local payload, droppedValue = RLQuickFilterToSavedFilter.buildSavedFilterPayload(
+        self.filters,
+        self.animalTypeIndex,
+        farmId,
+        defaultName,
+        self.sourceUsage
+    )
+
+    if droppedValue then
+        Log:debug("[AnimalFilterDialog] onClickSaveFilter: value narrowed; surfacing warning before create")
+        -- InfoDialog threads exactly one `callbackArgs` value to its
+        -- `(target, args)` accept callback, so wrap payload + droppedValue in a
+        -- single struct that the dismiss handler unpacks.
+        InfoDialog.show(
+            g_i18n:getText("rl_ui_qf_saveDropsValue"),
+            self.onSaveValueWarningDismissed,
+            self,
+            DialogElement.TYPE_WARNING,
+            nil,    -- okText: default
+            nil,    -- buttonAction: default MENU_ACCEPT
+            { payload = payload, droppedValue = droppedValue }
+        )
+        return
+    end
+
+    self:doCreateAndNavigate(payload, droppedValue)
+
+end
+
+
+--- InfoDialog accept callback for the Value-dropped warning. Invoked as
+--- `(target, args)`. `args` is the `{payload, droppedValue}` struct passed as the
+--- 7th arg to InfoDialog.show. Chains into the standard create+navigate path.
+--- @param args table { payload = table, droppedValue = boolean }
+function AnimalFilterDialog:onSaveValueWarningDismissed(args)
+    if args == nil or args.payload == nil then
+        Log:warning("[AnimalFilterDialog] onSaveValueWarningDismissed: missing args/payload; aborting (args=%s)",
+            tostring(args))
+        return
+    end
+    Log:debug("[AnimalFilterDialog] onSaveValueWarningDismissed: dismissing InfoDialog, proceeding to create")
+    self:doCreateAndNavigate(args.payload, args.droppedValue == true)
+end
+
+
+--- Shared tail for both the direct-save and warning-dismiss paths. Creates the
+--- filter via the service, closes the QF on success, then asks RLMenu to switch
+--- to Settings -> Filters with the new row selected.
+---
+--- On `:create` returning nil (malformed payload defensive branch), leaves the
+--- QF open so the user can adjust + retry.
+--- @param payload table saved-filter create payload
+--- @param droppedValue boolean true iff a getSellPrice row was narrowed and dropped (threaded through purely for the AC observability log)
+function AnimalFilterDialog:doCreateAndNavigate(payload, droppedValue)
+
+    local created = g_rlFilterService:create(payload)
+    if created == nil then
+        Log:warning("[AnimalFilterDialog] doCreateAndNavigate: service:create returned nil; leaving QF open")
+        return
+    end
+
+    local conditionCount = (payload.expression ~= nil and payload.expression.children ~= nil)
+        and #payload.expression.children or 0
+    -- Canonical AC observability line (single INFO per successful save).
+    Log:info("[AnimalFilterDialog] onClickSaveFilter: savedFilterId=%s conditions=%d droppedValue=%s",
+        tostring(created.id), conditionCount, tostring(droppedValue == true))
+
+    self:close()
+
+    if g_rlMenu ~= nil and g_rlMenu.openSettingsFilter ~= nil then
+        g_rlMenu:openSettingsFilter(created.id)
+    else
+        Log:warning("[AnimalFilterDialog] doCreateAndNavigate: g_rlMenu.openSettingsFilter unavailable; filter created but no navigation")
+    end
 
 end
 

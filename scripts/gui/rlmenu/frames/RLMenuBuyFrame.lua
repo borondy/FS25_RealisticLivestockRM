@@ -1037,7 +1037,10 @@ function RLMenuBuyFrame:onClickFilter()
     Log:debug("RLMenuBuyFrame:onClickFilter: opening dialog (savedFilterId=%s, base=%d, narrowed=%d, animalTypeIndex=%s)",
         tostring(self.activeFilterId), #base, #narrowed, tostring(self.activeAnimalTypeIndex))
 
-    AnimalFilterDialog.show(narrowed, self.activeAnimalTypeIndex, self.onFilterApplied, self, true)
+    -- allowSave=true + sourceUsage=DEALER: this frame views the dealer pool, so
+    -- saved filters land in the DEALER cycle bucket (Buy only). User can flip to
+    -- ANY in the Settings editor that opens post-Save.
+    AnimalFilterDialog.show(narrowed, self.activeAnimalTypeIndex, self.onFilterApplied, self, true, true, RLFilterUsage.DEALER)
 end
 
 

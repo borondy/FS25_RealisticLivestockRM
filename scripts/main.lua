@@ -123,6 +123,11 @@ source(modDirectory .. "scripts/events/RLFilterCreateEvent.lua")
 source(modDirectory .. "scripts/events/RLFilterUpdateEvent.lua")
 source(modDirectory .. "scripts/events/RLFilterDeleteEvent.lua")
 source(modDirectory .. "scripts/events/RLFilterStateEvent.lua")
+-- QF -> saved-filter conversion module. Depends on RLFilterUsage (above) and
+-- RLScaleHelper (SECTION 2b); placed at the tail of 11g for legibility next to
+-- the filter stack it serves. Consumed by AnimalFilterDialog:onClickSaveFilter
+-- and the RLQuickFilterToSavedFilterTests suite.
+source(modDirectory .. "scripts/utils/RLQuickFilterToSavedFilter.lua")
 
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")
