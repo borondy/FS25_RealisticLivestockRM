@@ -770,20 +770,13 @@ function RLMenuAIFrame:onClickBuy()
         farmId, state, quantity, price, x, y, z)
 
     -- Step 4 + 5: permission + money. Legacy lines 551-560.
-    -- Money compare uses `getMoney(farmId) + price < 0` verbatim from legacy
-    -- at AnimalScreen.lua:555 (with `price` as the positive computed value
-    -- per legacy). This form is functionally dead in normal play - with a
-    -- positive balance and a positive price the sum is always >= 0, so the
-    -- check only fires when the farm is already deep in debt (balance <
-    -- -price). This is a legacy bug; Phase 2 mirrors it per MUTATION PARITY.
-    -- Separate follow-up work would replace with `getMoney(farmId) - price < 0`.
     local errorCode
     if not g_currentMission:getHasPlayerPermission("tradeAnimals") then
         errorCode = AnimalBuyEvent.BUY_ERROR_NO_PERMISSION
         Log:warning("RLMenuAIFrame:onClickBuy: no tradeAnimals permission")
-    elseif g_currentMission:getMoney(farmId) + price < 0 then
+    elseif g_currentMission:getMoney(farmId) - price < 0 then
         errorCode = AnimalBuyEvent.BUY_ERROR_NOT_ENOUGH_MONEY
-        Log:warning("RLMenuAIFrame:onClickBuy: legacy money-check triggered (balance+price<0) price=%.2f",
+        Log:warning("RLMenuAIFrame:onClickBuy: money-check triggered (balance-price<0) price=%.2f",
             price)
     else
         -- Step 6: dispatch. Legacy line 559.

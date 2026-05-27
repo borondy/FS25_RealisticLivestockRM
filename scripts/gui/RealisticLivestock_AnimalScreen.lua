@@ -566,7 +566,7 @@ function AnimalScreen:onClickBuyAI()
 
     if not g_currentMission:getHasPlayerPermission("tradeAnimals") then
         errorCode = AnimalBuyEvent.BUY_ERROR_NO_PERMISSION
-    elseif g_currentMission:getMoney(farmId) + price < 0 then
+    elseif g_currentMission:getMoney(farmId) - price < 0 then
         errorCode = AnimalBuyEvent.BUY_ERROR_NOT_ENOUGH_MONEY
     else
         errorCode = AnimalBuyEvent.BUY_SUCCESS
