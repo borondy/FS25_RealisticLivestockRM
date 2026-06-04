@@ -135,6 +135,7 @@ source(modDirectory .. "scripts/utils/RLQuickFilterToSavedFilter.lua")
 -- RLHerdsmanRuleSerialization. Wire + Create/Update/Delete/State events after the
 -- service (the service references them only at call time, nil-guarded). Create ->
 -- Update -> Delete -> State order mirrors 11g's filter events.
+source(modDirectory .. "scripts/herdsman/RLHerdsmanRuleSerialization.lua")
 source(modDirectory .. "scripts/herdsman/RLHerdsmanRuleService.lua")
 
 -- SECTION 12: GUI Elements
