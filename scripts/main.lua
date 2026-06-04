@@ -137,6 +137,8 @@ source(modDirectory .. "scripts/utils/RLQuickFilterToSavedFilter.lua")
 -- Update -> Delete -> State order mirrors 11g's filter events.
 source(modDirectory .. "scripts/herdsman/RLHerdsmanRuleSerialization.lua")
 source(modDirectory .. "scripts/herdsman/RLHerdsmanRuleService.lua")
+source(modDirectory .. "scripts/herdsman/RLHerdsmanRuleWire.lua")
+source(modDirectory .. "scripts/events/RLHerdsmanRuleCreateEvent.lua")
 
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")
