@@ -79,6 +79,18 @@ function AnimalInseminationEvent:writeStream(streamId, connection)
 end
 
 
+--- Execute the event on the receiver.
+---
+--- Pattern A flow (caller-mutates-first + rebroadcast-from-run + ignoreConnection=sender):
+---   * Caller (HandToolAIStraw:onInseminate) calls animal:setInsemination locally BEFORE sendEvent.
+---   * Server branch (`not connection:getIsServer()`): apply mutation (idempotent),
+---     then rebroadcast to other clients with ignoreConnection=sender.
+---   * Client branch (`connection:getIsServer()`): apply mutation locally, no rebroadcast.
+---
+--- No dewar decrement happens here - this event is the hand-tool path; the straw
+--- was already drained from its dewar when the hand-tool was filled, and the
+--- hand-tool itself is consumed via markHandToolForDeletion.
+---@param connection table Network connection the event arrived on
 function AnimalInseminationEvent:run(connection)
 
 	RmSafeUtils.safeCall("AnimalInseminationEvent:run", function()
@@ -87,12 +99,50 @@ function AnimalInseminationEvent:run(connection)
 		local identifiers = self.animal
 
 		local animal = RLAnimalUtil.find(clusterSystem.animals, identifiers.farmId, identifiers.uniqueId, identifiers.country or identifiers.birthday.country)
+		local isServerBranch = not connection:getIsServer()
+		Log:trace("InseminationEvent:run branch=%s animal=%s", isServerBranch and "server" or "client", tostring(identifiers.uniqueId))
 
-		if animal ~= nil then
-			animal:setInsemination(self.semen)
-			Log:trace("InseminationEvent:run applied to %s", tostring(identifiers.uniqueId))
+		if isServerBranch then
+			-- Server: validate animal lookup, idempotency guard, then rebroadcast.
+			-- Gate the rebroadcast on animal-found: if the authoritative server
+			-- has no record of the animal, do NOT propagate to other clients.
+			-- Unlike AIAnimalInseminationEvent (where the dewar straw is still
+			-- spent on uniqueId match), this event has no compensating mutation.
+			-- Rebroadcasting on miss would let non-sender clients apply locally
+			-- even though server state is unchanged, producing divergence that
+			-- the next dirty-sync from the server would correct backwards.
+			if animal == nil then
+				Log:warning("InseminationEvent:run animal not found uniqueId=%s, NOT rebroadcasting (server-authoritative reject)",
+					tostring(identifiers.uniqueId))
+				return
+			end
+
+			if animal.isInseminated then
+				Log:debug("InseminationEvent:run skipping (already inseminated) uniqueId=%s",
+					tostring(identifiers.uniqueId))
+			else
+				animal:setInsemination(self.semen)
+				Log:info("InseminationEvent:run applied uniqueId=%s",
+					tostring(identifiers.uniqueId))
+			end
+
+			-- Rebroadcast to other clients excluding sender (Pattern A).
+			-- Sender mutated locally before sendEvent and must not receive an echo.
+			g_server:broadcastEvent(
+				AnimalInseminationEvent.new(self.object, self.animal, self.semen),
+				nil, connection, nil)
+			Log:trace("InseminationEvent:run rebroadcast ignoreConnection=sender uniqueId=%s",
+				tostring(identifiers.uniqueId))
 		else
-			Log:trace("InseminationEvent:run animal not found uniqueId=%s", tostring(identifiers.uniqueId))
+			-- Client (rebroadcast from server): apply mutation locally.
+			if animal ~= nil and not animal.isInseminated then
+				animal:setInsemination(self.semen)
+				Log:debug("InseminationEvent:run client-applied uniqueId=%s",
+					tostring(identifiers.uniqueId))
+			else
+				Log:trace("InseminationEvent:run client-skip animal=%s inseminated=%s",
+					tostring(animal), tostring(animal and animal.isInseminated))
+			end
 		end
 
 	end)

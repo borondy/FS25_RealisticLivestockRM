@@ -206,18 +206,24 @@ function RLAnimalInfoService.getHusbandryDisplay(husbandry, farmId)
     end
     local foodTotalRatio = (foodTotalCapacity > 0) and (foodTotalValue / foodTotalCapacity) or 0
 
+    local foodMonthsRemaining
+    if RLPenFeedForecast ~= nil and RLPenFeedForecast.getMonthsRemaining ~= nil then
+        foodMonthsRemaining = RLPenFeedForecast.getMonthsRemaining(husbandry, foodTotalValue)
+    end
+
     Log:debug("RLAnimalInfoService.getHusbandryDisplay: farmId=%s husbandry='%s' count=%s",
         tostring(farmId), name, countText)
 
     return {
-        name              = name,
-        countText         = countText,
-        penImageFilename  = penImageFilename,
-        conditionInfos    = conditionInfos,
-        foodInfos         = foodInfos,
-        foodTotalValue    = foodTotalValue,
-        foodTotalCapacity = foodTotalCapacity,
-        foodTotalRatio    = foodTotalRatio,
+        name                = name,
+        countText           = countText,
+        penImageFilename    = penImageFilename,
+        conditionInfos      = conditionInfos,
+        foodInfos           = foodInfos,
+        foodTotalValue      = foodTotalValue,
+        foodTotalCapacity   = foodTotalCapacity,
+        foodTotalRatio      = foodTotalRatio,
+        foodMonthsRemaining = foodMonthsRemaining,
     }
 end
 

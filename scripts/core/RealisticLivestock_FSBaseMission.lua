@@ -26,7 +26,8 @@ local Log = RmLogging.getLogger("RLRM")
     directly with a synthetic ctx and assert on queue shape.
 
     @param ctx table {isServer, isDedicatedServer, hasConflict, hasMigration,
-        hasWarn, hasBridgeWarning, bridgeText}
+        hasWarn, hasBridgeWarning, bridgeText, hasConfigOverrideConflict,
+        configOverrideConflictText}
     @return table Ordered array of queue items.
 ]]
 function RealisticLivestock_FSBaseMission._buildStartupQueue(ctx)
@@ -44,6 +45,14 @@ function RealisticLivestock_FSBaseMission._buildStartupQueue(ctx)
 
     if ctx.hasBridgeWarning and not ctx.isDedicatedServer then
         table.insert(q, { kind = "bridge", text = ctx.bridgeText })
+    end
+
+    -- bridge-conflict sits AFTER bridge so a player hitting both warnings sees
+    -- the version-unknown notice first, then the configOverride collision notice.
+    -- Same dediserver-suppression rule as bridge: no GUI on a headless host;
+    -- the summary Log:warning emitted in RLMapBridge is the admin-visible surface.
+    if ctx.hasConfigOverrideConflict and not ctx.isDedicatedServer then
+        table.insert(q, { kind = "bridge-conflict", text = ctx.configOverrideConflictText })
     end
 
     return q
@@ -68,23 +77,33 @@ local function _showStartupDialogs(self)
     local bridgeText = RLMapBridge.pendingVersionWarning
     RLMapBridge.pendingVersionWarning = nil
 
+    -- Atomic capture-and-clear of bridge configOverride conflict warning,
+    -- mirroring the bridge-version slot above. Separate slot per spec - the
+    -- two warnings render as two sequential InfoDialogs.
+    local conflictText = RLMapBridge.pendingConfigOverrideConflictWarning
+    RLMapBridge.pendingConfigOverrideConflictWarning = nil
+
     local queue = RealisticLivestock_FSBaseMission._buildStartupQueue({
-        isServer            = self:getIsServer(),
-        isDedicatedServer   = (g_dedicatedServer ~= nil),
-        hasConflict         = g_rmMigrationConflict,
-        hasMigration        = g_rmPendingMigration,
-        hasWarn             = g_rmPendingModWarning,
+        isServer                     = self:getIsServer(),
+        isDedicatedServer            = (g_dedicatedServer ~= nil),
+        hasConflict                  = g_rmMigrationConflict,
+        hasMigration                 = g_rmPendingMigration,
+        hasWarn                      = g_rmPendingModWarning,
         -- Filter empty string in addition to nil; an empty bridge warning
         -- would otherwise enqueue a bridge-kind item with empty body, rendering
         -- a blank InfoDialog. Defensive against future producers - RLMapBridge
         -- itself only writes string.format results today.
-        hasBridgeWarning    = (bridgeText ~= nil and bridgeText ~= ""),
-        bridgeText          = bridgeText,
+        hasBridgeWarning             = (bridgeText ~= nil and bridgeText ~= ""),
+        bridgeText                   = bridgeText,
+        -- Same nil-and-empty filter as bridgeText for the same reason.
+        hasConfigOverrideConflict    = (conflictText ~= nil and conflictText ~= ""),
+        configOverrideConflictText   = conflictText,
     })
 
-    Log:debug("startup dialog queue: %d items (conflict=%s migration=%s warn=%s bridge=%s)",
+    Log:debug("startup dialog queue: %d items (conflict=%s migration=%s warn=%s bridge=%s bridgeConflict=%s)",
         #queue, tostring(g_rmMigrationConflict), tostring(g_rmPendingMigration),
-        tostring(g_rmPendingModWarning), tostring(bridgeText ~= nil))
+        tostring(g_rmPendingModWarning), tostring(bridgeText ~= nil),
+        tostring(conflictText ~= nil))
 
     if #queue == 0 then return end
 
@@ -121,6 +140,23 @@ local function _showStartupDialogs(self)
                 Log:info("Showing bridge version warning dialog")
                 InfoDialog.show(item.text, function()
                     Log:info("User dismissed bridge version warning")
+                    showNext()
+                end)
+            end)
+        elseif item.kind == "bridge-conflict" then
+            -- bridge-conflict presenter mirrors the bridge presenter exactly:
+            -- 100ms Timer, mid-startup unload guard, InfoDialog with showNext
+            -- as close-callback. Separate kind so the two warnings sequence
+            -- correctly when both fire in the same load.
+            Timer.createOneshot(100, function()
+                if g_currentMission == nil or g_gui == nil then
+                    Log:debug("bridge-conflict presenter timer fired post-unload; advancing queue")
+                    showNext()
+                    return
+                end
+                Log:info("Showing bridge configOverride conflict warning dialog")
+                InfoDialog.show(item.text, function()
+                    Log:info("User dismissed bridge configOverride conflict warning")
                     showNext()
                 end)
             end)
@@ -219,14 +255,16 @@ function RealisticLivestock_FSBaseMission:onStartMission()
     EarTagColourPickerDialog.register()
     AnimalFilterDialog.register()
     AnimalMoveDestinationDialog.register()
+    RLFilterConditionDialog.register()
+    RLFilterValueSetDialog.register()
     RmMigrationDialog.register()
 
     -- Mod-compatibility detection runs on every peer (g_modIsLoaded is authoritative
-    -- per peer). The lazy-create is idempotent with FarmManager.lua:15's existing
-    -- nil-check; on a server the singleton is already created with savegameDir set,
-    -- on a pure client it's a thin singleton with savegameDir=nil - safe because
-    -- the methods reachable via the queue (showConflictDialog / showWarningDialog /
-    -- checkModCompatibility) never touch savegameDir.
+    -- per peer). The lazy-create is idempotent - the `g_rmMigrationManager == nil`
+    -- guard makes a re-run a no-op; on a server the singleton is already created with
+    -- savegameDir set, on a pure client it's a thin singleton with savegameDir=nil -
+    -- safe because the methods reachable via the queue (showConflictDialog /
+    -- showWarningDialog / checkModCompatibility) never touch savegameDir.
     if g_rmMigrationManager == nil then
         Log:debug("FSBaseMission: lazy-creating RmMigrationManager (client path)")
         g_rmMigrationManager = RmMigrationManager.new()
@@ -300,6 +338,56 @@ function RealisticLivestock_FSBaseMission:sendInitialClientState(connection, _, 
     connection:sendEvent(RL_BroadcastSettingsEvent.new())
     connection:sendEvent(AnimalSystemStateEvent.new(animalSystem.countries, animalSystem.animals, animalSystem.aiAnimals))
     connection:sendEvent(HusbandryMessageStateEvent.new(g_currentMission.husbandrySystem.placeables))
+
+    -- P4: push the authoritative saveable-filter state to the new client so
+    -- late-joiners converge with the server. Empty-set (count=0) is a valid
+    -- state event and still sends so clients see a deterministic "clear".
+    --
+    -- Routes through the static `RLFilterStateEvent.sendEvent` dispatcher
+    -- (not `connection:sendEvent(...new(...))` directly) so the
+    -- `g_server == nil` + nil-connection guards live on a single code path.
+    -- The review-triage chose this over mirroring the neighbouring
+    -- AnimalSystem/HusbandryMessage sends so a future refactor of this
+    -- function cannot leak the state event as a client-originated send.
+    --
+    -- Ordering note: this whole function is registered via
+    -- `Utils.prependedFunction` below, so it runs BEFORE the wrapped
+    -- function's own body. That ordering is fine TODAY because
+    -- `RLFilterStateEvent:run` on the receiver only touches
+    -- `g_rlFilterService` (initialised at mod load). If a future phase
+    -- ever validates against `g_farmManager` or `g_currentMission.userManager`
+    -- on the receiver, switch to `Utils.appendedFunction` so the wrapped
+    -- body's state events arrive first.
+    if g_rlFilterService ~= nil then
+        local filters = g_rlFilterService:list()
+        RLFilterStateEvent.sendEvent(filters, connection)
+        Log:debug("RealisticLivestock_FSBaseMission:sendInitialClientState: sent RLFilterStateEvent with %d filter(s) to new client",
+            #filters)
+    else
+        Log:warning("RealisticLivestock_FSBaseMission:sendInitialClientState: g_rlFilterService is nil; new client will have empty filter state")
+    end
+
+    -- M-Service S5: push the authoritative full Herdsman rule registry to the new
+    -- client so late-joiners converge with the server. Empty-set (count=0) is a
+    -- valid state event and still sends, giving a deterministic "clear-to-empty".
+    --
+    -- Routes through the static `RLHerdsmanRuleStateEvent.sendEvent` dispatcher
+    -- (not `connection:sendEvent(...new(...))` directly) so the `g_server == nil`
+    -- + nil-connection guards live on a single code path.
+    --
+    -- Same ordering note as the filter block above: this whole function is
+    -- `Utils.prependedFunction`-registered below, so it runs BEFORE the wrapped
+    -- body. That is fine today because `RLHerdsmanRuleStateEvent:run` on the
+    -- receiver only touches `g_rlHerdsmanRuleService` (eager source-time
+    -- singleton) and `g_server` (env), both valid before sendInitialClientState.
+    if g_rlHerdsmanRuleService ~= nil then
+        local rules = g_rlHerdsmanRuleService:list()
+        RLHerdsmanRuleStateEvent.sendEvent(rules, connection)
+        Log:debug("RealisticLivestock_FSBaseMission:sendInitialClientState: sent RLHerdsmanRuleStateEvent with %d rule(s) to new client",
+            #rules)
+    else
+        Log:warning("RealisticLivestock_FSBaseMission:sendInitialClientState: g_rlHerdsmanRuleService is nil; new client will have empty herdsman rule state")
+    end
 
 end
 

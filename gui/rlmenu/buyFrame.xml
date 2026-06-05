@@ -11,7 +11,7 @@
     Phase 2 rebinds the labels and wires value population.
 
     Differences from sellFrame.xml:
-      - Header icon is rlExtra.buy_animal (not sell_animal)
+      - Header icon is rlMenu.buy_animal (not sell_animal)
       - Header title is rl_menu_buy_title (not sell_title)
       - Sidebar selector onClick routes to onTypeChanged (not onHusbandryChanged)
       - Frame GUI name is RLMenuBuyFrame
@@ -38,6 +38,14 @@
         <!-- Dot indicators -->
         <BoxLayout profile="fs25_subCategorySelectorBox" id="subCategoryDotBox"/>
         <RoundCorner profile="fs25_subCategorySelectorDot" id="subCategoryDotTemplate"/>
+
+        <!-- Filter chip: readonly readout of currently-active saved filter
+            . Positioned in the 30px empty strip between
+             the dot indicators (bottom at y=-115) and the animal list
+             container (top at y=-145). X=28 aligns with the left edge of
+             the dealer-type selector body (fs25_subCategorySelector's
+             absoluteSizeOffset inset), in line with the left-arrow button. -->
+        <Text id="filterChip" profile="rlMenu_filterChip" text="$l10n_rl_menu_filter_chip_none" position="28px -125px"/>
 
         <!-- Animal list container -->
         <GuiElement profile="fs25_subCategoryListContainer" id="animalListContainer">
@@ -99,7 +107,7 @@
         <!-- Header panel (Buy icon + title + balance box) -->
         <GuiElement profile="fs25_menuHeaderPanel" position="0px 74px">
             <Bitmap profile="fs25_menuHeaderIconBg">
-                <Bitmap profile="fs25_menuHeaderIcon" imageSliceId="rlExtra.buy_animal"/>
+                <Bitmap profile="fs25_menuHeaderIcon" imageSliceId="rlMenu.buy_animal"/>
             </Bitmap>
             <Text profile="fs25_menuHeaderTitle" text="$l10n_rl_menu_buy_title"/>
             <RoundCorner profile="fs25_shopMoneyBoxBg" id="moneyBoxBg"/>

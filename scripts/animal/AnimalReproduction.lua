@@ -135,7 +135,7 @@ local function advancePregnancy(animal, spec, day, month, year, isSaleAnimal)
 
             if animal.impregnatedBy.uniqueId == nil then animal.impregnatedBy.uniqueId = "-1" end
             if animal.impregnatedBy.metabolism == nil then animal.impregnatedBy.metabolism = animal.genetics.metabolism end
-            if animal.impregnatedBy.quality == nil then animal.impregnatedBy.quality = animal.genetics.meatQuality end
+            if animal.impregnatedBy.quality == nil then animal.impregnatedBy.quality = animal.genetics.quality end
             if animal.impregnatedBy.health == nil then animal.impregnatedBy.health = animal.genetics.health end
             if animal.impregnatedBy.fertility == nil then animal.impregnatedBy.fertility = animal.genetics.fertility end
             if animal.impregnatedBy.productivity == nil then
@@ -675,19 +675,73 @@ function AnimalReproduction.reproduce(animal, spec, day, month, year, isSaleAnim
     if animal.pregnancy == nil or animal.pregnancy.pregnancies == nil then return 0, false, 0, 0 end
 
     local pregnancies = animal.pregnancy.pregnancies
-    local freeSlots = isSaleAnimal and 100 or (spec.maxNumAnimals - spec:getNumOfAnimals())
+
+    -- Sample the cluster-system pending queues so successive mothers in the
+    -- same onDayChanged tick see each other's already-queued newborns.
+    -- Without this, every mother reads the same pre-loop getNumOfAnimals()
+    -- snapshot and the pen overflows past maxNumAnimals.
+    local pendingAdds, pendingRemoves, pendingDelta = 0, 0, 0
+    if not isSaleAnimal and animal.clusterSystem ~= nil
+        and type(animal.clusterSystem.getPendingDelta) == "function" then
+        pendingAdds, pendingRemoves, pendingDelta = animal.clusterSystem:getPendingDelta()
+    end
+
+    local freeSlots = isSaleAnimal and 100
+        or (spec.maxNumAnimals - (spec:getNumOfAnimals() + pendingDelta))
     local childNum = #pregnancies
     local animalsToSell = 0
     local subType = animal:getSubType()
     local animalType = animal:getAnimalTypeIndex()
     local parentDied = false
 
+    Log:trace("reproduce freeSlots: maxNum=%d numOf=%d pendingDelta=%d -> freeSlots=%d",
+        spec.maxNumAnimals, spec:getNumOfAnimals(), pendingDelta, freeSlots)
     Log:trace("reproduce: animal=%s childNum=%d freeSlots=%d isSaleAnimal=%s",
         animal.uniqueId or "?", childNum, freeSlots, tostring(isSaleAnimal))
+
+    if pendingDelta ~= 0 then
+        local motherKey = RLAnimalUtil.toKey(
+            animal.farmId or "?",
+            animal.uniqueId or "?",
+            (animal.birthday and animal.birthday.country) or "?")
+        Log:debug("reproduce: pending-delta path active: motherKey=%s delta=%d",
+            motherKey, pendingDelta)
+    end
+
+    -- Rate-gated overcap WARNING (once per pen per day-change). Legacy saves
+    -- can enter the day-change already past maxNumAnimals; the clamp below
+    -- prevents further childNum corruption. Gate is cleared at the start of
+    -- PlaceableHusbandryAnimals:onDayChanged (spec.rlOvercapWarnedThisTick).
+    if not isSaleAnimal
+        and spec:getNumOfAnimals() > spec.maxNumAnimals
+        and spec.rlOvercapWarnedThisTick ~= true then
+        spec.rlOvercapWarnedThisTick = true
+        local penName = (animal.clusterSystem ~= nil
+            and animal.clusterSystem.owner ~= nil
+            and type(animal.clusterSystem.owner.getName) == "function")
+            and animal.clusterSystem.owner:getName() or "?"
+        local motherKey = RLAnimalUtil.toKey(
+            animal.farmId or "?",
+            animal.uniqueId or "?",
+            (animal.birthday and animal.birthday.country) or "?")
+        Log:warning("reproduce: pen %s entered day-change overcap (numOf=%d > max=%d) mother=%s; preventing further overflow",
+            tostring(penName), spec:getNumOfAnimals(), spec.maxNumAnimals,
+            tostring(motherKey))
+    end
 
     if freeSlots - childNum < 0 then
         animalsToSell = childNum - freeSlots
     end
+
+    -- Clamp animalsToSell to [0, litterSize] so a negative freeSlots from a
+    -- legacy-overshoot save cannot drive childNum negative (root cause for
+    -- the negative accumulator symptom).
+    local clampedSell = math.max(0, math.min(animalsToSell, #pregnancies))
+    if clampedSell ~= animalsToSell then
+        Log:debug("reproduce: animalsToSell clamped from %d to %d (litterSize=%d)",
+            animalsToSell, clampedSell, #pregnancies)
+    end
+    animalsToSell = clampedSell
 
     animal.monthsSinceLastBirth = 0
 
@@ -704,6 +758,8 @@ function AnimalReproduction.reproduce(animal, spec, day, month, year, isSaleAnim
     if not isSaleAnimal and animal.impregnatedBy ~= nil and animal.impregnatedBy.uniqueId ~= nil and animal.impregnatedBy.uniqueId ~= "-1" then
 
         local placeables = g_currentMission.placeableSystem.placeables
+        local motherTypeIndex = animal.animalTypeIndex
+        local crossSpeciesSkips = 0
 
         for _, placeable in ipairs(placeables) do
 
@@ -721,6 +777,21 @@ function AnimalReproduction.reproduce(animal, spec, day, month, year, isSaleAnim
 
             local animals = clusterSystem:getAnimals()
             for _, otherAnimal in ipairs(animals) do
+                -- Identity guard: identifiers are not species-unique because
+                -- FarmStats keeps per-species id counters, so the Nth sheep and the Nth
+                -- chicken on the same farm can share the (country,farmId,uniqueId) triple.
+                -- Skip cross-species matches before the identifier compare so the wrong
+                -- species cannot be selected as fatherFull and absorb childInfo via the
+                -- table.insert below.
+                if otherAnimal.animalTypeIndex ~= motherTypeIndex then
+                    if otherAnimal:getIdentifiers() == animal.impregnatedBy.uniqueId then
+                        crossSpeciesSkips = crossSpeciesSkips + 1
+                        Log:debug("reproduce: fatherFull lookup skipped cross-species collision (motherType=%s otherType=%s identifiers=%s)",
+                            tostring(motherTypeIndex), tostring(otherAnimal.animalTypeIndex), tostring(animal.impregnatedBy.uniqueId))
+                    end
+                    continue
+                end
+
                 if otherAnimal:getIdentifiers() ~= animal.impregnatedBy.uniqueId then continue end
 
                 fatherFull = otherAnimal
@@ -730,6 +801,10 @@ function AnimalReproduction.reproduce(animal, spec, day, month, year, isSaleAnim
             if fatherFull ~= nil then break end
 
         end
+
+        Log:trace("reproduce: fatherFull lookup result motherType=%s impregnatedBy=%s found=%s crossSpeciesSkips=%d",
+            tostring(motherTypeIndex), tostring(animal.impregnatedBy.uniqueId),
+            tostring(fatherFull ~= nil), crossSpeciesSkips)
 
     end
 

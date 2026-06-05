@@ -104,13 +104,19 @@ function AnimalAIDialog:updateDewars()
 end
 
 
-function AnimalAIDialog:onListSelectionChanged(list, index)
+-- SmoothListElement fires (list, section, index); the previous (list, index) signature
+-- silently captured the section (always 1) and recomputed the OK button against dewars[1]
+-- on every click.
+function AnimalAIDialog:onListSelectionChanged(list, section, index)
 
     local dewar = self.dewars[index]
 
     if dewar == nil then return end
 
-    self.okButton:setDisabled(not self.animal:getCanBeInseminatedByAnimal(dewar.animal))
+    local canInseminate, reason = self.animal:getCanBeInseminatedByAnimal(dewar.animal)
+    Log:trace("AnimalAIDialog:onListSelectionChanged: index=%s canInseminate=%s reason=%s", tostring(index), tostring(canInseminate), tostring(reason))
+
+    self.okButton:setDisabled(not canInseminate)
 
 end
 

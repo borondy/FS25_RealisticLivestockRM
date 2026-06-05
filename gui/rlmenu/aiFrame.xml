@@ -11,7 +11,7 @@
          Average Success + Quantity + stepper + total price. The container
          is visibility-toggled on bull-selection to avoid rendering nil-animal
          state (mirrors legacy aiInfoContainer at AnimalScreen.lua:629, 647).
-      3. Header icon is rlExtra.manage_animal; title is rl_menu_ai_title.
+      3. Header icon is rlMenu.manage_animal; title is rl_menu_ai_title.
 
     Right-side detail pane + pen-info placeholder are copied verbatim from
     buyFrame.xml so RLDetailPaneHelper works unchanged with nil husbandry.
@@ -91,7 +91,7 @@
         <!-- Header panel (AI icon + title + balance box) -->
         <GuiElement profile="fs25_menuHeaderPanel" position="0px 74px">
             <Bitmap profile="fs25_menuHeaderIconBg">
-                <Bitmap profile="fs25_menuHeaderIcon" imageSliceId="rlExtra.manage_animal"/>
+                <Bitmap profile="fs25_menuHeaderIcon" imageSliceId="rlMenu.manage_animal"/>
             </Bitmap>
             <Text profile="fs25_menuHeaderTitle" text="$l10n_rl_menu_ai_title"/>
             <RoundCorner profile="fs25_shopMoneyBoxBg" id="moneyBoxBg"/>

@@ -24,6 +24,7 @@ source(modDirectory .. "scripts/gui/MPLoadingScreen.lua")
 -- SECTION 2b: Utilities
 source(modDirectory .. "scripts/utils/RmSafeUtils.lua")
 source(modDirectory .. "scripts/utils/RLAnimalUtil.lua")
+source(modDirectory .. "scripts/utils/RLScaleHelper.lua")
 
 -- SECTION 2c: Constants
 source(modDirectory .. "scripts/core/RLConstants.lua")
@@ -92,6 +93,7 @@ source(modDirectory .. "scripts/fillTypes/RealisticLivestock_FillTypeManager.lua
 -- SECTION 11a: Map Bridge System
 source(modDirectory .. "scripts/bridge/RLVersionSpec.lua")
 source(modDirectory .. "scripts/bridge/RLMapBridge.lua")
+source(modDirectory .. "scripts/bridge/RLModBridge.lua")
 
 -- SECTION 11b: Breeding Mathematics
 source(modDirectory .. "scripts/animal/BreedingMath.lua")
@@ -109,6 +111,38 @@ source(modDirectory .. "scripts/animal/AnimalHealth.lua")
 source(modDirectory .. "scripts/animal/AnimalPersistence.lua")
 source(modDirectory .. "scripts/animal/AnimalSerialization.lua")
 
+-- SECTION 11g: Saveable Filters - headless service + MP events (Phase 0)
+source(modDirectory .. "scripts/filters/RLFilterFieldCatalog.lua")
+source(modDirectory .. "scripts/filters/RLFilterFieldDisplay.lua")
+source(modDirectory .. "scripts/filters/RLFilterEvaluator.lua")
+source(modDirectory .. "scripts/filters/RLFilterUsage.lua")
+source(modDirectory .. "scripts/filters/RLFilterSerialization.lua")
+source(modDirectory .. "scripts/filters/RLFilterWire.lua")
+source(modDirectory .. "scripts/filters/RLFilterService.lua")
+source(modDirectory .. "scripts/events/RLFilterCreateEvent.lua")
+source(modDirectory .. "scripts/events/RLFilterUpdateEvent.lua")
+source(modDirectory .. "scripts/events/RLFilterDeleteEvent.lua")
+source(modDirectory .. "scripts/events/RLFilterStateEvent.lua")
+-- QF -> saved-filter conversion module. Depends on RLFilterUsage (above) and
+-- RLScaleHelper (SECTION 2b); placed at the tail of 11g for legibility next to
+-- the filter stack it serves. Consumed by AnimalFilterDialog:onClickSaveFilter
+-- and the RLQuickFilterToSavedFilterTests suite.
+source(modDirectory .. "scripts/utils/RLQuickFilterToSavedFilter.lua")
+
+-- SECTION 11h: Herdsman Rules - headless service + persistence + MP events (M-Service S1-S5)
+-- In-memory rule registry (sibling of RLFilterService). Serializer before
+-- service (mirrors 11g): the service's saveToXMLFile/loadFromXMLFile call into
+-- RLHerdsmanRuleSerialization. Wire + Create/Update/Delete/State events after the
+-- service (the service references them only at call time, nil-guarded). Create ->
+-- Update -> Delete -> State order mirrors 11g's filter events.
+source(modDirectory .. "scripts/herdsman/RLHerdsmanRuleSerialization.lua")
+source(modDirectory .. "scripts/herdsman/RLHerdsmanRuleService.lua")
+source(modDirectory .. "scripts/herdsman/RLHerdsmanRuleWire.lua")
+source(modDirectory .. "scripts/events/RLHerdsmanRuleCreateEvent.lua")
+source(modDirectory .. "scripts/events/RLHerdsmanRuleUpdateEvent.lua")
+source(modDirectory .. "scripts/events/RLHerdsmanRuleDeleteEvent.lua")
+source(modDirectory .. "scripts/events/RLHerdsmanRuleStateEvent.lua")
+
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")
 source(modDirectory .. "scripts/gui/elements/RenderElement.lua")
@@ -125,6 +159,8 @@ source(modDirectory .. "scripts/gui/AnimalMoveDestinationDialog.lua")
 source(modDirectory .. "scripts/gui/AnimalInfoDialog.lua")
 source(modDirectory .. "scripts/gui/DiseaseDialog.lua")
 source(modDirectory .. "scripts/gui/EarTagColourPickerDialog.lua")
+source(modDirectory .. "scripts/gui/RLFilterConditionDialog.lua")
+source(modDirectory .. "scripts/gui/RLFilterValueSetDialog.lua")
 source(modDirectory .. "scripts/gui/FileExplorerDialog.lua")
 source(modDirectory .. "scripts/gui/InGameMenuSettingsFrame.lua")
 source(modDirectory .. "scripts/gui/ProfileDialog.lua")
@@ -137,6 +173,7 @@ source(modDirectory .. "scripts/gui/RealisticLivestock_InGameMenuAnimalsFrame.lu
 source(modDirectory .. "scripts/gui/rlmenu/services/RLMessageService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalQuery.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLGeneticsFormatter.lua")
+source(modDirectory .. "scripts/gui/rlmenu/services/RLPenFeedForecast.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalInfoService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLDetailPaneHelper.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalMoveService.lua")
@@ -144,12 +181,15 @@ source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalSellService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalBuyService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLDealerQuery.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAIStockService.lua")
+source(modDirectory .. "scripts/gui/rlmenu/services/RLFilterCycleHelper.lua")
+source(modDirectory .. "scripts/gui/rlmenu/services/RLFilterChipHelper.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuMessagesFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuInfoFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuMoveFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuSellFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuBuyFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuAIFrame.lua")
+source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuSettingsFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/RLMenu.lua")
 
 -- SECTION 14: Migration System

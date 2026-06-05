@@ -43,10 +43,11 @@ How well packs work together depends on what kind of changes they make:
 
 | Combination | Result |
 |-------------|--------|
-| Multiple balance packs | Generally safe. They only conflict if two packs change the exact same property on the exact same breed — in that case, the last one loaded wins silently. |
+| Multiple balance packs | Generally safe. They only conflict if two packs change the exact same property on the exact same breed - in that case, the last one loaded wins silently. |
 | Balance pack + breed pack | Safe. Balance packs don't touch models or visuals. |
 | Breed packs for **different** animal types (e.g., one adds cow breeds, another adds pig breeds) | Safe. They modify separate parts of the simulation. |
-| Breed packs for the **same** animal type (e.g., two cow breed packs) | **Will likely conflict.** Breed packs that add new visuals need to replace the model configuration for that animal type. Only one pack can do this — the second one overwrites the first, which can break the first pack's breeds (wrong textures, missing visuals, or errors). |
+| Breed packs for the **same** animal type (e.g., two cow breed packs) | **Will likely conflict.** Breed packs that add new visuals need to replace the model configuration for that animal type. Only one pack can do this - the second one overwrites the first, which can break the first pack's breeds (wrong textures, missing visuals, or errors). |
+| Map with map-native cattle/pig/sheep models + breed pack for the **same** animal type | **Will conflict.** A map that ships its own animal models replaces the model configuration the same way a breed pack does. Only one can win. Known case: [Le Mechet](map-le-mechet.md) (map-native French cattle models) is not compatible with the [Cow Breeds Pack for RLRM](https://github.com/ConGan98/FS25_CowBreedsRLRM) - on Le Mechet maps, disable the Cow Breeds pack. |
 
 ### Don't stack blindly
 

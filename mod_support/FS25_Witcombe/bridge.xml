@@ -2,12 +2,16 @@
     Version entries can use range specifiers (">=1.0,<1.1") with PEP 440 normalization.
     Specifiers use operators: >=, <=, >, <, ==, != with comma-separated AND logic.
     NOTE: XML requires < to be escaped as &lt; inside attribute values.
+
+    v1.0/ config tested against Witcombe Park Farm 1.2.0.0 (v3) and 1.3.0.0 (v4).
+    1.3.0.0 ships with byte-identical map/config/animals.xml + maps_fillTypes.xml
+    fillType names + bridge l10n keys vs 1.2.0.0; no per-config split is needed.
 -->
 <bridge>
     <configs>
         <config id="v1.0" path="v1.0/">
             <supportedVersions>
-                <version value=">=1.0,&lt;1.3"/>
+                <version value=">=1.0,&lt;1.4"/>
             </supportedVersions>
         </config>
     </configs>

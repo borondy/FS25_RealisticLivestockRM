@@ -10,6 +10,20 @@ function Animal.resolveSubType(subTypeIndex, subTypeName)
     local animalSystem = g_currentMission.animalSystem
     local subType = animalSystem:getSubTypeByIndex(subTypeIndex)
 
+    -- Index resolved to a subtype whose name differs from the streamed name.
+    -- Means the wire index came from a peer with a different subtype registry
+    -- (typically MP DLC asymmetry: server registered Highland Cattle, client did not,
+    -- so all later indices shift). Reject the index and let the name-based fallback
+    -- below resolve to the client-local index. Without this guard, the bug is silent:
+    -- subTypes[N] returns a valid-but-wrong subType (e.g. PIG_LANDRACE) and the animal
+    -- renders as the wrong breed/species on the client.
+    if subType ~= nil and subTypeName ~= nil and subTypeName ~= ""
+            and subType.name ~= subTypeName then
+        Log:warning("resolveSubType: subTypeIndex %d resolved to '%s' but stream named '%s' - using name lookup (DLC asymmetry?)",
+            subTypeIndex, subType.name, subTypeName)
+        subType = nil
+    end
+
     -- Try name-based lookup if index failed and name provided
     if subType == nil and subTypeName ~= nil and subTypeName ~= "" then
         local mappedIndex = animalSystem:getSubTypeIndexByName(subTypeName)
@@ -1106,7 +1120,7 @@ end
 
 function Animal:getHealthFactor() return AnimalHealth.getHealthFactor(self) end
 
--- Fertility/reproduction delegates → AnimalReproduction module
+-- Fertility/reproduction delegates -> AnimalReproduction module
 function Animal:getReproductionFactor() return AnimalReproduction.getReproductionFactor(self) end
 
 function Animal:getSupportsReproduction() return AnimalReproduction.getSupportsReproduction(self) end
@@ -1215,7 +1229,7 @@ function Animal:onDayChanged(spec, isServer, day, month, year, currentDayInPerio
     local children, deadAnimals, childrenSold, childrenSoldAmount =
         AnimalReproduction.processDaily(self, spec, day, month, year, isSaleAnimal)
 
-    -- Death evaluation: low health → old age → random accidents (with AnimalDeathEvent broadcast)
+    -- Death evaluation: low health -> old age -> random accidents (with AnimalDeathEvent broadcast)
     local lowHealthDeath, oldDeath, randomDeath, randomDeathMoney =
         AnimalHealth.evaluateDaily(self, spec)
 
@@ -1223,7 +1237,7 @@ function Animal:onDayChanged(spec, isServer, day, month, year, currentDayInPerio
         randomDeathMoney
 end
 
--- Reproduction delegates → AnimalReproduction module
+-- Reproduction delegates -> AnimalReproduction module
 function Animal:createPregnancy(childNum, month, year, father) AnimalReproduction.createPregnancy(self, childNum, month,
         year, father) end
 
@@ -1236,7 +1250,7 @@ function Animal:getAnimalTypeIndex()
     return g_currentMission.animalSystem:getTypeIndexBySubTypeIndex(self.subTypeIndex)
 end
 
--- Health/death delegates → AnimalHealth module
+-- Health/death delegates -> AnimalHealth module
 function Animal:die(reason) AnimalHealth.die(self, reason) end
 
 function Animal:calculateLowHealthMonthlyAnimalDeaths() return AnimalHealth.calculateLowHealthMonthlyAnimalDeaths(self) end
@@ -1337,6 +1351,33 @@ function Animal.onSettingChanged(name, state)
     Animal[name] = state
 end
 
+--- Pure daily-food formula extracted from Animal:updateInput so both the live
+--- path and the pen feed forecast (RLPenFeedForecast) share one source of truth.
+--- Mirrors the legacy `if fillType == "food"` branch verbatim.
+---@param age number               Animal age in months (reserved; not used yet -- kept for symmetry with forecast scratch state).
+---@param isLactating boolean      Lactation flag.
+---@param reproduction number|nil  Reproduction counter [0, 100].
+---@param numPregnancies number    Count of expected offspring; pass 0 when not pregnant.
+---@param metabolism number|nil    Genetics metabolism multiplier.
+---@param baseCurveValue number    `subType.input.food:get(age)` from the caller.
+---@param foodScale number|nil     Global food-scale setting (`RealisticLivestock_PlaceableHusbandryFood.foodScale`); defaults to 1 when nil.
+---@return number litersPerDay
+function Animal._computeDailyFood(age, isLactating, reproduction, numPregnancies, metabolism, baseCurveValue, foodScale)
+    local litersPerDay = baseCurveValue
+
+    if isLactating then litersPerDay = litersPerDay * 1.25 end
+
+    if reproduction ~= nil and reproduction > 0 and numPregnancies > 0 then
+        litersPerDay = litersPerDay * math.min(math.pow(1 + ((reproduction / 100) / 5), numPregnancies), 2.0)
+    end
+
+    if metabolism ~= nil then litersPerDay = litersPerDay * metabolism end
+
+    litersPerDay = litersPerDay * (foodScale or 1)
+
+    return litersPerDay
+end
+
 function Animal:updateInput()
     local subType = self:getSubType()
 
@@ -1345,15 +1386,17 @@ function Animal:updateInput()
         local litersPerDay = input:get(self.age)
 
         if fillType == "food" then
-            if self.isLactating then litersPerDay = litersPerDay * 1.25 end
-
-            if self.reproduction ~= nil and self.reproduction > 0 and self.pregnancy ~= nil and self.pregnancy.pregnancies ~= nil then
-                litersPerDay = litersPerDay * math.min(math.pow(1 + ((self.reproduction / 100) / 5), #self.pregnancy.pregnancies), 2.0)
-            end
-
-            if self.genetics.metabolism ~= nil then litersPerDay = litersPerDay * self.genetics.metabolism end
-
-            litersPerDay = litersPerDay * (RealisticLivestock_PlaceableHusbandryFood.foodScale or 1)
+            local numPregnancies = (self.pregnancy ~= nil and self.pregnancy.pregnancies ~= nil)
+                and #self.pregnancy.pregnancies or 0
+            litersPerDay = Animal._computeDailyFood(
+                self.age,
+                self.isLactating,
+                self.reproduction,
+                numPregnancies,
+                self.genetics.metabolism,
+                litersPerDay,
+                RealisticLivestock_PlaceableHusbandryFood.foodScale
+            )
         end
 
         if fillType == "water" then
@@ -1540,7 +1583,7 @@ function Animal:getHighestPriorityMark()
     return highest.key
 end
 
--- Insemination delegates → AnimalReproduction module
+-- Insemination delegates -> AnimalReproduction module
 function Animal:getCanBeInseminatedByAnimal(animal) return AnimalReproduction.getCanBeInseminatedByAnimal(self, animal) end
 
 function Animal:setInsemination(animal) AnimalReproduction.setInsemination(self, animal) end

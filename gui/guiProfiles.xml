@@ -153,5 +153,27 @@
 		<imageSliceId value="gui.map_box_selected"/>
 		<imageColor value="$preset_fs25_colorMainHighlight"/>
 	</Profile>
-	
+
+	<!-- Pen feed-forecast: red variant of fs25_animalSmallStatusBar used by
+	     RLDetailPaneHelper.updatePenDisplay when foodMonthsRemaining < 2.
+	     Color uses $preset_colorRed (0.8069 0.0097 0.0097 1, linear space;
+	     renders as deep red post-sRGB). The earlier 1 0.2 0 1 literal
+	     rendered orange after gamma correction. -->
+	<Profile name="rl_animalSmallStatusBarDanger" extends="fs25_animalSmallStatusBar">
+		<imageColor value="$preset_colorRed"/>
+		<imageFocusedColor value="$preset_colorRed"/>
+		<startImageColor value="$preset_colorRed"/>
+		<startImageFocusedColor value="$preset_colorRed"/>
+		<endImageColor value="$preset_colorRed"/>
+		<endImageFocusedColor value="$preset_colorRed"/>
+	</Profile>
+
+	<!-- Pen feed-forecast: red variant of fs25_animalRequirementsValue (the
+	     Total Capacity "Nl ( ~Xm )" text) for foodMonthsRemaining < 2.
+	     Same $preset_colorRed as the bar so the row reads as one alert. -->
+	<Profile name="rl_animalRequirementsValueDanger" extends="fs25_animalRequirementsValue">
+		<textColor value="$preset_colorRed"/>
+		<textBold value="true"/>
+	</Profile>
+
 </GUIProfiles>

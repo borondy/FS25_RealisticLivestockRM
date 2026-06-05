@@ -107,6 +107,19 @@ function RL_BroadcastSettingsEvent:run(connection)
 
     end
 
+    -- Refresh the RL Tabbed Menu Settings -> General subtab if it is open.
+    -- Mirrors the filter-event refresh hook pattern in
+    -- RLFilter{Create,Update,Delete}Event:run. No-op if g_rlMenu is not
+    -- constructed yet (early in load) or the frame is not the active tab.
+    -- Triggers on both branches: the multi-setting initial-connect sync
+    -- (self.setting == nil) and the single-setting path (admin
+    -- applyDefaultSettings or any future explicit per-setting broadcast).
+    if g_rlMenu ~= nil and g_rlMenu.settingsFrame ~= nil
+       and g_rlMenu.settingsFrame.refreshIfGeneralOpen ~= nil then
+        Log:trace("RL_BroadcastSettingsEvent:run: notifying RL menu Settings/General subtab")
+        g_rlMenu.settingsFrame:refreshIfGeneralOpen()
+    end
+
 end
 
 

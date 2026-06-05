@@ -41,6 +41,7 @@ The mod automatically detects supported maps and their installed version, loadin
 
 - **[Hof Bergmann](map-hof-bergmann.md)** - Ducks, geese, cats, rabbits, alpacas, and quail fully supported with breeding, genetics, and reproduction
 - **[Witcombe](map-witcombe.md)** - UK breeds (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) fully supported with breeding, genetics, and reproduction. Hereford also gets a heritage breed profile.
+- **[Le Mechet](map-le-mechet.md)** - French breeds (Charolaise, Montbeliarde, Simmental, Vosgienne) with their map-native 3D models, fully supported with breeding, genetics, and reproduction
 
 If a map updates to an untested version, you'll see a warning at game start - you're encouraged to report any issues.
 
@@ -75,6 +76,7 @@ In-depth explanations of the mod's core systems:
 
 - [Hof Bergmann](map-hof-bergmann.md) - Exotic animals, supported versions, and known limitations
 - [Witcombe](map-witcombe.md) - UK breeds, supported versions, and the Hereford heritage profile
+- [Le Mechet](map-le-mechet.md) - French breeds, supported versions, and the Hereford-hidden / Highland-remap caveats
 
 ### Customization
 

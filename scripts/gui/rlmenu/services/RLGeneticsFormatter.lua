@@ -7,7 +7,7 @@
 
     Thresholds match Animal:addGeneticsInfo. Pure module - no g_* access,
     no GUI calls. Unit-testable without a running mission. The optional
-    numericValue (0-99) is produced by RL_AnimalScreenBase.scaleToNinetyNine,
+    numericValue (0-99) is produced by RLScaleHelper.scaleToNinetyNine,
     the same helper that powers the in-game animal name tag.
 ]]
 
@@ -130,20 +130,20 @@ end
 
 --- Convert a raw 0.25..1.75 genetics value into the same 0-99 integer that
 --- the in-game animal name tag uses ([98-94:87:...]). Returns nil when the
---- shared helper is missing (see RL_AnimalScreenBase.scaleToNinetyNine in
---- scripts/animals/shop/controllers/AnimalScreenBase.lua). Caller renders the
---- nil case as "label only" (no number prefix).
+--- shared helper is missing (see RLScaleHelper.scaleToNinetyNine in
+--- scripts/utils/RLScaleHelper.lua). Caller renders the nil case as
+--- "label only" (no number prefix).
 ---
---- Silent when the helper is missing — the warning is emitted once per
+--- Silent when the helper is missing - the warning is emitted once per
 --- format() pass by the caller, not per row, to avoid log spam.
 --- @param value number|nil
 --- @return integer|nil
 function RLGeneticsFormatter.toNumericValue(value)
     if value == nil then return nil end
-    if RL_AnimalScreenBase == nil or RL_AnimalScreenBase.scaleToNinetyNine == nil then
+    if RLScaleHelper == nil or RLScaleHelper.scaleToNinetyNine == nil then
         return nil
     end
-    return RL_AnimalScreenBase.scaleToNinetyNine(value)
+    return RLScaleHelper.scaleToNinetyNine(value)
 end
 
 -- =============================================================================
@@ -184,7 +184,7 @@ end
 ---     not loaded). Same scale as the in-game name tag.
 ---
 --- Pure function: no side effects, no GUI, no g_* access. Uses the
---- RL_AnimalScreenBase.scaleToNinetyNine helper for the numeric value.
+--- RLScaleHelper.scaleToNinetyNine helper for the numeric value.
 ---
 --- @param genetics table|nil
 --- @param animalTypeIndex number|nil
@@ -208,8 +208,8 @@ function RLGeneticsFormatter.format(genetics, animalTypeIndex)
     -- label-only. toNumericValue() itself stays silent (emitting per row
     -- would spam 5-6 duplicate warnings on every menu refresh).
     if Log ~= nil
-        and (RL_AnimalScreenBase == nil or RL_AnimalScreenBase.scaleToNinetyNine == nil) then
-        Log:warning("RLGeneticsFormatter.format: RL_AnimalScreenBase.scaleToNinetyNine unavailable, rows will render as label-only (check main.lua load order)")
+        and (RLScaleHelper == nil or RLScaleHelper.scaleToNinetyNine == nil) then
+        Log:warning("RLGeneticsFormatter.format: RLScaleHelper.scaleToNinetyNine unavailable, rows will render as label-only (check main.lua load order)")
     end
 
     local rows = {}
@@ -289,7 +289,7 @@ function RLGeneticsFormatter.format(genetics, animalTypeIndex)
         numericValue = RLGeneticsFormatter.toNumericValue(quality),
     })
 
-    -- Row 6 (optional): Productivity — species-specific label
+    -- Row 6 (optional): Productivity - species-specific label
     local productivityLabel = RLGeneticsFormatter.getProductivityLabelKey(animalTypeIndex)
     if hasProductivity and productivityLabel ~= nil then
         local productivityKey = RLGeneticsFormatter.resolveTier(

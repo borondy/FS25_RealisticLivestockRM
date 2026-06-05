@@ -1,7 +1,7 @@
 <l10n>
 	<texts>
 		<!-- COWS -->
-		
+
 		<text name="fillType_bull" text="Boğa"/>
 		<text name="fillType_bull_swiss_brown" text="Montofon Boğa"/>
 		<text name="fillType_bull_holstein" text="Holstein Boğa"/>
@@ -21,7 +21,7 @@
 		<text name="fillType_bull_waterbuffalo" text="Manda Boğası"/>
 
 		<!-- PIGS -->
-		
+
 		<text name="fillType_boar" text="Erkek Domuz"/>
 		<text name="fillType_boar_landrace" text="Landrace Erkek Domuz"/>
 		<text name="fillType_boar_black_pied" text="Black-Pied Erkek Domuz"/>
@@ -32,7 +32,7 @@
 		<text name="animal_descriptionBoarYoung" text="Bu bir erkek domuz yavrusu."/>
 
 		<!-- SHEEP -->
-		
+
 		<text name="fillType_ram" text="Koç"/>
 		<text name="fillType_ram_landrace" text="Yerli Bentheim Koç"/>
 		<text name="fillType_ram_steinschaf" text="Steinschaf Koç"/>
@@ -49,7 +49,7 @@
 		<text name="rl_descriptionGoatReproduction" text="Sağlıklı ve 16 aydan büyük dişi keçiler üreyebilir."/>
 
 		<!-- HORSES -->
-		
+
 		<text name="fillType_stallion" text="Aygır"/>
 		<text name="fillType_stallion_gray" text="Gri Aygır"/>
 		<text name="fillType_stallion_pinto" text="Pinto Aygır"/>
@@ -71,7 +71,7 @@
 
         <!-- UI -->
 
-		
+
         <text name="input_VisualAnimalsDialog" text="Görüntülenen Hayvan Sayısını Değiştir"/>
         <text name="rl_button_apply" text="Uygula"/>
         <text name="rl_button_confirm" text="Onayla"/>
@@ -111,7 +111,7 @@
 		<text name="rl_ui_rename" text="İsim Değiştir"/>
 		<text name="rl_ui_cantFindAnimal" text="Hayvan bulunamadı"/>
 		<text name="rl_ui_maleNumImpregnatable" text="Ağılda hamile olmayan hayvanlar"/>
-		
+
 		<text name="rl_ui_breederQuality" text="Damızlık Kalitesi"/>
 		<text name="rl_ui_birthday" text="Doğum Günü"/>
 		<text name="rl_ui_pregnancyExpected" text="Beklenen"/>
@@ -147,7 +147,7 @@
 		<text name="rl_ui_genetics_good" text="İyi"/>
 		<text name="rl_ui_genetics_veryGood" text="Çok iyi"/>
 		<text name="rl_ui_genetics_extremelyGood" text="Aşırı iyi"/>
-		
+
 		<text name="rl_ui_buySelected" text="Seçilenleri satın al"/>
 		<text name="rl_ui_sellSelected" text="Seçilenleri sat"/>
 		<text name="rl_ui_moveSelected" text="Seçilenleri gönder"/>
@@ -188,7 +188,7 @@
 		<text name="rl_ui_output_pallets_goatMilk" text="Keçi Sütü"/>
 		<text name="rl_ui_amountPerDay" text="%.0fL / gün" tag="format"/>
 		<text name="rl_ui_feePerMonth" text="%s / ay" tag="format"/>
-		
+
 		<text name="rl_ui_animalType" text="Tür"/>
 		<text name="rl_ui_amountMonitored" text="İzlendi"/>
 		<text name="rl_ui_production" text="Ürünler"/>
@@ -466,7 +466,7 @@
 
 
 		<!--  SETTINGS  -->
-		
+
 
 		<text name="rl_settings" text="Gerçekçi Hayvancılık"/>
 
@@ -485,7 +485,7 @@
 
 		<text name="rl_settings_maxDealerAnimals_label" text="Maksimum Bayi Hayvanları"/>
 		<text name="rl_settings_maxDealerAnimals_tooltip" text="Hayvan satıcısının hayvan türü başına stokta bulunduracağı maksimum hayvan sayısını değiştirin"/>
-		
+
 		<text name="rl_settings_resetDealer_label" text="Hayvan bayisini sıfırla"/>
 		<text name="rl_settings_resetDealer_tooltip" text="Satıcının tüm hayvanlarını çıkarın ve stoğu yeni hayvanlarla doldurun"/>
 		<text name="rl_settings_resetDealer_text" text="Hayvan Bayisini Sıfırla"/>
@@ -515,9 +515,9 @@
 		<text name="rl_settings_animalsXML_label" text="Set Animals XML Path"/>
 		<text name="rl_settings_animalsXML_tooltip" text="Set path to a custom animals XML file"/>
 		<text name="rl_settings_animalsXML_text" text="Set Animals XML Path"/>
-		
-		
-		
+
+
+
 		<!--  HELP  -->
 
 
@@ -525,7 +525,7 @@
 		<text name="rl_help_monitors_1" text="Bir hayvanın istatistiklerinin çoğunu görmek için, ona bir izleme etiketi uygulamanız gerekir; bunu hayvan menüsünden (hayvan alıp sattığınız yer) yapabilirsiniz. İzleme etiketleri ayrıca görsel olarak hayvanın üzerinde, sol kulağında kimlik etiketinin yanında gösterilir."/>
 		<text name="rl_help_monitors_2" text="Etiketleri izlediğinizde, sağlık, ağırlık, emzirme, üretim ve saman, yiyecek ve su gereksinimleri dahil olmak üzere önemli bilgiler size gösterilecektir."/>
 		<text name="rl_help_monitors_3" text="Bir hayvana etiket uygulamak, hayvanın türüne bağlı olarak size küçük bir aylık aboneliğe mal olacaktır. Etiketi kaldırmayı seçerseniz, etiket bir sonraki ayın başında kaldırılacaktır."/>
-		
+
 		<text name="rl_help_pregnancy_title" text="Hamilelik"/>
 		<text name="rl_help_pregnancy_1" text="Dişi hayvanların hepsinin potansiyel olarak hamile kalabilmesi için en az 1 erkek hayvana ihtiyacı vardır. Her iki hayvan da doğru yaşta ve sağlıkta olmalı ve aynı türden olmalıdır. Farklı ırklar arasında üremeye izin verilir (örneğin: holstein ineği ve angus boğası)."/>
 		<text name="rl_help_pregnancy_2" text="Akraba evliliklerine izin verilmez. Eğer bir erkek ve bir dişi doğrudan akraba ise, birlikte üremeyeceklerdir."/>
@@ -537,11 +537,11 @@
 		<text name="rl_help_production_1" text="Her türden inek ancak doğum yaptıktan sonra süt üretmeye başlayacaktır. İnek doğum yaptıktan sonra 3 ay boyunca katlanarak süt üretecek, ardından sonraki 6 ay boyunca üretimi yavaşça düşecektir. Hamilelikten 10 ay sonra, inek bir sonraki hamileliğine kadar süt üretimini durduracaktır."/>
 		<text name="rl_help_production_2" text="Koyunlar sıcak aylarda yün üretecektir. Soğuk aylarda, 12C'nin altında, yün üretmeyecekler."/>
 		<text name="rl_help_production_3" text="Süt, yün ve yumurta üretimi hayvanın genetiğinden de etkilenir. İyi üretim genetiğine sahip bir hayvan daha fazla üretirken, kötü genetiğe sahip bir hayvan hiç üretmeyecektir."/>
-		
+
 		<text name="rl_help_weight_title" text="Ağırlık"/>
 		<text name="rl_help_weight_1" text="Hayvanların belirli bir ağırlığı vardır ve bu ağırlık ne kadar yiyip içtiklerinden etkilenir. Her türün ve ırkın kendi ortalama ağırlığı vardır ve bu da her hayvanın ağırlığını etkiler."/>
 		<text name="rl_help_weight_2" text="Ağırlık hayvanın değerini artırır ve düşük ağırlık her ay kaldırılma şansını etkiler."/>
-		
+
 		<text name="rl_help_genetics_title" text="Genetik"/>
 		<text name="rl_help_genetics_1" text="Her hayvanın 4 farklı genetik değeri vardır; metabolizma, doğurganlık, sağlık ve kalite. Genetik anne ve baba arasında karıştırılır ve daha sonra çocuklarına aktarılır."/>
 		<text name="rl_help_genetics_2" text="Metabolizma, hayvanın gıdayı ağırlığa dönüştürme kabiliyetini ve yediği miktarı etkiler."/>
@@ -693,12 +693,17 @@
         <text name="rl_mod_compat_url" text="https://rittermod.github.io/FS25_RealisticLivestockRM/user-guide/reference-mod-compatibility"/>
         <text name="rl_mod_warn_FS25_AnimalFoodCalculator" text="FS25_AnimalFoodCalculator: significant performance impact that grows with herd size."/>
 
-		
+
 
         <!-- Missing keys (English fallback) -->
         <text name="input_RL_MENU" text="Open RL Menu (new)"/>
         <text name="input_RL_RENAME" text="Rename"/>
+        <text name="input_RL_CYCLE_FILTER" text="Cycle Saved Filter"/>
         <text name="rl_bridge_version_unknown" text="Realistic Livestock: %s version %s has not been tested with version %s of Realistic Livestock. Using config '%s'. If you experience issues with exotic animals, please report them at %s."/>
+        <!-- TODO: localise -->
+        <text name="rl_bridge_configoverride_conflict_header" text="Realistic Livestock: Conflict detected. Two or more bridges/packs replaced configuration for the same animal type. Last-loaded mod wins. If you continue you will have visual glitches and ghost animals."/>
+        <!-- TODO: localise -->
+        <text name="rl_bridge_configoverride_conflict_line" text="%s: applied by %s"/>
         <text name="rl_menu_info_children" text="Children"/>
         <text name="rl_menu_info_diseases_header" text="Diseases"/>
         <text name="rl_menu_info_empty_no_animals" text="No animals in this husbandry"/>
@@ -730,18 +735,62 @@
         <text name="rl_menu_sell_cart_selected" text="Selected"/>
         <text name="rl_menu_sell_cart_empty" text="Select animals to sell"/>
 
-        <!-- Phase 5: Buy tab -->
+        <!-- Buy tab -->
         <text name="rl_menu_buy_title" text="Buy"/>
         <text name="rl_menu_buy_empty_no_types" text="The dealer has no animal types available"/>
         <text name="rl_menu_buy_empty_no_animals" text="No animals available at the dealer for this type"/>
         <text name="rl_menu_buy_cart_header" text="Purchase Summary"/>
         <text name="rl_menu_buy_cart_selected" text="Selected"/>
-        <!-- Phase 6: AI tab (English fallback) -->
+        <!-- AI tab (English fallback) -->
         <text name="rl_menu_ai_title" text="Artificial Insemination"/>
         <text name="rl_menu_ai_quantity" text="Quantity"/>
         <text name="rl_menu_ai_price" text="Price"/>
         <text name="rl_menu_ai_empty_no_stock" text="No bulls available at the dealer for this species"/>
         <text name="rl_menu_ai_empty_no_species" text="No animal species registered"/>
+        <!-- Settings tab shell (English fallback) -->
+        <text name="rl_menu_settings_title" text="Settings"/>
+        <text name="rl_menu_settings_tab_general" text="General"/>
+        <text name="rl_menu_settings_tab_filters" text="Filters"/>
+
+		<!-- Filters tab list -->
+		<text name="rl_menu_filters_quick_filter_title" text="Quick filter"/>
+		<text name="rl_ui_qf_saveFilter" text="Save filter"/>
+		<text name="rl_ui_qf_saveDropsValue" text="Saved filters don't support Value; this condition will not be carried over."/>
+		<text name="rl_menu_filters_empty" text="No saved filters yet"/>
+		<text name="rl_menu_filters_empty_no_farm" text="You need a farm to save filters"/>
+		<text name="rl_menu_filters_new_button" text="New filter"/>
+		<text name="rl_menu_filters_default_name" text="New filter"/>
+		<text name="rl_menu_filters_detail_placeholder" text="To be implemented"/>
+		<!-- Editor + Duplicate/Delete (English fallback) -->
+		<text name="rl_menu_filters_empty_editor" text="Select a filter to edit"/>
+		<text name="rl_menu_filters_editor_title_name" text="Name"/>
+		<text name="rl_menu_filters_editor_title_animal_type" text="Animal type"/>
+		<text name="rl_menu_filters_editor_title_op" text="Conditions"/>
+		<text name="rl_menu_filters_animal_type_any" text="Any"/>
+		<text name="rl_menu_filters_op_and" text="Match ALL"/>
+		<text name="rl_menu_filters_op_or" text="Match ANY"/>
+		<text name="rl_menu_filters_add_group_not_implemented" text="Add group is not yet implemented in this version."/>
+		<text name="rl_menu_filters_duplicate_button" text="Duplicate"/>
+		<text name="rl_menu_filters_delete_button" text="Delete"/>
+		<text name="rl_menu_filters_duplicate_suffix" text=" (copy)"/>
+		<text name="rl_menu_filters_duplicate_suffix_n" text=" (copy %d)"/>
+		<text name="rl_menu_filters_delete_confirm_text" text="Delete filter &quot;%s&quot;? This cannot be undone."/>
+		<!-- Usage scope axis -->
+		<text name="rl_menu_filters_editor_title_usage" text="Show on"/>
+		<text name="rl_menu_filters_usage_any" text="All screens"/>
+		<text name="rl_menu_filters_usage_owned" text="Owned-herd screens"/>
+		<text name="rl_menu_filters_usage_dealer" text="Dealer screens"/>
+		<text name="rl_menu_filters_valueOutOfRange_both" text="Value must be between %d and %d"/>
+		<text name="rl_menu_filters_valueOutOfRange_min" text="Value must be at least %d"/>
+		<text name="rl_menu_filters_valueOutOfRange_max" text="Value must be at most %d"/>
+
+		<!-- Filter cycle + chip MVP -->
+		<text name="rl_menu_filter_chip_none" text="No filter"/>
+		<text name="rl_menu_filter_chip_active" text="Filter: %s"/>
+		<text name="rl_menu_filter_chip_quick" text="Filter: QF"/>
+		<text name="rl_menu_filter_chip_quick_plus_saved" text="Filter: QF + %s"/>
+		<text name="rl_menu_cycle_filter_button" text="Cycle filter"/>
+		<text name="rl_menu_filter_chip_unnamed" text="(unnamed)"/>
         <text name="rl_settings_geneticsDisplay_label" text="Genetics Display"/>
         <text name="rl_settings_geneticsDisplay_texts_1" text="Off"/>
         <text name="rl_settings_geneticsDisplay_texts_2" text="Short"/>

@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!--
+    settingsFrame.xml
+    RL Tabbed Menu Settings tab: horizontal subcategory tab bar with
+    [General] and [Filters] panes.
+-->
+<GUI name="RLMenuSettingsFrame">
+    <GuiElement profile="fs25_menuContainer">
+
+        <!-- Header with settings gear icon -->
+        <GuiElement profile="fs25_menuHeaderPanel">
+            <Bitmap profile="fs25_menuHeaderIconBg">
+                <Bitmap profile="fs25_menuHeaderIcon" imageSliceId="gui.icon_options_generalSettings"/>
+            </Bitmap>
+            <Text profile="fs25_menuHeaderTitle" text="$l10n_rl_menu_settings_title"/>
+        </GuiElement>
+
+        <!-- Sub-category tab bar -->
+        <BoxLayout profile="fs25_subCategorySelectorTabbedBox" id="subCategoryBox">
+            <Button profile="fs25_subCategorySelectorTabbedTab" id="subCategoryTabs[1]"
+                    text="$l10n_rl_menu_settings_tab_general" onClick="onClickGeneralTab">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
+            <Button profile="fs25_subCategorySelectorTabbedTab" id="subCategoryTabs[2]"
+                    text="$l10n_rl_menu_settings_tab_filters" onClick="onClickFiltersTab">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
+        </BoxLayout>
+        <ThreePartBitmap profile="fs25_lineSeparatorTopHighlighted" position="0px -57px"/>
+        <MultiTextOption profile="fs25_subCategorySelectorTabbed" id="subCategoryPaging"
+                         position="0px -10px" onClick="updateSubCategoryPages"/>
+
+        <!-- Page 1: General (mirrors legacy in-game settings page contents) -->
+        <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="subCategoryPages[1]">
+
+            <!-- ScrollingLayout uses fs25_settingsLayout. Rows render in
+                 source order; per-section 20px GuiElement spacers act as
+                 visual gaps without text headers. Order matches
+                 RLSettings.SETTINGS index 1..17. -->
+            <ScrollingLayout profile="fs25_settingsLayout" id="generalSettingsLayout">
+
+                <!-- 1. Mortality -->
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_deathEnabled">
+                    <BinaryOption profile="fs25_settingsBinaryOption" id="rlmenuSetting_deathEnabled" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </BinaryOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_deathEnabled_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_accidentsChance">
+                    <MultiTextOption profile="fs25_settingsMultiTextOption" id="rlmenuSetting_accidentsChance" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </MultiTextOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_accidentsChance_label"/>
+                </Bitmap>
+
+                <GuiElement size="100% 20px" name="sectionHeader"/>
+
+                <!-- 2. Health & Disease -->
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_diseasesEnabled">
+                    <BinaryOption profile="fs25_settingsBinaryOption" id="rlmenuSetting_diseasesEnabled" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </BinaryOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_diseasesEnabled_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_diseasesChance">
+                    <MultiTextOption profile="fs25_settingsMultiTextOption" id="rlmenuSetting_diseasesChance" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </MultiTextOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_diseasesChance_label"/>
+                </Bitmap>
+
+                <GuiElement size="100% 20px" name="sectionHeader"/>
+
+                <!-- 3. Husbandry & Economy -->
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_foodScale">
+                    <MultiTextOption profile="fs25_settingsMultiTextOption" id="rlmenuSetting_foodScale" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </MultiTextOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_foodScale_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_maxDealerAnimals">
+                    <MultiTextOption profile="fs25_settingsMultiTextOption" id="rlmenuSetting_maxDealerAnimals" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </MultiTextOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_maxDealerAnimals_label"/>
+                </Bitmap>
+
+                <GuiElement size="100% 20px" name="sectionHeader"/>
+
+                <!-- 4. Custom Animals -->
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_useCustomAnimals">
+                    <BinaryOption profile="fs25_settingsBinaryOption" id="rlmenuSetting_useCustomAnimals" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </BinaryOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_useCustomAnimals_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_animalsXML">
+                    <Button profile="rl_settingsButton" id="rlmenuSetting_animalsXML" text="$l10n_rl_settings_animalsXML_text" onClick="onClickGeneralAction">
+                        <ThreePartBitmap profile="fs25_settingsButtonBg"/>
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </Button>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_animalsXML_label"/>
+                </Bitmap>
+
+                <GuiElement size="100% 20px" name="sectionHeader"/>
+
+                <!-- 5. Message Log -->
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_messageSummary">
+                    <BinaryOption profile="fs25_settingsBinaryOption" id="rlmenuSetting_messageSummary" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </BinaryOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_messageSummary_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_maxNumMessages">
+                    <MultiTextOption profile="fs25_settingsMultiTextOption" id="rlmenuSetting_maxNumMessages" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </MultiTextOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_maxNumMessages_label"/>
+                </Bitmap>
+
+                <GuiElement size="100% 20px" name="sectionHeader"/>
+
+                <!-- 6. Display Preferences -->
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_geneticsDisplay">
+                    <MultiTextOption profile="fs25_settingsMultiTextOption" id="rlmenuSetting_geneticsDisplay" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </MultiTextOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_geneticsDisplay_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_geneticsPosition">
+                    <BinaryOption profile="fs25_settingsBinaryOption" id="rlmenuSetting_geneticsPosition" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </BinaryOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_geneticsPosition_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_sortByGenetics">
+                    <BinaryOption profile="fs25_settingsBinaryOption" id="rlmenuSetting_sortByGenetics" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </BinaryOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_sortByGenetics_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_tagColour">
+                    <Button profile="rl_settingsButton" id="rlmenuSetting_tagColour" text="$l10n_rl_settings_tagColour_text" onClick="onClickGeneralAction">
+                        <ThreePartBitmap profile="fs25_settingsButtonBg"/>
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </Button>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_tagColour_label"/>
+                </Bitmap>
+
+                <GuiElement size="100% 20px" name="sectionHeader"/>
+
+                <!-- 7. Tools & Admin -->
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_exportCSV">
+                    <Button profile="rl_settingsButton" id="rlmenuSetting_exportCSV" text="$l10n_rl_settings_exportCSV_text" onClick="onClickGeneralAction">
+                        <ThreePartBitmap profile="fs25_settingsButtonBg"/>
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </Button>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_exportCSV_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_resetDealer">
+                    <Button profile="rl_settingsButton" id="rlmenuSetting_resetDealer" text="$l10n_rl_settings_resetDealer_text" onClick="onClickGeneralAction">
+                        <ThreePartBitmap profile="fs25_settingsButtonBg"/>
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </Button>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_resetDealer_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_resetAIAnimals">
+                    <Button profile="rl_settingsButton" id="rlmenuSetting_resetAIAnimals" text="$l10n_rl_settings_resetAIAnimals_text" onClick="onClickGeneralAction">
+                        <ThreePartBitmap profile="fs25_settingsButtonBg"/>
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </Button>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_resetAIAnimals_label"/>
+                </Bitmap>
+
+            </ScrollingLayout>
+
+            <!-- SliderBox moved out to top level under
+                 <GUI>; see end-of-file. Visibility toggle in
+                 RLMenuSettingsFrame.lua (updateSubCategoryPages) hides
+                 it on the Filters tab. -->
+
+        </GuiElement>
+
+        <!-- Page 2: Filters -->
+        <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="subCategoryPages[2]">
+
+            <!-- 410px sidebar panel, leaves right portion of pane free for the editor. -->
+            <GuiElement profile="fs25_subCategoryContainer" id="filtersListContainer">
+                <Bitmap profile="fs25_subCategoryStartClipper" name="filtersStartClipper"/>
+                <Bitmap profile="fs25_subCategoryStopClipper" name="filtersEndClipper"/>
+
+                <SmoothList profile="rl_filterList"
+                            id="filtersList"
+                            startClipperElementName="filtersStartClipper"
+                            endClipperElementName="filtersEndClipper">
+                    <ListItem profile="rl_filterListItem" name="defaultCell">
+                        <Text profile="rl_filterListItemName" name="filterName"/>
+                    </ListItem>
+                </SmoothList>
+
+                <Text profile="fs25_animalListEmptyText"
+                      id="filtersEmptyState"
+                      text="$l10n_rl_menu_filters_empty"/>
+
+                <ThreePartBitmap profile="fs25_subCategoryListSliderBox" id="filtersSliderBox">
+                    <Slider profile="fs25_listSlider" dataElementId="filtersList" id="filtersSlider"/>
+                </ThreePartBitmap>
+            </GuiElement>
+
+            <!-- Editor pane: right-side sibling of filtersListContainer.
+                 Uses RL-local profile rlMenu_filterEditorContainer (defined
+                 in rlMenuProfiles.xml) which stretches both axes inside the
+                 parent subCategoryPages[2] and trims width by 410px to leave
+                 the left list its sidebar space. Reusing fs25_subCategoryContainer
+                 was attempted first but failed: that profile's anchorStretchingYLeft
+                 pins width to 410px regardless of inline size overrides,
+                 leaving the editor at 410px wide (runtime-verified by the
+                 measure log on the first try). Empty-state Text + three-row
+                 ScrollingLayout (Name / AnimalType / AND-OR) + docked slider
+                 column. Visibility toggle goes through this wrapper. -->
+            <GuiElement profile="rlMenu_filterEditorContainer" id="filterEditorContainer">
+
+                <Text profile="fs25_animalListEmptyText"
+                      id="filterEditorEmpty"
+                      text="$l10n_rl_menu_filters_empty_editor"/>
+
+                <!-- Robust layout (2026-05-17): cap the metadata
+                     ScrollingLayout to 280px so it occupies just enough room
+                     for the 4 rows. The remaining vertical space below is
+                     used by the conditions list (stretches) + footer row
+                     (bottom-anchored). Each region adapts to the parent's
+                     aspect-driven height. -->
+                <ScrollingLayout profile="fs25_settingsLayout" id="filterEditorLayout"
+                                 size="100% 280px"
+                                 position="0px 0px">
+
+                    <!-- Row 1: Name. Canonical settings-row TextInput pattern:
+                         fs25_settingsTextInput profile (anchorMiddleRight so
+                         the input lands on the right of the row like the
+                         MultiTextOption widgets below) plus the three required
+                         children (bg ThreePartBitmap, icon box with edit
+                         pencil). imeDescription / imeTitle drive the on-screen
+                         keyboard for controller users. -->
+                    <Bitmap profile="fs25_multiTextOptionContainer">
+                        <TextInput profile="fs25_settingsTextInput" id="filterNameInput"
+                                   onTextChanged="onFilterNameChanged"
+                                   focusOnHighlight="true"
+                                   imeDescription="$l10n_rl_menu_filters_editor_title_name"
+                                   imePlaceholder="$l10n_rl_menu_filters_editor_title_name"
+                                   imeTitle="$l10n_rl_menu_filters_editor_title_name">
+                            <ThreePartBitmap profile="fs25_textInputBg"/>
+                            <Bitmap profile="fs25_textInputIconBox">
+                                <Bitmap profile="fs25_textInputIcon"/>
+                            </Bitmap>
+                        </TextInput>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_name"/>
+                    </Bitmap>
+
+                    <!-- Row 2: Animal type scope hint -->
+                    <Bitmap profile="fs25_multiTextOptionContainer">
+                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="filterAnimalTypeSelector" onClick="onAnimalTypeChanged"/>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_animal_type"/>
+                    </Bitmap>
+
+                    <!-- Row 3: Usage scope - which consumer frames the
+                         filter appears on. State 1=ANY, 2=OWNED, 3=DEALER per
+                         spec Boundaries "Editor row" bullet; wire byte order
+                         (0/1/2) matches state-index minus 1 for cognitive
+                         parity with the wire codec.
+                         Moved from row 4 to row 3 so the
+                         match-logic (Conditions) row sits at the bottom of
+                         the metadata block. Source-order swap also reorders
+                         keyboard/gamepad focus traversal - intentional. -->
+                    <Bitmap profile="fs25_multiTextOptionContainer">
+                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="filterUsageSelector" onClick="onUsageChanged"/>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_usage"/>
+                    </Bitmap>
+
+                    <!-- Row 4: Conditions match-logic (stored AND/OR; displayed
+                         "Match ALL" / "Match ANY" per item 5). -->
+                    <Bitmap profile="fs25_multiTextOptionContainer">
+                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="filterOpSelector" onClick="onOpChanged"/>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_op"/>
+                    </Bitmap>
+
+                </ScrollingLayout>
+
+                <!-- Layout fix (2026-05-17 in-game playtest): the docked
+                     slider for filterEditorLayout (fs25_sliderDockedBg) was
+                     present but useless - only 4 fixed metadata rows, never
+                     scrolls. Its full-height dark right-edge bar was visible
+                     in the in-game playtest as a misplaced "scroller" and
+                     consumed layout width that the conditions list needed.
+                     Removed entirely. The ScrollingLayout still works without
+                     a visible scroll thumb. -->
+
+                <!-- Preserved-node banner. Shows "%d condition(s)
+                     hidden - editable in a later phase. Saved on close." when
+                     the partition step finds nested groups or enum/string/
+                     in/notin conditions that the editor cannot render.
+                     Hidden when preserved count == 0.
+                     Profile rl_filterConditionsBanner pins
+                     this element just above the conditions list (was floating
+                     mid-list at the old position="20px 290px" with default
+                     anchorBottomLeft). Same element is also reused as a
+                     transient subType-refuse surface (RLMenuSettingsFrame.lua
+                     :2138-2148). Both messages now render above the list. -->
+                <Text profile="rl_filterConditionsBanner" id="filterConditionsBanner"
+                      visible="false"/>
+
+                <!-- Conditions list container. SmoothList of condition
+                     rows + paired Slider; mirrors the structure of the left-
+                     pane `filtersList` (lines 192-212 above). Row template
+                     carries a field picker, cmp picker, two value widgets
+                     (number TextInput + bool MultiTextOption, toggled via
+                     setVisible from Lua), and a delete button. -->
+                <!-- Scrollable middle. Uses rlMenu_filterEditorMiddle profile
+                     which carries the stretching-Y anchor + size offset
+                     reservations. Trait composition lives in the profile,
+                     not on this element. -->
+                <GuiElement profile="rlMenu_filterEditorMiddle" id="filterConditionsListContainer">
+                    <Bitmap profile="fs25_subCategoryStartClipper" name="filterConditionsStartClipper"/>
+                    <Bitmap profile="fs25_subCategoryStopClipper" name="filterConditionsEndClipper"/>
+
+                    <SmoothList profile="rlMenu_filterConditionsList"
+                                id="filterConditionsList"
+                                startClipperElementName="filterConditionsStartClipper"
+                                endClipperElementName="filterConditionsEndClipper">
+                        <!-- V2 modal editor (2026-05-17): row template is
+                             a single read-only Text widget showing the
+                             formatted condition ("age >= 30"). Edits go
+                             through RLFilterConditionDialog (Tier 3 action
+                             bar's Edit button on MENU_ACCEPT), so the row
+                             carries no inline pickers / inputs / delete
+                             button. Phase 2 indent applies via the Text's
+                             position offset (depth * 20px), computed in
+                             populateCellForItemInSection. Without inline
+                             widgets the row template stays stable across
+                             field-type swaps and Phase 2 group rows. -->
+                        <ListItem profile="rlMenu_filterConditionRow" name="defaultCell">
+                            <!-- Legacy parity with rl_moveDestName usage in
+                                 AnimalMoveDestinationDialog.xml:18. Profile
+                                 uses anchorTopLeft (anchors=0 0 1 1; pivot=
+                                 0 1) so the explicit size attribute is
+                                 honored. Position Y=-10px puts the text
+                                 baseline 10px below the row top (FS25 Y-up
+                                 -> negative is "below anchor"); matches the
+                                 -5px legacy offset scaled for our 50px row
+                                 (vs legacy 55px). populateCellForItemInSection
+                                 shifts X via setPosition for indent. -->
+                            <Text profile="rl_filterConditionText" name="conditionText"
+                                  position="20px -10px" size="800px 28px"/>
+                        </ListItem>
+                    </SmoothList>
+
+                    <ThreePartBitmap profile="fs25_subCategoryListSliderBox" id="filterConditionsSliderBox">
+                        <Slider profile="fs25_listSlider" dataElementId="filterConditionsList" id="filterConditionsSlider"/>
+                    </ThreePartBitmap>
+                </GuiElement>
+
+                <!-- (2026-05-17): in-pane [+ condition] footer
+                     removed. The action lives on the action bar via
+                     RLMenuSettingsFrame.addConditionButtonInfo
+                     (MENU_ACCEPT) appended in updateButtonVisibility
+                     when a filter is selected. The conditions list
+                     stretches to fill the remaining vertical space below
+                     the metadata layout. -->
+
+
+            </GuiElement>
+
+        </GuiElement>
+
+    </GuiElement>
+
+    <!-- Docked vertical scrollbar for the General tab
+         settings list. TOP-LEVEL sibling of the menu container so its
+         right edge lands at the screen right edge instead of inside the
+         menu chrome. Matches the slider placement used in our other
+         settings frames. Visibility is toggled in updateSubCategoryPages
+         (hidden on the Filters tab since the filter list has its own
+         slider). -->
+    <ThreePartBitmap profile="fs25_sliderDockedBg" id="generalSettingsSliderBox">
+        <ThreePartBitmap profile="fs25_sliderDockedBox">
+            <Slider profile="fs25_sliderDocked" id="generalSettingsSlider" dataElementId="generalSettingsLayout"/>
+        </ThreePartBitmap>
+    </ThreePartBitmap>
+</GUI>

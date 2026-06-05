@@ -43,6 +43,14 @@
         <BoxLayout profile="fs25_subCategorySelectorBox" id="subCategoryDotBox"/>
         <RoundCorner profile="fs25_subCategorySelectorDot" id="subCategoryDotTemplate"/>
 
+        <!-- Filter chip: readonly readout of currently-active saved filter
+            . Positioned in the 30px empty strip between
+             the dot indicators (bottom at y=-115) and the animal list
+             container (top at y=-145). X=28 aligns with the left edge of
+             the husbandry selector body (fs25_subCategorySelector's
+             absoluteSizeOffset inset), in line with the left-arrow button. -->
+        <Text id="filterChip" profile="rlMenu_filterChip" text="$l10n_rl_menu_filter_chip_none" position="28px -125px"/>
+
         <!-- Animal list container -->
         <GuiElement profile="fs25_subCategoryListContainer" id="animalListContainer">
             <Bitmap profile="fs25_subCategoryStartClipper" name="startClipper"/>
@@ -114,7 +122,7 @@
         -->
         <GuiElement profile="fs25_menuHeaderPanel" position="0px 74px">
             <Bitmap profile="fs25_menuHeaderIconBg">
-                <Bitmap profile="fs25_menuHeaderIcon" imageSliceId="rlExtra.info_animal"/>
+                <Bitmap profile="fs25_menuHeaderIcon" imageSliceId="rlMenu.info_animal"/>
             </Bitmap>
             <Text profile="fs25_menuHeaderTitle" text="$l10n_rl_menu_info_title"/>
             <RoundCorner profile="fs25_shopMoneyBoxBg" id="moneyBoxBg"/>

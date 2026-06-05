@@ -1,0 +1,15 @@
+<texture>
+	<meta>
+		<filename>icons_menu.dds</filename>
+		<size width="512" height="512"/>
+	</meta>
+	<slices>
+		<slice id="buy_animal" uvs="0px 0px 128px 128px"/>
+		<slice id="sell_animal" uvs="128px 0px 128px 128px"/>
+		<slice id="move_animal" uvs="256px 0px 128px 128px"/>
+		<slice id="info_animal" uvs="384px 0px 128px 128px"/>
+		<slice id="manage_animal" uvs="0px 128px 128px 128px"/>
+		<slice id="notify_animal" uvs="128px 128px 128px 128px"/>
+		<slice id="herdsman" uvs="256px 128px 128px 128px"/>
+	</slices>
+</texture>

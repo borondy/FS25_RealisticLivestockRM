@@ -126,10 +126,16 @@ function AnimalBuyEvent:run(connection)
 		g_currentMission:addMoney(self.buyPrice + self.transportPrice, farmId, MoneyType.NEW_ANIMALS_COST, true, true)
 		connection:sendEvent(AnimalBuyEvent.newServerToClient(AnimalBuyEvent.BUY_SUCCESS))
 
-		if #self.animals == 1 then
-			self.object:addRLMessage("BOUGHT_ANIMALS_SINGLE", nil, { g_i18n:formatMoney(math.abs(self.buyPrice + self.transportPrice), 2, true, true) })
-		elseif #self.animals > 0 then
-			self.object:addRLMessage("BOUGHT_ANIMALS_MULTIPLE", nil, { #self.animals, g_i18n:formatMoney(math.abs(self.buyPrice + self.transportPrice), 2, true, true) })
+		-- Object may be a trailer on trailer-based dealer buys; only husbandry
+		-- placeables carry addRLMessage.
+		if self.object.addRLMessage ~= nil then
+			if #self.animals == 1 then
+				self.object:addRLMessage("BOUGHT_ANIMALS_SINGLE", nil, { g_i18n:formatMoney(math.abs(self.buyPrice + self.transportPrice), 2, true, true) })
+			elseif #self.animals > 0 then
+				self.object:addRLMessage("BOUGHT_ANIMALS_MULTIPLE", nil, { #self.animals, g_i18n:formatMoney(math.abs(self.buyPrice + self.transportPrice), 2, true, true) })
+			end
+		else
+			Log:trace("AnimalBuyEvent:run: skipping addRLMessage (object has no husbandryAnimals spec, likely trailer buy) N=%d", #self.animals)
 		end
 		Log:trace("AnimalBuyEvent:run phase: addMoney+sendEvent+addRLMessage took %.2fms", phaseDoneMs())
 

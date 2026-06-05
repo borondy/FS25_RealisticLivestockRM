@@ -16,6 +16,15 @@ function RLConsoleCommandManager.new()
         addConsoleCommand("rlSetAnimalGenetics", "Set the genetics of the targeted animal", "setGenetics", self, "[geneticType] [value]")
         addConsoleCommand("rlSetAnimalInput", "Set the input of the targeted animal", "setInput", self, "[inputType] [value]")
         addConsoleCommand("rlSetAnimalOutput", "Set the output of the targeted animal", "setOutput", self, "[outputType] [value]")
+        -- Saveable filters -- dev commands for manual save/load verification.
+        -- Scope hardcoded to COW/farm 1 because the goal is round-trip smoke testing,
+        -- not real-world filter authoring (the UI lives in the Settings tab).
+        addConsoleCommand("rlFilterCreate", "Create a sample saveable filter (age>=48 AND isPregnant==false, COW/farm 1)", "createFilter", self, "[name]")
+        addConsoleCommand("rlFilterList", "List all saveable filters currently in memory", "listFilters", self, "")
+        addConsoleCommand("rlFilterClear", "Clear all saveable filters (SP diagnostic only)", "clearFilters", self, "")
+        -- Engine cap probe: requires writing to engine husbandries, server-side only.
+        addConsoleCommand("rlTestAnimalConfigCap", "Probe engine per-type config slot cap by calling addHusbandryAnimal idx 0..127 on each active husbandry", "testAnimalConfigCap", self, "[maxIdx]")
+        addConsoleCommand("rlTestAnimalConfigCapFresh", "Probe whether a fresh createAnimalHusbandry call (different XML / different typeName) gets its own 32-window. Requires AnimalCapProbe pack with heritage config.", "testAnimalConfigCapFresh", self, "[maxIdx]")
     end
 
     -- Read-only debug commands - safe on SP, MP host, and MP client.
@@ -32,6 +41,270 @@ function RLConsoleCommandManager:dumpSettings()
     Log:debug("rlDumpSettings: invoked")
     RLDebugUtils.dumpSettings()
     return "rlDumpSettings: see log.txt"
+end
+
+
+--- Console handler for rlTestAnimalConfigCap. Probes the engine's per-type
+--- visual-template cap by calling addHusbandryAnimal(husbandryId, idx) for
+--- idx = 0..maxIdx on one active husbandry per animal type. Spawned visual
+--- animals are removed before the handler returns; cluster bookkeeping is
+--- never mutated.
+---
+--- Calls the same engine primitive as basegame AnimalClusterHusbandry:191
+--- and RLRM RealisticLivestock_AnimalClusterHusbandry:201/241/248.
+---
+--- Pair with the FS25_AnimalCapProbe RLRM pack to push every per-type config
+--- past 32 slots so the cap can be observed.
+---@param maxIdxStr string|nil  upper bound for probe idx (default 127)
+---@return string                confirmation message printed to the console
+function RLConsoleCommandManager:testAnimalConfigCap(maxIdxStr)
+    local maxIdx = tonumber(maxIdxStr) or 127
+    Log:info("[CapProbe] === rlTestAnimalConfigCap invoked (maxIdx=%d) ===", maxIdx)
+
+    local animalSystem = self.animalSystem
+    local husbandrySystem = self.husbandrySystem
+    if animalSystem == nil or husbandrySystem == nil then
+        Log:warning("[CapProbe] animalSystem or husbandrySystem unavailable; aborting")
+        return "rlTestAnimalConfigCap: animalSystem/husbandrySystem unavailable (load a save first)"
+    end
+
+    -- Index the first active husbandry per animal type.
+    local typeIndexToPlaceable = {}
+    for _, placeable in ipairs(husbandrySystem.placeables) do
+        local typeIdx = placeable:getAnimalTypeIndex()
+        if typeIdx ~= nil and typeIndexToPlaceable[typeIdx] == nil then
+            typeIndexToPlaceable[typeIdx] = placeable
+        end
+    end
+    Log:info("[CapProbe] Found active husbandries for %d animal type(s) across %d placeable(s)",
+        table.size(typeIndexToPlaceable), #husbandrySystem.placeables)
+
+    local summary = {}
+
+    for typeIdx, animalType in ipairs(animalSystem.types) do
+        local typeName = animalType.name or "?"
+        local luaCount = (animalType.animals ~= nil) and #animalType.animals or 0
+        Log:info("[CapProbe] --- type=%s (typeIdx=%d) luaConfigRows=%d ---", typeName, typeIdx, luaCount)
+
+        local placeable = typeIndexToPlaceable[typeIdx]
+        if placeable == nil then
+            Log:warning("[CapProbe]   no active husbandry of type %s; skipping engine probe", typeName)
+            summary[typeName] = string.format("luaRows=%d  cap=NO-HUSBANDRY", luaCount)
+            continue
+        end
+
+        local spec = placeable.spec_husbandryAnimals
+        if spec == nil or spec.clusterHusbandry == nil then
+            Log:warning("[CapProbe]   placeable for %s lacks spec_husbandryAnimals.clusterHusbandry; skipping", typeName)
+            summary[typeName] = string.format("luaRows=%d  cap=NO-CLUSTER", luaCount)
+            continue
+        end
+
+        local husbandryId = spec.clusterHusbandry.husbandryId
+        if husbandryId == nil then
+            Log:warning("[CapProbe]   clusterHusbandry for %s has nil husbandryId; skipping", typeName)
+            summary[typeName] = string.format("luaRows=%d  cap=NO-HUSBANDRY-ID", luaCount)
+            continue
+        end
+        Log:info("[CapProbe]   probing husbandryId=%s with idx=0..%d", tostring(husbandryId), maxIdx)
+
+        local spawned = {}
+        local successes = 0
+        local failures = {}
+        for idx = 0, maxIdx do
+            local animalId = addHusbandryAnimal(husbandryId, idx)
+            if animalId == nil or animalId == 0 then
+                table.insert(failures, idx)
+                Log:debug("[CapProbe]     idx=%-3d -> 0 (rejected)", idx)
+            else
+                successes = successes + 1
+                table.insert(spawned, animalId)
+                Log:trace("[CapProbe]     idx=%-3d -> animalId=%s", idx, tostring(animalId))
+            end
+        end
+
+        for _, animalId in ipairs(spawned) do
+            removeHusbandryAnimal(husbandryId, animalId)
+        end
+        Log:debug("[CapProbe]   cleanup: removed %d probe instance(s) from husbandryId=%s", #spawned, tostring(husbandryId))
+
+        local firstFailure = failures[1]
+        local lastSuccessIdx
+        if #spawned > 0 then
+            -- successes accumulated in idx order, so the highest-idx success is the last one we tried
+            for idx = maxIdx, 0, -1 do
+                if not table.hasElement(failures, idx) then
+                    lastSuccessIdx = idx
+                    break
+                end
+            end
+        end
+        Log:info("[CapProbe]   type=%s luaRows=%d probed=0..%d successes=%d failures=%d firstFailIdx=%s lastSuccessIdx=%s",
+            typeName, luaCount, maxIdx, successes, #failures,
+            tostring(firstFailure), tostring(lastSuccessIdx))
+
+        summary[typeName] = string.format("luaRows=%-4d  successes=%-4d  firstFailIdx=%s  lastSuccessIdx=%s",
+            luaCount, successes, tostring(firstFailure), tostring(lastSuccessIdx))
+    end
+
+    Log:info("[CapProbe] === Summary ===")
+    for typeName, line in pairs(summary) do
+        Log:info("[CapProbe]   %-10s %s", typeName, line)
+    end
+    Log:info("[CapProbe] === End ===")
+
+    return "rlTestAnimalConfigCap: see log for [CapProbe] lines"
+end
+
+
+--- Console handler for rlTestAnimalConfigCapFresh. Tests whether a fresh
+--- createAnimalHusbandry call gets its own 32-template window.
+---
+--- Two probe legs:
+---   1. FreshSameType:    typeName="COW", xmlFilename=heritage (different from the existing cow config)
+---   2. FreshNewTypeName: typeName="COW_HERITAGE", xmlFilename=heritage (engine receives an unregistered type string)
+---
+--- Both legs:
+---   - borrow navNode, raycastDistance, collisionMask from an active COW placeable's clusterHusbandry
+---   - call createAnimalHusbandry directly (same engine primitive as
+---     RealisticLivestock_AnimalClusterHusbandry:create:26)
+---   - probe addHusbandryAnimal idx 0..maxIdx on the new husbandry
+---   - cleanup: removeHusbandryAnimal each spawned + delete(husbandryId)
+---
+--- Requires the FS25_AnimalCapProbe mod loaded - it ships
+--- models/heritage/animals.xml (78 cow rows) used by both legs.
+---@param maxIdxStr string|nil  upper bound for probe idx (default 63)
+---@return string                confirmation message printed to the console
+function RLConsoleCommandManager:testAnimalConfigCapFresh(maxIdxStr)
+    local maxIdx = tonumber(maxIdxStr) or 63
+    Log:info("[CapProbe-Fresh] === rlTestAnimalConfigCapFresh invoked (maxIdx=%d) ===", maxIdx)
+
+    local husbandrySystem = self.husbandrySystem
+    if husbandrySystem == nil then
+        Log:warning("[CapProbe-Fresh] husbandrySystem unavailable; aborting")
+        return "rlTestAnimalConfigCapFresh: husbandrySystem unavailable (load a save first)"
+    end
+    if AnimalType == nil or AnimalType.COW == nil then
+        Log:warning("[CapProbe-Fresh] AnimalType.COW not registered; aborting")
+        return "rlTestAnimalConfigCapFresh: AnimalType.COW unavailable"
+    end
+
+    -- Donor lookup: borrow navMesh + raycastDistance + collisionMask + xmlFilename
+    -- from an active placeable of the requested type. Used to construct fresh
+    -- createAnimalHusbandry calls without authoring placeables of our own.
+    local function findDonor(animalTypeName)
+        local typeIdx = AnimalType[animalTypeName]
+        if typeIdx == nil then return nil end
+        for _, p in ipairs(husbandrySystem.placeables) do
+            if p:getAnimalTypeIndex() == typeIdx then return p end
+        end
+        return nil
+    end
+
+    -- Heritage XML path is derived from the COW donor's xmlFilename
+    -- (heritage config lives next to cow config in the AnimalCapProbe pack).
+    local cowDonor = findDonor("COW")
+    if cowDonor == nil then
+        Log:warning("[CapProbe-Fresh] no active COW placeable; cannot derive heritage XML path")
+        return "rlTestAnimalConfigCapFresh: requires a COW placeable to derive heritage path"
+    end
+    local cowDonorCH = cowDonor.spec_husbandryAnimals and cowDonor.spec_husbandryAnimals.clusterHusbandry
+    if cowDonorCH == nil or cowDonorCH.xmlFilename == nil then
+        Log:warning("[CapProbe-Fresh] cow donor missing clusterHusbandry/xmlFilename")
+        return "rlTestAnimalConfigCapFresh: cow donor clusterHusbandry incomplete"
+    end
+    local heritageXml = string.gsub(cowDonorCH.xmlFilename, "/models/cow/animals%.xml$", "/models/heritage/animals.xml")
+    if heritageXml == cowDonorCH.xmlFilename then
+        Log:warning("[CapProbe-Fresh] cow xml '%s' is not the AnimalCapProbe override; load FS25_AnimalCapProbe.", cowDonorCH.xmlFilename)
+        return "rlTestAnimalConfigCapFresh: AnimalCapProbe pack not active (cow xml mismatch)"
+    end
+    Log:info("[CapProbe-Fresh] heritageXml=%s", heritageXml)
+
+    -- Probe matrix: each leg picks (donorType -> borrowed nav data) and
+    -- (newTypeName, xmlPath) for the fresh createAnimalHusbandry call.
+    --
+    -- Three legs:
+    --   FreshSameType_CowNav      cow donor's navMesh + new typeName=COW
+    --   FreshNewTypeName_CowNav   cow donor's navMesh + new typeName=COW_HERITAGE
+    --   FreshNewTypeName_SheepNav sheep donor's navMesh + new typeName=COW_HERITAGE
+    -- The third leg disambiguates: if cap is per-navMesh, sheep navMesh has
+    -- ~7 sheep templates pre-rendered, so probe should yield ~25. If cap is
+    -- per-engine-process, results carry over across probes. If cap is
+    -- per-placeable-type, sheep navMesh with cow templates yields ~32.
+    local probes = {
+        { label = "FreshSameType_CowNav",       donorType = "COW",   newTypeName = "COW",          xmlPath = heritageXml },
+        { label = "FreshNewTypeName_CowNav",    donorType = "COW",   newTypeName = "COW_HERITAGE", xmlPath = heritageXml },
+        { label = "FreshNewTypeName_SheepNav",  donorType = "SHEEP", newTypeName = "COW_HERITAGE", xmlPath = heritageXml },
+    }
+
+    local summary = {}
+
+    for _, probe in ipairs(probes) do
+        Log:info("[CapProbe-Fresh] --- %s: donorType=%s newTypeName=%s xml=%s ---",
+            probe.label, probe.donorType, probe.newTypeName, probe.xmlPath)
+
+        local donor = findDonor(probe.donorType)
+        if donor == nil then
+            Log:warning("[CapProbe-Fresh] %s: no active %s placeable; skipping", probe.label, probe.donorType)
+            summary[probe.label] = string.format("donor=%-7s newType=%-13s cap=NO-DONOR", probe.donorType, probe.newTypeName)
+            continue
+        end
+        local donorCH = donor.spec_husbandryAnimals and donor.spec_husbandryAnimals.clusterHusbandry
+        if donorCH == nil or donorCH.navigationNode == nil then
+            Log:warning("[CapProbe-Fresh] %s: %s donor missing clusterHusbandry/navNode; skipping", probe.label, probe.donorType)
+            summary[probe.label] = string.format("donor=%-7s newType=%-13s cap=NO-NAVMESH", probe.donorType, probe.newTypeName)
+            continue
+        end
+
+        local navNode = donorCH.navigationNode
+        local raycastDistance = donorCH.raycastDistance or 1.0
+        local collisionMask = donorCH.collisionMask
+
+        local newHusbandryId = createAnimalHusbandry(probe.newTypeName, navNode, probe.xmlPath, raycastDistance, CollisionMask.ANIMAL_POSITIONING, collisionMask, AudioGroup.ENVIRONMENT)
+        if newHusbandryId == nil or newHusbandryId == 0 then
+            Log:warning("[CapProbe-Fresh] %s: createAnimalHusbandry returned 0 (engine rejected typeName=%s on %s navMesh)",
+                probe.label, probe.newTypeName, probe.donorType)
+            summary[probe.label] = string.format("donor=%-7s newType=%-13s cap=ENGINE-REJECTED", probe.donorType, probe.newTypeName)
+            continue
+        end
+        Log:info("[CapProbe-Fresh] %s: husbandryId=%s; probing idx=0..%d", probe.label, tostring(newHusbandryId), maxIdx)
+
+        local spawned = {}
+        local successes = 0
+        local failures = {}
+        for idx = 0, maxIdx do
+            local animalId = addHusbandryAnimal(newHusbandryId, idx)
+            if animalId == nil or animalId == 0 then
+                table.insert(failures, idx)
+                Log:debug("[CapProbe-Fresh]     idx=%-3d -> 0", idx)
+            else
+                successes = successes + 1
+                table.insert(spawned, animalId)
+                Log:trace("[CapProbe-Fresh]     idx=%-3d -> animalId=%s", idx, tostring(animalId))
+            end
+        end
+
+        for _, animalId in ipairs(spawned) do
+            removeHusbandryAnimal(newHusbandryId, animalId)
+        end
+        delete(newHusbandryId)
+        Log:debug("[CapProbe-Fresh] %s: cleanup: removed %d instance(s) + deleted husbandryId=%s",
+            probe.label, #spawned, tostring(newHusbandryId))
+
+        local firstFail = failures[1]
+        Log:info("[CapProbe-Fresh] %s: donor=%s newType=%s successes=%d failures=%d firstFailIdx=%s",
+            probe.label, probe.donorType, probe.newTypeName, successes, #failures, tostring(firstFail))
+        summary[probe.label] = string.format("donor=%-7s newType=%-13s successes=%-4d firstFailIdx=%s",
+            probe.donorType, probe.newTypeName, successes, tostring(firstFail))
+    end
+
+    Log:info("[CapProbe-Fresh] === Summary ===")
+    for label, line in pairs(summary) do
+        Log:info("[CapProbe-Fresh]   %-18s %s", label, line)
+    end
+    Log:info("[CapProbe-Fresh] === End ===")
+
+    return "rlTestAnimalConfigCapFresh: see log for [CapProbe-Fresh] lines"
 end
 
 
@@ -190,5 +463,105 @@ function RLConsoleCommandManager:setOutput(outputType, value)
 	if self.placeable ~= nil then self.placeable:updateInputAndOutput(self.placeable:getClusters()) end
 
 	return "rlSetAnimalOutput: animal output set successfully"
+
+end
+
+
+-- =============================================================================
+-- Saveable filters -- dev commands for manual save/load verification.
+-- These are intentionally minimal: the goal is to smoke-test the save file
+-- round-trip by creating a filter in one game session, saving, quitting,
+-- reloading, and confirming the filter is still there. The UI path lives
+-- in the Settings tab.
+-- =============================================================================
+
+
+--- Create a canned filter (age>=48 AND isPregnant==false, COW/farm 1) so the
+--- player can prove the save/load round-trip without having to hand-construct
+--- an AST. The returned id is printed and usable with `rlFilterList`.
+---@param name string|nil optional filter name (defaults to "rlFilter_test")
+---@return string user-facing result
+function RLConsoleCommandManager:createFilter(name)
+
+	if g_rlFilterService == nil then
+		return "rlFilterCreate: g_rlFilterService is nil (mod load order regression?)"
+	end
+
+	local Log = RmLogging.getLogger("RLRM")
+	local filterName = (type(name) == "string" and name ~= "") and name or "rlFilter_test"
+
+	local filter = g_rlFilterService:create({
+		name = filterName,
+		animalType = AnimalType.COW,
+		farmId = 1,
+		expression = {
+			op = "AND",
+			children = {
+				{ field = "age",        cmp = ">=", value = 48 },
+				{ field = "isPregnant", cmp = "==", value = false },
+			},
+		},
+	})
+
+	if filter == nil then
+		return "rlFilterCreate: create returned nil (see log for details)"
+	end
+
+	Log:info("rlFilterCreate: created id=%s name=%s (total=%d)",
+		filter.id, filter.name, #g_rlFilterService:list())
+
+	return string.format("rlFilterCreate: ok id=%s", filter.id)
+
+end
+
+
+--- Dump every filter currently held by the service. One line per filter,
+--- plus a total at the end. Readable in the dev console and also the log.
+---@return string user-facing result
+function RLConsoleCommandManager:listFilters()
+
+	if g_rlFilterService == nil then
+		return "rlFilterList: g_rlFilterService is nil (mod load order regression?)"
+	end
+
+	local Log = RmLogging.getLogger("RLRM")
+	local filters = g_rlFilterService:list()
+
+	if #filters == 0 then
+		Log:info("rlFilterList: no filters in memory")
+		return "rlFilterList: 0 filters"
+	end
+
+	for _, f in ipairs(filters) do
+		local animalType = tostring(f.animalType)
+		local farmId = tostring(f.farmId)
+		local op = (f.expression and f.expression.op) or "?"
+		local numChildren = (f.expression and f.expression.children and #f.expression.children) or 0
+		local line = string.format("|--- id=%s name=%s animalType=%s farmId=%s version=%s op=%s #children=%d",
+			tostring(f.id), tostring(f.name), animalType, farmId, tostring(f.version), op, numChildren)
+		print(line)
+		Log:info("rlFilterList: %s", line)
+	end
+
+	return string.format("rlFilterList: %d filters", #filters)
+
+end
+
+
+--- Wipe the in-memory filter registry. Does NOT touch the save file; the
+--- next save cycle will persist the cleared state. SP-only by the outer
+--- registration guard (P2 has no MP events yet).
+---@return string user-facing result
+function RLConsoleCommandManager:clearFilters()
+
+	if g_rlFilterService == nil then
+		return "rlFilterClear: g_rlFilterService is nil (mod load order regression?)"
+	end
+
+	local Log = RmLogging.getLogger("RLRM")
+	local before = #g_rlFilterService:list()
+	g_rlFilterService:clear()
+	Log:info("rlFilterClear: cleared %d filters from in-memory registry", before)
+	return string.format("rlFilterClear: cleared %d filters", before)
 
 end

@@ -74,6 +74,15 @@ function DewarObjectStorageHook.snapshot(vehicle)
     local spec = vehicle[DewarData.SPEC_TABLE_NAME]
     if spec == nil then return nil end
 
+    -- Zero-straw zombie guard: a dewar entering object storage with no straws
+    -- is illegal state; refuse to capture so the storage round-trip can't
+    -- resurrect it.
+    if (spec.straws or 0) <= 0 then
+        Log:warning("DewarStorage SNAPSHOT: refusing zero-straw dewar uniqueId=%s",
+            tostring(vehicle:getUniqueId()))
+        return nil
+    end
+
     local state = {
         uniqueId = vehicle:getUniqueId(),
         straws = spec.straws or 0,
@@ -104,6 +113,25 @@ end
 function DewarObjectStorageHook.restore(vehicle, state)
     if vehicle == nil or state == nil then return end
     if not vehicle.isDewar then return end
+
+    -- Zero-straw zombie guard: never restore state onto a vehicle that
+    -- would immediately be illegal. Defer the delete via
+    -- Timer.createOneshot(0, ...) - same rationale as
+    -- DewarData:loadDewarFromSavegame (this runs inside the storage-exit
+    -- load chain, so direct delete is unsafe).
+    if g_server ~= nil and (state.straws or 0) <= 0 then
+        Log:warning("DewarStorage RESTORE: refusing zero-straw state uniqueId=%s, scheduling deferred delete",
+            tostring(state.uniqueId))
+        local target = vehicle
+        Timer.createOneshot(0, function()
+            if target ~= nil and target.isDeleted ~= true then
+                Log:info("DewarStorage RESTORE: deferred-delete fired uniqueId=%s",
+                    tostring(state.uniqueId))
+                target:delete()
+            end
+        end)
+        return
+    end
 
     if state.uniqueId ~= nil and vehicle.setUniqueId ~= nil then
         vehicle:setUniqueId(state.uniqueId)
@@ -319,6 +347,17 @@ local function installHooks()
         if state == nil then return end
         if specOS == nil or specOS.storedObjects == nil then return end
         if #specOS.storedObjects <= priorCount then return end
+
+        -- Zero-straw zombie guard: strip the freshly appended stored-object
+        -- entry so the rack never offers an empty dewar back to the player.
+        -- Runs immediately after origLoadFromXMLFile so no other code reads
+        -- the entry first.
+        if (state.straws or 0) <= 0 then
+            Log:warning("DewarStorage LOAD: stripping zero-straw stored dewar uniqueId=%s from storedObjects[%d]",
+                tostring(state.uniqueId), priorCount + 1)
+            table.remove(specOS.storedObjects, priorCount + 1)
+            return
+        end
 
         local stored = specOS.storedObjects[priorCount + 1]
         if stored == nil or stored.REFERENCE_CLASS_NAME ~= AbstractPalletObject.REFERENCE_CLASS_NAME then return end

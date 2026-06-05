@@ -22,6 +22,7 @@
         <FrameReference ref="RLMenuInfoFrame" name="infoFrame" id="infoFrame"/>
         <FrameReference ref="RLMenuAIFrame" name="aiFrame" id="aiFrame"/>
         <FrameReference ref="RLMenuMessagesFrame" name="messagesFrame" id="messagesFrame"/>
+        <FrameReference ref="RLMenuSettingsFrame" name="settingsFrame" id="settingsFrame"/>
     </Paging>
 
     <!-- Tab header bar -->

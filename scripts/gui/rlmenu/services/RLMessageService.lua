@@ -6,7 +6,7 @@
     of husbandry messages for a farm; it's read-only and safe on both
     server and client (clients receive messages via HusbandryMessageStateEvent).
 
-    deleteMessages is the Phase 1.1 mutation path, using Pattern A
+    deleteMessages is the mutation path, using Pattern A
     (caller mutates local state first, then dispatches
     HusbandryMessageDeleteEvent for rebroadcast).
 ]]
@@ -90,8 +90,8 @@ end
 ---   husbandryName    : placeable:getName() captured by caller (display-only)
 ---   date             : raw message.date string for display
 ---   sortKey          : { year, month, day, husbandryIndex, insertionIndex } desc
----   husbandryRef     : placeable reference (opaque delete token; Phase 1.1+; frame MUST treat as opaque)
----   uniqueId         : int (raw message.uniqueId; Phase 1.1+; used for delete routing)
+---   husbandryRef     : placeable reference (opaque delete token; frame MUST treat as opaque)
+---   uniqueId         : int (raw message.uniqueId; used for delete routing)
 --- @param message table Raw message record (id/animal/args/date/uniqueId)
 --- @param husbandry table Source husbandry placeable (stored as opaque delete token)
 --- @param husbandryIndex number Stable per-call index of the husbandry within getPlaceablesByFarm
@@ -234,7 +234,7 @@ function RLMessageService.getMessagesForFarm(farmId)
 end
 
 -- =============================================================================
--- Phase 1.2: unread-flag clear
+-- Unread-flag clear
 -- =============================================================================
 
 --- Clear the per-husbandry unreadMessages flag on every flagged placeable in
@@ -301,7 +301,7 @@ function RLMessageService.markAllReadForFarm(farmId)
 end
 
 -- =============================================================================
--- Phase 1.1: mutation path (delete)
+-- Mutation path (delete)
 -- =============================================================================
 
 --- Dispatch hook for unit tests. Production code sends through HusbandryMessageDeleteEvent.

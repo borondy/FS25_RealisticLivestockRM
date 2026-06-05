@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<l10n>
+	<texts>
+		<!-- Noms d'affichage des races -->
+		<text name="breed_charolaise" text="Charolaise"/>
+		<text name="breed_montbeliarde" text="Montbéliarde"/>
+		<text name="breed_simmental" text="Simmental"/>
+		<text name="breed_vosgienne" text="Vosgienne"/>
+
+		<!-- Types de remplissage pour les mâles ajoutés par le bridge -->
+		<text name="fillType_bull_charolaise" text="Taureau Charolais"/>
+		<text name="fillType_bull_montbeliarde" text="Taureau Montbéliard"/>
+		<text name="fillType_bull_simmental" text="Taureau Simmental"/>
+		<text name="fillType_bull_vosgienne" text="Taureau Vosgien"/>
+
+		<!-- Descriptions visuelles - Taureau Charolais (age standard RLRM : 12 mois) -->
+		<text name="rl_bridge_bullCharolaiseCalfDesc" text="Un jeune veau mâle Charolais. Les taureaux en bonne santé de plus de 12 mois peuvent se reproduire."/>
+		<text name="rl_bridge_bullCharolaiseKidDesc" text="Un jeune taureau Charolais. Les taureaux en bonne santé de plus de 12 mois peuvent se reproduire."/>
+		<text name="rl_bridge_bullCharolaiseAdultDesc" text="Un taureau Charolais adulte. Les taureaux en bonne santé de plus de 12 mois peuvent se reproduire."/>
+
+		<!-- Descriptions visuelles - Taureau Montbéliard (age standard RLRM : 12 mois) -->
+		<text name="rl_bridge_bullMontbeliardeCalfDesc" text="Un jeune veau mâle Montbéliard. Les taureaux en bonne santé de plus de 12 mois peuvent se reproduire."/>
+		<text name="rl_bridge_bullMontbeliardeKidDesc" text="Un jeune taureau Montbéliard. Les taureaux en bonne santé de plus de 12 mois peuvent se reproduire."/>
+		<text name="rl_bridge_bullMontbeliardeAdultDesc" text="Un taureau Montbéliard adulte. Les taureaux en bonne santé de plus de 12 mois peuvent se reproduire."/>
+
+		<!-- Descriptions visuelles - Taureau Simmental (age standard RLRM : 12 mois, gestation plus courte) -->
+		<text name="rl_bridge_bullSimmentalCalfDesc" text="Un jeune veau mâle Simmental. Les taureaux en bonne santé de plus de 12 mois peuvent se reproduire."/>
+		<text name="rl_bridge_bullSimmentalKidDesc" text="Un jeune taureau Simmental. Les taureaux en bonne santé de plus de 12 mois peuvent se reproduire."/>
+		<text name="rl_bridge_bullSimmentalAdultDesc" text="Un taureau Simmental adulte. Les taureaux en bonne santé de plus de 12 mois peuvent se reproduire."/>
+
+		<!-- Descriptions visuelles - Taureau Vosgien (age standard RLRM : 12 mois) -->
+		<text name="rl_bridge_bullVosgienneCalfDesc" text="Un jeune veau mâle Vosgien. Les taureaux en bonne santé de plus de 12 mois peuvent se reproduire."/>
+		<text name="rl_bridge_bullVosgienneKidDesc" text="Un jeune taureau Vosgien. Les taureaux en bonne santé de plus de 12 mois peuvent se reproduire."/>
+		<text name="rl_bridge_bullVosgienneAdultDesc" text="Un taureau Vosgien adulte. Les taureaux en bonne santé de plus de 12 mois peuvent se reproduire."/>
+	</texts>
+</l10n>

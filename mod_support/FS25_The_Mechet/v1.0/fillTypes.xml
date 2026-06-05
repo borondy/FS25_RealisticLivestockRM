@@ -1,0 +1,31 @@
+<map xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="$data/shared/xml/schema/fillTypes.xsd">
+	<fillTypes>
+
+		<!-- Bridge fill types for Le Mechet map (male variants for the four new French breeds) -->
+
+		<fillType name="BULL_CHAROLAISE" title="$l10n_fillType_bull_charolaise" showOnPriceTable="false">
+			<physics massPerLiter="450.0" maxPhysicalSurfaceAngle="0"/>
+			<economy pricePerLiter="3000"/>
+			<image hud="$dataS/menu/hud/fillTypes/hud_fill_cow.png"/>
+		</fillType>
+
+		<fillType name="BULL_MONTBELIARDE" title="$l10n_fillType_bull_montbeliarde" showOnPriceTable="false">
+			<physics massPerLiter="450.0" maxPhysicalSurfaceAngle="0"/>
+			<economy pricePerLiter="3000"/>
+			<image hud="$dataS/menu/hud/fillTypes/hud_fill_cow.png"/>
+		</fillType>
+
+		<fillType name="BULL_SIMMENTAL" title="$l10n_fillType_bull_simmental" showOnPriceTable="false">
+			<physics massPerLiter="450.0" maxPhysicalSurfaceAngle="0"/>
+			<economy pricePerLiter="3000"/>
+			<image hud="$dataS/menu/hud/fillTypes/hud_fill_cow.png"/>
+		</fillType>
+
+		<fillType name="BULL_VOSGIENNE" title="$l10n_fillType_bull_vosgienne" showOnPriceTable="false">
+			<physics massPerLiter="450.0" maxPhysicalSurfaceAngle="0"/>
+			<economy pricePerLiter="3000"/>
+			<image hud="$dataS/menu/hud/fillTypes/hud_fill_cow.png"/>
+		</fillType>
+
+	</fillTypes>
+</map>

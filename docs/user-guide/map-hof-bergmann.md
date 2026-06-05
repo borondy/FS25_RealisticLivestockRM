@@ -10,7 +10,7 @@ Realistic Livestock RM includes built-in support for the [Hof Bergmann](https://
 
 The mod checks for Hof Bergmann at game start and reads the map's version number. If the version matches a tested configuration, everything loads seamlessly. If the map has been updated to a version the mod hasn't been tested with yet, you'll see a warning dialog with a link to report any problems.
 
-You don't need to do anything — the detection and configuration loading is fully automatic.
+You don't need to do anything - the detection and configuration loading is fully automatic.
 
 ## Supported Versions
 
@@ -94,17 +94,19 @@ On HB v1.4, horses are fully rideable and compatible with the Horse Addon Pack. 
 
 Hof Bergmann adds a **BULL** animal type for decorative pasture bulls. These are **not the same** as the bull breeds in the cattle system (Holstein Bull, Angus Bull, etc.).
 
-In the base game and in RLRM, cattle bulls are subtypes of the **COW** animal type. A Holstein Bull and a Holstein Cow are both "COW" internally — they share the same husbandry, the same breeding system, and the same lifecycle. This is what allows bulls and cows to breed with each other.
+In the base game and in RLRM, cattle bulls are subtypes of the **COW** animal type. A Holstein Bull and a Holstein Cow are both "COW" internally - they share the same husbandry, the same breeding system, and the same lifecycle. This is what allows bulls and cows to breed with each other.
 
-Hof Bergmann's pasture bull is a completely separate animal type called **BULL**. The game engine treats each animal type as isolated — animals of different types cannot interact, breed, or share husbandries. The pasture bull has its own husbandry building, its own slot system, and its own internal logic.
+Hof Bergmann's pasture bull is a completely separate animal type called **BULL**. The game engine treats each animal type as isolated - animals of different types cannot interact, breed, or share husbandries. The pasture bull has its own husbandry building, its own slot system, and its own internal logic.
 
-**Why it can't be "just fixed":** Merging HB's BULL type into the COW type would require rewriting the map's husbandry building assignments, pasture system, and animal slot management. This isn't a mod-side fix — it would need changes to the map itself. Alternatively, implementing cross-type breeding (letting a BULL-type animal breed with a COW-type animal) would be a fundamental new system in the game engine that doesn't exist.
+**Why it can't be "just fixed":** Merging HB's BULL type into the COW type would require rewriting the map's husbandry building assignments, pasture system, and animal slot management. This isn't a mod-side fix - it would need changes to the map itself. Alternatively, implementing cross-type breeding (letting a BULL-type animal breed with a COW-type animal) would be a fundamental new system in the game engine that doesn't exist.
 
-**"Can't you just use the pasture bull models on cow-type bulls?"** This is a natural question. The base game doesn't include separate bull 3D models at all — RLRM's breeding bulls (Holstein Bull, Angus Bull, etc.) reuse the female cow models, so visually they look the same as cows. HB's pasture bulls have their own distinct bull visuals, which is exactly what you'd want on your breeding bulls.
+**"Can't you just use the pasture bull models on cow-type bulls?"** This is a natural question. The base game doesn't include separate bull 3D models at all - RLRM's breeding bulls (Holstein Bull, Angus Bull, etc.) reuse the female cow models, so visually they look the same as cows. HB's pasture bulls have their own distinct bull visuals, which is exactly what you'd want on your breeding bulls.
 
-Unfortunately, each animal type loads its own set of 3D models from the map's configuration — the COW type has one model pool, the BULL type has a completely separate one. To use HB's bull models on COW-type animals, you'd have to rebuild the map's entire animal model loading infrastructure from a script mod and apply it on top. This is extremely brittle: any map update can shift model indices, causing wrong or missing visuals.
+Unfortunately, each animal type loads its own set of 3D models from the map's configuration - the COW type has one model pool, the BULL type has a completely separate one. To use HB's bull models on COW-type animals, you'd have to rebuild the map's entire animal model loading infrastructure from a script mod and apply it on top. This is extremely brittle: any map update can shift model indices, causing wrong or missing visuals.
 
-The pasture bull still gets individual tracking, a name, and genetics — it just doesn't participate in the cattle breeding and reproduction system.
+The pasture bull still gets individual tracking, a name, and genetics - it just doesn't participate in the cattle breeding and reproduction system.
+
+**No bull sperm collection under RLRM.** Hof Bergmann's bull stable produces BULLSPERM by modelling it as a milk output on the BULL subtype. In vanilla FS25 this works because the cluster-based milk pipeline lets the curve run on any subtype regardless of gender. RLRM replaces that pipeline with per-animal output that gates milk production on lactating female cows that have given birth in the last 10 months - none of which applies to the BULL animal type. The BULLSPERM collection trigger at the bull stable stays empty under RLRM. Loosening the gate broadly would let any male animal "produce milk" anywhere a map mod declares such an output, so this is documented as a known incompatibility rather than patched.
 
 ### Dogs Are Companion Animals
 

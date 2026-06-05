@@ -10,8 +10,7 @@
     The client MUST NOT mutate dealer stock, husbandry contents, or farm
     money directly - MUTATION PARITY with legacy AnimalScreenDealer.
 
-    Sign convention (CRITICAL - see Design Notes in
-    _bmad-output/implementation-artifacts/spec-rlmenu-buy-frame-logic.md):
+    Sign convention (CRITICAL):
     AnimalBuyEvent:run calls
         g_currentMission:addMoney(buyPrice + transportPrice, ...)
     so both values MUST be dispatched as NEGATIVE numbers. addMoney adds

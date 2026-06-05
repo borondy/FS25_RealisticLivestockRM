@@ -696,7 +696,12 @@
         <!-- Missing keys (English fallback) -->
         <text name="input_RL_MENU" text="Open RL Menu (new)"/>
         <text name="input_RL_RENAME" text="Rename"/>
+        <text name="input_RL_CYCLE_FILTER" text="Cycle Saved Filter"/>
         <text name="rl_bridge_version_unknown" text="Realistic Livestock: %s version %s has not been tested with version %s of Realistic Livestock. Using config '%s'. If you experience issues with exotic animals, please report them at %s."/>
+        <!-- TODO: localise -->
+        <text name="rl_bridge_configoverride_conflict_header" text="Realistic Livestock: Conflict detected. Two or more bridges/packs replaced configuration for the same animal type. Last-loaded mod wins. If you continue you will have visual glitches and ghost animals."/>
+        <!-- TODO: localise -->
+        <text name="rl_bridge_configoverride_conflict_line" text="%s: applied by %s"/>
         <text name="rl_menu_info_children" text="Children"/>
         <text name="rl_menu_info_diseases_header" text="Diseases"/>
         <text name="rl_menu_info_empty_no_animals" text="No animals in this husbandry"/>
@@ -728,18 +733,62 @@
         <text name="rl_menu_sell_cart_selected" text="Selected"/>
         <text name="rl_menu_sell_cart_empty" text="Select animals to sell"/>
 
-        <!-- Phase 5: Buy tab -->
+        <!-- Buy tab -->
         <text name="rl_menu_buy_title" text="Buy"/>
         <text name="rl_menu_buy_empty_no_types" text="The dealer has no animal types available"/>
         <text name="rl_menu_buy_empty_no_animals" text="No animals available at the dealer for this type"/>
         <text name="rl_menu_buy_cart_header" text="Purchase Summary"/>
         <text name="rl_menu_buy_cart_selected" text="Selected"/>
-        <!-- Phase 6: AI tab (English fallback) -->
+        <!-- AI tab (English fallback) -->
         <text name="rl_menu_ai_title" text="Artificial Insemination"/>
         <text name="rl_menu_ai_quantity" text="Quantity"/>
         <text name="rl_menu_ai_price" text="Price"/>
         <text name="rl_menu_ai_empty_no_stock" text="No bulls available at the dealer for this species"/>
         <text name="rl_menu_ai_empty_no_species" text="No animal species registered"/>
+        <!-- Settings tab shell (English fallback) -->
+        <text name="rl_menu_settings_title" text="Settings"/>
+        <text name="rl_menu_settings_tab_general" text="General"/>
+        <text name="rl_menu_settings_tab_filters" text="Filters"/>
+
+		<!-- Filters tab list -->
+		<text name="rl_menu_filters_quick_filter_title" text="Quick filter"/>
+		<text name="rl_ui_qf_saveFilter" text="Save filter"/>
+		<text name="rl_ui_qf_saveDropsValue" text="Saved filters don't support Value; this condition will not be carried over."/>
+		<text name="rl_menu_filters_empty" text="No saved filters yet"/>
+		<text name="rl_menu_filters_empty_no_farm" text="You need a farm to save filters"/>
+		<text name="rl_menu_filters_new_button" text="New filter"/>
+		<text name="rl_menu_filters_default_name" text="New filter"/>
+		<text name="rl_menu_filters_detail_placeholder" text="To be implemented"/>
+		<!-- Editor + Duplicate/Delete (English fallback) -->
+		<text name="rl_menu_filters_empty_editor" text="Select a filter to edit"/>
+		<text name="rl_menu_filters_editor_title_name" text="Name"/>
+		<text name="rl_menu_filters_editor_title_animal_type" text="Animal type"/>
+		<text name="rl_menu_filters_editor_title_op" text="Conditions"/>
+		<text name="rl_menu_filters_animal_type_any" text="Any"/>
+		<text name="rl_menu_filters_op_and" text="Match ALL"/>
+		<text name="rl_menu_filters_op_or" text="Match ANY"/>
+		<text name="rl_menu_filters_add_group_not_implemented" text="Add group is not yet implemented in this version."/>
+		<text name="rl_menu_filters_duplicate_button" text="Duplicate"/>
+		<text name="rl_menu_filters_delete_button" text="Delete"/>
+		<text name="rl_menu_filters_duplicate_suffix" text=" (copy)"/>
+		<text name="rl_menu_filters_duplicate_suffix_n" text=" (copy %d)"/>
+		<text name="rl_menu_filters_delete_confirm_text" text="Delete filter &quot;%s&quot;? This cannot be undone."/>
+		<!-- Usage scope axis -->
+		<text name="rl_menu_filters_editor_title_usage" text="Show on"/>
+		<text name="rl_menu_filters_usage_any" text="All screens"/>
+		<text name="rl_menu_filters_usage_owned" text="Owned-herd screens"/>
+		<text name="rl_menu_filters_usage_dealer" text="Dealer screens"/>
+		<text name="rl_menu_filters_valueOutOfRange_both" text="Value must be between %d and %d"/>
+		<text name="rl_menu_filters_valueOutOfRange_min" text="Value must be at least %d"/>
+		<text name="rl_menu_filters_valueOutOfRange_max" text="Value must be at most %d"/>
+
+		<!-- Filter cycle + chip MVP -->
+		<text name="rl_menu_filter_chip_none" text="No filter"/>
+		<text name="rl_menu_filter_chip_active" text="Filter: %s"/>
+		<text name="rl_menu_filter_chip_quick" text="Filter: QF"/>
+		<text name="rl_menu_filter_chip_quick_plus_saved" text="Filter: QF + %s"/>
+		<text name="rl_menu_cycle_filter_button" text="Cycle filter"/>
+		<text name="rl_menu_filter_chip_unnamed" text="(unnamed)"/>
         <text name="rl_settings_geneticsDisplay_label" text="Genetics Display"/>
         <text name="rl_settings_geneticsDisplay_texts_1" text="Off"/>
         <text name="rl_settings_geneticsDisplay_texts_2" text="Short"/>
