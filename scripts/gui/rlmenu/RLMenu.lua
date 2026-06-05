@@ -33,6 +33,12 @@ RLMenu.MODE_DEALER = "dealer"
 -- such changes.
 RLMenu.PAGE_COUNT = 7
 
+-- Dev-only GUI hot-reload (Mechanism B). When true, open() re-runs the full
+-- setupGui() parse so on-disk XML/profile edits show up on reopen with no game
+-- restart. Each reload leaks the prior element tree and double-registers its
+-- message-center subscriptions, so it is a local-iteration tool only: never commit true.
+RLMenu.DEV_RELOAD_XML = false
+
 --- Construct a new RLMenu instance. Called once from setupGui() during mod load.
 --- @param target table|nil
 --- @param custom_mt table|nil
@@ -84,7 +90,7 @@ function RLMenu.setupGui()
         Utils.getFilename("gui/rlmenu/rlMenu.xml", modDirectory),
         "RLMenu",
         g_rlMenu,
-        false  -- false = full GUI (not a frame)
+        false -- false = full GUI (not a frame)
     )
 
     Log:debug("RLMenu.setupGui complete")
@@ -184,7 +190,8 @@ function RLMenu:setupMenuPages()
         self.settingsFrame:initialize()
     end
 
-    Log:debug("RLMenu:setupMenuPages: 7 pages registered (buy, sell, move, manage, ai, messages, settings); move/messages/settings dealer-mode gated")
+    Log:debug(
+    "RLMenu:setupMenuPages: 7 pages registered (buy, sell, move, manage, ai, messages, settings); move/messages/settings dealer-mode gated")
 end
 
 --- Configure the bottom button bar.
@@ -309,6 +316,25 @@ function RLMenu.open()
         Log:trace("RLMenu.open: skipped, a GUI is already visible")
         return
     end
+
+    -- Dev hot-reload: re-parse profiles + frames + menu so on-disk XML edits
+    -- appear on reopen (gated by DEV_RELOAD_XML, off in release). The
+    -- g_gui.currentlyReloading flag MUST bracket the re-parse: without it,
+    -- re-loading rlMenuProfiles.xml silently keeps the previously-loaded
+    -- profile values, so on-disk edits to existing profiles are dropped. Reset
+    -- it on BOTH the success and the throw path -- a stuck `true` makes
+    -- RealisticLivestock_AnimalScreen:updateInfoBox short-circuit its whole
+    -- body, so the pcall guarantees the reset even if setupGui() errors.
+    if RLMenu.DEV_RELOAD_XML then
+        Log:debug("RLMenu.open: DEV reloading GUI XML (profiles + frames + menu)")
+        g_gui.currentlyReloading = true
+        local ok, err = pcall(RLMenu.setupGui)
+        g_gui.currentlyReloading = false
+        if not ok then
+            Log:error("RLMenu.open: DEV reload failed (err=%s)", tostring(err))
+        end
+    end
+
     Log:debug("RLMenu.open: showing menu")
     g_gui:showGui("RLMenu")
 end
@@ -407,7 +433,6 @@ function RLMenu:openSettingsFilter(filterId)
         tostring(filterId))
 end
 
-
 -- =============================================================================
 -- INPUT BINDING
 -- =============================================================================
@@ -417,10 +442,10 @@ end
 --- @param playerInputComponent table The player input component (unused)
 --- @param controlling string Input context ("VEHICLE", "PLAYER", etc.)
 function RLMenu.addPlayerActionEvents(playerInputComponent, controlling)
-    local triggerUp = false      -- Don't trigger on key release
-    local triggerDown = true     -- Trigger on key press
-    local triggerAlways = false  -- Not continuous
-    local startActive = true     -- Active from start
+    local triggerUp = false     -- Don't trigger on key release
+    local triggerDown = true    -- Trigger on key press
+    local triggerAlways = false -- Not continuous
+    local startActive = true    -- Active from start
     local callbackState = nil
     local disableConflictingBindings = true
 
