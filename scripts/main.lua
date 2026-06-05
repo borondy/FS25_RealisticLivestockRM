@@ -141,6 +141,7 @@ source(modDirectory .. "scripts/herdsman/RLHerdsmanRuleWire.lua")
 source(modDirectory .. "scripts/events/RLHerdsmanRuleCreateEvent.lua")
 source(modDirectory .. "scripts/events/RLHerdsmanRuleUpdateEvent.lua")
 source(modDirectory .. "scripts/events/RLHerdsmanRuleDeleteEvent.lua")
+source(modDirectory .. "scripts/events/RLHerdsmanRuleStateEvent.lua")
 
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")
