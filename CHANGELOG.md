@@ -1,64 +1,47 @@
 # Changelog
 
-## v1.2.5.0-dev.6
-
-### Fixed
-- Artificial Insemination dialog: the Inseminate button now enables/disables per selected dewar instead of staying latched to the first row -- so an unsuitable first dewar no longer blocks insemination from valid ones.
-- Newborns of the same farm no longer inherit "Children" counts from another species' male with the same identifier (e.g. a Texel ram showing 61 children due to a rooster collision). Existing bogus counts are not auto-cleaned.
-- Quick filter dialog no longer silently applies a "Healthy animals only" filter on open + OK; the disease filter now defaults to any.
-- Selling or buying animals via a livestock trailer at the dealer no longer logs `Error in AnimalSellEvent` / `Error in AnimalBuyEvent ... missing method 'addRLMessage'`. The sales themselves were always completing.
-- AI insemination "not enough money" check now correctly blocks dewar purchases priced above farm balance (both RL Menu AI tab and the legacy R-key flow).
-- Defensive pregnancy backfill on legacy / orphaned saves now uses the mother's quality for offspring of mothers missing `impregnatedBy.quality`, instead of nil. Normal pregnancies were always correct.
-
-### RL Menu (preview - work in progress)
-- Pen Info and Move tabs now estimate feed runway in the "Total Capacity" row: a `(~N-Mm)` range shows how many in-game months the current feed will last for the herd that lives there. Accounts for lactation, pregnancy gestation surge, scheduled births, and per-animal metabolism. Shows `( <1m )` when feed runs out in the first month; caps at `~12+m`.
-- Low-feed visual alert: when the runway estimate drops below 2 months, the capacity status bar and text turn red on Info and Move. Sell tab unaffected.
-- Quick Filter dialog gains a *Save filter* button that turns the current dialog state into a new saveable filter and opens Settings -> Filters on the new row. Hidden in the legacy R-key flow, without the `tradeAnimals` permission, or during dealer walk-up. Price conditions cannot be saved and are dropped with a warning.
-- Settings -> Filters: *New filter* / *Duplicate* now picks the next free suffix as max existing N + 1 instead of by row count, so names no longer collide after deleting earlier-numbered entries.
-
-## v1.2.5.0-dev.5
+## v1.2.5.0
 
 ### Added
-- Mod compatibility bridge: RLRM can now coexist with some foreign mods that overlap its hooks via per-mod shim files in `mod_support/<ModName>/` (same folder layout as the existing map-support bridges). The framework activates automatically when a registered foreign mod is detected; shim files self-disable cleanly when their target mod is absent, with no impact on RLRM-only setups.
-
-### Compatibility
-- Seasonal Wool Production (Argsy Gaming): RLRM + SWP now coexist without the previous double-production of wool (RL continuous wool plus SWP's twice-yearly bulk on top). SWP handles wool production as a seasonal event with a single wool output per sheep per season. The per-pen wool yield matches what vanilla SWP would deliver based on flock size (count of mature sheep at age >= 8 months). Trade-off: wool yield does not reflect RLRM per-animal genetics.
-
-## v1.2.5.0-dev.4
-
-### Documentation
-- Hof Bergmann support page + FAQ note: the HB bull stable's BULLSPERM trigger stays empty under RLRM (HB models bull sperm as a milk output, RLRM only produces milk for lactating female cows). HB pasture bulls remain decorative under RLRM.
-
-### Fixed
-- Per-visual `canBeBought="false"` on animal sale stages now takes effect at the dealer (previously silently ignored). Packs can restrict a breed to juvenile-only or adult-only sales; the dealer's age picker clips draws to buyable stages. Default bundle behavior unchanged.
-- Pen no longer overflows past capacity when multiple pregnancies mature on the same day-change. Existing overcap saves heal gradually via natural deaths or sold animals.
-- Quick filter dialog gains a "Quick filter" title and the list + scrollbar now sit cleanly inside the dialog body (previously: no title, scrollbar pushed off the right edge). Applies to both the new RL Menu (Backspace) and the legacy R-key animal screen.
-- Quick filter dialog no longer clamps slider ranges to a previously-applied Quick filter; sliders show the full pen (or saved-filter-narrowed) range when reopened. Buy frame also applies the buy-markup to the Value slider as intended.
-- Quick filter dialog options no longer drift to the wrong segment or slider thumb after scrolling. TripleOption rows (Pregnancy / Gender / Disease / Has-name / Lactating) and slider rows now reliably reflect what you set.
-- Quick filter persistence is now tab-local and visibly indicated; the chip shows "QF" alone or combined with the saved-filter name, and is cleared automatically when leaving a tab.
-- Multiplayer: animal lists no longer show wrong breeds or species on clients missing a DLC the server has installed (e.g. Highland Cattle rendering as Water Buffalo). Server data was always correct; only the receiving client misrendered.
-- Multiplayer: player-initiated insemination from non-host clients now propagates to the server and other clients within one network frame (previously applied locally only).
-- Empty dewars (0 straws remaining) no longer survive save/load or storage round-trip; they self-delete on the server in every code path. Affected saves clean up on next load.
-
-### RL Menu (preview - work in progress)
-- Saveable-filter condition editor now rejects out-of-range numeric values with a visible hint instead of silently committing absurd values that produced no-op filters.
-
-## v1.2.5.0-dev.3
+- Mod compatibility bridge: RLRM can now coexist with some foreign mods that overlap its hooks, via per-mod shim files in `mod_support/<ModName>/` (same layout as the map-support bridges). The framework activates automatically when a registered foreign mod is detected; shim files self-disable cleanly when their target mod is absent, with no impact on RLRM-only setups.
 
 ### Improved
 - Hereford calves now use the breed-accurate red-and-white coat (adults shipped in 1.2.4.0; UV-layout tip from [MA] BavarianRedneck).
 
-### RL Menu (preview - work in progress)
-- Animal Dealer now opens the new RL Menu (Buy tab) at the shop counter and on walk-up. Trailer loading still uses the old screen.
-- RL Menu tab and header icons now render at the proper size (previously about half base-game size).
-- Saveable Filters are now editable in-game from Settings -> Filters. All engine field types supported (numeric, boolean, gender, subType, name); multi-value "in" / "not in" via a Select Values dialog; cross-species matching when Animal type = ANY.
-- Saveable Filters gain a per-screen "Show on" axis (All / Owned-herd / Dealer) so the F-cycle stays uncrowded once you have several filters.
-- Multiplayer: filter create / rename / delete now refresh peer Info / Buy / Sell / Move tabs live, no menu reopen needed.
-- Saved-filters list cards now use the dealer-card visual style; more filters fit on screen.
-- Note: the in-game filter editor has only been lightly tested in multiplayer so far; please report any sync or permission issues you hit.
+### Compatibility
+- Seasonal Wool Production (Argsy Gaming): RLRM + SWP now coexist without the previous double-production of wool. SWP handles wool as a seasonal event with a single output per sheep per season; per-pen yield matches vanilla SWP based on flock size (mature sheep aged >= 8 months). Trade-off: wool yield does not reflect RLRM per-animal genetics.
+
+### Documentation
+- Hof Bergmann support page + FAQ: the HB bull stable's BULLSPERM trigger stays empty under RLRM (HB models bull sperm as a milk output; RLRM only produces milk for lactating female cows). HB pasture bulls remain decorative.
 
 ### Fixed
+- Selling or buying animals via a livestock trailer at the dealer no longer logs `Error in AnimalSellEvent` / `Error in AnimalBuyEvent ... missing method 'addRLMessage'`. The sales themselves always completed.
+- Multiplayer: animal lists no longer show wrong breeds or species on clients missing a DLC the server has installed (e.g. Highland Cattle rendering as Water Buffalo). Server data was always correct; only the receiving client misrendered.
+- Multiplayer: player-initiated insemination from non-host clients now propagates to the server and other clients within one network frame (previously applied locally only).
+- Empty dewars (0 straws remaining) no longer survive save/load or storage round-trip; they self-delete on the server in every code path. Affected saves clean up on next load.
+- Newborns of the same farm no longer inherit "Children" counts from another species' male with the same identifier (e.g. a Texel ram showing 61 children due to a rooster collision). Existing bogus counts are not auto-cleaned.
+- AI insemination "not enough money" check now correctly blocks dewar purchases priced above farm balance (both RL Menu AI tab and the legacy R-key flow).
+- Artificial Insemination dialog: the Inseminate button now enables/disables per selected dewar instead of staying latched to the first row.
+- Per-visual `canBeBought="false"` on animal sale stages now takes effect at the dealer (previously silently ignored). Packs can restrict a breed to juvenile-only or adult-only sales; default bundle behavior unchanged.
+- Pen no longer overflows past capacity when multiple pregnancies mature on the same day-change. Existing overcap saves heal gradually via natural deaths or sold animals.
+- Defensive pregnancy backfill on legacy / orphaned saves now uses the mother's quality for offspring of mothers missing `impregnatedBy.quality`, instead of nil. Normal pregnancies were always correct.
+- Quick filter dialog no longer silently applies a "Healthy animals only" filter on open + OK; the disease filter now defaults to any.
+- Quick filter dialog polish: added a title, aligned the scrollbar inside the dialog body, stopped clamping slider ranges to a previously-applied filter, and fixed option rows drifting to the wrong segment or slider thumb after scrolling. Applies to both the new RL Menu and the legacy R-key screen.
+- Quick filter persistence is now tab-local and shown in the chip ("QF" alone or combined with a saved-filter name); it clears automatically when you leave the tab.
 - Settings -> General is now admin-only end-to-end. Non-admin players could previously edit most rows; changes would revert or briefly affect the server.
+
+### RL Menu (preview - work in progress)
+- Saveable Filters are now editable in-game from Settings -> Filters. All engine field types supported (numeric, boolean, gender, subType, name); multi-value "in" / "not in" via a Select Values dialog; cross-species matching when Animal type = ANY. Out-of-range numeric values are rejected with a visible hint.
+- Saveable Filters gain a per-screen "Show on" axis (All / Owned-herd / Dealer) so the F-cycle stays uncrowded once you have several filters.
+- Quick Filter dialog gains a Save filter button that turns the current dialog state into a new saveable filter and opens Settings -> Filters on the new row. Price conditions cannot be saved and are dropped with a warning.
+- Settings -> Filters: New filter / Duplicate now picks the next free suffix as max existing N + 1, so names no longer collide after deleting earlier-numbered entries. Saved-filter cards now use the dealer-card visual style so more fit on screen.
+- Multiplayer: filter create / rename / delete now refresh peer Info / Buy / Sell / Move tabs live, no menu reopen needed.
+- Animal Dealer now opens the new RL Menu (Buy tab) at the shop counter and on walk-up; trailer loading still uses the legacy screen.
+- Pen Info and Move tabs now estimate feed runway in the "Total Capacity" row: a `(~N-Mm)` range shows how many in-game months the current feed lasts, accounting for lactation, gestation surge, scheduled births, and per-animal metabolism. The capacity bar and text turn red when the runway drops below 2 months.
+- RL Menu tab and header icons now render at the proper size (previously about half base-game size).
+
+### Herdsman automation rules (preview - backend groundwork, no in-game UI yet)
+- Foundation for upcoming saveable Herdsman rules that pair a saved filter with an automated operation (sell, buy, castrate, naming, or AI) across chosen pens. Rules persist across save/load in rm_RlSettings.xml; a corrupt or hand-edited rule record is dropped safely on load. Multiplayer: rule add / edit / delete propagate to all players, and a player who joins mid-session receives the server's full rule set on connect.
 
 ## v1.2.4.0
 

@@ -38,6 +38,7 @@ This is a maintained version of the original mod by Arrow-kb, who has discontinu
 - Simple support for butchers using Extended Production Point (EPP) mod
 - Mod compatibility checks at startup: hard-block dialog for incompatible mods, plus a dismissible warning tier for mods known to degrade gameplay
 - In-game warning when two map bridges or animal packs replace the same animal type's husbandry config (last-loaded wins; first one's animals can render as ghosts)
+- Mod compatibility bridges for foreign mods that overlap RLRM's hooks - currently coexists with Seasonal Wool Production (Argsy Gaming) without double wool output
 - Multiplayer support (server-authoritative)
 
 ## Supported Maps & Packs
