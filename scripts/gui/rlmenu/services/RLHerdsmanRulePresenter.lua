@@ -75,6 +75,45 @@ local ALLOWED_USAGES = {
     ai       = { [RLFilterUsage.ANY] = true, [RLFilterUsage.OWNED]  = true },
 }
 
+-- -----------------------------------------------------------------------------
+-- Param value domains
+-- -----------------------------------------------------------------------------
+-- The detail-pane MultiTextOption widgets consume the *_VALUES (via the fresh-array
+-- accessors below); validateParams checks membership via the derived *_SET tables.
+-- Grounded in the legacy herdsman option value-lists (the binary convention /
+-- budget-type options + the 28-value budget-percentage list) and the rule serializer
+-- field types (maxAnimals Int, budget.fixed Int, budget.percentage Float).
+
+--- Naming convention domain (binary: random | alphabetical).
+local CONVENTION_VALUES = { "random", "alphabetical" }
+
+--- Buy budget-type domain (binary: fixed | percentage).
+local BUDGET_TYPE_VALUES = { "fixed", "percentage" }
+
+--- Buy budget-percentage domain: the 28-value legacy whitelist. A percentage is
+--- valid ONLY as a member of this list, never as a free numeric value.
+local BUDGET_PERCENTAGE_VALUES = {
+    0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8, 9, 10, 12.5, 15, 17.5, 20, 25, 30, 35,
+    40, 45, 50, 60, 70, 80, 90, 100,
+}
+
+--- Derived O(1) membership sets. Single source of truth is the *_VALUES array;
+--- the set is rebuilt from it so the two can never drift.
+local CONVENTION_SET = {}
+for _, value in ipairs(CONVENTION_VALUES) do CONVENTION_SET[value] = true end
+local BUDGET_TYPE_SET = {}
+for _, value in ipairs(BUDGET_TYPE_VALUES) do BUDGET_TYPE_SET[value] = true end
+local BUDGET_PERCENTAGE_SET = {}
+for _, value in ipairs(BUDGET_PERCENTAGE_VALUES) do BUDGET_PERCENTAGE_SET[value] = true end
+
+--- maxAnimals integer bounds (inclusive); the serializer writes it as an Int.
+RLHerdsmanRulePresenter.MAXANIMALS_MIN = 1
+RLHerdsmanRulePresenter.MAXANIMALS_MAX = 9999
+
+--- The "any dewar" semen sentinel. The frame prepends this as its own option with an
+--- i18n label; formatSemenOption (real dewars only) never emits it.
+RLHerdsmanRulePresenter.SEMEN_ANY = "any"
+
 -- =============================================================================
 -- Internal helpers
 -- =============================================================================
@@ -180,6 +219,248 @@ function RLHerdsmanRulePresenter.getParamVisibility(operation)
         tostring(operation), tostring(out.filter), tostring(out.maxAnimals), tostring(out.budget),
         tostring(out.mark), tostring(out.convention), tostring(out.previous), tostring(out.semen))
     return out
+end
+
+-- =============================================================================
+-- Detail-pane param value domains, defaults + validation
+-- =============================================================================
+
+--- Fresh ordered copy of the naming-convention domain (random | alphabetical). A new
+--- array per call so the frame's MultiTextOption state list can never mutate the
+--- module constant.
+---@return string[]
+function RLHerdsmanRulePresenter.getConventionValues()
+    local out = {}
+    for i, value in ipairs(CONVENTION_VALUES) do out[i] = value end
+    return out
+end
+
+--- Fresh ordered copy of the buy budget-type domain (fixed | percentage).
+---@return string[]
+function RLHerdsmanRulePresenter.getBudgetTypeValues()
+    local out = {}
+    for i, value in ipairs(BUDGET_TYPE_VALUES) do out[i] = value end
+    return out
+end
+
+--- Fresh ordered copy of the buy budget-percentage whitelist (28 values).
+---@return number[]
+function RLHerdsmanRulePresenter.getBudgetPercentageValues()
+    local out = {}
+    for i, value in ipairs(BUDGET_PERCENTAGE_VALUES) do out[i] = value end
+    return out
+end
+
+--- Which budget sub-field the buy detail pane shows for a given budget type: a fixed
+--- amount XOR a herd-value percentage. Exactly one true for a known type; both false
+--- for an unknown / nil type (fail-closed, so the frame hides both rather than
+--- guessing).
+---@param budgetType any "fixed" | "percentage" | other
+---@return table { fixed = boolean, percentage = boolean }
+function RLHerdsmanRulePresenter.getBudgetFieldVisibility(budgetType)
+    local out = { fixed = budgetType == "fixed", percentage = budgetType == "percentage" }
+    Log:trace("RLHerdsmanRulePresenter.getBudgetFieldVisibility: budgetType=%s -> fixed=%s percentage=%s",
+        tostring(budgetType), tostring(out.fixed), tostring(out.percentage))
+    return out
+end
+
+--- Fresh per-operation default params, used by the frame to (re)seed `params` when the
+--- operation changes. Carries exactly the serializer's required keys with legacy-grounded
+--- values; every default passes validateParams AND the serializer codec validate.
+--- Naming carries NO `previous` key - that is the tick's internal alphabetical cursor,
+--- not a setting (absent until the tick sets it). Every call builds a brand-new table
+--- (including buy's nested `budget`) so callers can mutate the result freely. Unknown
+--- operation -> empty table + warning.
+---@param operation any rule operation key
+---@return table params fresh default params table (empty for an unknown operation)
+function RLHerdsmanRulePresenter.defaultParamsForOperation(operation)
+    local params
+    if operation == "sell" then
+        params = { maxAnimals = 5, mark = false }
+    elseif operation == "buy" then
+        params = { maxAnimals = 5, budget = { type = "fixed", fixed = 5000, percentage = 1 } }
+    elseif operation == "castrate" then
+        params = { mark = false }
+    elseif operation == "naming" then
+        params = { convention = "random" }
+    elseif operation == "ai" then
+        params = { maxAnimals = 5, mark = false, semen = RLHerdsmanRulePresenter.SEMEN_ANY }
+    else
+        Log:warning("RLHerdsmanRulePresenter.defaultParamsForOperation: unknown operation '%s'; returning empty params", tostring(operation))
+        return {}
+    end
+
+    Log:trace("RLHerdsmanRulePresenter.defaultParamsForOperation: operation=%s -> fresh defaults", tostring(operation))
+    return params
+end
+
+--- Per-field value-domain checks. Each takes the raw param value and returns true only
+--- when it is present AND in-domain (so an absent value is always false).
+
+--- maxAnimals: an integer within [MAXANIMALS_MIN, MAXANIMALS_MAX].
+---@param value any
+---@return boolean
+local function isValidMaxAnimals(value)
+    return type(value) == "number" and value == math.floor(value)
+        and value >= RLHerdsmanRulePresenter.MAXANIMALS_MIN
+        and value <= RLHerdsmanRulePresenter.MAXANIMALS_MAX
+end
+
+--- mark: a boolean.
+---@param value any
+---@return boolean
+local function isValidMark(value)
+    return type(value) == "boolean"
+end
+
+--- convention: a member of the convention domain.
+---@param value any
+---@return boolean
+local function isValidConvention(value)
+    return type(value) == "string" and CONVENTION_SET[value] == true
+end
+
+--- budget.type: a member of the budget-type domain.
+---@param value any
+---@return boolean
+local function isValidBudgetType(value)
+    return type(value) == "string" and BUDGET_TYPE_SET[value] == true
+end
+
+--- budget.fixed: a non-negative integer (serializer setInt).
+---@param value any
+---@return boolean
+local function isValidBudgetFixed(value)
+    return type(value) == "number" and value == math.floor(value) and value >= 0
+end
+
+--- budget.percentage: a member of the 28-value whitelist.
+---@param value any
+---@return boolean
+local function isValidBudgetPercentage(value)
+    return type(value) == "number" and BUDGET_PERCENTAGE_SET[value] == true
+end
+
+--- semen: a non-empty string ("any" sentinel or a real dewar uniqueId).
+---@param value any
+---@return boolean
+local function isValidSemen(value)
+    return type(value) == "string" and value ~= ""
+end
+
+--- Per-operation USED-param descriptors: the ordered list of fields validateParams
+--- reports on, each with how to read it from `params` and its domain check. The key
+--- set per operation matches the serializer's required-field set exactly (the
+--- codec-parity test asserts no drift); buy's nested budget sub-fields flatten to the
+--- budgetType / budgetFixed / budgetPercentage result keys.
+local PARAM_VALIDATORS = {
+    sell = {
+        { field = "maxAnimals", get = function(p) return p.maxAnimals end, check = isValidMaxAnimals },
+        { field = "mark",       get = function(p) return p.mark end,       check = isValidMark },
+    },
+    buy = {
+        { field = "maxAnimals",       get = function(p) return p.maxAnimals end,                     check = isValidMaxAnimals },
+        { field = "budgetType",       get = function(p) return p.budget and p.budget.type end,       check = isValidBudgetType },
+        { field = "budgetFixed",      get = function(p) return p.budget and p.budget.fixed end,      check = isValidBudgetFixed },
+        { field = "budgetPercentage", get = function(p) return p.budget and p.budget.percentage end, check = isValidBudgetPercentage },
+    },
+    castrate = {
+        { field = "mark", get = function(p) return p.mark end, check = isValidMark },
+    },
+    naming = {
+        { field = "convention", get = function(p) return p.convention end, check = isValidConvention },
+    },
+    ai = {
+        { field = "maxAnimals", get = function(p) return p.maxAnimals end, check = isValidMaxAnimals },
+        { field = "mark",       get = function(p) return p.mark end,       check = isValidMark },
+        { field = "semen",      get = function(p) return p.semen end,      check = isValidSemen },
+    },
+}
+
+--- Process-lifetime flag: warn exactly once if validateParams is called with an unknown
+--- operation. validateEdit calls this on every live draft validation, so a transient
+--- invalid op in the editor must not spam the log (the spec's one-shot contract).
+local _warnedValidateParamsUnknownOp = false
+
+--- Validate an operation's params against their value domains, returning a per-field
+--- boolean map plus an overall `ok`. `fields` carries one boolean per param the
+--- operation USES (e.g. sell -> maxAnimals, mark; buy -> maxAnimals, budgetType,
+--- budgetFixed, budgetPercentage); each is (present AND in-domain). `ok` is true only
+--- when every used field is true, which guarantees the rule is serializer/wire-writable.
+--- `previous` is never a field (it is the tick's cursor, not validated input). A nil /
+--- non-table `params` is treated as empty (every field false). Unknown operation ->
+--- `{ ok = false, fields = {} }` + a one-shot `:warning` (fail-closed return, like the
+--- sister helpers; warned once per process so the live-validation caller cannot spam).
+---@param operation any rule operation key
+---@param params table|nil operation params table
+---@return table { ok = boolean, fields = table<string, boolean> }
+function RLHerdsmanRulePresenter.validateParams(operation, params)
+    local validators = isKnownOperation(operation) and PARAM_VALIDATORS[operation] or nil
+    if validators == nil then
+        if not _warnedValidateParamsUnknownOp then
+            Log:warning("RLHerdsmanRulePresenter.validateParams: unknown operation '%s'; not ok (empty field map)", tostring(operation))
+            _warnedValidateParamsUnknownOp = true
+        end
+        return { ok = false, fields = {} }
+    end
+
+    local p = type(params) == "table" and params or {}
+    local fields = {}
+    local parts = {}
+    local ok = true
+    for _, validator in ipairs(validators) do
+        local fieldOk = validator.check(validator.get(p)) == true
+        fields[validator.field] = fieldOk
+        parts[#parts + 1] = string.format("%s=%s", validator.field, tostring(fieldOk))
+        if not fieldOk then ok = false end
+    end
+
+    Log:trace("RLHerdsmanRulePresenter.validateParams: operation=%s %s -> ok=%s",
+        tostring(operation), table.concat(parts, " "), tostring(ok))
+    return { ok = ok, fields = fields }
+end
+
+--- Process-lifetime flag: warn exactly once if RLConstants.AREA_CODES is unreachable
+--- (a load-order regression), so the area-code lookup degrading to "?" is visible in
+--- logs without spamming every option formatted.
+local _warnedAreaCodesMissing = false
+
+--- Format ONE real dewar's AI semen option label for the detail-pane picker, in the
+--- legacy shape `"<areaCode> <farmId> <uniqueId> (<straws> <strawLabel>)"`. The area
+--- code comes from RLConstants.AREA_CODES[country].code; the straw word is the injected
+--- `labels.strawSingular` (straws == 1) or `labels.strawPlural` (the frame wires those
+--- to the straw i18n strings). Real dewars only - it does NOT handle the "any" sentinel
+--- (the frame prepends that as its own option). Unknown / nil country -> a "?" area-code
+--- segment + a trace (deterministic, never crashes).
+---@param country any animal country index into RLConstants.AREA_CODES
+---@param farmId any owning farm id (rendered verbatim)
+---@param uniqueId any dewar animal uniqueId (rendered verbatim)
+---@param straws any straw count (drives singular/plural and rendered verbatim)
+---@param labels table { strawSingular = string, strawPlural = string }
+---@return string option
+function RLHerdsmanRulePresenter.formatSemenOption(country, farmId, uniqueId, straws, labels)
+    local areaCodes = RLConstants ~= nil and RLConstants.AREA_CODES or nil
+    if areaCodes == nil and not _warnedAreaCodesMissing then
+        Log:warning("RLHerdsmanRulePresenter.formatSemenOption: RLConstants.AREA_CODES unavailable; area codes will read '?' (check main.lua constants load order)")
+        _warnedAreaCodesMissing = true
+    end
+
+    local entry = areaCodes ~= nil and areaCodes[country] or nil
+    local code
+    if entry ~= nil and type(entry.code) == "string" then
+        code = entry.code
+    else
+        code = "?"
+        Log:trace("RLHerdsmanRulePresenter.formatSemenOption: unknown country '%s' -> '?' area code", tostring(country))
+    end
+
+    local strawLabel = (straws == 1) and labels.strawSingular or labels.strawPlural
+    local option = string.format("%s %s %s (%s %s)",
+        code, tostring(farmId), tostring(uniqueId), tostring(straws), tostring(strawLabel))
+
+    Log:trace("RLHerdsmanRulePresenter.formatSemenOption: country=%s farmId=%s uniqueId=%s straws=%s -> '%s'",
+        tostring(country), tostring(farmId), tostring(uniqueId), tostring(straws), option)
+    return option
 end
 
 -- =============================================================================
@@ -349,21 +630,21 @@ end
 --- RLHerdsmanRuleService's validity floor on targets: the service accepts an empty
 --- target list (inert rule), but the editor requires >= 1 so a saved rule actually
 --- does something. Re-asserts the naming-filterId-nil and operation-enum rules so the
---- UI never green-lights a draft the service rejects on save. Covers only the four
---- cross-cutting checks (per-op param completeness -> RLRM-385/F4; the animalType
---- target-gate + castrate chicken-exclusion -> RLRM-388/F6):
+--- UI never green-lights a draft the service rejects on save. The animalType
+--- target-gate + castrate chicken-exclusion stay out of scope (-> RLRM-388/F6):
 ---   * nameOk        - `name` is a non-blank string (not all-whitespace)
 ---   * operationOk   - `operation` is in the canonical RLHerdsmanRuleService.OPERATIONS set
 ---   * filterOk      - naming: `filterId == nil`; non-naming: non-blank string `filterId`
 ---   * husbandriesOk - `#targetHusbandries >= 1`
----   * valid         - all four
+---   * paramsOk      - `validateParams(operation, params).ok` (per-op param value domains)
+---   * valid         - all five
 --- nil / non-table draft -> all-false.
----@param draft table|nil { name, operation, filterId, targetHusbandries }
----@return table { valid, nameOk, operationOk, filterOk, husbandriesOk } (all boolean)
+---@param draft table|nil { name, operation, filterId, targetHusbandries, params }
+---@return table { valid, nameOk, operationOk, filterOk, husbandriesOk, paramsOk } (all boolean)
 function RLHerdsmanRulePresenter.validateEdit(draft)
     if type(draft) ~= "table" then
         Log:trace("RLHerdsmanRulePresenter.validateEdit: nil/non-table draft -> all false")
-        return { valid = false, nameOk = false, operationOk = false, filterOk = false, husbandriesOk = false }
+        return { valid = false, nameOk = false, operationOk = false, filterOk = false, husbandriesOk = false, paramsOk = false }
     end
 
     local nameOk = type(draft.name) == "string" and draft.name:gsub("%s", "") ~= ""
@@ -378,11 +659,13 @@ function RLHerdsmanRulePresenter.validateEdit(draft)
 
     local husbandriesOk = type(draft.targetHusbandries) == "table" and #draft.targetHusbandries >= 1
 
-    local valid = nameOk and operationOk and filterOk and husbandriesOk
+    local paramsOk = RLHerdsmanRulePresenter.validateParams(draft.operation, draft.params).ok
 
-    Log:trace("RLHerdsmanRulePresenter.validateEdit: nameOk=%s operationOk=%s filterOk=%s husbandriesOk=%s -> valid=%s",
-        tostring(nameOk), tostring(operationOk), tostring(filterOk), tostring(husbandriesOk), tostring(valid))
-    return { valid = valid, nameOk = nameOk, operationOk = operationOk, filterOk = filterOk, husbandriesOk = husbandriesOk }
+    local valid = nameOk and operationOk and filterOk and husbandriesOk and paramsOk
+
+    Log:trace("RLHerdsmanRulePresenter.validateEdit: nameOk=%s operationOk=%s filterOk=%s husbandriesOk=%s paramsOk=%s -> valid=%s",
+        tostring(nameOk), tostring(operationOk), tostring(filterOk), tostring(husbandriesOk), tostring(paramsOk), tostring(valid))
+    return { valid = valid, nameOk = nameOk, operationOk = operationOk, filterOk = filterOk, husbandriesOk = husbandriesOk, paramsOk = paramsOk }
 end
 
 Log:debug("RLHerdsmanRulePresenter: loaded (%d operations)", #RLHerdsmanRulePresenter.OPERATION_ORDER)
