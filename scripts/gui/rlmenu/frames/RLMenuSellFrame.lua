@@ -270,8 +270,8 @@ function RLMenuSellFrame:refreshHusbandries()
         self.items = {}
         self.selectedAnimals = {}
         -- Clear section state BEFORE reloadData so SmoothList's section-count
-        -- callback does not read stale keys from a prior populated husbandry.
-        -- Mirrors the fix applied to RLMenuBuyFrame:refreshTypes on 2026-04-18.
+        -- callback does not read stale keys from a prior populated husbandry
+        -- (mirrors the equivalent reset in RLMenuBuyFrame:refreshTypes).
         self.sectionOrder    = {}
         self.itemsBySection  = {}
         self.titlesBySection = {}

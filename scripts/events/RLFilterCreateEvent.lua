@@ -12,7 +12,7 @@
       2. If filter.farmId ~= nil: sender's farm must match filter.farmId
       3. Reject if a filter with the same id already exists (pathological)
 
-    Pattern reference: HusbandryMessageDeleteEvent.lua:27-167.
+    Pattern reference: HusbandryMessageDeleteEvent.
 ]]
 
 RLFilterCreateEvent = {}

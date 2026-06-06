@@ -2,9 +2,6 @@
     RLMessageAggregator.lua
     Message aggregation system for consolidating noisy individual messages
     (births, deaths, sales, purchases) into daily summaries per husbandry.
-
-    Message Log Consolidation
-    Author: Ritter
 ]]
 
 RLMessageAggregator = {}

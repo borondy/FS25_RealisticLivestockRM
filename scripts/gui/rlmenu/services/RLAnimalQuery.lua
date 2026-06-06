@@ -252,7 +252,7 @@ function RLAnimalQuery.formatAnimalRow(item)
         and cluster.genetics.fertility <= 0
 
     -- Status icon fields (Category 2: production, monitor-gated).
-    -- Follows buildOutputRows pattern from RLAnimalInfoService.lua:115-128.
+    -- Follows the buildOutputRows pattern from RLAnimalInfoService.
     local hasMonitor = cluster.monitor ~= nil
         and (cluster.monitor.active == true or cluster.monitor.removed == true)
     row.hasMonitor = hasMonitor

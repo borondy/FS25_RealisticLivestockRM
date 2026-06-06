@@ -7,10 +7,8 @@
 -- coerced condition table on OK or nil on Cancel.
 --
 -- Field-change coercion delegates to RLFilterFieldCatalog.coerceConditionOnFieldChange
--- (legacy parity with RLMenuSettingsFrame.lua:1769-1840 pre-v2). All number
+-- (legacy parity with RLMenuSettingsFrame's pre-v2 inline editor). All number
 -- value validation (tonumber + NaN/Inf reject) happens at OK click.
---
--- Author: Ritter
 
 local Log = RmLogging.getLogger("RLRM")
 
@@ -1000,7 +998,7 @@ function RLFilterConditionDialog:onClickOk()
                      or self.workingValue
                      or ""
         if text == "" then
-            -- Empty needle reject mirrors RLFilterEvaluator.lua:72 - committing
+            -- Empty needle reject mirrors RLFilterEvaluator's guard - committing
             -- an empty contains/notcontains needle silently produces a no-op
             -- filter. Refuse close, surface hint, WARN. Keeps working state
             -- so the user can correct without re-opening.
@@ -1119,7 +1117,7 @@ end
 --- Enter raised by a TextInputElement callback. `dismiss=true` is the
 --- IME-closing gesture (suppresses commit so the user can review the
 --- typed value); `dismiss=false`/`nil` is the IME-complete commit path.
---- Mirrors NameInputDialog.lua:135-137.
+--- Mirrors NameInputDialog:onEnterPressed.
 ---@param _ any unused (the TextInputElement raising the callback)
 ---@param dismiss boolean|nil true on IME-close gesture, false/nil on commit
 ---@return boolean true to consume the event, false to fall through
@@ -1129,7 +1127,7 @@ function RLFilterConditionDialog:onEnterPressed(_, dismiss)
 end
 
 --- Esc pressed while the TextInput is focused. Routes to onClickBack
---- per the NameInputDialog.lua:140-142 pattern.
+--- per the NameInputDialog:onEscPressed pattern.
 function RLFilterConditionDialog:onEscPressed(_)
     Log:trace("RLFilterConditionDialog:onEscPressed")
     return self:onClickBack()

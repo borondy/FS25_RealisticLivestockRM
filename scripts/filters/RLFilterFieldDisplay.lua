@@ -9,8 +9,6 @@
 --
 -- Split from RLFilterFieldCatalog so the catalog stays mockable + runtime-free
 -- and can be tested without a live mission.
---
--- Author: Ritter
 
 local Log = RmLogging.getLogger("RLRM")
 
@@ -49,8 +47,8 @@ end
 
 --- Look up the AnimalType struct for a given typeIndex via the live mission.
 --- Returns nil when the mission / animalSystem isn't loaded yet or the
---- index is unknown. The lookup matches RLMenuSettingsFrame.seedAnimalTypeStates
---- (line 1154-1167): `g_currentMission.animalSystem:getTypes()` returns a
+--- index is unknown. The lookup matches RLMenuSettingsFrame.seedAnimalTypeStates:
+--- `g_currentMission.animalSystem:getTypes()` returns a
 --- sparse map keyed by typeIndex, so we look up directly by index rather
 --- than ipairs-iterating.
 ---@param animalTypeIndex number|nil
@@ -256,7 +254,7 @@ end
 -- =============================================================================
 
 --- Resolve a localised label for a catalog field key. Mirrors the matching
---- helper inside RLMenuSettingsFrame.lua:1576 so both call sites agree on
+--- helper inside RLMenuSettingsFrame so both call sites agree on
 --- key namespace and fallback shape.
 ---@param key string
 ---@return string
@@ -379,8 +377,8 @@ end
 
 --- Limit a conditions-list row text under the row's pixel width. Strings
 --- use middle-truncate to preserve both head + tail (distinguishability for
---- long needles); every other value type uses suffix-truncate via the
---- basegame helper at Utils.lua:16.
+--- long needles); every other value type uses suffix-truncate via the public
+--- Utils.limitTextToWidth helper.
 ---@param text string the full "field cmp value" row text
 ---@param textSize number font size in normalised units (caller resolves
 ---       via element.textSize)

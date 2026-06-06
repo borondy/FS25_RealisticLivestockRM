@@ -32,9 +32,8 @@ AnimalScreen.DEWAR_QUANTITIES = {
 function RealisticLivestock_AnimalScreen.show(husbandry, vehicle, isDealer)
 
     -- Dealer-only redirect: shop "Buy Animals" + walk-up dealer trigger
-    -- without a trailer. RLMenu Buy tab routes the same AnimalBuyEvent via
-    -- RLAnimalBuyService - mutation parity preserved (see
-    -- spec-rlrm-261-rlmenu-dealer-redirect.md).
+    -- without a trailer. RLMenu's Buy tab routes the same AnimalBuyEvent via
+    -- RLAnimalBuyService, so mutation parity is preserved across the redirect.
     -- Trailer flavors and husbandry walk-up fall through to legacy unchanged.
     if husbandry == nil and vehicle == nil and isDealer == true then
         if g_rlMenu ~= nil then
@@ -935,7 +934,7 @@ function AnimalScreen:onClickHerdsmanMode()
     self.herdsmanOptions["semen"].values = dewarValues
     self.herdsmanOptions["semen"].texts = dewarTexts
 
-    -- Hide castrate tab for chickens (castration not supported, see AIAnimalManager:601)
+    -- Hide castrate tab for chickens (castration not supported for chickens)
     local isChicken = animalTypeIndex == AnimalType.CHICKEN
     local castrateTabButton = self.herdsmanPageCastrateButtonBg.parent
     castrateTabButton:setVisible(not isChicken)

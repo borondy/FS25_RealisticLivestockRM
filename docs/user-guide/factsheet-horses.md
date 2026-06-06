@@ -20,7 +20,7 @@ All horse breeds share identical stats. The only difference is appearance:
 | **Max Weight** | 900 kg | 1,000 kg |
 | **Birth Weight** | 45 kg | 48 kg |
 | **Buy Price (adult)** | $5,000 | $6,000 |
-| **Sell Price (peak)** | $2,000 – $10,000+ | $2,500 – $12,000+ |
+| **Sell Price (peak)** | $2,000 - $10,000+ | $2,500 - $12,000+ |
 
 *Stallions are heavier and sell for more than mares. Sell price varies enormously based on health, riding, fitness, and cleanliness - a well-maintained horse is worth several times more than a neglected one.*
 
@@ -81,8 +81,8 @@ All breeds and both genders consume the same amount.
 
 | Age | Range |
 |-----|-------|
-| Newborn | 13 – 88 |
-| 18+ mo (adult) | **100 – 700** |
+| Newborn | 13-88 |
+| 18+ mo (adult) | **100-700** |
 
 *Genetics cause large variation between individual animals. Most horses eat near the middle of these ranges. Horses do not have a lactation food bonus. The Food Scale setting also adjusts consumption.*
 
@@ -124,10 +124,10 @@ Horses have a very long fertile period but fertility declines gradually:
 
 | Mare Age | Breeding Success |
 |----------|-----------------|
-| 22–48 mo | High |
-| 48–108 mo | Good |
-| 108–180 mo | Moderate, declining |
-| 180–264 mo | Low |
+| 22-48 mo | High |
+| 48-108 mo | Good |
+| 108-180 mo | Moderate, declining |
+| 180-264 mo | Low |
 | 264+ mo | Infertile |
 
 *With 11 months of gestation, a mare can produce roughly one foal per year during her prime.*

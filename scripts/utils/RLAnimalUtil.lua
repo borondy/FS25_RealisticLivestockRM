@@ -1,8 +1,7 @@
 -- RLAnimalUtil.lua
--- Purpose: Centralized animal identity comparison, lookup, key formatting,
---          ID generation, state hashing, and stream identity helpers.
---          Replaces 62 inline identity patterns across 22+ files.
--- Author: Ritter
+-- Centralized animal identity comparison, lookup, key formatting, ID
+-- generation, state hashing, and stream identity helpers. Replaces the
+-- previously-inline identity patterns scattered across the mod.
 
 RLAnimalUtil = {}
 

@@ -893,8 +893,8 @@ end
 function RLMenuMoveFrame:startMoveFlow(animals)
     if self.selectedHusbandry == nil or #animals == 0 then return end
 
-    -- Single-move pre-validation (legacy parity: applyMoveTarget line 215)
-    -- Bulk skips client-side pre-validation (legacy: applyMoveTargetBulk line 244)
+    -- Single-move pre-validation (legacy parity: applyMoveTarget)
+    -- Bulk skips client-side pre-validation (legacy: applyMoveTargetBulk)
     local firstAnimal = animals[1]
     local subTypeIndex = firstAnimal.subTypeIndex
     if subTypeIndex == nil then

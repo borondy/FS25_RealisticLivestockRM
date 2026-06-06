@@ -4,9 +4,8 @@
 
     Wraps AnimalBuyEvent dispatch with the same subscription pattern as
     RLAnimalSellService / RLAnimalMoveService. All buys route through
-    AnimalBuyEvent (server-authoritative at
-    scripts/animals/shop/events/AnimalBuyEvent.lua:65-113): the server calls
-    animalSystem:removeSaleAnimal, self.object:addAnimals, and addMoney.
+    AnimalBuyEvent (server-authoritative in AnimalBuyEvent:run): the server
+    calls animalSystem:removeSaleAnimal, self.object:addAnimals, and addMoney.
     The client MUST NOT mutate dealer stock, husbandry contents, or farm
     money directly - MUTATION PARITY with legacy AnimalScreenDealer.
 
@@ -15,13 +14,13 @@
         g_currentMission:addMoney(buyPrice + transportPrice, ...)
     so both values MUST be dispatched as NEGATIVE numbers. addMoney adds
     the value to the balance; the MoneyType is a statistics label and does
-    not change the sign. Legacy `AnimalScreenDealer.lua:143-144` negates
-    both values before dispatch, and the server abs()-wraps them at
-    AnimalBuyEvent.lua:109 & 111 purely for display - confirming it expects
-    stored values to be negative. A positive dispatch credits the farm.
+    not change the sign. Legacy AnimalScreenDealer negates both values before
+    dispatch, and the server abs()-wraps them purely for display - confirming
+    it expects stored values to be negative. A positive dispatch credits the
+    farm.
 
     Price markup: dealer sell price = cluster:getSellPrice() * 1.075
-    (see AnimalItemNew.lua:158-160).
+    (see AnimalItemNew).
 
     Error mapping: delegates to AnimalScreenDealerFarm.BUY_ERROR_CODE_MAPPING
     (shape `[code] = { warning = bool, text = i18n_key }`). Do NOT define a
@@ -48,7 +47,7 @@ function RLAnimalBuyService.computeBuyPrice(animal)
         return 0
     end
 
-    -- 1.075 dealer markup: scripts/animals/shop/AnimalItemNew.lua:158-160
+    -- 1.075 dealer markup (matches AnimalItemNew)
     local price = (animal:getSellPrice() or 0) * 1.075
     Log:trace("RLAnimalBuyService.computeBuyPrice: price=%.0f", price)
     return price
@@ -150,10 +149,10 @@ end
 --- Mirrors RLAnimalSellService.sellAnimals subscription pattern.
 --- The callback fires once with (target, errorCode) when the server responds.
 ---
---- CRITICAL SIGN CONVENTION: AnimalBuyEvent.lua:103 server-side does
+--- CRITICAL SIGN CONVENTION: AnimalBuyEvent:run server-side does
 ---   g_currentMission:addMoney(buyPrice + transportPrice, ...)
 --- so BOTH values are dispatched as NEGATIVE numbers (matches legacy
---- AnimalScreenDealer.lua:143-144). A positive dispatch credits the farm.
+--- AnimalScreenDealer). A positive dispatch credits the farm.
 --- @param destination table The destination placeable (entry.placeable from getValidDestinations)
 --- @param animals table Array of Animal/cluster objects to buy
 --- @param totalPrice number Sum of buy prices (POSITIVE input; negated on dispatch)
@@ -187,13 +186,12 @@ function RLAnimalBuyService.buyAnimals(destination, animals, totalPrice, totalFe
             Log:info("RLAnimalBuyService.onBuyResponse: buy succeeded (%d animals)", #animals)
 
             -- MP client-side sale-list mirror. Server did the authoritative
-            -- removal at AnimalBuyEvent.lua:97 before firing this response,
+            -- removal (in AnimalBuyEvent:run) before firing this response,
             -- but in MP the client's local g_currentMission.animalSystem.animals
             -- list is never auto-synced - so the buying client would see the
             -- just-bought animals reappear on reloadAnimalList until some
             -- other sync. Legacy mirrors this exact loop in
-            -- RL_AnimalScreenDealerFarm:onAnimalBought at
-            -- AnimalScreenDealerFarm.lua:84-92.
+            -- RL_AnimalScreenDealerFarm:onAnimalBought.
             if g_currentMission ~= nil
                 and g_currentMission.animalSystem ~= nil
                 and g_currentMission.animalSystem.removeSaleAnimal ~= nil then

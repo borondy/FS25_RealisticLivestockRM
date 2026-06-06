@@ -21,9 +21,9 @@ local modDirectory = g_currentModDirectory
 RLMenu.ACTION_NAME = "RL_MENU"
 
 -- Open-mode constants. MODE_FULL is the default; MODE_DEALER hides Move/
--- Messages/Settings tabs via predicate gating so the menu acts as the new
--- entry for shop "Buy Animals" and walk-up dealer triggers.
--- See spec-rlrm-261-rlmenu-dealer-redirect.md for the entry-point taxonomy.
+-- Messages/Settings tabs via predicate gating so the menu acts as the
+-- destination for shop "Buy Animals" and walk-up dealer triggers (the
+-- legacy AnimalScreen.show dealer-shape entry redirects here).
 RLMenu.MODE_FULL = "full"
 RLMenu.MODE_DEALER = "dealer"
 
@@ -279,12 +279,12 @@ function RLMenu:onClose()
     local wasDealer = (self.openMode == RLMenu.MODE_DEALER)
     self.openMode = RLMenu.MODE_FULL
 
-    -- Wrap super-onClose in pcall: base TabbedMenu.onClose touches
+    -- Wrap super-onClose in pcall: base TabbedMenu:onClose touches
     -- currentPage:onFrameClose(), g_inputBinding, pageSelector:getState(),
-    -- and g_currentMission:resetGameState() (TabbedMenu.lua:78-97). Any one
-    -- of those can nil-deref in a torn-down session and would skip the
-    -- wasDealer force-reset below, leaking dealer-mode page anchoring into
-    -- the next open. pcall makes the force-reset unconditional.
+    -- and g_currentMission:resetGameState(). Any one of those can nil-deref
+    -- in a torn-down session and would skip the wasDealer force-reset below,
+    -- leaking dealer-mode page anchoring into the next open. pcall makes the
+    -- force-reset unconditional.
     local superOk, superErr = pcall(function() RLMenu:superClass().onClose(self) end)
     if not superOk then
         Log:warning("RLMenu:onClose: super-onClose threw (err=%s); continuing close",
@@ -292,12 +292,11 @@ function RLMenu:onClose()
     end
 
     -- Force restorePageIndex = 1 AFTER super onClose: TabbedMenu:onClose
-    -- (base/TabbedMenu.lua:88-89) overwrites self.restorePageIndex with
-    -- self.pageSelector:getState() (a VISIBLE-tab index). Dealer-mode visible
-    -- indices differ from full-mode (e.g. dealer AI sits at visible index 4
-    -- where full-mode index 4 is Info), so a naive snapshot would mode-cross
-    -- the next shortcut-open onto the wrong tab. Anchoring at 1 (Buy) is
-    -- predictable for both modes.
+    -- overwrites self.restorePageIndex with self.pageSelector:getState() (a
+    -- VISIBLE-tab index). Dealer-mode visible indices differ from full-mode
+    -- (e.g. dealer AI sits at visible index 4 where full-mode index 4 is
+    -- Info), so a naive snapshot would mode-cross the next shortcut-open onto
+    -- the wrong tab. Anchoring at 1 (Buy) is predictable for both modes.
     if wasDealer then
         self.restorePageIndex = 1
         self.restorePage = nil
@@ -386,7 +385,7 @@ function RLMenu.openFromBridge(startPageId, mode)
     local priorRestorePage = g_rlMenu.restorePage
 
     -- Force restorePageIndex over restorePage: TabbedMenu:onOpen reads
-    -- restorePage first (TabbedMenu.lua:67-74). Clearing it makes
+    -- restorePage first, so clearing it makes
     -- pageSelector:setState(restorePageIndex, true) the authoritative path.
     g_rlMenu.openMode = mode
     g_rlMenu.restorePageIndex = startPageId

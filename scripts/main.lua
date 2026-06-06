@@ -4,7 +4,6 @@
     Loads all dependencies in the correct order.
 
     IMPORTANT: The loading order is critical - do not reorder without testing.
-    Author: Ritter (based on Arrow-kb's Realistic Livestock)
 ]]
 
 local modDirectory = g_currentModDirectory

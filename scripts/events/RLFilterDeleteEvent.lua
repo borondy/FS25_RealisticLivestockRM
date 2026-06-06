@@ -15,7 +15,7 @@
     Note: the payload is just the id. farmId for the scope check is derived
     from the server's stored record, which is the authoritative source.
 
-    Pattern reference: HusbandryMessageDeleteEvent.lua:27-167.
+    Pattern reference: HusbandryMessageDeleteEvent.
 ]]
 
 RLFilterDeleteEvent = {}

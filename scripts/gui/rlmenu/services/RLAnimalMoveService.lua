@@ -70,7 +70,7 @@ end
 
 
 --- Client-side pre-validation for a single animal move.
---- Mirrors legacy AnimalScreenMoveFarm:applyMoveTarget line 215 which calls
+--- Mirrors legacy AnimalScreenMoveFarm:applyMoveTarget, which calls
 --- AnimalMoveEvent.validate() before sending the event.
 --- @param sourceHusbandry table The source husbandry placeable
 --- @param destination table The destination placeable (entry.placeable)
@@ -140,7 +140,7 @@ function RLAnimalMoveService.moveAnimals(sourceHusbandry, destination, animals, 
     )
     Log:trace("RLAnimalMoveService.moveAnimals: sendEvent returned")
 
-    -- Add RL messages to source husbandry (matching legacy applyMoveTarget/Bulk lines 234-264)
+    -- Add RL messages to source husbandry (matching legacy applyMoveTarget/Bulk)
     if sourceHusbandry.addRLMessage ~= nil then
         if #animals == 1 then
             sourceHusbandry:addRLMessage("MOVED_ANIMALS_SOURCE_SINGLE", nil, { destination:getName() })

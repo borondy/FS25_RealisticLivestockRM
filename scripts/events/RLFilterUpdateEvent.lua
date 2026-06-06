@@ -12,7 +12,7 @@
       4. Immutability: payload.id / payload.farmId / payload.version must
          equal the stored record. Server rejects any divergence.
 
-    Pattern reference: HusbandryMessageDeleteEvent.lua:27-167.
+    Pattern reference: HusbandryMessageDeleteEvent.
 ]]
 
 RLFilterUpdateEvent = {}

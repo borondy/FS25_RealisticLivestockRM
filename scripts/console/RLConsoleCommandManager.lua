@@ -50,9 +50,6 @@ end
 --- animals are removed before the handler returns; cluster bookkeeping is
 --- never mutated.
 ---
---- Calls the same engine primitive as basegame AnimalClusterHusbandry:191
---- and RLRM RealisticLivestock_AnimalClusterHusbandry:201/241/248.
----
 --- Pair with the FS25_AnimalCapProbe RLRM pack to push every per-type config
 --- past 32 slots so the cap can be observed.
 ---@param maxIdxStr string|nil  upper bound for probe idx (default 127)
@@ -166,8 +163,8 @@ end
 ---
 --- Both legs:
 ---   - borrow navNode, raycastDistance, collisionMask from an active COW placeable's clusterHusbandry
----   - call createAnimalHusbandry directly (same engine primitive as
----     RealisticLivestock_AnimalClusterHusbandry:create:26)
+---   - call createAnimalHusbandry directly (same engine primitive
+---     RealisticLivestock_AnimalClusterHusbandry:create uses)
 ---   - probe addHusbandryAnimal idx 0..maxIdx on the new husbandry
 ---   - cleanup: removeHusbandryAnimal each spawned + delete(husbandryId)
 ---

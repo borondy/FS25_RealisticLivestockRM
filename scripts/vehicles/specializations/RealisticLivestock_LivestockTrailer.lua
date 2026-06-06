@@ -259,5 +259,3 @@ function RealisticLivestock_LivestockTrailer:dayChanged(superFunc)
     end
 
 end
-
---LivestockTrailer.dayChanged = Utils.overwrittenFunction(LivestockTrailer.dayChanged, RealisticLivestock_LivestockTrailer.dayChanged)

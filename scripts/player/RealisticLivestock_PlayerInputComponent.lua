@@ -132,8 +132,11 @@ end
 PlayerInputComponent.onFinishedRideBlending = Utils.overwrittenFunction(PlayerInputComponent.onFinishedRideBlending, RealisticLivestock_PlayerInputComponent.onFinishedRideBlending)
 
 
--- Fix MP horse riding/cleaning: Base game events use streamWriteInt32 for
--- clusterId, but RL uses string identifiers ("farmId uniqueId").
+-- Fix MP horse riding/cleaning: RL identifies animals with a string
+-- ("farmId uniqueId"), not the int clusterId the AnimalRidingEvent /
+-- AnimalCleanEvent stream signatures expect. Override their write/read to
+-- string semantics so the wire format matches what RL ships on the other
+-- side.
 
 function AnimalRidingEvent:writeStream(streamId, _)
     NetworkUtil.writeNodeObject(streamId, self.husbandry)

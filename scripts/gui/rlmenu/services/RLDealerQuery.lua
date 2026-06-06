@@ -56,12 +56,12 @@ end
 -- Animal list for a dealer type
 -- =============================================================================
 
---- Wrap a dealer sale Animal into an AnimalItemStock - the same base-game
---- wrapper Sell/Move/Info use via RLAnimalQuery._wrapCluster. Gives us
+--- Wrap a dealer sale Animal into an AnimalItemStock - the same wrapper
+--- RLAnimalQuery._wrapCluster uses for Sell/Move/Info. Gives us
 --- `getFilename()` (animal portrait), `title`, `cachedAvgGenetics`, and
---- `.visual` for free. The banned wrapper in Phase 1 spec is AnimalItemNew
---- (the legacy dealer-specific wrapper with 1.075 markup + breeder quality);
---- AnimalItemStock is the generic Animal wrapper and is safe to reuse.
+--- `.visual` for free. AnimalItemStock is the generic Animal wrapper (no
+--- dealer-specific markup or breeder-quality fields) so it is safe to reuse
+--- on the dealer-Buy path.
 --- Exposed as a field so tests can swap in a lightweight stub.
 --- @param animal table  Animal object from animalSystem:getSaleAnimalsByTypeIndex
 --- @return table|nil item
@@ -106,7 +106,7 @@ function RLDealerQuery.listDealerAnimalsForType(typeIndex)
     -- Reuse RLRM's shared animal sort comparator so Buy matches Sell / Move /
     -- Info behavior exactly: disease-first, then subtype ascending, then
     -- (optional) genetics descending when RLSettings.sortByGenetics is
-    -- enabled, then age ascending. See AnimalScreenBase.lua:108-134.
+    -- enabled, then age ascending (see RL_AnimalScreenBase.sortAnimals).
     -- AnimalItemStock.new (overridden by RealisticLivestock_AnimalItemStock)
     -- already populates `cachedAvgGenetics` on each item.
     if RL_AnimalScreenBase ~= nil and RL_AnimalScreenBase.sortAnimals ~= nil then

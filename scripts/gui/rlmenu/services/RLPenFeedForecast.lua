@@ -111,8 +111,8 @@ local function tickStateAdvance(scratch, daysPerPeriod)
             s.isLactating = false
         end
 
-        -- Advance gestation. Live formula: per-day delta =
-        -- floor((100 / duration) / daysPerPeriod) at AnimalReproduction.lua:269.
+        -- Advance gestation. Live formula (from AnimalReproduction): per-day
+        -- delta = floor((100 / duration) / daysPerPeriod).
         -- Accumulated over daysPerPeriod days per simulated game-month, clamped
         -- at 100. Without this, the food formula's gestation surge factor
         -- (1 + reproduction/100/5)^N stays at the snapshot value and late-term
@@ -179,7 +179,7 @@ local function tickBirths(scratch, simMonth, simYear, maxNumAnimals)
                 })
             end
 
-            -- Mother post-birth state per AnimalReproduction.lua:750 (COW or GOAT lactates).
+            -- Mother post-birth state per AnimalReproduction (COW or GOAT lactates).
             s.isPregnant           = false
             s.pregnancy            = nil
             s.reproduction         = 0
@@ -259,8 +259,7 @@ function RLPenFeedForecast.getMonthsRemaining(husbandry, foodTotalLiters)
         -- Fire any births due at the current simulated month BEFORE drain so
         -- newborns join the herd for this month's food consumption. Mirrors
         -- the live game where reproduce() fires on the due day and the
-        -- newborns start eating from that day. See Design Notes "Birth-vs-drain
-        -- ordering" in spec-rlrm-278.
+        -- newborns start eating from that day.
         local added = tickBirths(scratch, simMonth, simYear, maxNumAnimals)
         if added > 0 then
             Log:trace("RLPenFeedForecast: m=%d births=%d herdAfter=%d (cal=%d/%d)",

@@ -1,7 +1,6 @@
 -- RmFontManager.lua
--- Stripped from FS25_FontLibrary by Arrow
--- Modified for RealisticLivestockRM - 3D linked text only
--- All 2D rendering, UI, and settings code removed
+-- Adapted from FS25_FontLibrary - 3D linked text subset only.
+-- All 2D rendering, UI, and settings code removed.
 
 RmFontManager = {}
 

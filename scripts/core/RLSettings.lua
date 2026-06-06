@@ -687,24 +687,12 @@ function RLSettings.onSettingChanged(_, state, button)
 
 	RLSettings.applyChange(name, state)
 
-	if g_server ~= nil then
-
-		--RLSettings.saveToXMLFile(name, state)
-
-	else
-
-		--RL_BroadcastSettingsEvent.sendEvent(name)
-
-	end
-
 end
 
 
 function RLSettings.applyDefaultSettings()
 
 	if g_server == nil then
-
-		--RL_BroadcastSettingsEvent.sendEvent()
 
 	else
 

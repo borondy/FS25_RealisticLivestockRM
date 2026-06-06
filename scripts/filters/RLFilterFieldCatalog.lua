@@ -120,8 +120,8 @@ RLFilterFieldCatalog.FIELDS = {
         animalTypes = "all",
         getter      = function(animal) return animal.age end,
         monitorGated = false,
-        -- Best-effort upper bound: HORSE's 360-month max (RealisticLivestock.lua:664)
-        -- plus headroom. Editor renders with animalType=nil for cross-species filters
+        -- Best-effort upper bound: HORSE's 360-month max plus headroom.
+        -- Editor renders with animalType=nil for cross-species filters
         -- so a per-species cap isn't reachable here. Map mods adding longer-lived
         -- animals can override via a future catalog hook if needed.
         min          = 0,
@@ -186,7 +186,7 @@ RLFilterFieldCatalog.FIELDS = {
         type        = "bool",
         cmps        = BOOL_CMPS,
         animalTypes = "all",
-        -- Mirrors Animal:getMarked() with no key (RealisticLivestock_Animal.lua:1494-1504):
+        -- Mirrors Animal:getMarked() with no key:
         -- true iff at least one entry in animal.marks has active=true. Fallback path
         -- walks the raw table so tests can use plain-table fake animals. Generic
         -- "any mark" only; per-mark-kind fields (PLAYER / AI_MANAGER_*) deferred.

@@ -10,7 +10,7 @@
       2. Middle column replaces the cart subtree with `aiPurchasePanel`:
          Average Success + Quantity + stepper + total price. The container
          is visibility-toggled on bull-selection to avoid rendering nil-animal
-         state (mirrors legacy aiInfoContainer at AnimalScreen.lua:629, 647).
+         state (mirrors the legacy aiInfoContainer hide-until-selection).
       3. Header icon is rlMenu.manage_animal; title is rl_menu_ai_title.
 
     Right-side detail pane + pen-info placeholder are copied verbatim from
@@ -58,8 +58,8 @@
                 <!--
                     Data row (no checkbox column - single-bull selection).
                     The `price` cell holds the overall-quality label
-                    (e.g. "Very good", "Extremely good") per legacy at
-                    AnimalScreen.lua:2200-2217, NOT a money amount.
+                    (e.g. "Very good", "Extremely good") per legacy parity,
+                    NOT a money amount.
                 -->
                 <ListItem profile="fs25_subCategoryListItem" name="defaultCell">
                     <Bitmap profile="fs25_subCategoryListItemIcon" name="icon"/>

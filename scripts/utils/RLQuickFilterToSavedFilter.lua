@@ -67,7 +67,7 @@ end
 -- =============================================================================
 
 --- Convert one QF slider row to zero or two `>=`/`<=` leaf conditions.
---- Mirrors AnimalFilterDialog:onClickOk (lines 521-549) prune semantics:
+--- Mirrors AnimalFilterDialog:onClickOk prune semantics:
 --- a full-range slider (left thumb at 1, right thumb at cachedCount) is pruned.
 --- Crossed thumbs are tolerated via math.min/math.max (legacy parity).
 ---
@@ -142,7 +142,7 @@ local function convertSliderRow(filter, appendChild)
 end
 
 --- Convert one QF binary row to zero or one `==` leaf condition.
---- Mirrors AnimalFilterDialog:onClickOk (lines 553-565): state=2 ("ignore") is
+--- Mirrors AnimalFilterDialog:onClickOk: state=2 ("ignore") is
 --- pruned; the selected value is read from filter.text[state].value (the row's
 --- canonical value, not a localized label).
 ---

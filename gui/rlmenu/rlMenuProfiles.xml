@@ -88,16 +88,14 @@
     <!--
         Phase 2b1: pen icon profile for the Info tab.
 
-        The default `fs25_animalPenIcon` profile renders the icon above its
-        host container, which only works in a wide layout. The Info tab
-        uses a narrower column, so this override resizes and repositions
-        the icon to sit inside the column.
+        Override resizes and repositions the icon to sit inside the Info
+        tab's narrow column (the default `fs25_animalPenIcon` profile only
+        fits a wider host).
     -->
     <!--
-        Pen icon for the Info tab. Mirrors legacy fs25_animalHusbandryIcon
-        (AnimalScreen.xml line 286): square 280x280, anchored top-center,
-        positioned 160px below the column top so it sits below the pen
-        name + count text rows.
+        Pen icon for the Info tab. Mirrors the legacy fs25_animalHusbandryIcon
+        usage: square 280x280, anchored top-center, positioned 160px below
+        the column top so it sits below the pen name + count text rows.
     -->
     <Profile name="rlMenu_penIcon" extends="baseReference" with="anchorTopCenter">
         <size value="220px 220px"/>
@@ -106,8 +104,8 @@
     </Profile>
 
     <!--
-        "PEN INFORMATION" header. Mirrors legacy fs25_animalTextTransportTo
-        (AnimalScreen.xml line 270): fs25_textDefault (15px) + uppercase
+        "PEN INFORMATION" header. Mirrors the legacy fs25_animalTextTransportTo
+        usage: fs25_textDefault (15px) + uppercase
         + centered. The earlier rlMenu_penInfoHeader extended
         fs25_animalRequirementsHeaderLong (22px bold) which was too large
         and left-aligned for the narrow column.
@@ -164,20 +162,18 @@
 
     <!--
         AI tab quantity stepper. Extends the `fs25_animalAmountSelector`
-        profile (same profile our legacy AI screen at `AnimalScreen.xml:457`
-        uses with an inline `width="100%"` override to fill the parent
-        column). This profile encapsulates that override so the frame XML
-        stays clean.
+        profile (the same profile the legacy AI screen uses with an inline
+        `width="100%"` override to fill the parent column). This profile
+        encapsulates that override so the frame XML stays clean.
 
         Additional overrides:
           - `anchorTopStretchingX` (instead of inheriting `anchorBottomCenter`)
-            spans the parent's full horizontal width. The `anchorTopCenter`
-            trait is a FS25 gotcha: its anchor rect is `0.5 0.5 1 1` = right
-            HALF of parent, not "centered across parent". Using it with 100%
-            size puts the widget in the right half only.
+            spans the parent's full horizontal width. `anchorTopCenter` would
+            place the widget in the right half of the parent, not centered
+            across it, so it is not used here.
           - `position` reset to 0,0 (the inherited profile carries a Y offset
-            that is appropriate for its original bottom-anchored host; not
-            needed when this widget flows as a BoxLayout child).
+            appropriate for its original bottom-anchored host; not needed when
+            this widget flows as a BoxLayout child).
           - `absoluteSizeOffset` overridden to shrink the widget by 40px
             (see below).
     -->
@@ -243,12 +239,10 @@
     </Profile>
 
     <!--
-        Smaller animal image profile for the Info tab. The default
-        `fs25_animalIcon` profile renders the icon at a size suited to a
-        narrow column where it dominates the layout. The Info tab hosts
-        the icon in a wider column with more content underneath
-        (description + 2 columns + disease), so this override shrinks it
-        and lifts it to free vertical space.
+        Smaller animal image profile for the Info tab. The Info tab hosts the
+        icon in a wider column with more content underneath (description + 2
+        columns + disease), so this override shrinks the icon and lifts it to
+        free vertical space.
     -->
     <Profile name="rlMenu_animalImage" extends="fs25_animalIcon">
         <size value="200px 200px"/>
@@ -322,15 +316,12 @@
     </Profile>
 
     <!--
-        Visible debug backdrop for the animal scroll area. Semi-transparent
-        teal so we can see exactly where the scroll container lives without
-        any content inside. Step-by-step layout debugging - replace the
-        color with $preset_colorTransparent once positioning is confirmed.
-
-        Uses imageSliceId="gui.colorPreset" - a solid 1x1 color slice that
-        responds to imageColor. Without this, a Bitmap/GuiElement renders
-        nothing visible (or the entire texture atlas when imageSliceId is
-        the literal string "noSlice" without an imageFilename).
+        Transparent wrapper around the animal scroll area. Uses
+        imageSliceId="gui.colorPreset" + imageColor="$preset_colorTransparent"
+        so the Bitmap renders nothing visible while still serving as the
+        sized host for the ScrollingLayout inside. (Without an imageSliceId
+        the Bitmap would render the entire texture atlas; with imageSliceId
+        "noSlice" and no imageFilename it would still render an artifact.)
     -->
     <Profile name="rlMenu_animalScrollDebugBg" extends="baseReference" with="anchorStretchingYStretchingX pivotTopLeft">
         <size value="100% 100%"/>
@@ -527,12 +518,10 @@
         via runtime measurement on a 783-tall parent at 16:9.
     -->
     <!--
-        2026-05-17 update: [+ condition] footer row removed (moved to the
-        action bar). Conditions list now stretches all the way to the
-        parent's bottom edge. absoluteSizeOffset reduced from 380 to 290
-        (only the top metadata layout reservation remains, plus a small
-        visual gap). position dropped from 90 to 0 (element bottom flush
-        with parent bottom).
+        Conditions list container: stretches to the parent's bottom edge
+        with absoluteSizeOffset 290px reserving the metadata layout on top
+        (the [+ condition] action lives on the action bar, not in-pane, so
+        no extra footer reservation is needed).
     -->
     <Profile name="rlMenu_filterEditorMiddle" extends="emptyPanel" with="anchorStretchingYStretchingX pivotBottomCenter">
         <size value="100% 100%"/>
