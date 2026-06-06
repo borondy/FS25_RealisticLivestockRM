@@ -748,6 +748,11 @@
         <text name="rl_menu_herdsman_title" text="Herdsman"/>
         <text name="rl_menu_herdsman_empty" text="No herdsman rules yet"/>
         <text name="rl_menu_herdsman_empty_editor" text="Select a rule to edit"/>
+        <text name="rl_menu_herdsman_section_sell" text="Sell"/>
+        <text name="rl_menu_herdsman_section_buy" text="Buy"/>
+        <text name="rl_menu_herdsman_section_castrate" text="Castrate"/>
+        <text name="rl_menu_herdsman_section_naming" text="Naming"/>
+        <text name="rl_menu_herdsman_section_ai" text="Artificial Insemination"/>
         <!-- Settings tab shell (English fallback) -->
         <text name="rl_menu_settings_title" text="Settings"/>
         <text name="rl_menu_settings_tab_general" text="General"/>

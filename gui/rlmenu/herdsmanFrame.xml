@@ -43,7 +43,14 @@
                 <SmoothList profile="rl_filterList"
                             id="rulesList"
                             startClipperElementName="rulesStartClipper"
-                            endClipperElementName="rulesEndClipper">
+                            endClipperElementName="rulesEndClipper"
+                            listSectionHeader="section">
+                    <!-- Section header cell (auto-populated via getTitleForSectionHeader);
+                         one per operation. rl_filterList extends fs25_subCategoryList,
+                         so the section-header profiles compose. -->
+                    <ListItem profile="fs25_subCategoryListSectionHeader" name="section">
+                        <Text profile="fs25_subCategoryListSectionHeaderTitle" name="title"/>
+                    </ListItem>
                     <ListItem profile="rl_filterListItem" name="defaultCell">
                         <Text profile="rl_filterListItemName" name="ruleName"/>
                     </ListItem>
