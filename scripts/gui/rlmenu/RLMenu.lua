@@ -31,7 +31,7 @@ RLMenu.MODE_DEALER = "dealer"
 -- openFromBridge's startPageId validation. If a tab is added/removed, bump
 -- this and renumber setupMenuPages in lockstep -- the spec ASKS to halt on
 -- such changes.
-RLMenu.PAGE_COUNT = 7
+RLMenu.PAGE_COUNT = 8
 
 -- Dev-only GUI hot-reload (Mechanism B). When true, open() re-runs the full
 -- setupGui() parse so on-disk XML/profile edits show up on reopen with no game
@@ -82,6 +82,7 @@ function RLMenu.setupGui()
     RLMenuSellFrame.setupGui()
     RLMenuBuyFrame.setupGui()
     RLMenuAIFrame.setupGui()
+    RLMenuHerdsmanFrame.setupGui()
     RLMenuSettingsFrame.setupGui()
 
     -- 3. Create the menu instance and load its XML
@@ -181,8 +182,17 @@ function RLMenu:setupMenuPages()
         self.messagesFrame:initialize()
     end
 
+    -- Herdsman tab (automated rules editor; hidden in dealer mode)
+    self:registerPage(self.herdsmanFrame, 7, traced("herdsman", function()
+        return basePredicate() and not isDealerMode()
+    end))
+    self:addPageTab(self.herdsmanFrame, nil, nil, "rlMenu.herdsman")
+    if self.herdsmanFrame ~= nil and self.herdsmanFrame.initialize ~= nil then
+        self.herdsmanFrame:initialize()
+    end
+
     -- Settings tab (tail - hosts the saveable-filters editor; hidden in dealer mode)
-    self:registerPage(self.settingsFrame, 7, traced("settings", function()
+    self:registerPage(self.settingsFrame, 8, traced("settings", function()
         return basePredicate() and not isDealerMode()
     end))
     self:addPageTab(self.settingsFrame, nil, nil, "gui.icon_options_generalSettings")
@@ -191,7 +201,7 @@ function RLMenu:setupMenuPages()
     end
 
     Log:debug(
-    "RLMenu:setupMenuPages: 7 pages registered (buy, sell, move, manage, ai, messages, settings); move/messages/settings dealer-mode gated")
+    "RLMenu:setupMenuPages: 8 pages registered (buy, sell, move, manage, ai, messages, herdsman, settings); move/messages/herdsman/settings dealer-mode gated")
 end
 
 --- Configure the bottom button bar.
@@ -409,7 +419,7 @@ end
 ---
 --- The handshake is a two-step relay:
 ---   1. Here: stash `pendingSelectedFilterId` on the menu instance, then ask
----      the pageSelector to switch to Settings (page id 7).
+---      the pageSelector to switch to Settings (page id 8).
 ---   2. RLMenuSettingsFrame:onFrameOpen consumes-and-clears the id BEFORE its
 ---      refreshData call so resolveSelectionById lights the new row in the
 ---      same pass; at the end of onFrameOpen it flips the subCategoryPaging
@@ -427,7 +437,7 @@ function RLMenu:openSettingsFilter(filterId)
         return
     end
     self.pendingSelectedFilterId = filterId
-    self.pageSelector:setState(7, true)
+    self.pageSelector:setState(8, true)
     Log:info("RLMenu:openSettingsFilter: filterId=%s (switched to Settings tab)",
         tostring(filterId))
 end

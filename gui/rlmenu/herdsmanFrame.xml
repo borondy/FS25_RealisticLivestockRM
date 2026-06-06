@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!--
+    herdsmanFrame.xml
+    RL Tabbed Menu Herdsman tab: a rule list (master) + rule editor (detail).
+
+    Mirrors the Settings > Filters master-detail but WITHOUT a subcategory tab
+    bar: the herdsman frame hosts a single master-detail, so the tab bar,
+    its highlighted separator, and the paging selector are all absent. A
+    content wrapper using fs25_subCategorySelectorTabbedContainer is KEPT
+    (not flattened into fs25_menuContainer): rlMenu_filterEditorContainer
+    trims its width by 410px relative to THIS wrapper, and the wrapper also
+    reserves the header band - so keeping it preserves the editor's anchor
+    context and the list/editor's clearance below the header.
+
+    Shell scope: the list binds to an empty data source and the two
+    empty-state texts render; rule rows, editor widgets, dialogs, and the
+    action bar arrive in later herdsman frame slices.
+-->
+<GUI name="RLMenuHerdsmanFrame">
+    <GuiElement profile="fs25_menuContainer">
+
+        <!-- Header with the herdsman icon. id so onFrameOpen can measure its
+             bottom edge as the baseline for the list/editor placement. -->
+        <GuiElement profile="fs25_menuHeaderPanel" id="headerPanel">
+            <Bitmap profile="fs25_menuHeaderIconBg">
+                <Bitmap profile="fs25_menuHeaderIcon" imageSliceId="rlMenu.herdsman"/>
+            </Bitmap>
+            <Text profile="fs25_menuHeaderTitle" text="$l10n_rl_menu_herdsman_title"/>
+        </GuiElement>
+
+        <!-- Content wrapper (the kept subCategoryPages[2]-role container). No
+             tab bar sits above it, so the master-detail occupies the band the
+             tab-bar chrome held in the Settings frame. Final top offset is
+             confirmed by the onFrameOpen measurement log and tuned with the
+             dev hot-reload, not eyeballed. -->
+        <GuiElement profile="rlMenu_herdsmanContentContainer" id="herdsmanContentContainer">
+
+            <!-- Master: rule list sidebar (410px). Mirrors filtersListContainer. -->
+            <GuiElement profile="fs25_subCategoryContainer" id="rulesListContainer">
+                <Bitmap profile="fs25_subCategoryStartClipper" name="rulesStartClipper"/>
+                <Bitmap profile="fs25_subCategoryStopClipper" name="rulesEndClipper"/>
+
+                <SmoothList profile="rl_filterList"
+                            id="rulesList"
+                            startClipperElementName="rulesStartClipper"
+                            endClipperElementName="rulesEndClipper">
+                    <ListItem profile="rl_filterListItem" name="defaultCell">
+                        <Text profile="rl_filterListItemName" name="ruleName"/>
+                    </ListItem>
+                </SmoothList>
+
+                <Text profile="fs25_animalListEmptyText"
+                      id="rulesEmptyState"
+                      text="$l10n_rl_menu_herdsman_empty"/>
+
+                <ThreePartBitmap profile="fs25_subCategoryListSliderBox" id="rulesSliderBox">
+                    <Slider profile="fs25_listSlider" dataElementId="rulesList" id="rulesSlider"/>
+                </ThreePartBitmap>
+            </GuiElement>
+
+            <!-- Detail: rule editor (right-side sibling). Reuses the
+                 rlMenu_filterEditorContainer profile, which stretches both
+                 axes inside this wrapper and trims width by the sidebar's
+                 410px so the right edge aligns with the wrapper's right edge.
+                 Shell carries only the empty-state text; the editor rows and
+                 conditions list are a later slice. -->
+            <GuiElement profile="rlMenu_filterEditorContainer" id="ruleEditorContainer">
+                <Text profile="fs25_animalListEmptyText"
+                      id="ruleEditorEmpty"
+                      text="$l10n_rl_menu_herdsman_empty_editor"/>
+            </GuiElement>
+
+        </GuiElement>
+
+    </GuiElement>
+</GUI>

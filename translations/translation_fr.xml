@@ -774,6 +774,9 @@
 <text name="rl_menu_ai_price" text="Prix"/>
 <text name="rl_menu_ai_empty_no_stock" text="Aucun taureau disponible chez le marchand pour cette espèce"/>
 <text name="rl_menu_ai_empty_no_species" text="Aucune espèce animale enregistrée"/>
+<text name="rl_menu_herdsman_title" text="Herdsman"/>
+<text name="rl_menu_herdsman_empty" text="No herdsman rules yet"/>
+<text name="rl_menu_herdsman_empty_editor" text="Select a rule to edit"/>
 
 <!-- Clés manquantes (retour anglais) -->
 <text name="input_RL_RENAME" text="Renommer"/>

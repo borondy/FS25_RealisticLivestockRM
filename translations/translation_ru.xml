@@ -745,6 +745,9 @@
         <text name="rl_menu_ai_price" text="Price"/>
         <text name="rl_menu_ai_empty_no_stock" text="No bulls available at the dealer for this species"/>
         <text name="rl_menu_ai_empty_no_species" text="No animal species registered"/>
+        <text name="rl_menu_herdsman_title" text="Herdsman"/>
+        <text name="rl_menu_herdsman_empty" text="No herdsman rules yet"/>
+        <text name="rl_menu_herdsman_empty_editor" text="Select a rule to edit"/>
         <!-- Settings tab shell (English fallback) -->
         <text name="rl_menu_settings_title" text="Settings"/>
         <text name="rl_menu_settings_tab_general" text="General"/>

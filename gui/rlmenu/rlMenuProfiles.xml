@@ -489,6 +489,21 @@
         <absoluteSizeOffset value="410px 0px"/>
     </Profile>
 
+    <!--
+        rlMenu_herdsmanContentContainer
+
+        Content wrapper for the Herdsman frame's master-detail. Extends the
+        base subcategory page container but trims its top reservation so the
+        master-detail floats up into the band the tab-bar chrome occupies in
+        the Settings frame - the Herdsman frame has no subcategory tab bar -
+        filling the area below the header with a small clearance. The trim was
+        set from the onFrameOpen measurement (content top lands just below the
+        header baseline), not guessed.
+    -->
+    <Profile name="rlMenu_herdsmanContentContainer" extends="fs25_subCategorySelectorTabbedContainer">
+        <absoluteSizeOffset value="0px 23px"/>
+    </Profile>
+
 
     <!--
         rlMenu_filterEditorMiddle
