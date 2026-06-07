@@ -186,6 +186,10 @@ source(modDirectory .. "scripts/gui/rlmenu/services/RLFilterChipHelper.lua")
 -- frame; depends only on RLFilterUsage (SECTION 11g) + RLHerdsmanRuleService.OPERATIONS
 -- (SECTION 11h), both sourced above.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLHerdsmanRulePresenter.lua")
+-- Herdsman rule edit-model (M-Frame F4b). Pure overlay-merge + op-change carry-over
+-- for the detail pane; depends on RLHerdsmanRulePresenter (above) for the per-operation
+-- default params. Consumed by RLMenuHerdsmanFrame (below).
+source(modDirectory .. "scripts/gui/rlmenu/services/RLHerdsmanRuleEditModel.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuMessagesFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuInfoFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuMoveFrame.lua")

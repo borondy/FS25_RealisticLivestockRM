@@ -765,6 +765,15 @@
         <text name="rl_menu_herdsman_section_castrate" text="Castrate"/>
         <text name="rl_menu_herdsman_section_naming" text="Naming"/>
         <text name="rl_menu_herdsman_section_ai" text="Artificial Insemination"/>
+        <text name="rl_menu_herdsman_detail_operation" text="Operation"/>
+        <text name="rl_menu_herdsman_detail_enabled" text="Enabled"/>
+        <text name="rl_menu_herdsman_detail_convention" text="Naming Convention"/>
+        <text name="rl_menu_herdsman_detail_budgetfixed" text="Fixed Amount"/>
+        <text name="rl_menu_herdsman_detail_budgetpercentage" text="Herd Value %"/>
+        <text name="rl_menu_herdsman_detail_semen" text="Semen"/>
+        <text name="rl_menu_herdsman_detail_husbandries" text="Husbandries"/>
+        <text name="rl_menu_herdsman_detail_none" text="(none)"/>
+        <text name="rl_menu_herdsman_detail_missing" text="(missing)"/>
         <!-- Settings tab shell (English fallback) -->
         <text name="rl_menu_settings_title" text="Settings"/>
         <text name="rl_menu_settings_tab_general" text="General"/>

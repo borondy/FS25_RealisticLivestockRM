@@ -12,9 +12,10 @@
     reserves the header band - so keeping it preserves the editor's anchor
     context and the list/editor's clearance below the header.
 
-    Shell scope: the list binds to an empty data source and the two
-    empty-state texts render; rule rows, editor widgets, dialogs, and the
-    action bar arrive in later herdsman frame slices.
+    The list binds to the real rule registry (F3) and the right pane hosts the
+    rule editor (F4b: name / operation / enabled / op-params + read-only filter
+    and husbandries summaries). The filter / husbandry pickers, the action bar,
+    and the legacy-active banner arrive in later herdsman frame slices.
 -->
 <GUI name="RLMenuHerdsmanFrame">
     <GuiElement profile="fs25_menuContainer">
@@ -75,6 +76,144 @@
                 <Text profile="fs25_animalListEmptyText"
                       id="ruleEditorEmpty"
                       text="$l10n_rl_menu_herdsman_empty_editor"/>
+
+                <!-- Rule editor (D4 order). Mirrors settingsFrame.xml
+                     filterEditorLayout SHAPE: a fs25_settingsLayout ScrollingLayout of
+                     fs25_multiTextOptionContainer rows, each wrapping ONE base-game
+                     settings widget + its title. Each row container carries an id so
+                     RLMenuHerdsmanFrame:refreshRuleDetail can setVisible the whole ROW
+                     (widget + title together) from getParamVisibility - hiding the bare
+                     widget would leave its title dangling. The two summary rows (Filter,
+                     Husbandries) use the SAME settings-row style, with a read-only value
+                     Text right-aligned in the widget column (the F5/F6 pickers later swap
+                     that for an in-row rl_settingsButton + dialog).
+                     Fills the right pane (100% height); with per-operation visibility only
+                     ~8 rows show at once, so it rarely scrolls. Exact vertical fit is
+                     confirmed by the onFrameOpen / refresh measurement log + the dev hot-
+                     reload (RLMenu.DEV_RELOAD_XML), not eyeballed. -->
+                <ScrollingLayout profile="fs25_settingsLayout" id="ruleEditorLayout"
+                                 size="100% 100%"
+                                 position="0px 0px">
+
+                    <!-- Name (always visible) -->
+                    <Bitmap profile="fs25_multiTextOptionContainer" id="ruleNameRow">
+                        <TextInput profile="fs25_settingsTextInput" id="ruleNameInput"
+                                   onTextChanged="onRuleNameChanged"
+                                   focusOnHighlight="true"
+                                   imeDescription="$l10n_rl_menu_filters_editor_title_name"
+                                   imePlaceholder="$l10n_rl_menu_filters_editor_title_name"
+                                   imeTitle="$l10n_rl_menu_filters_editor_title_name">
+                            <ThreePartBitmap profile="fs25_textInputBg"/>
+                            <Bitmap profile="fs25_textInputIconBox">
+                                <Bitmap profile="fs25_textInputIcon"/>
+                            </Bitmap>
+                        </TextInput>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_name"/>
+                    </Bitmap>
+
+                    <!-- Operation (5-state; reuses F3's section labels) -->
+                    <Bitmap profile="fs25_multiTextOptionContainer" id="ruleOperationRow">
+                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="ruleOperationSelector" onClick="onRuleOperationChanged"/>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_operation"/>
+                    </Bitmap>
+
+                    <!-- Enabled (binary) -->
+                    <Bitmap profile="fs25_multiTextOptionContainer" id="ruleEnabledRow">
+                        <BinaryOption profile="fs25_settingsBinaryOption" id="ruleEnabledToggle" onClick="onRuleEnabledChanged">
+                            <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                        </BinaryOption>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_enabled"/>
+                    </Bitmap>
+
+                    <!-- maxAnimals (numeric TextInput; hidden for castrate/naming) -->
+                    <Bitmap profile="fs25_multiTextOptionContainer" id="ruleMaxAnimalsRow">
+                        <TextInput profile="fs25_settingsTextInput" id="ruleMaxAnimalsInput"
+                                   onTextChanged="onRuleMaxAnimalsChanged"
+                                   focusOnHighlight="true"
+                                   imeDescription="$l10n_rl_ui_maxAnimals"
+                                   imePlaceholder="$l10n_rl_ui_maxAnimals"
+                                   imeTitle="$l10n_rl_ui_maxAnimals">
+                            <ThreePartBitmap profile="fs25_textInputBg"/>
+                            <Bitmap profile="fs25_textInputIconBox">
+                                <Bitmap profile="fs25_textInputIcon"/>
+                            </Bitmap>
+                        </TextInput>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_ui_maxAnimals"/>
+                    </Bitmap>
+
+                    <!-- mark (binary; sell/castrate/ai) -->
+                    <Bitmap profile="fs25_multiTextOptionContainer" id="ruleMarkRow">
+                        <BinaryOption profile="fs25_settingsBinaryOption" id="ruleMarkToggle" onClick="onRuleMarkChanged">
+                            <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                        </BinaryOption>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_ui_mark"/>
+                    </Bitmap>
+
+                    <!-- convention (binary, 2-value; naming only) -->
+                    <Bitmap profile="fs25_multiTextOptionContainer" id="ruleConventionRow">
+                        <BinaryOption profile="fs25_settingsBinaryOption" id="ruleConventionToggle" onClick="onRuleConventionChanged">
+                            <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                        </BinaryOption>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_convention"/>
+                    </Bitmap>
+
+                    <!-- budget.type (binary, 2-value; buy only) -->
+                    <Bitmap profile="fs25_multiTextOptionContainer" id="ruleBudgetTypeRow">
+                        <BinaryOption profile="fs25_settingsBinaryOption" id="ruleBudgetTypeToggle" onClick="onRuleBudgetTypeChanged">
+                            <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                        </BinaryOption>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_ui_budgetType"/>
+                    </Bitmap>
+
+                    <!-- budget.fixed (numeric TextInput; buy + budget.type=fixed) -->
+                    <Bitmap profile="fs25_multiTextOptionContainer" id="ruleBudgetFixedRow">
+                        <TextInput profile="fs25_settingsTextInput" id="ruleBudgetFixedInput"
+                                   onTextChanged="onRuleBudgetFixedChanged"
+                                   focusOnHighlight="true"
+                                   imeDescription="$l10n_rl_menu_herdsman_detail_budgetfixed"
+                                   imePlaceholder="$l10n_rl_menu_herdsman_detail_budgetfixed"
+                                   imeTitle="$l10n_rl_menu_herdsman_detail_budgetfixed">
+                            <ThreePartBitmap profile="fs25_textInputBg"/>
+                            <Bitmap profile="fs25_textInputIconBox">
+                                <Bitmap profile="fs25_textInputIcon"/>
+                            </Bitmap>
+                        </TextInput>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_budgetfixed"/>
+                    </Bitmap>
+
+                    <!-- budget.percentage (MultiTextOption over the 28-value whitelist;
+                         buy + budget.type=percentage). Option texts are the frame's
+                         tostring(v).."%" render. -->
+                    <Bitmap profile="fs25_multiTextOptionContainer" id="ruleBudgetPercentageRow">
+                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="ruleBudgetPercentageSelector" onClick="onRuleBudgetPercentageChanged"/>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_budgetpercentage"/>
+                    </Bitmap>
+
+                    <!-- semen (MultiTextOption; ai only; options enumerated live from
+                         g_dewarManager, "any" prepended by the frame) -->
+                    <Bitmap profile="fs25_multiTextOptionContainer" id="ruleSemenRow">
+                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="ruleSemenSelector" onClick="onRuleSemenChanged"/>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_semen"/>
+                    </Bitmap>
+
+                    <!-- Filter summary (read-only; hidden for naming). Settings-row style
+                         for visual consistency with the editable rows above (tinted by
+                         updateAlternatingElements + aligned): a read-only value Text in the
+                         widget column (right-aligned) - NOT an interactive widget; the filter
+                         picker is F5/RLRM-386. The frame setTexts the value via getFilterSummary. -->
+                    <Bitmap profile="fs25_multiTextOptionContainer" id="ruleFilterRow">
+                        <Text profile="rlMenu_herdsmanDetailValue" id="ruleFilterSummary"/>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_info_filter_button"/>
+                    </Bitmap>
+
+                    <!-- Husbandries summary (read-only; always visible). Settings-row style;
+                         read-only value Text in the widget column. Husbandry picker is F6/RLRM-388. -->
+                    <Bitmap profile="fs25_multiTextOptionContainer" id="ruleHusbandriesRow">
+                        <Text profile="rlMenu_herdsmanDetailValue" id="ruleHusbandriesSummary"/>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_husbandries"/>
+                    </Bitmap>
+
+                </ScrollingLayout>
             </GuiElement>
 
         </GuiElement>

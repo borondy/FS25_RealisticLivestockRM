@@ -201,7 +201,7 @@ function RLMenu:setupMenuPages()
     end
 
     Log:debug(
-    "RLMenu:setupMenuPages: 8 pages registered (buy, sell, move, manage, ai, messages, herdsman, settings); move/messages/herdsman/settings dealer-mode gated")
+        "RLMenu:setupMenuPages: 8 pages registered (buy, sell, move, manage, ai, messages, herdsman, settings); move/messages/herdsman/settings dealer-mode gated")
 end
 
 --- Configure the bottom button bar.
