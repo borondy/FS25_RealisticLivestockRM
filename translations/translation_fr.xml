@@ -791,6 +791,9 @@
 <text name="rl_menu_herdsman_detail_husbandries" text="Husbandries"/>
 <text name="rl_menu_herdsman_detail_none" text="(none)"/>
 <text name="rl_menu_herdsman_detail_missing" text="(missing)"/>
+<text name="rl_menu_herdsman_filter_select" text="Select filter"/>
+<text name="rl_menu_herdsman_filter_picker_title" text="Select Filter"/>
+<text name="rl_menu_herdsman_filter_picker_empty" text="No filters available for this operation."/>
 
 <!-- Clés manquantes (retour anglais) -->
 <text name="input_RL_RENAME" text="Renommer"/>

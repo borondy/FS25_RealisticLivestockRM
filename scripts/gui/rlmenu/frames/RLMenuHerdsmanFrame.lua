@@ -117,6 +117,9 @@ function RLMenuHerdsmanFrame.new()
     self.sections = {}
     self.pendingChanges = {}
     self.selectedRuleId = nil
+    -- The rule id captured when the filter picker OPENS; the pick stashes against THIS id even
+    -- if the list selection moves while the modal is up (cleared by onFilterPicked).
+    self.filterPickTargetId = nil
     self.isReconciling = false
     self.didMeasureFirstRow = false
     Log:trace("RLMenuHerdsmanFrame.new: instance created")
@@ -180,7 +183,7 @@ function RLMenuHerdsmanFrame:onGuiSetupFinished()
     self.ruleBudgetFixedInput        = self:getDescendantById("ruleBudgetFixedInput")
     self.ruleBudgetPercentageSelector= self:getDescendantById("ruleBudgetPercentageSelector")
     self.ruleSemenSelector           = self:getDescendantById("ruleSemenSelector")
-    self.ruleFilterSummary           = self:getDescendantById("ruleFilterSummary")
+    self.ruleFilterButton            = self:getDescendantById("ruleFilterButton")
     self.ruleHusbandriesSummary      = self:getDescendantById("ruleHusbandriesSummary")
 
     local missing = {}
@@ -256,6 +259,7 @@ function RLMenuHerdsmanFrame:onFrameOpen()
     self.isFrameOpen = true
     self.didMeasureLayout = false
     self.didMeasureFirstRow = false
+    self.didMeasureFilterRow = false
     self.pendingChanges = {}
 
     -- Real read path: F4 edits + F7 create/delete write back through the same
@@ -294,6 +298,9 @@ function RLMenuHerdsmanFrame:onFrameClose()
     RLMenuHerdsmanFrame:superClass().onFrameClose(self)
     self.isFrameOpen = false
     self:flushAllPending()
+    -- Drop any picker open-time id (an ESC/back dismiss closes the dialog without firing the
+    -- cancel callback, so it would otherwise dangle until the next open re-captures it).
+    self.filterPickTargetId = nil
     Log:trace("RLMenuHerdsmanFrame:onFrameClose")
 end
 
@@ -581,8 +588,29 @@ function RLMenuHerdsmanFrame:refreshRuleDetail(stored)
         none    = g_i18n:getText("rl_menu_herdsman_detail_none"),
         missing = g_i18n:getText("rl_menu_herdsman_detail_missing"),
     }
-    if self.ruleFilterSummary ~= nil then
-        self.ruleFilterSummary:setText(RLHerdsmanRulePresenter.getFilterSummary(merged.filterId, resolveFilterById, labels))
+    if self.ruleFilterButton ~= nil then
+        -- Button label: the bound filter's name, or a "Select filter" CTA when nothing usable
+        -- is bound (nil OR deleted / out-of-scope). On an actionable button both empty states
+        -- invite a pick, so they collapse to one CTA - unlike the read-only husbandries summary
+        -- below, which keeps the (none) / (missing) wording.
+        local selectText = g_i18n:getText("rl_menu_herdsman_filter_select")
+        self.ruleFilterButton:setText(RLHerdsmanRulePresenter.getFilterSummary(
+            merged.filterId, resolveFilterById, { none = selectText, missing = selectText }))
+    end
+    -- One-shot screen-space geometry of the (interactive) Filter row, so the in-row button
+    -- vs title layout is provable from the log. absPosition is the element's bottom-left edge
+    -- (FS25 Y-up); reference screen 1920x1080. Per-open guard.
+    if vis.filter and not self.didMeasureFilterRow
+        and self.ruleFilterRow ~= nil and self.ruleFilterRow.elements ~= nil then
+        self.didMeasureFilterRow = true
+        for _, e in ipairs(self.ruleFilterRow.elements) do
+            if e.absPosition ~= nil and e.size ~= nil then
+                local x = e.absPosition[1] * g_referenceScreenWidth
+                local w = e.size[1] * g_referenceScreenWidth
+                Log:debug("RLMenuHerdsmanFrame: ruleFilterRow child profile=%s: left=%.1fpx width=%.1fpx right=%.1fpx",
+                    tostring(e.profile), x, w, x + w)
+            end
+        end
     end
     if self.ruleHusbandriesSummary ~= nil then
         self.ruleHusbandriesSummary:setText(RLHerdsmanRulePresenter.getHusbandrySummary(merged.targetHusbandries, resolvePlaceableName, labels))
@@ -680,6 +708,88 @@ function RLMenuHerdsmanFrame:resolveSemenAnimalTypeIndex(filterId)
     local filter = resolveFilterById(filterId)
     if filter == nil then return nil end
     return filter.animalType
+end
+
+-- =============================================================================
+-- FILTER PICKER (in-row button -> dialog -> stash filterId)
+-- =============================================================================
+
+--- Filter row button click: open the single-select picker scoped to the rule's operation.
+--- The presenter owns the scope decision (getFilterPickerUsage, derived from ALLOWED_USAGES)
+--- and the candidate ordering (sortFiltersByName); this frame computes farmId, nil-guards, and
+--- issues ONE listAvailable(nil, farmId, usage) query (animalType = nil: a rule has no type
+--- until a filter is bound; usage is the only DoD scope). A nil usage / farmId / service would
+--- be a list-everything WILDCARD in listAvailable, so the picker does NOT open in that case.
+--- @param _button table the ruleFilterButton element (unused; selection comes from selectedRuleId)
+function RLMenuHerdsmanFrame:onClickRuleFilter(_button)
+    local id = self.selectedRuleId
+    if id == nil then
+        Log:debug("RLMenuHerdsmanFrame:onClickRuleFilter: no selected rule; ignoring")
+        return
+    end
+    local stored = self:getStoredRuleById(id)
+    if stored == nil then
+        Log:debug("RLMenuHerdsmanFrame:onClickRuleFilter: id=%s no stored baseline; ignoring", tostring(id))
+        return
+    end
+    local merged = RLHerdsmanRuleEditModel.overlayRule(stored, self.pendingChanges[id])
+
+    local pickerUsage = RLHerdsmanRulePresenter.getFilterPickerUsage(merged.operation)
+    local farmId = RLAnimalInfoService.getCurrentFarmId()
+    if pickerUsage == nil or farmId == nil or g_rlFilterService == nil then
+        Log:warning("RLMenuHerdsmanFrame:onClickRuleFilter: not opening (operation=%s pickerUsage=%s farmId=%s serviceNil=%s)",
+            tostring(merged.operation), tostring(pickerUsage), tostring(farmId), tostring(g_rlFilterService == nil))
+        return
+    end
+
+    -- usageMatch folds ANY/nil filters in (RLFilterService:listAvailable), so a non-nil usage
+    -- AND farmId yield exactly the operation's { ANY, X } pool. Sort alpha for the picker.
+    local candidates = RLHerdsmanRulePresenter.sortFiltersByName(
+        g_rlFilterService:listAvailable(nil, farmId, pickerUsage))
+
+    -- Capture the target id at OPEN; the pick stashes against THIS id (selection may move).
+    self.filterPickTargetId = id
+
+    Log:debug("RLMenuHerdsmanFrame:onClickRuleFilter: id=%s operation=%s usage=%s farmId=%s -> %d candidate(s) currentFilterId=%s",
+        tostring(id), tostring(merged.operation), tostring(pickerUsage), tostring(farmId), #candidates, tostring(merged.filterId))
+
+    RLHerdsmanFilterPickerDialog.show(self.onFilterPicked, self, candidates, merged.filterId)
+end
+
+--- Picker result (target-first via the dialog). nil -> cancel (rule unchanged). A pick equal to
+--- the current binding with NOTHING else pending -> no-op (no redundant :update). Otherwise stash
+--- pending.filterId against the OPEN-TIME id and re-render the overlay (the semen pool re-derives
+--- from merged.filterId on refreshRuleDetail). Flush happens on the existing selection-change/close
+--- path through g_rlHerdsmanRuleService:update.
+--- @param filterId string|nil chosen filter id, or nil on cancel
+function RLMenuHerdsmanFrame:onFilterPicked(filterId)
+    local id = self.filterPickTargetId
+    self.filterPickTargetId = nil
+    if id == nil then
+        Log:debug("RLMenuHerdsmanFrame:onFilterPicked: no captured target id; ignoring (filterId=%s)", tostring(filterId))
+        return
+    end
+    if filterId == nil then
+        Log:debug("RLMenuHerdsmanFrame:onFilterPicked: id=%s cancelled (no change)", tostring(id))
+        return
+    end
+
+    local stored = self:getStoredRuleById(id)
+    if stored == nil then
+        Log:debug("RLMenuHerdsmanFrame:onFilterPicked: id=%s no stored baseline; ignoring", tostring(id))
+        return
+    end
+    local merged = RLHerdsmanRuleEditModel.overlayRule(stored, self.pendingChanges[id])
+
+    if filterId == merged.filterId and self.pendingChanges[id] == nil then
+        Log:debug("RLMenuHerdsmanFrame:onFilterPicked: id=%s re-picked current filter %s; no-op", tostring(id), tostring(filterId))
+        return
+    end
+
+    self:ensurePending(id).filterId = filterId
+    Log:debug("RLMenuHerdsmanFrame:onFilterPicked: id=%s filterId stashed %s -> %s",
+        tostring(id), tostring(merged.filterId), tostring(filterId))
+    self:refreshRuleDetail(stored)
 end
 
 -- =============================================================================
@@ -850,9 +960,11 @@ end
 -- FLUSH (pending overlay -> g_rlHerdsmanRuleService:update)
 -- =============================================================================
 
---- Flush one id's pending overlay through the real service update. Gates on the INTERIM
---- subset (nameOk + operationOk + paramsOk + the naming->nil filterId rule); filterOk
---- (non-naming) and husbandriesOk need the F5/F6 pickers and are not gated here. On a
+--- Flush one id's pending overlay through the real service update. Gates on nameOk +
+--- operationOk + paramsOk + filterOk - filterOk covers both arms (naming -> nil filterId;
+--- non-naming -> a bound filter), so an un-filtered non-naming rule is a clean gate-SKIP
+--- rather than a service reject. husbandriesOk stays out of the gate until F6 (every pre-F6
+--- rule has empty targetHusbandries). On a
 --- validation skip OR a service reject, clears the pending overlay and reverts the display
 --- to the stored record (the next render shows stored). On success, clears the overlay and
 --- refreshes the stored snapshot to the persisted record.
@@ -871,13 +983,14 @@ function RLMenuHerdsmanFrame:flushPendingForId(id)
 
     local merged = RLHerdsmanRuleEditModel.overlayRule(stored, pending)
     local v = RLHerdsmanRulePresenter.validateEdit(merged)
-    -- Interim gate: filterOk(non-naming) + husbandriesOk are F5/F6; for naming, filterOk
-    -- (== filterId nil) IS gated because the service floor rejects a naming rule otherwise.
-    local namingOk = (merged.operation ~= "naming") or v.filterOk
-    if not (v.nameOk and v.operationOk and v.paramsOk and namingOk) then
+    -- Gate: nameOk + operationOk + paramsOk + filterOk. filterOk covers both arms (naming ->
+    -- nil filterId; non-naming -> a non-blank filterId), so an un-filtered non-naming rule is a
+    -- clean gate-SKIP (debug revert) instead of a service reject. husbandriesOk is NOT gated
+    -- until F6 (every pre-F6 rule has empty targetHusbandries; gating it would brick every flush).
+    if not (v.nameOk and v.operationOk and v.paramsOk and v.filterOk) then
         self.pendingChanges[id] = nil
-        Log:debug("RLMenuHerdsmanFrame:flushPendingForId: id=%s skipped (nameOk=%s operationOk=%s paramsOk=%s namingOk=%s); reverted",
-            tostring(id), tostring(v.nameOk), tostring(v.operationOk), tostring(v.paramsOk), tostring(namingOk))
+        Log:debug("RLMenuHerdsmanFrame:flushPendingForId: id=%s skipped (nameOk=%s operationOk=%s paramsOk=%s filterOk=%s); reverted",
+            tostring(id), tostring(v.nameOk), tostring(v.operationOk), tostring(v.paramsOk), tostring(v.filterOk))
         return "skipped"
     end
 

@@ -83,10 +83,11 @@
                      settings widget + its title. Each row container carries an id so
                      RLMenuHerdsmanFrame:refreshRuleDetail can setVisible the whole ROW
                      (widget + title together) from getParamVisibility - hiding the bare
-                     widget would leave its title dangling. The two summary rows (Filter,
-                     Husbandries) use the SAME settings-row style, with a read-only value
-                     Text right-aligned in the widget column (the F5/F6 pickers later swap
-                     that for an in-row rl_settingsButton + dialog).
+                     widget would leave its title dangling. The Filter row is an in-row
+                     rl_settingsButton (button-as-value) that opens the single-select filter
+                     picker; the Husbandries row stays a read-only value Text right-aligned in
+                     the widget column (its picker is a later slice). Both keep the settings-row
+                     style so they tint + align with the editable rows.
                      Fills the right pane (100% height); with per-operation visibility only
                      ~8 rows show at once, so it rarely scrolls. Exact vertical fit is
                      confirmed by the onFrameOpen / refresh measurement log + the dev hot-
@@ -196,13 +197,17 @@
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_semen"/>
                     </Bitmap>
 
-                    <!-- Filter summary (read-only; hidden for naming). Settings-row style
-                         for visual consistency with the editable rows above (tinted by
-                         updateAlternatingElements + aligned): a read-only value Text in the
-                         widget column (right-aligned) - NOT an interactive widget; the filter
-                         picker is F5/RLRM-386. The frame setTexts the value via getFilterSummary. -->
+                    <!-- Filter (interactive; hidden for naming). Button-as-value: an in-row
+                         rl_settingsButton whose label is the bound filter's name (or (none) /
+                         (missing)) and whose click opens the single-select filter picker.
+                         Mirrors the Settings general-tab button row (rl_settingsButton +
+                         fs25_settingsButtonBg, tinted by updateAlternatingElements). The frame
+                         setTexts the label via getFilterSummary on each render. -->
                     <Bitmap profile="fs25_multiTextOptionContainer" id="ruleFilterRow">
-                        <Text profile="rlMenu_herdsmanDetailValue" id="ruleFilterSummary"/>
+                        <Button profile="rl_settingsButton" id="ruleFilterButton" onClick="onClickRuleFilter">
+                            <ThreePartBitmap profile="fs25_settingsButtonBg"/>
+                            <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                        </Button>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_info_filter_button"/>
                     </Bitmap>
 

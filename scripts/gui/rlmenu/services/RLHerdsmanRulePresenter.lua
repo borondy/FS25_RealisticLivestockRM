@@ -516,6 +516,61 @@ function RLHerdsmanRulePresenter.isFilterUsageAllowed(operation, usage)
     return ok
 end
 
+--- The single usage to scope the filter PICKER by for an operation (D7). Derived from
+--- ALLOWED_USAGES so it cannot drift from getAllowedFilterUsages: each non-naming entry is
+--- exactly { ANY, X }, and this returns that one non-ANY member (buy -> DEALER; sell /
+--- castrate / ai -> OWNED). The picker passes it as the `usage` scope to
+--- RLFilterService:listAvailable, where ANY/nil filters fold in automatically - so a single
+--- non-nil usage yields exactly the operation's { ANY, X } pool. Naming has no Filter row
+--- (the picker never opens) -> nil; unknown operation -> nil + warning. nil here means "do
+--- NOT open" to the caller (a nil usage would be a list-everything WILDCARD in listAvailable).
+---@param operation any rule operation key
+---@return string|nil RLFilterUsage value to scope by, or nil when no picker applies
+function RLHerdsmanRulePresenter.getFilterPickerUsage(operation)
+    if operation == "naming" then
+        Log:trace("RLHerdsmanRulePresenter.getFilterPickerUsage: naming has no filter row -> nil")
+        return nil
+    end
+
+    local allowed = ALLOWED_USAGES[operation]
+    if allowed == nil then
+        Log:warning("RLHerdsmanRulePresenter.getFilterPickerUsage: unknown operation '%s'; nil scope", tostring(operation))
+        return nil
+    end
+
+    local scope = nil
+    for usage, ok in pairs(allowed) do
+        if ok and usage ~= RLFilterUsage.ANY then
+            if scope ~= nil then
+                -- ALLOWED_USAGES entries are exactly { ANY, X }; a 2nd non-ANY member means the
+                -- table drifted and the picker scope would be a pairs-order coin-flip. Fail loud.
+                Log:warning("RLHerdsmanRulePresenter.getFilterPickerUsage: operation '%s' has >1 non-ANY usage (%s, %s); scope is ambiguous - expected exactly { ANY, X }",
+                    tostring(operation), tostring(scope), tostring(usage))
+            end
+            scope = usage
+        end
+    end
+
+    Log:trace("RLHerdsmanRulePresenter.getFilterPickerUsage: operation=%s -> %s", tostring(operation), tostring(scope))
+    return scope
+end
+
+--- Alphabetical-by-name ordering of a filter list for the picker (case-insensitive, nil-safe
+--- id tie-break). Returns a SORTED COPY; the input array is never mutated (the caller owns the
+--- service-cloned list). Reuses the same compareRulesByName comparator the rule list sorts by,
+--- so filters and rules order identically and the rule cannot drift.
+---@param filters table[]|nil array of filter records (each with `name` + `id`)
+---@return table[] sorted shallow copy (empty table for nil / non-table input)
+function RLHerdsmanRulePresenter.sortFiltersByName(filters)
+    local out = {}
+    if type(filters) == "table" then
+        for i, f in ipairs(filters) do out[i] = f end
+    end
+    table.sort(out, compareRulesByName)
+    Log:trace("RLHerdsmanRulePresenter.sortFiltersByName: %d filter(s) sorted", #out)
+    return out
+end
+
 -- =============================================================================
 -- Read-only summaries
 -- =============================================================================

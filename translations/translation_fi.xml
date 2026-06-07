@@ -766,6 +766,9 @@
         <text name="rl_menu_herdsman_detail_husbandries" text="Husbandries"/>
         <text name="rl_menu_herdsman_detail_none" text="(none)"/>
         <text name="rl_menu_herdsman_detail_missing" text="(missing)"/>
+        <text name="rl_menu_herdsman_filter_select" text="Select filter"/>
+        <text name="rl_menu_herdsman_filter_picker_title" text="Select Filter"/>
+        <text name="rl_menu_herdsman_filter_picker_empty" text="No filters available for this operation."/>
         <!-- Settings tab shell (English fallback) -->
         <text name="rl_menu_settings_title" text="Settings"/>
         <text name="rl_menu_settings_tab_general" text="General"/>
