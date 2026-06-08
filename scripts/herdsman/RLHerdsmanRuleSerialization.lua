@@ -6,7 +6,7 @@
 --
 --   rm_RlSettings.herdsmanRules.rule(i)
 --     @id, @name, @farmId(int), @version(int), @operation, @enabled(bool)
---     @filterId                        -- omitted when nil (naming rules)
+--     @filterId                        -- omitted when nil (naming rules + unfiltered non-naming drafts)
 --     .targetHusbandries.target(k)     -- @uniqueId per target string; none when empty
 --     .params                          -- operation-specific subtree (PARAMS_CODECS)
 --
@@ -24,8 +24,9 @@
 -- filter whose mandatory .group subtree is absent):
 --  * readRule returns nil + :warning (the record is SKIPPED) when @id is
 --    missing/empty, @operation is not a known operation, @farmId is absent,
---    @filterId violates the operation (nil/empty/whitespace for non-naming, or present for
---    naming - the read-side twin of the service write floor), or ANY
+--    @filterId violates the operation (present-but-empty/whitespace for non-naming,
+--    or present at all for naming - the read-side twin of the service write floor;
+--    an absent non-naming @filterId is a legal nil draft, NOT a skip), or ANY
 --    required params field for the operation is absent. Required fields are
 --    read with NO default: a nil read signals corruption, NOT a silent default
 --    (diverges from legacy, which read params with defaults). A skipped record
@@ -237,10 +238,11 @@ function RLHerdsmanRuleSerialization.writeRule(xmlFile, ruleKey, rule)
     xmlFile:setString(ruleKey .. "#operation", rule.operation)
     xmlFile:setBool(ruleKey .. "#enabled", rule.enabled)
 
-    -- Omit @filterId when nil (naming). A valid non-naming filterId round-trips
-    -- verbatim; an empty/nil/whitespace non-naming filterId (or a stray naming
-    -- filterId) is now fail-closed on READ (in readRule), not here - the write-side
-    -- floor already blocks creating one, so writeRule never emits a bad filterId.
+    -- Omit @filterId when nil (naming, or an unfiltered non-naming draft). A valid
+    -- non-naming filterId round-trips verbatim; a present-but-empty/whitespace
+    -- non-naming filterId (or a stray naming filterId) is fail-closed on READ (in
+    -- readRule), not here - the write-side floor already blocks creating one, so
+    -- writeRule never emits a bad filterId.
     if rule.filterId ~= nil then
         xmlFile:setString(ruleKey .. "#filterId", rule.filterId)
     end
@@ -258,12 +260,13 @@ end
 --- Read one rule record from `ruleKey`. Returns the record on success, or nil +
 --- `:warning` (the record is SKIPPED) when fail-closed: missing/empty `@id`, an
 --- unknown `@operation` (no params codec), an absent `@farmId`, a `@filterId` that
---- violates the operation (nil/empty/whitespace for non-naming, or present for naming - the
---- read-side twin of the service write floor), or any required
+--- violates the operation (present-but-empty/whitespace for non-naming, or present
+--- at all for naming - the read-side twin of the service write floor; an absent
+--- non-naming `@filterId` reads back as a legal nil draft), or any required
 --- params field absent (read with no default; nil = corruption). `name`,
 --- `enabled` and `version` carry defaults (`""` / `false` / `1`); `filterId` is
---- nil for a (valid) naming rule. The caller stores the returned record (the
---- service preserves id/farmId/version, never reassigns).
+--- nil for a (valid) naming rule OR an unfiltered non-naming draft. The caller
+--- stores the returned record (the service preserves id/farmId/version, never reassigns).
 ---@param xmlFile table XMLFile handle
 ---@param ruleKey string path prefix for this rule
 ---@return table|nil rule
@@ -300,18 +303,19 @@ function RLHerdsmanRuleSerialization.readRule(xmlFile, ruleKey)
     local filterId = xmlFile:getString(ruleKey .. "#filterId")
 
     -- Load-time floor: read-side twin of validateRuleFields' filterId-vs-operation
-    -- rule. naming carries no filter; everything else binds exactly one (D6/SS10).
-    -- A nil/empty/whitespace non-naming filterId, or any filterId on a naming rule,
-    -- is corruption -> skip (fail-closed, like the missing-id / unknown-op /
-    -- missing-param guards above).
+    -- rule. naming carries no filter; a non-naming rule binds at most one (D6/SS10) -
+    -- an absent #filterId reads back nil (a legal incomplete draft), but a
+    -- present-but-empty/whitespace non-naming filterId, or any filterId on a naming
+    -- rule, is corruption -> skip (fail-closed, like the missing-id / unknown-op /
+    -- missing-param guards above). writeRule already omits a nil #filterId.
     if operation == "naming" then
         if filterId ~= nil then
             Log:warning("RLHerdsmanRuleSerialization.readRule: naming rule id=%s at %s carries a #filterId (naming has no filter); skipping",
                 tostring(id), tostring(ruleKey))
             return nil
         end
-    elseif filterId == nil or filterId:gsub("%s", "") == "" then
-        Log:warning("RLHerdsmanRuleSerialization.readRule: rule id=%s (operation=%s) at %s has nil/empty/whitespace #filterId; skipping (non-naming rules require a non-empty (non-whitespace) filterId)",
+    elseif filterId ~= nil and filterId:gsub("%s", "") == "" then
+        Log:warning("RLHerdsmanRuleSerialization.readRule: rule id=%s (operation=%s) at %s has a present-but-empty/whitespace #filterId; skipping (a non-naming filterId, when present, must be non-empty (non-whitespace))",
             tostring(id), tostring(operation), tostring(ruleKey))
         return nil
     end

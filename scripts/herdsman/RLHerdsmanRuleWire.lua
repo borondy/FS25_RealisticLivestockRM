@@ -12,11 +12,13 @@
 --   targetHusbandries: streamWriteUInt16 count, then NetworkUtil.writeNodeObject per target
 --   params:            PARAMS_WIRE_CODECS[operation].write   (skipped + :warning on unknown op)
 --
--- filterId is operation-gated, NOT sentinelled: a non-naming rule always carries a
--- non-empty (non-whitespace) filterId (the S1 validity floor guarantees it), naming
--- never does. The operation token already on the wire tells the reader whether to
--- expect the field, so the string round-trips verbatim with no ""-means-nil sentinel
--- coercion (the floor blocks an empty/whitespace filterId from ever reaching the wire).
+-- filterId is operation-gated AND carries nil via a "" -> nil coercion: a non-naming rule
+-- may be an unfiltered draft (filterId nil) or carry a non-empty (non-whitespace) filterId;
+-- naming never carries one. The operation token already on the wire tells the reader whether
+-- to expect the field. writeRule emits `rule.filterId or ""`, so a genuine nil goes as "" and
+-- readRule coerces exactly "" -> nil; a present filterId round-trips verbatim. The floor blocks
+-- an empty/whitespace filterId from ever being created, so "" on the wire is unambiguously a
+-- nil draft, and a crafted whitespace token stays verbatim for the receiver floor to reject.
 --
 -- targetHusbandries is a node-object list, not a uniqueId-string list. The engine
 -- maintains a stable cross-machine node id per placeable, so each target resolves
@@ -223,8 +225,8 @@ function RLHerdsmanRuleWire.writeRule(streamId, rule)
     streamWriteString(streamId, rule.name or "")
     streamWriteString(streamId, operation)
 
-    -- filterId is operation-gated: present (non-empty, per S1 floor) for every
-    -- non-naming operation, omitted entirely for naming.
+    -- filterId is operation-gated: a non-naming operation writes `rule.filterId or ""`
+    -- (a nil draft goes as "", which readRule coerces back to nil); naming omits it.
     if operation ~= "naming" then
         streamWriteString(streamId, rule.filterId or "")
     end
@@ -260,12 +262,16 @@ function RLHerdsmanRuleWire.readRule(streamId)
     local name = streamReadString(streamId)
     local operation = streamReadString(streamId)
 
-    -- filterId mirrors the write-side gate: naming carries none (reads back nil),
-    -- every other operation reads the string verbatim (no ""-means-nil coercion; the
-    -- S1 floor guarantees a non-empty, non-whitespace value was sent).
+    -- filterId mirrors the write-side gate: naming carries none (reads back nil);
+    -- every other operation reads the string, then coerces exactly "" -> nil. Our
+    -- writeRule emits "" only for a genuine nil (rule.filterId or ""), and the floor
+    -- never lets a present "" through, so "" is an unambiguous nil draft here.
+    -- Whitespace is left verbatim so a crafted "  " is rejected by the receiver
+    -- floor, not silently normalized to a valid nil (mod-parity rationale, T1a).
     local filterId = nil
     if operation ~= "naming" then
         filterId = streamReadString(streamId)
+        if filterId == "" then filterId = nil end
     end
 
     local farmId = streamReadInt32(streamId)

@@ -592,8 +592,9 @@ function RLConsoleCommandManager:createHerdsmanRules()
 	end
 
 	local Log = RmLogging.getLogger("RLRM")
-	-- Placeholder filterId: the service floor requires a non-empty string filterId
-	-- for non-naming operations. It need not resolve to a real saved filter for the
+	-- Placeholder filterId: the floor accepts a nil filterId for non-naming operations
+	-- (an unfiltered draft), but the dev seeds carry a concrete placeholder so the rules
+	-- render with a filter summary. It need not resolve to a real saved filter for the
 	-- list to render; F4's filter summary will read "missing" until pointed at one.
 	local filterId = "rlHerdsmanDev_filter"
 	-- Per-operation params mirror the legacy AIAnimalManager defaults

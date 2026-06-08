@@ -2,8 +2,8 @@
 -- Singleton CRUD service for the Herdsman rule registry (M-Service S1-S5).
 --
 -- Owns the in-memory rule registry `self.rulesById` and assigns stable ids on
--- create via `Utils.getUniqueId`. A rule binds one saved filter +
--- operation params to a set of target husbandry placeables. Structural sibling
+-- create via `Utils.getUniqueId`. A rule binds at most one saved filter (nil = an
+-- unfiltered draft) + operation params to a set of target husbandry placeables. Structural sibling
 -- of `RLFilterService`: same in-memory CRUD + immutability + defensive-clone
 -- discipline, PLUS XML persistence and MP create/update/delete/state sync.
 --
@@ -20,7 +20,8 @@
 --   * `enabled`           boolean
 --   * `params`            table (opaque here; the per-operation codec is S2)
 --   * `targetHusbandries` array (may be empty -> inert rule, no targets)
---   * `filterId`          non-empty (non-whitespace) string for buy/sell/castrate/ai; MUST be nil for naming
+--   * `filterId`          buy/sell/castrate/ai: nil (incomplete draft) OR a non-empty
+--                          (non-whitespace) string; naming: MUST be nil
 --
 -- Scope boundary (deliberately NOT here):
 --   * No per-operation `params` validation, no filterId resolution against
@@ -144,8 +145,9 @@ end
 ---
 --- Enforces: non-empty string `name`; `operation` in the canonical set; integer
 --- `farmId`; boolean `enabled`; table `params`; array (table) `targetHusbandries`;
---- and the filterId-vs-operation rule (naming MUST have nil filterId, every other
---- operation MUST have a non-empty (non-whitespace) string filterId). Element typing of `targetHusbandries`
+--- and the filterId-vs-operation rule (naming MUST have nil filterId; every other
+--- operation may carry a nil filterId - an incomplete draft - or, when present, a
+--- non-empty (non-whitespace) string filterId). Element typing of `targetHusbandries`
 --- and per-operation `params` shape are intentionally NOT checked here (M-Tick /
 --- S2 concerns).
 ---@param r table|nil
@@ -176,15 +178,18 @@ local function validateRuleFields(r)
     if not isDenseArray(r.targetHusbandries) then
         return false, "targetHusbandries must be a dense array (map-shaped or sparse keys rejected; no normalization here)"
     end
-    -- filterId-vs-operation (D6/SS10): naming carries no filter; everything else
-    -- references exactly one filter by id (resolution is deferred to M-Frame).
+    -- filterId-vs-operation (D6/SS10): naming carries no filter; a non-naming rule
+    -- binds at most one filter by id - nil is a legal incomplete draft (the rule is
+    -- inert until a filter is picked), and a present filterId must stay a non-empty
+    -- (non-whitespace) string. Resolution against RLFilterService is deferred to
+    -- M-Frame; "needs a filter to actually run" is enforced at the day-tick.
     if r.operation == "naming" then
         if r.filterId ~= nil then
             return false, string.format("naming rules must have nil filterId (got %s)", tostring(r.filterId))
         end
-    else
+    elseif r.filterId ~= nil then
         if type(r.filterId) ~= "string" or r.filterId:gsub("%s", "") == "" then
-            return false, string.format("operation '%s' requires a non-empty (non-whitespace) string filterId (got %s)", r.operation, tostring(r.filterId))
+            return false, string.format("operation '%s' filterId, when present, must be a non-empty (non-whitespace) string (got %s)", r.operation, tostring(r.filterId))
         end
     end
     return true
