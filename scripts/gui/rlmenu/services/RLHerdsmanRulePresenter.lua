@@ -866,29 +866,44 @@ end
 --- does something. Re-asserts the naming-filterId-nil and operation-enum rules so the
 --- UI never green-lights a draft the service rejects on save. The animalType
 --- target-gate + castrate chicken-exclusion stay out of scope (-> RLRM-388/F6):
----   * nameOk        - `name` is a non-blank string (not all-whitespace)
----   * operationOk   - `operation` is in the canonical RLHerdsmanRuleService.OPERATIONS set
----   * filterOk      - naming: `filterId == nil`; non-naming: non-blank string `filterId`
----   * husbandriesOk - `#targetHusbandries >= 1`
----   * paramsOk      - `validateParams(operation, params).ok` (per-op param value domains)
----   * valid         - all five
+---   * nameOk         - `name` is a non-blank string (not all-whitespace)
+---   * operationOk    - `operation` is in the canonical RLHerdsmanRuleService.OPERATIONS set
+---   * filterOk       - naming: `filterId == nil`; non-naming: a filter is required only when
+---                      `enabled` (RLRM-404 twin) - a disabled draft may carry a nil filterId;
+---                      a present filterId must always be a non-blank string
+---   * filterRequired - non-naming AND `enabled` (surfaced for the frame's flush narrow-revert)
+---   * husbandriesOk  - `#targetHusbandries >= 1`
+---   * paramsOk       - `validateParams(operation, params).ok` (per-op param value domains)
+---   * valid          - nameOk AND operationOk AND filterOk AND husbandriesOk AND paramsOk
 --- nil / non-table draft -> all-false.
----@param draft table|nil { name, operation, filterId, targetHusbandries, params }
----@return table { valid, nameOk, operationOk, filterOk, husbandriesOk, paramsOk } (all boolean)
+---@param draft table|nil { name, operation, enabled, filterId, targetHusbandries, params }
+---@return table { valid, nameOk, operationOk, filterOk, filterRequired, husbandriesOk, paramsOk } (all boolean)
 function RLHerdsmanRulePresenter.validateEdit(draft)
     if type(draft) ~= "table" then
         Log:trace("RLHerdsmanRulePresenter.validateEdit: nil/non-table draft -> all false")
-        return { valid = false, nameOk = false, operationOk = false, filterOk = false, husbandriesOk = false, paramsOk = false }
+        return { valid = false, nameOk = false, operationOk = false, filterOk = false, filterRequired = false, husbandriesOk = false, paramsOk = false }
     end
 
     local nameOk = type(draft.name) == "string" and draft.name:gsub("%s", "") ~= ""
     local operationOk = isKnownOperation(draft.operation)
 
+    -- filterId-vs-operation, enabled-conditional (the frame-side twin of RLRM-404's relaxed
+    -- service floor): naming MUST carry a nil filterId; a non-naming rule needs a filter only
+    -- to be ENABLED (mirrors F6's enabled-conditional husbandries) - a disabled draft may carry
+    -- a nil filterId (an incomplete draft, inert until a filter is picked). A present filterId
+    -- must always be a non-blank string. filterRequired (== non-naming AND enabled) is surfaced
+    -- so the frame's flush narrow-revert can drop just an illegal enable on an unfiltered rule.
+    local filterRequired = draft.operation ~= "naming" and draft.enabled == true
     local filterOk
     if draft.operation == "naming" then
         filterOk = draft.filterId == nil
     else
-        filterOk = type(draft.filterId) == "string" and draft.filterId:gsub("%s", "") ~= ""
+        local present = type(draft.filterId) == "string" and draft.filterId:gsub("%s", "") ~= ""
+        if draft.enabled == true then
+            filterOk = present
+        else
+            filterOk = draft.filterId == nil or present
+        end
     end
 
     local husbandriesOk = type(draft.targetHusbandries) == "table" and #draft.targetHusbandries >= 1
@@ -897,9 +912,9 @@ function RLHerdsmanRulePresenter.validateEdit(draft)
 
     local valid = nameOk and operationOk and filterOk and husbandriesOk and paramsOk
 
-    Log:trace("RLHerdsmanRulePresenter.validateEdit: nameOk=%s operationOk=%s filterOk=%s husbandriesOk=%s paramsOk=%s -> valid=%s",
-        tostring(nameOk), tostring(operationOk), tostring(filterOk), tostring(husbandriesOk), tostring(paramsOk), tostring(valid))
-    return { valid = valid, nameOk = nameOk, operationOk = operationOk, filterOk = filterOk, husbandriesOk = husbandriesOk, paramsOk = paramsOk }
+    Log:trace("RLHerdsmanRulePresenter.validateEdit: nameOk=%s operationOk=%s filterOk=%s filterRequired=%s husbandriesOk=%s paramsOk=%s -> valid=%s",
+        tostring(nameOk), tostring(operationOk), tostring(filterOk), tostring(filterRequired), tostring(husbandriesOk), tostring(paramsOk), tostring(valid))
+    return { valid = valid, nameOk = nameOk, operationOk = operationOk, filterOk = filterOk, filterRequired = filterRequired, husbandriesOk = husbandriesOk, paramsOk = paramsOk }
 end
 
 --- The detail-pane FLUSH gate (H3/1a) - the enabled-conditional refinement of validateEdit.
@@ -908,26 +923,135 @@ end
 --- fully editable and persists with 0 targets (= a no-op rule, the empty=no-op contract);
 --- enabling a 0-target rule is blocked (the enable reverts via this gate). So `ok` = name +
 --- operation + filter + params all valid AND (the rule is disabled OR has >= 1 husbandry).
---- `husbandriesRequired` (== the enabled flag) is surfaced for the frame's revert logging.
---- Encoded here (not ad-hoc in the frame) so the gate dual-runs. nil / non-table draft ->
---- not ok. This supersedes the pre-F6 frame gate that excluded husbandriesOk entirely.
+--- `husbandriesRequired` (== the enabled flag) and `filterRequired` (== non-naming AND enabled,
+--- from validateEdit) are surfaced for the frame's narrow-revert + revert logging. The
+--- enabled-conditional filter requirement is baked into validateEdit's `filterOk`, so `ok`
+--- consumes it directly (no separate filter arm here). Encoded here (not ad-hoc in the frame)
+--- so the gate dual-runs. nil / non-table draft -> not ok. This supersedes the pre-F6 frame
+--- gate that excluded husbandriesOk entirely.
 ---@param draft table|nil merged rule record (includes `enabled`)
----@return table { ok, nameOk, operationOk, filterOk, paramsOk, husbandriesOk, husbandriesRequired } (all boolean)
+---@return table { ok, nameOk, operationOk, filterOk, filterRequired, paramsOk, husbandriesOk, husbandriesRequired } (all boolean)
 function RLHerdsmanRulePresenter.validateFlush(draft)
     local v = RLHerdsmanRulePresenter.validateEdit(draft)
     local husbandriesRequired = type(draft) == "table" and draft.enabled == true
     local ok = v.nameOk and v.operationOk and v.filterOk and v.paramsOk
         and (not husbandriesRequired or v.husbandriesOk)
 
-    Log:trace("RLHerdsmanRulePresenter.validateFlush: nameOk=%s operationOk=%s filterOk=%s paramsOk=%s husbandriesOk=%s required=%s -> ok=%s",
-        tostring(v.nameOk), tostring(v.operationOk), tostring(v.filterOk), tostring(v.paramsOk),
+    Log:trace("RLHerdsmanRulePresenter.validateFlush: nameOk=%s operationOk=%s filterOk=%s filterRequired=%s paramsOk=%s husbandriesOk=%s husbandriesRequired=%s -> ok=%s",
+        tostring(v.nameOk), tostring(v.operationOk), tostring(v.filterOk), tostring(v.filterRequired), tostring(v.paramsOk),
         tostring(v.husbandriesOk), tostring(husbandriesRequired), tostring(ok))
     return {
         ok = ok,
-        nameOk = v.nameOk, operationOk = v.operationOk, filterOk = v.filterOk,
+        nameOk = v.nameOk, operationOk = v.operationOk, filterOk = v.filterOk, filterRequired = v.filterRequired,
         paramsOk = v.paramsOk, husbandriesOk = v.husbandriesOk,
         husbandriesRequired = husbandriesRequired,
     }
+end
+
+-- =============================================================================
+-- Rule factory + name helpers (F7 lifecycle)
+-- =============================================================================
+
+--- Build a fresh "New rule" draft for the service create call: a disabled Sell draft (the
+--- operation users reach for first), filterId nil (an incomplete draft, valid only post-
+--- RLRM-404), zero targets, and Sell's default params. No id / version - the service assigns
+--- the id and defaults the version on create. The caller supplies the (immutable) farmId and
+--- the collision-free name (computeDefaultRuleName). Plain data in / plain data out.
+---@param farmId number the owning farm id
+---@param name string the default rule name
+---@return table rule a create-ready Sell draft record (no id/version)
+function RLHerdsmanRulePresenter.buildNewRule(farmId, name)
+    local rule = {
+        name              = name,
+        operation         = "sell",
+        farmId            = farmId,
+        enabled           = false,
+        filterId          = nil,
+        targetHusbandries = {},
+        params            = RLHerdsmanRulePresenter.defaultParamsForOperation("sell"),
+    }
+    Log:trace("RLHerdsmanRulePresenter.buildNewRule: farmId=%s name=%q -> disabled sell draft (no filter, 0 targets)",
+        tostring(farmId), tostring(name))
+    return rule
+end
+
+--- Compute a collision-free default rule name from the live rule names. Pure adaptation of
+--- the Settings default-name helper: the i18n base label is PASSED IN (not read from
+--- g_i18n). Tracks the MAX trailing "(N)" seen (not the count) so sparse names after deletes
+--- never collide; the bare base counts as N=1 (user-visible numbering starts at 2). Returns
+--- the bare base when none present, else "<base> (maxN+1)".
+---@param existingNames string[]|nil the current rule names on the farm
+---@param baseLabel string the localized default-name base
+---@return string name a non-colliding default rule name
+function RLHerdsmanRulePresenter.computeDefaultRuleName(existingNames, baseLabel)
+    local base = baseLabel or ""
+    -- "<base> (N)" anchored end-to-end; %W escapes any pattern-special in the base label.
+    local pattern = "^" .. base:gsub("(%W)", "%%%1") .. " %((%d+)%)$"
+    local maxN = 0
+    if existingNames ~= nil then
+        for _, name in ipairs(existingNames) do
+            local n = name or ""
+            if n == base then
+                if maxN < 1 then maxN = 1 end
+            else
+                local capture = n:match(pattern)
+                if capture ~= nil then
+                    local num = tonumber(capture)
+                    if num ~= nil and num > maxN then
+                        maxN = num
+                    end
+                end
+            end
+        end
+    end
+    local result = (maxN == 0) and base or string.format("%s (%d)", base, maxN + 1)
+    Log:trace("RLHerdsmanRulePresenter.computeDefaultRuleName: base=%q maxN=%d -> %q", tostring(base), maxN, tostring(result))
+    return result
+end
+
+--- Compute a collision-free duplicate name from a source name + the live rule names. Pure
+--- adaptation of the Settings duplicate-name helper: the localized suffix strings are PASSED
+--- IN (suffixFirst e.g. " (copy)"; suffixNFmt e.g. " (copy %d)" - the numbered format carries
+--- the language's own word order around one %d). The first duplicate gets the bare suffix;
+--- subsequent ones the numbered format. Tracks the MAX N (not the count) so sparse copies
+--- after deletes never collide; the bare-suffix form counts as N=1. The source's own bare
+--- name is NOT a copy and never contributes.
+---@param sourceName string the source rule's (merged) name
+---@param existingNames string[]|nil the current rule names on the farm
+---@param suffixFirst string the localized first-duplicate suffix
+---@param suffixNFmt string the localized numbered-duplicate format (carries one %d)
+---@return string name a non-colliding duplicate name
+function RLHerdsmanRulePresenter.computeDuplicateName(sourceName, existingNames, suffixFirst, suffixNFmt)
+    local base = sourceName or ""
+    local first = base .. suffixFirst
+    -- Escape every Lua-pattern special in literal text so a translator's parens/punctuation
+    -- are matched literally; lift the %d placeholder out first (it must stay a (%d+) capture).
+    local function escapePattern(s)
+        return (s:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1"))
+    end
+    local placeholder = "\1"
+    local templatePat = escapePattern((suffixNFmt:gsub("%%d", placeholder))):gsub(placeholder, "(%%d+)")
+    local countPattern = "^" .. escapePattern(base) .. templatePat .. "$"
+    local maxN = 0
+    if existingNames ~= nil then
+        for _, name in ipairs(existingNames) do
+            local n = name or ""
+            if n == first then
+                if maxN < 1 then maxN = 1 end
+            else
+                local capture = n:match(countPattern)
+                if capture ~= nil then
+                    local num = tonumber(capture)
+                    if num ~= nil and num > maxN then
+                        maxN = num
+                    end
+                end
+            end
+        end
+    end
+    local result = (maxN == 0) and first or (base .. suffixNFmt:format(maxN + 1))
+    Log:trace("RLHerdsmanRulePresenter.computeDuplicateName: base=%q maxN=%d -> %q", tostring(base), maxN, tostring(result))
+    return result
 end
 
 Log:debug("RLHerdsmanRulePresenter: loaded (%d operations)", #RLHerdsmanRulePresenter.OPERATION_ORDER)

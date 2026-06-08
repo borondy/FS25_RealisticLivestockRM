@@ -154,6 +154,14 @@ function RLHerdsmanRuleCreateEvent:run(connection)
     g_rlHerdsmanRuleService:applyIncomingCreate(rule)
     Log:debug("RLHerdsmanRuleCreateEvent:run: applied create id=%s name=%s",
         tostring(rule.id), tostring(rule.name))
+
+    -- F7: refresh an open Herdsman menu frame on this machine after the remote create.
+    -- Nil-guarded (g_rlMenu / herdsmanFrame absent during early lifecycle or if the menu was
+    -- never opened). Idempotent: Pattern A keeps the originator out of its own run().
+    if g_rlMenu ~= nil and g_rlMenu.herdsmanFrame ~= nil
+       and g_rlMenu.herdsmanFrame.refreshIfOpen ~= nil then
+        g_rlMenu.herdsmanFrame:refreshIfOpen()
+    end
 end
 
 --- Thin dispatch: broadcast to clients if we are the server, otherwise upload to the

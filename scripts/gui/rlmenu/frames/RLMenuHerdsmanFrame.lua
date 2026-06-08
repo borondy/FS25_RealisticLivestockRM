@@ -181,6 +181,9 @@ function RLMenuHerdsmanFrame:onGuiSetupFinished()
     self.ruleEditorContainer = self:getDescendantById("ruleEditorContainer")
     self.rulesEmptyState     = self:getDescendantById("rulesEmptyState")
     self.headerPanel         = self:getDescendantById("headerPanel")
+    -- Legacy-active coexistence banner (D13): a fixed-text warning in the header, below the
+    -- title. Hidden by default; refreshBanner toggles it. nil until the XML element ships.
+    self.legacyBanner        = self:getDescendantById("legacyBanner")
 
     -- Editor layout + empty-state (toggled together: a selection shows the layout,
     -- no selection shows the empty text).
@@ -277,6 +280,30 @@ function RLMenuHerdsmanFrame:onGuiSetupFinished()
         self.rulesList:setDelegate(self)
         Log:trace("RLMenuHerdsmanFrame:onGuiSetupFinished: rulesList bound")
     end
+
+    -- Action bar (single-tier; no Filters Tier 2/3 - the herdsman frame has no conditions
+    -- sub-list): Back / New / Duplicate / Delete. Code-driven footer (menuButtonInfo), not XML,
+    -- mirroring RLMenuSettingsFrame; updateButtonVisibility rebuilds the set per selection +
+    -- permission. hasCustomMenuButtons=true forces the first page-switch to use
+    -- self.menuButtonInfo over RLMenu's back-only default (avoids a one-frame flicker).
+    self.hasCustomMenuButtons = true
+    self.backButtonInfo = { inputAction = InputAction.MENU_BACK }
+    self.newRuleButtonInfo = {
+        inputAction = InputAction.MENU_EXTRA_1,
+        text = g_i18n:getText("rl_menu_herdsman_new_button"),
+        callback = function() self:onClickNewRule() end,
+    }
+    self.duplicateButtonInfo = {
+        inputAction = InputAction.MENU_EXTRA_2,
+        text = g_i18n:getText("rl_menu_herdsman_duplicate_button"),
+        callback = function() self:onClickDuplicate() end,
+    }
+    self.deleteButtonInfo = {
+        inputAction = InputAction.MENU_CANCEL,
+        text = g_i18n:getText("rl_menu_herdsman_delete_button"),
+        callback = function() self:onClickDelete() end,
+    }
+    self.menuButtonInfo = { self.backButtonInfo }
 end
 
 --- Called by the Paging element when this tab becomes active. Reads the rule registry,
@@ -313,6 +340,8 @@ function RLMenuHerdsmanFrame:onFrameOpen()
     end
     self:updateEmptyState()
     self:selectInitialRule()
+    self:updateButtonVisibility()
+    self:refreshBanner(farmId)
 
     if self.rulesList ~= nil then
         FocusManager:setFocus(self.rulesList)
@@ -378,6 +407,17 @@ function RLMenuHerdsmanFrame:logLayoutMeasurements()
     if self.headerPanel ~= nil and self.headerPanel.absPosition ~= nil then
         Log:debug("RLMenuHerdsmanFrame: header baseline bottom=%.1fpx",
             self.headerPanel.absPosition[2] * g_referenceScreenHeight)
+    end
+
+    -- Banner placement verification (it sits in the header, below the title): log its size +
+    -- top edge so the orange caution's position is provable from the log, not eyeballed. Only
+    -- meaningful when the banner is visible (enable a legacy op to surface it for measurement).
+    if self.legacyBanner ~= nil and self.legacyBanner.absPosition ~= nil and self.legacyBanner.size ~= nil then
+        Log:debug("RLMenuHerdsmanFrame: legacyBanner measured: %.1fpx x %.1fpx, top=%.1fpx, visible=%s",
+            (self.legacyBanner.size[1] or 0) * g_referenceScreenWidth,
+            (self.legacyBanner.size[2] or 0) * g_referenceScreenHeight,
+            ((self.legacyBanner.absPosition[2] or 0) + (self.legacyBanner.size[2] or 0)) * g_referenceScreenHeight,
+            tostring(self.legacyBanner.getIsVisible ~= nil and self.legacyBanner:getIsVisible()))
     end
     return true
 end
@@ -538,6 +578,7 @@ function RLMenuHerdsmanFrame:onListSelectionChanged(list, section, index)
         Log:debug("RLMenuHerdsmanFrame:onListSelectionChanged: section=%s index=%s out of range; selection cleared",
             tostring(section), tostring(index))
         self:refreshRuleDetail(nil)
+        self:updateButtonVisibility()
         return
     end
 
@@ -545,6 +586,7 @@ function RLMenuHerdsmanFrame:onListSelectionChanged(list, section, index)
     Log:debug("RLMenuHerdsmanFrame:onListSelectionChanged: section=%d index=%d -> ruleId=%s name=%q",
         section, index, tostring(rule.id), tostring(rule.name))
     self:refreshRuleDetail(self:getStoredRuleById(rule.id))
+    self:updateButtonVisibility()
 end
 
 -- =============================================================================
@@ -1238,13 +1280,14 @@ end
 
 --- Flush one id's pending overlay through the real service update. Gates via the presenter's
 --- enabled-conditional RLHerdsmanRulePresenter.validateFlush (H3/1a): nameOk + operationOk +
---- paramsOk + filterOk always required, AND husbandriesOk required ONLY when the rule is
---- enabled. filterOk covers both arms (naming -> nil filterId; non-naming -> a bound filter),
---- so an un-filtered non-naming rule is a clean gate-SKIP rather than a service reject; a
---- disabled / incomplete rule persists with 0 targets (= no-op), and enabling a 0-target rule
---- SKIPs here (reverting the enable). On a validation skip OR a service reject, clears the
---- pending overlay and reverts the display to the stored record (the next render shows stored).
---- On success, clears the overlay and refreshes the stored snapshot to the persisted record.
+--- paramsOk always required; AND both husbandriesOk (>= 1 target) and a bound non-naming filter
+--- are required ONLY when the rule is enabled (F7's enabled-conditional filter, the frame-side
+--- twin of RLRM-404). A disabled / incomplete rule therefore persists as a draft (nil filterId
+--- / 0 targets = no-op); enabling an unfiltered or 0-target rule SKIPs here (the narrow-revert
+--- below drops just the enable, keeping unrelated edits). On a validation skip OR a service
+--- reject, clears the pending overlay and reverts the display to the stored record (the next
+--- render shows stored). On success, clears the overlay and refreshes the stored snapshot to
+--- the persisted record.
 --- @param id any
 --- @return string outcome "updated" | "skipped" | "rejected"
 function RLMenuHerdsmanFrame:flushPendingForId(id)
@@ -1260,24 +1303,30 @@ function RLMenuHerdsmanFrame:flushPendingForId(id)
 
     local merged = RLHerdsmanRuleEditModel.overlayRule(stored, pending)
     local g = RLHerdsmanRulePresenter.validateFlush(merged)
-    -- Gate (H3/1a): nameOk + operationOk + paramsOk + filterOk, AND husbandriesOk ONLY when the
-    -- rule is enabled. filterOk covers both arms (naming -> nil filterId; non-naming -> a
-    -- non-blank filterId), so an un-filtered non-naming rule is a clean gate-SKIP (debug revert)
-    -- not a service reject. A disabled / incomplete rule persists with 0 targets (= no-op).
+    -- Gate (H3/1a): nameOk + operationOk + paramsOk always; husbandriesOk (>= 1 target) AND a
+    -- bound non-naming filter required ONLY when enabled (F7's enabled-conditional filter, the
+    -- frame-side twin of RLRM-404). A disabled / incomplete rule persists as a draft (nil
+    -- filterId / 0 targets = no-op); an enabled rule missing either is handled by the
+    -- narrow-revert below (drop just the enable), not a service reject.
 
-    -- Narrow-revert (S2b): if the ONLY failure is the enabled-conditional husbandries gate (a
-    -- 0-target rule cannot be enabled) AND the user toggled enable this session, revert JUST the
-    -- enable toggle and re-evaluate - so an unrelated name / mark / budget edit made alongside the
-    -- enable is NOT discarded with the illegal enable. (A pre-F6 rule already enabled with 0
-    -- targets has no pending.enabled to drop, so it falls through to the full revert below and
-    -- stays flush-blocked until it gains a husbandry or is disabled.)
-    if not g.ok and g.husbandriesRequired and not g.husbandriesOk
-        and g.nameOk and g.operationOk and g.paramsOk and g.filterOk
-        and pending.enabled ~= nil then
+    -- Narrow-revert (S2b, reconciled with the F7 enabled-conditional filter gate): if the user
+    -- toggled enable this session (pending.enabled set) and the ONLY failing axes are the
+    -- enable-gated ones - a 0-target rule (husbandriesRequired) AND/OR an unfiltered non-naming
+    -- rule (filterRequired) - while name / operation / params are all valid, revert JUST the
+    -- enable toggle and re-evaluate. So an unrelated name / mark / budget edit made alongside an
+    -- illegal enable is NOT discarded with it. Dropping enable relaxes BOTH gates, so an
+    -- unfiltered / 0-target draft then flushes (the re-eval below; a residual malformed value
+    -- still falls through to the full revert). The previous arm required g.filterOk, which an
+    -- enabled-unfiltered rule fails - so the two revert arms are merged here. (A pre-F6 rule
+    -- already persisted enabled-but-incomplete has no pending.enabled to drop, so it falls
+    -- through to the full revert and stays flush-blocked until completed or disabled.)
+    if not g.ok and pending.enabled ~= nil
+        and g.nameOk and g.operationOk and g.paramsOk
+        and ((g.husbandriesRequired and not g.husbandriesOk) or (g.filterRequired and not g.filterOk)) then
         pending.enabled = nil
         merged = RLHerdsmanRuleEditModel.overlayRule(stored, pending)
         g = RLHerdsmanRulePresenter.validateFlush(merged)
-        Log:debug("RLMenuHerdsmanFrame:flushPendingForId: id=%s reverted illegal enable on a 0-target rule; re-evaluating remaining edits (ok=%s)",
+        Log:debug("RLMenuHerdsmanFrame:flushPendingForId: id=%s reverted illegal enable (missing filter and/or husbandry); re-evaluating remaining edits (ok=%s)",
             tostring(id), tostring(g.ok))
     end
 
@@ -1361,4 +1410,362 @@ function RLMenuHerdsmanFrame:updateEmptyState()
     if self.rulesEmptyState ~= nil then
         self.rulesEmptyState:setVisible(not hasRules)
     end
+end
+
+-- =============================================================================
+-- ACTION BAR (New / Duplicate / Delete) + permission gate
+-- =============================================================================
+
+--- UX-side permission gate for the action bar. The authoritative boundary is the server-side
+--- validation inside RLHerdsmanRule{Create,Update,Delete}Event:run; this only controls button
+--- visibility + the per-handler early abort. Mirrors RLMenuSettingsFrame:hasCreatePermission.
+--- @return boolean
+function RLMenuHerdsmanFrame:hasCreatePermission()
+    if g_currentMission == nil or g_currentMission.getHasPlayerPermission == nil then
+        return false
+    end
+    return g_currentMission:getHasPlayerPermission("tradeAnimals") == true
+end
+
+--- Rebuild the single-tier footer from the current selection + permission and mark it dirty.
+--- Back is always present; New on farm + tradeAnimals ONLY (never gated on selection, so the
+--- empty state stays escapable); Duplicate + Delete additionally need a selection. Mirrors
+--- RLMenuSettingsFrame:updateButtonVisibility (Tier 1, minus Tier 2/3).
+function RLMenuHerdsmanFrame:updateButtonVisibility()
+    local farmId = RLAnimalInfoService.getCurrentFarmId()
+    local hasFarm = (farmId ~= nil and farmId ~= 0)
+    local hasPerm = self:hasCreatePermission()
+    local hasSelection = (self.selectedRuleId ~= nil)
+    self.menuButtonInfo = { self.backButtonInfo }
+    local appended = {}
+    if hasFarm and hasPerm then
+        table.insert(self.menuButtonInfo, self.newRuleButtonInfo)
+        table.insert(appended, "New")
+        if hasSelection then
+            table.insert(self.menuButtonInfo, self.duplicateButtonInfo)
+            table.insert(self.menuButtonInfo, self.deleteButtonInfo)
+            table.insert(appended, "Duplicate")
+            table.insert(appended, "Delete")
+        end
+    end
+    Log:debug("RLMenuHerdsmanFrame:updateButtonVisibility: hasFarm=%s hasPerm=%s hasSelection=%s appended=[%s]",
+        tostring(hasFarm), tostring(hasPerm), tostring(hasSelection), table.concat(appended, ","))
+    self:setMenuButtonInfoDirty()
+end
+
+--- Collect the live rule names for the collision-incrementing default/duplicate name helpers,
+--- with each rule's pending overlay applied so an in-flight rename on another row still counts.
+--- @return string[] names
+function RLMenuHerdsmanFrame:collectRuleNames()
+    local names = {}
+    for _, stored in ipairs(self.storedRules) do
+        local pending = self.pendingChanges[stored.id]
+        local merged = (pending ~= nil) and RLHerdsmanRuleEditModel.overlayRule(stored, pending) or stored
+        names[#names + 1] = merged.name or ""
+    end
+    return names
+end
+
+--- Footer New handler. Gated on permission + farm ONLY (never selection). Autoflushes the
+--- current selection's pending first (so a dirty edit is not lost when New steals the
+--- selection), then creates a disabled Sell draft via the SAME g_rlHerdsmanRuleService:create
+--- the console command + Pattern-A receivers use. On create == nil (rejected payload) warns and
+--- leaves the list/selection unchanged. On success selects the new rule and refreshes.
+function RLMenuHerdsmanFrame:onClickNewRule()
+    if not self:hasCreatePermission() then
+        Log:trace("RLMenuHerdsmanFrame:onClickNewRule: no tradeAnimals permission, aborting")
+        return
+    end
+    local farmId = RLAnimalInfoService.getCurrentFarmId()
+    if farmId == nil or farmId == 0 then
+        Log:trace("RLMenuHerdsmanFrame:onClickNewRule: no farm (farmId=%s), aborting", tostring(farmId))
+        return
+    end
+    if g_rlHerdsmanRuleService == nil then
+        Log:warning("RLMenuHerdsmanFrame:onClickNewRule: g_rlHerdsmanRuleService is nil; aborting")
+        return
+    end
+
+    if self.selectedRuleId ~= nil and self.pendingChanges[self.selectedRuleId] ~= nil then
+        local outcome = self:flushPendingForId(self.selectedRuleId)
+        Log:debug("RLMenuHerdsmanFrame:onClickNewRule: autoflush selectedId=%s outcome=%s",
+            tostring(self.selectedRuleId), tostring(outcome))
+    end
+
+    local name = RLHerdsmanRulePresenter.computeDefaultRuleName(
+        self:collectRuleNames(), g_i18n:getText("rl_menu_herdsman_default_name"))
+    local draft = RLHerdsmanRulePresenter.buildNewRule(farmId, name)
+    Log:debug("RLMenuHerdsmanFrame:onClickNewRule: creating sell draft name=%q farmId=%s", tostring(name), tostring(farmId))
+
+    local created = g_rlHerdsmanRuleService:create(draft)
+    if created == nil then
+        Log:warning("RLMenuHerdsmanFrame:onClickNewRule: service rejected create (nil return); list/selection unchanged")
+        return
+    end
+    self.selectedRuleId = created.id
+    Log:debug("RLMenuHerdsmanFrame:onClickNewRule: created id=%s name=%q", tostring(created.id), tostring(created.name))
+    self:refreshData()
+end
+
+--- Footer Duplicate handler. Gated on selection + permission + farm. Autoflushes the current
+--- pending first (so the STORED baseline reflects the user's intent), then clones the STORED
+--- record (NOT the overlay-merged view, which can be floor-invalid under the draft model) with
+--- a collision-free `(copy)` name and the source's immutable farmId, via the SAME
+--- g_rlHerdsmanRuleService:create. create == nil -> warn + abort. On success selects the clone.
+function RLMenuHerdsmanFrame:onClickDuplicate()
+    if self.selectedRuleId == nil then
+        Log:trace("RLMenuHerdsmanFrame:onClickDuplicate: no selection, aborting")
+        return
+    end
+    if not self:hasCreatePermission() then
+        Log:trace("RLMenuHerdsmanFrame:onClickDuplicate: no tradeAnimals permission, aborting")
+        return
+    end
+    local farmId = RLAnimalInfoService.getCurrentFarmId()
+    if farmId == nil or farmId == 0 then
+        Log:trace("RLMenuHerdsmanFrame:onClickDuplicate: no farm, aborting")
+        return
+    end
+    if g_rlHerdsmanRuleService == nil then
+        Log:warning("RLMenuHerdsmanFrame:onClickDuplicate: g_rlHerdsmanRuleService is nil; aborting")
+        return
+    end
+
+    local sourceId = self.selectedRuleId
+    if self.pendingChanges[sourceId] ~= nil then
+        local outcome = self:flushPendingForId(sourceId)
+        Log:debug("RLMenuHerdsmanFrame:onClickDuplicate: autoflush sourceId=%s outcome=%s",
+            tostring(sourceId), tostring(outcome))
+    end
+
+    local stored = g_rlHerdsmanRuleService:getById(sourceId)
+    if stored == nil then
+        Log:warning("RLMenuHerdsmanFrame:onClickDuplicate: getById nil for id=%s; aborting", tostring(sourceId))
+        return
+    end
+
+    local dupName = RLHerdsmanRulePresenter.computeDuplicateName(
+        stored.name, self:collectRuleNames(),
+        g_i18n:getText("rl_menu_herdsman_duplicate_suffix"),
+        g_i18n:getText("rl_menu_herdsman_duplicate_suffix_n"))
+    local draft = RLHerdsmanRuleEditModel.duplicateRule(stored, dupName)
+    Log:debug("RLMenuHerdsmanFrame:onClickDuplicate: source=%s -> name=%q farmId=%s operation=%s",
+        tostring(sourceId), tostring(dupName), tostring(stored.farmId), tostring(stored.operation))
+
+    local created = g_rlHerdsmanRuleService:create(draft)
+    if created == nil then
+        Log:warning("RLMenuHerdsmanFrame:onClickDuplicate: service rejected create (nil return) for source=%s", tostring(sourceId))
+        return
+    end
+    self.selectedRuleId = created.id
+    Log:debug("RLMenuHerdsmanFrame:onClickDuplicate: created id=%s name=%q", tostring(created.id), tostring(created.name))
+    self:refreshData()
+end
+
+--- Footer Delete handler. Gated on selection + permission + farm, with a g_gui dialog-visible
+--- re-entry guard (also suppresses Delete while a picker dialog is open). Opens a YesNoDialog
+--- with the rule name; the actual delete happens in onDeleteConfirmed on Yes. Mirrors
+--- RLMenuSettingsFrame:onClickDelete (YesNoDialog is base-game, no registration).
+function RLMenuHerdsmanFrame:onClickDelete()
+    if self.selectedRuleId == nil then
+        Log:trace("RLMenuHerdsmanFrame:onClickDelete: no selection, aborting")
+        return
+    end
+    if not self:hasCreatePermission() then
+        Log:trace("RLMenuHerdsmanFrame:onClickDelete: no tradeAnimals permission, aborting")
+        return
+    end
+    local farmId = RLAnimalInfoService.getCurrentFarmId()
+    if farmId == nil or farmId == 0 then
+        Log:trace("RLMenuHerdsmanFrame:onClickDelete: no farm, aborting")
+        return
+    end
+    if g_rlHerdsmanRuleService == nil then
+        Log:warning("RLMenuHerdsmanFrame:onClickDelete: g_rlHerdsmanRuleService is nil; aborting")
+        return
+    end
+    if g_gui:getIsDialogVisible() then
+        Log:trace("RLMenuHerdsmanFrame:onClickDelete: dialog already open, ignoring re-entry")
+        return
+    end
+
+    local stored = g_rlHerdsmanRuleService:getById(self.selectedRuleId)
+    if stored == nil then
+        Log:warning("RLMenuHerdsmanFrame:onClickDelete: getById nil for id=%s; aborting", tostring(self.selectedRuleId))
+        return
+    end
+
+    local confirmText = string.format(
+        g_i18n:getText("rl_menu_herdsman_delete_confirm_text"), tostring(stored.name or ""))
+    Log:debug("RLMenuHerdsmanFrame:onClickDelete: opening YesNoDialog for id=%s name=%q",
+        tostring(stored.id), tostring(stored.name))
+
+    -- YesNoDialog passes (target, yesValue, callbackArgs) to its callback; target=self absorbs
+    -- the colon-bound self so onDeleteConfirmed receives (yes, id). Mirrors the Settings flow.
+    YesNoDialog.show(
+        self.onDeleteConfirmed,
+        self,
+        confirmText,
+        g_i18n:getText("ui_attention"),
+        nil, nil, nil, nil, nil,
+        stored.id
+    )
+end
+
+--- YesNoDialog confirmation callback for Delete. No-ops on No. On Yes: call the SAME
+--- g_rlHerdsmanRuleService:delete the console command + Pattern-A receivers use; on success
+--- drop pending[id], clear the selection if it matched, refresh; on false (stale id / race)
+--- preserve selection + pending and warn (the next refresh event resolves the divergence).
+--- @param yes boolean
+--- @param id string the rule id captured at click time
+function RLMenuHerdsmanFrame:onDeleteConfirmed(yes, id)
+    Log:trace("RLMenuHerdsmanFrame:onDeleteConfirmed: yes=%s id=%s", tostring(yes), tostring(id))
+    if not yes then return end
+    if g_rlHerdsmanRuleService == nil then
+        Log:warning("RLMenuHerdsmanFrame:onDeleteConfirmed: g_rlHerdsmanRuleService is nil; aborting")
+        return
+    end
+    local ok = g_rlHerdsmanRuleService:delete(id)
+    if ok then
+        self.pendingChanges[id] = nil
+        if self.selectedRuleId == id then self.selectedRuleId = nil end
+        Log:debug("RLMenuHerdsmanFrame:onDeleteConfirmed: deleted id=%s", tostring(id))
+        self:refreshData()
+    else
+        Log:warning("RLMenuHerdsmanFrame:onDeleteConfirmed: service:delete returned false for id=%s; preserving selection + pending (stale id or race)",
+            tostring(id))
+    end
+end
+
+-- =============================================================================
+-- REFRESH (local CRUD + remote MP event hook)
+-- =============================================================================
+
+--- Re-read the rule registry for the current farm, KEEPING the local pending overlay
+--- (local-pending-wins for F7; the authoritative-surface mid-edit reconcile is RLRM-396).
+--- Drops pending whose id is gone from the re-read snapshot (orphan prune) and clears the
+--- selection to the empty-state when the selected id was pruned (so a stale focused input
+--- cannot re-stash a resurrected orphan). Rebuilds + reloads under isReconciling, re-pins the
+--- selection by id (so a remotely re-sectioned rule re-pins), then refreshes empty-state +
+--- footer + banner + detail. Mirrors RLMenuSettingsFrame:refreshData.
+function RLMenuHerdsmanFrame:refreshData()
+    local farmId = RLAnimalInfoService.getCurrentFarmId()
+    local rules = {}
+    if farmId == nil or farmId == 0 then
+        Log:debug("RLMenuHerdsmanFrame:refreshData: no farm (farmId=%s); empty rule list", tostring(farmId))
+    elseif g_rlHerdsmanRuleService == nil then
+        Log:warning("RLMenuHerdsmanFrame:refreshData: g_rlHerdsmanRuleService is nil; empty rule list")
+    else
+        rules = g_rlHerdsmanRuleService:listForFarm(farmId)
+    end
+    self.storedRules = rules
+
+    -- Orphan prune: drop any pending overlay whose id is no longer present (a remote delete),
+    -- and clear the selection to the empty-state if its id went.
+    local liveIds = {}
+    for _, stored in ipairs(self.storedRules) do liveIds[stored.id] = true end
+    local pruned = 0
+    for pid in pairs(self.pendingChanges) do
+        if not liveIds[pid] then
+            self.pendingChanges[pid] = nil
+            pruned = pruned + 1
+        end
+    end
+    if self.selectedRuleId ~= nil and not liveIds[self.selectedRuleId] then
+        Log:debug("RLMenuHerdsmanFrame:refreshData: selected id=%s gone remotely; clearing selection", tostring(self.selectedRuleId))
+        self.selectedRuleId = nil
+    end
+
+    self:rebuildDisplaySections()
+    self.isReconciling = true
+    if self.rulesList ~= nil then
+        self.rulesList:reloadData()
+        if self.selectedRuleId ~= nil then
+            local s, i = self:findSelectionById(self.selectedRuleId)
+            if s ~= nil then
+                self.rulesList:setSelectedItem(s, i, false, true)
+            end
+        else
+            -- No selection (pruned to empty, or nothing was selected): clear the SmoothList's
+            -- own visual selection too, so the left pane does not keep a stale row highlighted
+            -- over the empty-state detail pane (mirror selectInitialRule's no-rules branch).
+            self.rulesList.selectedSectionIndex = 0
+            self.rulesList.selectedIndex = 0
+        end
+    end
+    self.isReconciling = false
+
+    self:updateEmptyState()
+    self:updateButtonVisibility()
+    self:refreshBanner(farmId)
+
+    -- Tail the detail render so the right pane reflects the re-pinned selection (or the empty
+    -- state when the selection was pruned). refreshRuleDetail re-applies the kept overlay.
+    local stored = (self.selectedRuleId ~= nil) and self:getStoredRuleById(self.selectedRuleId) or nil
+    self:refreshRuleDetail(stored)
+
+    Log:debug("RLMenuHerdsmanFrame:refreshData: farmId=%s rules=%d pruned=%d selectedId=%s",
+        tostring(farmId), #self.storedRules, pruned, tostring(self.selectedRuleId))
+end
+
+--- Refresh only when the frame is currently open. Called by the RLHerdsmanRule{Create,Update,
+--- Delete,State}Event:run handlers AND the RLFilter{Create,Update,Delete}Event:run handlers
+--- (a remote filter rename/delete changes rule filter-summaries) so remote mutations re-render
+--- without reopening the menu. Idempotent (Pattern-A guarantees the originator never enters its
+--- own CRUD run()). Mirrors RLMenuSettingsFrame:refreshIfOpen.
+function RLMenuHerdsmanFrame:refreshIfOpen()
+    if self.isFrameOpen then
+        Log:debug("RLMenuHerdsmanFrame:refreshIfOpen: refreshing")
+        self:refreshData()
+    else
+        Log:debug("RLMenuHerdsmanFrame:refreshIfOpen: frame closed, skipping")
+    end
+end
+
+-- =============================================================================
+-- LEGACY-ACTIVE BANNER (read-only coexistence warning, D13)
+-- =============================================================================
+
+--- Read-only enumeration of the farm's live husbandries' legacy AI settings into the plain
+--- `{ name, settings }` entries RLHerdsmanRulePresenter.isLegacyActive consumes. Every hop is
+--- nil-guarded: a husbandry whose manager / getSettings is missing (unloaded placeable)
+--- contributes nothing. getAIManager returns the manager built at onLoad (no save/sync side
+--- effect); getSettings() (no arg) returns the whole per-op `settings` table keyed by operation.
+--- @param farmId number|nil
+--- @return table entries array of { name = string, settings = table }
+function RLMenuHerdsmanFrame:gatherLegacyEntries(farmId)
+    local entries = {}
+    if farmId == nil or farmId == 0 then return entries end
+    local husbandries = RLAnimalQuery.listHusbandriesForFarm(farmId)
+    for i, h in ipairs(husbandries) do
+        local settings = nil
+        if h ~= nil and h.getAIManager ~= nil then
+            local mgr = h:getAIManager()
+            if mgr ~= nil and mgr.getSettings ~= nil then
+                settings = mgr:getSettings()
+            end
+        end
+        if type(settings) == "table" then
+            entries[#entries + 1] = { name = RLAnimalQuery.formatHusbandryLabel(h, i), settings = settings }
+        end
+    end
+    return entries
+end
+
+--- Re-evaluate + toggle the fixed-text legacy-active banner. Gathers the read-only legacy
+--- entries for the given farm, asks the pure RLHerdsmanRulePresenter.isLegacyActive, and
+--- setVisible the banner. The caller passes the SAME farmId it read for the rule list so the
+--- banner and the list never disagree within one refresh (resolves it itself only if omitted).
+--- Best-effort: re-evaluated on frame open + rule/filter refresh only, and AIAnimalManager has
+--- no read/writeStream, so a client reflects savegame-loaded legacy state (not an in-session
+--- server toggle).
+--- @param farmId number|nil owning farm id (resolved from the current farm when nil)
+function RLMenuHerdsmanFrame:refreshBanner(farmId)
+    if self.legacyBanner == nil then return end
+    if farmId == nil then farmId = RLAnimalInfoService.getCurrentFarmId() end
+    local entries = self:gatherLegacyEntries(farmId)
+    local active, affectedNames = RLHerdsmanRulePresenter.isLegacyActive(entries)
+    self.legacyBanner:setVisible(active == true)
+    Log:debug("RLMenuHerdsmanFrame:refreshBanner: farmId=%s entries=%d active=%s affected=%d",
+        tostring(farmId), #entries, tostring(active), #affectedNames)
 end

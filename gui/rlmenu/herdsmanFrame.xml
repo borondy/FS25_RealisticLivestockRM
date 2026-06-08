@@ -27,6 +27,11 @@
                 <Bitmap profile="fs25_menuHeaderIcon" imageSliceId="rlMenu.herdsman"/>
             </Bitmap>
             <Text profile="fs25_menuHeaderTitle" text="$l10n_rl_menu_herdsman_title"/>
+            <!-- Legacy-active coexistence banner: a fixed-text caution directly below the title,
+                 hidden until RLMenuHerdsmanFrame:refreshBanner finds an enabled legacy herdsman
+                 op on a husbandry. Read-only detection; no legacy code is touched. -->
+            <Text profile="rl_herdsmanLegacyBanner" id="legacyBanner"
+                  text="$l10n_rl_menu_herdsman_legacy_banner"/>
         </GuiElement>
 
         <!-- Content wrapper (the kept subCategoryPages[2]-role container). No

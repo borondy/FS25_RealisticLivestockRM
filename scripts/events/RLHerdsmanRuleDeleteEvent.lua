@@ -21,9 +21,9 @@
     isolation; run() keeps the filter's granular checks so each failure mode logs a distinct
     :warning. The predicate is fed the STORED rule's farmId (the rule already exists).
 
-    Like the LANDED RLHerdsmanRuleCreateEvent, run() OMITS the filter event's post-apply
-    g_rlMenu UI fanout: there is no Herdsman M-Frame yet. This slice is NOT multiplayer-
-    shippable on its own (see the Create/Update events); ship the trio + S5 state together.
+    Like RLHerdsmanRuleCreateEvent, run() applies the removal on every receiver that is NOT
+    the sender, then refreshes an open Herdsman menu frame via g_rlMenu.herdsmanFrame. Paired
+    with the state-sync event for late joiners; ship the delta events + state together.
 ]]
 
 RLHerdsmanRuleDeleteEvent = {}
@@ -173,6 +173,14 @@ function RLHerdsmanRuleDeleteEvent:run(connection)
         Log:debug("RLHerdsmanRuleDeleteEvent:run: applied delete id=%s", tostring(id))
     else
         Log:trace("RLHerdsmanRuleDeleteEvent:run: no-op delete id=%s (already gone)", tostring(id))
+    end
+
+    -- F7: refresh an open Herdsman menu frame on this machine after the remote delete.
+    -- Nil-guarded (g_rlMenu / herdsmanFrame absent during early lifecycle or if the menu was
+    -- never opened). Idempotent: Pattern A keeps the originator out of its own run().
+    if g_rlMenu ~= nil and g_rlMenu.herdsmanFrame ~= nil
+       and g_rlMenu.herdsmanFrame.refreshIfOpen ~= nil then
+        g_rlMenu.herdsmanFrame:refreshIfOpen()
     end
 end
 

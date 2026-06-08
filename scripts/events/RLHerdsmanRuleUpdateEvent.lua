@@ -24,10 +24,9 @@
     distinct :warning (permission vs no-farm-lookup vs farm-mismatch), matching the I/O
     matrix rows. The predicate is fed the STORED rule's farmId (the rule already exists).
 
-    Like the LANDED RLHerdsmanRuleCreateEvent, run() OMITS the filter event's post-apply
-    g_rlMenu UI fanout: there is no Herdsman M-Frame yet (it subscribes later). This slice
-    is NOT multiplayer-shippable on its own: late joiners receive nothing until the S5
-    state-sync slice. Ship Create+Update/Delete+State together.
+    Like RLHerdsmanRuleCreateEvent, run() applies the mutation on every receiver that is NOT
+    the sender, then refreshes an open Herdsman menu frame via g_rlMenu.herdsmanFrame. Paired
+    with the state-sync event for late joiners; ship the delta events + state together.
 ]]
 
 RLHerdsmanRuleUpdateEvent = {}
@@ -205,6 +204,14 @@ function RLHerdsmanRuleUpdateEvent:run(connection)
     else
         Log:trace("RLHerdsmanRuleUpdateEvent:run: update not stored id=%s (rejected by applyIncomingUpdate; see its :warning)",
             tostring(rule.id))
+    end
+
+    -- F7: refresh an open Herdsman menu frame on this machine after the remote update.
+    -- Nil-guarded (g_rlMenu / herdsmanFrame absent during early lifecycle or if the menu was
+    -- never opened). Idempotent: Pattern A keeps the originator out of its own run().
+    if g_rlMenu ~= nil and g_rlMenu.herdsmanFrame ~= nil
+       and g_rlMenu.herdsmanFrame.refreshIfOpen ~= nil then
+        g_rlMenu.herdsmanFrame:refreshIfOpen()
     end
 end
 

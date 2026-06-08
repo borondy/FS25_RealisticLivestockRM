@@ -180,6 +180,14 @@ function RLFilterCreateEvent:run(connection)
        and g_rlMenu.settingsFrame.refreshIfOpen ~= nil then
         g_rlMenu.settingsFrame:refreshIfOpen()
     end
+
+    -- F7: a remote filter create can change rule filter-summaries, so an open Herdsman menu
+    -- frame is a filter consumer that needs the same full reload (NOT the id-gated
+    -- onRemoteFilterChange fanout above). Same nil-guards as the settingsFrame block.
+    if g_rlMenu ~= nil and g_rlMenu.herdsmanFrame ~= nil
+       and g_rlMenu.herdsmanFrame.refreshIfOpen ~= nil then
+        g_rlMenu.herdsmanFrame:refreshIfOpen()
+    end
 end
 
 --- Thin dispatch: broadcast to clients if we are the server, otherwise

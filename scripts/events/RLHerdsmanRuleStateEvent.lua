@@ -180,6 +180,15 @@ function RLHerdsmanRuleStateEvent:run(connection)
 
     Log:debug("RLHerdsmanRuleStateEvent:run: received %d rule(s), applied %d (registry cleared first)",
         count, applied)
+
+    -- F7: refresh an open Herdsman menu frame after the join-time state convergence. This is a
+    -- one-way server->client sync that fires mainly at join (menu usually closed), so it sits
+    -- outside the Pattern-A no-double-fire reasoning; the refreshIfOpen no-op + refreshData's
+    -- orphan-prune make a rare while-open fire harmless. Same nil-guards as the delta events.
+    if g_rlMenu ~= nil and g_rlMenu.herdsmanFrame ~= nil
+       and g_rlMenu.herdsmanFrame.refreshIfOpen ~= nil then
+        g_rlMenu.herdsmanFrame:refreshIfOpen()
+    end
 end
 
 --- Server-only dispatcher. Sends the full rule state to a single target

@@ -838,5 +838,14 @@
 		<text name="rl_menu_filter_chip_quick_plus_saved" text="Filter: QF + %s"/>
 		<text name="rl_menu_cycle_filter_button" text="Cycle filter"/>
 		<text name="rl_menu_filter_chip_unnamed" text="(unnamed)"/>
+		<!-- Herdsman rule lifecycle -->
+		<text name="rl_menu_herdsman_new_button" text="New rule"/>
+		<text name="rl_menu_herdsman_duplicate_button" text="Duplicate"/>
+		<text name="rl_menu_herdsman_delete_button" text="Delete"/>
+		<text name="rl_menu_herdsman_delete_confirm_text" text="Delete rule &quot;%s&quot;? This cannot be undone."/>
+		<text name="rl_menu_herdsman_default_name" text="New rule"/>
+		<text name="rl_menu_herdsman_duplicate_suffix" text=" (copy)"/>
+		<text name="rl_menu_herdsman_duplicate_suffix_n" text=" (copy %d)"/>
+		<text name="rl_menu_herdsman_legacy_banner" text="Legacy herdsman tasks are still active. Disable them on the animal screen to avoid double execution."/>
 	</texts>
 </l10n>

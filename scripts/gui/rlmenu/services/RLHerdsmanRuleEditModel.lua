@@ -135,4 +135,33 @@ function RLHerdsmanRuleEditModel.reshapeParamsForOperation(currentParams, newOpe
     return reshaped
 end
 
+-- =============================================================================
+-- Duplicate (F7 lifecycle)
+-- =============================================================================
+
+--- Deep-clone a STORED rule record into a fresh create-ready duplicate: a new name plus the
+--- source's content - operation / enabled / filterId carried as-is; `targetHusbandries`
+--- array-copied; `params` deep-copied; the source's immutable `farmId` carried. No id /
+--- version - the service assigns the id and defaults the version on create. A dangling source
+--- filterId is carried as-is (the clone is inert until repaired, same as the source). Pure:
+--- the result never aliases `source` (mutating the clone never touches the stored record).
+---@param source table the stored source rule record
+---@param newName string the collision-free duplicate name
+---@return table rule a create-ready duplicate record (no id/version)
+function RLHerdsmanRuleEditModel.duplicateRule(source, newName)
+    local rule = {
+        name              = newName,
+        operation         = source.operation,
+        farmId            = source.farmId,
+        enabled           = source.enabled,
+        filterId          = source.filterId,
+        targetHusbandries = deepCopy(source.targetHusbandries) or {},
+        params            = deepCopy(source.params) or {},
+    }
+    Log:trace("RLHerdsmanRuleEditModel.duplicateRule: source.id=%s newName=%q operation=%s enabled=%s filterId=%s targets=%d",
+        tostring(source.id), tostring(newName), tostring(rule.operation), tostring(rule.enabled),
+        tostring(rule.filterId), #rule.targetHusbandries)
+    return rule
+end
+
 Log:debug("RLHerdsmanRuleEditModel: loaded")
