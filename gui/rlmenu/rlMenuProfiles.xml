@@ -635,16 +635,5 @@
         <textAlignment value="left"/>
     </Profile>
 
-    <!-- Herdsman rule detail-pane read-only value (Filter / Husbandries summary, F4b).
-         Mirrors fs25_settingsMultiTextOption's anchorMiddleRight slot so the value
-         right-aligns in the same column as the editable widgets; fs25_textDefault text
-         style (light value colour, non-bold). Read-only here; F5/F6 swap the value for an
-         in-row rl_settingsButton + picker dialog. -->
-    <Profile name="rlMenu_herdsmanDetailValue" extends="fs25_textDefault" with="anchorMiddleRight">
-        <position value="-10px 0px"/>
-        <size value="450px 36px"/>
-        <textSize value="16px"/>
-        <textAlignment value="right"/>
-    </Profile>
 
 </GUIProfiles>

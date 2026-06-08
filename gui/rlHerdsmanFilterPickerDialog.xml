@@ -32,6 +32,12 @@
 			<ThreePartBitmap profile="fs25_listSliderBox" id="filterSliderBox" position="-30px -17px" size="12px 550px" with="anchorTopRight">
 				<Slider profile="fs25_listSlider" size="6px 542px" dataElementId="filterList"/>
 			</ThreePartBitmap>
+
+			<!-- "Current filter unavailable" hint (M4): shown when the rule's current binding is
+			     not in the operation-scoped list (e.g. a chicken filter on a castrate rule), so the
+			     picker requires an explicit pick instead of silently preselecting row 1. Hidden by
+			     default; populated via showHint. Sits below the list, above the action bar. -->
+			<Text profile="fs25_dialogText" id="hintText" position="0px -650px" size="500px 40px" visible="false" text=""/>
 		</GuiElement>
 
 		<BoxLayout profile="fs25_dialogButtonBox" id="buttonsPC">

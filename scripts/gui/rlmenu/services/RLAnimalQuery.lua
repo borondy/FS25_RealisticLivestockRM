@@ -63,6 +63,48 @@ function RLAnimalQuery.formatHusbandryLabel(husbandry, fallbackIndex)
     return name
 end
 
+--- Project the farm's live husbandries into plain `{ uniqueId, animalType, name }`
+--- descriptors for the F6 husbandry picker + the pure target gate (RLHerdsmanRulePresenter).
+--- Reuses listHusbandriesForFarm (one enumeration source, already name-sorted) so the picker
+--- cannot drift from the Info tab (M12). `uniqueId` is the placeable's getUniqueId() (the
+--- persisted target key); `animalType` is getAnimalTypeIndex() (nil for a not-fully-loaded /
+--- non-animal placeable - the pure gate excludes nil-type from typed lists, H6); `name` uses
+--- the formatHusbandryLabel "Husbandry N" fallback so the picker + sort never see an empty
+--- label. A husbandry whose uniqueId is nil / non-string / empty is SKIPPED (it could never
+--- round-trip as a stored target) + warned. Returns a fresh array (empty for nil / farmless).
+---@param farmId number|nil
+---@return table descriptors array of { uniqueId = string, animalType = number|nil, name = string }
+function RLAnimalQuery.listHusbandryDescriptorsForFarm(farmId)
+    local placeables = RLAnimalQuery.listHusbandriesForFarm(farmId)
+    local descriptors = {}
+    local skipped = 0
+    for i, placeable in ipairs(placeables) do
+        local uniqueId = placeable.getUniqueId ~= nil and placeable:getUniqueId() or nil
+        if type(uniqueId) ~= "string" or uniqueId == "" then
+            skipped = skipped + 1
+            Log:warning("RLAnimalQuery.listHusbandryDescriptorsForFarm: husbandry '%s' has no usable uniqueId (%s); skipped",
+                RLAnimalQuery.formatHusbandryLabel(placeable, i), tostring(uniqueId))
+        else
+            local animalType = placeable.getAnimalTypeIndex ~= nil and placeable:getAnimalTypeIndex() or nil
+            if animalType == nil then
+                -- H6: a nil-type husbandry (not-fully-loaded / non-animal placeable) is excluded
+                -- from typed picker lists by the pure gate and never matches the castrate
+                -- exclusion; log it per-case so its disappearance from the picker is traceable.
+                Log:debug("RLAnimalQuery.listHusbandryDescriptorsForFarm: husbandry '%s' (uniqueId=%s) has nil animalType; excluded from typed lists (H6)",
+                    RLAnimalQuery.formatHusbandryLabel(placeable, i), tostring(uniqueId))
+            end
+            descriptors[#descriptors + 1] = {
+                uniqueId   = uniqueId,
+                animalType = animalType,
+                name       = RLAnimalQuery.formatHusbandryLabel(placeable, i),
+            }
+        end
+    end
+    Log:debug("RLAnimalQuery.listHusbandryDescriptorsForFarm: farmId=%s -> %d descriptor(s), %d skipped (no uniqueId)",
+        tostring(farmId), #descriptors, skipped)
+    return descriptors
+end
+
 -- =============================================================================
 -- Animal list + sort + filter
 -- =============================================================================

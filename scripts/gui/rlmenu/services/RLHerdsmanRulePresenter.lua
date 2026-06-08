@@ -572,6 +572,157 @@ function RLHerdsmanRulePresenter.sortFiltersByName(filters)
 end
 
 -- =============================================================================
+-- AnimalType compatibility + husbandry targeting (F6, RLRM-388)
+-- =============================================================================
+
+--- The ONE operation x animalType compatibility predicate (M1). The single locked rule:
+--- `castrate` cannot target CHICKEN (legacy AIAnimalManager skips chicken castration in its
+--- castrate branch). Every other operation is valid for every type, and an ANY-type
+--- (`animalTypeIndex == nil`) candidate is always compatible. The CHICKEN index is resolved
+--- at the frame call site and passed in as data (never a g_*/AnimalType read inside this
+--- pure helper); a nil `chickenTypeIndex` (chicken-less map) means there is nothing to
+--- exclude. Shared by filterCandidateFilters, the husbandry gate, AND revalidateTargets so
+--- open-time gating and rebind cleanup cannot drift apart.
+---@param operation any rule operation key
+---@param animalTypeIndex any candidate animalType index, or nil for ANY
+---@param chickenTypeIndex any the resolved CHICKEN AnimalType index, or nil (chicken-less map)
+---@return boolean
+function RLHerdsmanRulePresenter.isOperationAnimalTypeCompatible(operation, animalTypeIndex, chickenTypeIndex)
+    local compatible = not (operation == "castrate"
+        and animalTypeIndex ~= nil and chickenTypeIndex ~= nil
+        and animalTypeIndex == chickenTypeIndex)
+    Log:trace("RLHerdsmanRulePresenter.isOperationAnimalTypeCompatible: operation=%s animalType=%s chicken=%s -> %s",
+        tostring(operation), tostring(animalTypeIndex), tostring(chickenTypeIndex), tostring(compatible))
+    return compatible
+end
+
+--- Husbandry keep-gate shared by selectTargetableHusbandries (descriptors) AND
+--- revalidateTargets (resolvable targets) - M1's single source of truth so open-time listing
+--- and rebind cleanup cannot diverge. Keep a husbandry when its animalType is KNOWN (a
+--- nil-type husbandry is EXCLUDED from typed lists and never matches the castrate exclusion -
+--- H6), matches the filter's animalType (or the filter is ANY/nil = every type), AND the
+--- operation is animalType-compatible.
+---@param animalTypeIndex any husbandry animalType index
+---@param filterAnimalType any filter scope animalType, or nil for ANY (all types)
+---@param operation any rule operation key
+---@param chickenTypeIndex any resolved CHICKEN index, or nil
+---@return boolean
+local function keepHusbandryType(animalTypeIndex, filterAnimalType, operation, chickenTypeIndex)
+    if animalTypeIndex == nil then return false end
+    if filterAnimalType ~= nil and animalTypeIndex ~= filterAnimalType then return false end
+    return RLHerdsmanRulePresenter.isOperationAnimalTypeCompatible(operation, animalTypeIndex, chickenTypeIndex)
+end
+
+--- Comparator for husbandry descriptors: case-insensitive name then uniqueId tie-break
+--- (M2/L3). The frame applies the "Husbandry N" fallback label before projecting each
+--- descriptor, so `name` is never empty; the uniqueId tie-break keeps duplicate display
+--- names in a deterministic, stable order (saved target-array order + pre-check matching).
+---@param a table descriptor { uniqueId, animalType, name }
+---@param b table descriptor
+---@return boolean
+local function compareHusbandriesByName(a, b)
+    local an = string.lower(tostring(a.name or ""))
+    local bn = string.lower(tostring(b.name or ""))
+    if an ~= bn then return an < bn end
+    return tostring(a.uniqueId) < tostring(b.uniqueId)
+end
+
+--- Retrofit the F5 filter-picker candidate list for the operation's animalType scope (M4
+--- companion): drop a typed filter whose animalType is incompatible with the operation
+--- (castrate x chicken), KEEP every ANY-type filter (`f.animalType == nil`, admits all
+--- types). Returns a NEW array (input never mutated; the caller owns the service-cloned
+--- list). Ordering stays the caller's job (sortFiltersByName).
+---@param filters table[]|nil candidate filter records (each with `animalType`)
+---@param operation any rule operation key
+---@param chickenTypeIndex any resolved CHICKEN index, or nil
+---@return table[] filtered shallow copy
+function RLHerdsmanRulePresenter.filterCandidateFilters(filters, operation, chickenTypeIndex)
+    local out = {}
+    local dropped = 0
+    if type(filters) == "table" then
+        for _, f in ipairs(filters) do
+            local at = type(f) == "table" and f.animalType or nil
+            if at == nil or RLHerdsmanRulePresenter.isOperationAnimalTypeCompatible(operation, at, chickenTypeIndex) then
+                out[#out + 1] = f
+            else
+                dropped = dropped + 1
+            end
+        end
+    end
+    Log:trace("RLHerdsmanRulePresenter.filterCandidateFilters: operation=%s -> %d kept, %d dropped (incompatible typed)",
+        tostring(operation), #out, dropped)
+    return out
+end
+
+--- Gate + order the husbandry picker candidate list for a rule (D8). From a list of live
+--- husbandry descriptors `{ uniqueId, animalType, name }`, keep those the operation + filter
+--- scope admit (keepHusbandryType: nil-type excluded H6, filter-type match or ANY,
+--- castrate-chicken excluded), then sort case-insensitive name + uniqueId tie-break (M2).
+--- Returns a NEW sorted array; the input is never mutated.
+---@param husbandries table[]|nil descriptors { uniqueId, animalType, name }
+---@param filterAnimalType any filter scope animalType, or nil for ANY (all types)
+---@param operation any rule operation key
+---@param chickenTypeIndex any resolved CHICKEN index, or nil
+---@return table[] sorted candidate descriptors
+function RLHerdsmanRulePresenter.selectTargetableHusbandries(husbandries, filterAnimalType, operation, chickenTypeIndex)
+    local out = {}
+    local excluded = 0
+    if type(husbandries) == "table" then
+        for _, h in ipairs(husbandries) do
+            local at = type(h) == "table" and h.animalType or nil
+            if keepHusbandryType(at, filterAnimalType, operation, chickenTypeIndex) then
+                out[#out + 1] = h
+            else
+                excluded = excluded + 1
+            end
+        end
+    end
+    table.sort(out, compareHusbandriesByName)
+    Log:trace("RLHerdsmanRulePresenter.selectTargetableHusbandries: operation=%s filterType=%s -> %d candidate(s), %d excluded",
+        tostring(operation), tostring(filterAnimalType), #out, excluded)
+    return out
+end
+
+--- Revalidate a rule's stored target uniqueIds after a filter rebind OR an operation change
+--- (H2/H4). For each uid: if it is ABSENT from `typeByUid` it is UNRESOLVABLE (a deleted /
+--- transiently-unloaded placeable, or a nil-type one the frame did not map) and is PRESERVED
+--- - protecting the `(missing)` repair affordance + MP transient-divergence; only a
+--- type-incompatible RESOLVABLE target drops (same keepHusbandryType gate as the picker, so
+--- listing and cleanup share one predicate - M1). Order is preserved. Returns the kept
+--- uniqueIds (a new array; input never mutated). An ANY (`filterAnimalType == nil`) scope
+--- keeps every resolvable target except a castrate-incompatible one (the operation gate
+--- still applies).
+---@param targetHusbandries table|nil array of placeable uniqueId strings
+---@param typeByUid table|nil map uniqueId -> animalType index for LIVE husbandries (non-nil types only)
+---@param filterAnimalType any filter scope animalType, or nil for ANY
+---@param operation any rule operation key
+---@param chickenTypeIndex any resolved CHICKEN index, or nil
+---@return table kept array of surviving uniqueId strings (input order)
+function RLHerdsmanRulePresenter.revalidateTargets(targetHusbandries, typeByUid, filterAnimalType, operation, chickenTypeIndex)
+    local kept = {}
+    local dropped = 0
+    local preserved = 0
+    local types = type(typeByUid) == "table" and typeByUid or {}
+    if type(targetHusbandries) == "table" then
+        for _, uid in ipairs(targetHusbandries) do
+            local at = types[uid]
+            if at == nil then
+                -- Unresolvable (deleted / transient / nil-type): PRESERVE (H2).
+                kept[#kept + 1] = uid
+                preserved = preserved + 1
+            elseif keepHusbandryType(at, filterAnimalType, operation, chickenTypeIndex) then
+                kept[#kept + 1] = uid
+            else
+                dropped = dropped + 1
+            end
+        end
+    end
+    Log:trace("RLHerdsmanRulePresenter.revalidateTargets: operation=%s filterType=%s -> %d kept (%d preserved-unresolvable), %d dropped",
+        tostring(operation), tostring(filterAnimalType), #kept, preserved, dropped)
+    return kept
+end
+
+-- =============================================================================
 -- Read-only summaries
 -- =============================================================================
 
@@ -605,6 +756,34 @@ function RLHerdsmanRulePresenter.getHusbandrySummary(targetHusbandries, resolveN
 
     Log:trace("RLHerdsmanRulePresenter.getHusbandrySummary: %d target(s), %d unresolved", #targetHusbandries, missing)
     return table.concat(names, ", ")
+end
+
+--- Count-form label for the detail-pane husbandries BUTTON (H5) - replaces the old full
+--- name-join (which overflowed a single-line button). 0 targets -> `labels.none` (the
+--- "select husbandries" CTA, mirroring the filter button's empty CTA); exactly 1 -> that
+--- husbandry's resolved name via the injected `resolveName(uid)` (unresolvable -> the
+--- `(missing)` label); >= 2 -> `labels.selected` formatted with the count ("N selected"). A
+--- nil resolver makes a single target read `(missing)`. The full per-name list is the
+--- deferred Ask-First "area below" - never joined onto the button.
+---@param targetHusbandries table|nil array of placeable uniqueId strings
+---@param resolveName function|nil function(uid) -> name string|nil (frame wires the placeableSystem lookup)
+---@param labels table { none = string, missing = string, selected = string (a "%d" format) }
+---@return string label
+function RLHerdsmanRulePresenter.formatHusbandryButtonLabel(targetHusbandries, resolveName, labels)
+    local count = type(targetHusbandries) == "table" and #targetHusbandries or 0
+    if count == 0 then
+        Log:trace("RLHerdsmanRulePresenter.formatHusbandryButtonLabel: 0 targets -> none CTA")
+        return labels.none
+    end
+    if count == 1 then
+        local resolved = nil
+        if resolveName ~= nil then resolved = resolveName(targetHusbandries[1]) end
+        local label = (type(resolved) == "string" and resolved ~= "") and resolved or labels.missing
+        Log:trace("RLHerdsmanRulePresenter.formatHusbandryButtonLabel: 1 target -> %q", tostring(label))
+        return label
+    end
+    Log:trace("RLHerdsmanRulePresenter.formatHusbandryButtonLabel: %d targets -> selected form", count)
+    return string.format(labels.selected, count)
 end
 
 --- Human-readable filter summary for the detail pane. Resolves `filterId` via the
@@ -721,6 +900,34 @@ function RLHerdsmanRulePresenter.validateEdit(draft)
     Log:trace("RLHerdsmanRulePresenter.validateEdit: nameOk=%s operationOk=%s filterOk=%s husbandriesOk=%s paramsOk=%s -> valid=%s",
         tostring(nameOk), tostring(operationOk), tostring(filterOk), tostring(husbandriesOk), tostring(paramsOk), tostring(valid))
     return { valid = valid, nameOk = nameOk, operationOk = operationOk, filterOk = filterOk, husbandriesOk = husbandriesOk, paramsOk = paramsOk }
+end
+
+--- The detail-pane FLUSH gate (H3/1a) - the enabled-conditional refinement of validateEdit.
+--- Builds on validateEdit but makes the husbandry requirement ENABLED-CONDITIONAL: a rule
+--- needs >= 1 target ONLY when it is `enabled`. A disabled / incomplete rule therefore stays
+--- fully editable and persists with 0 targets (= a no-op rule, the empty=no-op contract);
+--- enabling a 0-target rule is blocked (the enable reverts via this gate). So `ok` = name +
+--- operation + filter + params all valid AND (the rule is disabled OR has >= 1 husbandry).
+--- `husbandriesRequired` (== the enabled flag) is surfaced for the frame's revert logging.
+--- Encoded here (not ad-hoc in the frame) so the gate dual-runs. nil / non-table draft ->
+--- not ok. This supersedes the pre-F6 frame gate that excluded husbandriesOk entirely.
+---@param draft table|nil merged rule record (includes `enabled`)
+---@return table { ok, nameOk, operationOk, filterOk, paramsOk, husbandriesOk, husbandriesRequired } (all boolean)
+function RLHerdsmanRulePresenter.validateFlush(draft)
+    local v = RLHerdsmanRulePresenter.validateEdit(draft)
+    local husbandriesRequired = type(draft) == "table" and draft.enabled == true
+    local ok = v.nameOk and v.operationOk and v.filterOk and v.paramsOk
+        and (not husbandriesRequired or v.husbandriesOk)
+
+    Log:trace("RLHerdsmanRulePresenter.validateFlush: nameOk=%s operationOk=%s filterOk=%s paramsOk=%s husbandriesOk=%s required=%s -> ok=%s",
+        tostring(v.nameOk), tostring(v.operationOk), tostring(v.filterOk), tostring(v.paramsOk),
+        tostring(v.husbandriesOk), tostring(husbandriesRequired), tostring(ok))
+    return {
+        ok = ok,
+        nameOk = v.nameOk, operationOk = v.operationOk, filterOk = v.filterOk,
+        paramsOk = v.paramsOk, husbandriesOk = v.husbandriesOk,
+        husbandriesRequired = husbandriesRequired,
+    }
 end
 
 Log:debug("RLHerdsmanRulePresenter: loaded (%d operations)", #RLHerdsmanRulePresenter.OPERATION_ORDER)

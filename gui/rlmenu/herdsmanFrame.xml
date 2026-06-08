@@ -211,10 +211,18 @@
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_info_filter_button"/>
                     </Bitmap>
 
-                    <!-- Husbandries summary (read-only; always visible). Settings-row style;
-                         read-only value Text in the widget column. Husbandry picker is F6/RLRM-388. -->
+                    <!-- Husbandries (interactive; always visible). Button-as-value: an in-row
+                         rl_settingsButton whose label is the count form ("N selected" / a single
+                         husbandry name / a "select husbandries" CTA) and whose click opens the
+                         multi-select husbandry picker. Mirrors the Filter row above
+                         (rl_settingsButton + fs25_settingsButtonBg, tinted by
+                         updateAlternatingElements). The frame setTexts the label via
+                         formatHusbandryButtonLabel on each render. -->
                     <Bitmap profile="fs25_multiTextOptionContainer" id="ruleHusbandriesRow">
-                        <Text profile="rlMenu_herdsmanDetailValue" id="ruleHusbandriesSummary"/>
+                        <Button profile="rl_settingsButton" id="ruleHusbandriesButton" onClick="onClickRuleHusbandries">
+                            <ThreePartBitmap profile="fs25_settingsButtonBg"/>
+                            <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                        </Button>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_husbandries"/>
                     </Bitmap>
 

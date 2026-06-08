@@ -794,6 +794,12 @@
 <text name="rl_menu_herdsman_filter_select" text="Select filter"/>
 <text name="rl_menu_herdsman_filter_picker_title" text="Select Filter"/>
 <text name="rl_menu_herdsman_filter_picker_empty" text="No filters available for this operation."/>
+<text name="rl_menu_herdsman_husbandry_select" text="Select husbandries"/>
+<text name="rl_menu_herdsman_husbandry_count" text="%d selected"/>
+<text name="rl_menu_herdsman_husbandry_picker_title" text="Select Husbandries"/>
+<text name="rl_menu_herdsman_husbandry_picker_empty" text="No husbandries available for this rule."/>
+<text name="rl_menu_herdsman_husbandry_emptyRejected" text="Select at least one husbandry."/>
+<text name="rl_menu_herdsman_filter_picker_currentUnavailable" text="Current filter unavailable for this operation."/>
 
 <!-- Clés manquantes (retour anglais) -->
 <text name="input_RL_RENAME" text="Renommer"/>

@@ -87,8 +87,9 @@ local function resolveFilterById(filterId)
     return g_rlFilterService:getById(filterId)
 end
 
---- Injected husbandry-name resolver for getHusbandrySummary. NIL-GUARDED: a deleted /
---- stale placeable returns nil (NOT a crash) so the presenter substitutes labels.missing.
+--- Injected husbandry-name resolver for getHusbandrySummary / formatHusbandryButtonLabel.
+--- NIL-GUARDED: a deleted / stale placeable returns nil (NOT a crash) so the presenter
+--- substitutes labels.missing.
 ---@param uid any placeable uniqueId
 ---@return string|nil placeable name
 local function resolvePlaceableName(uid)
@@ -98,6 +99,27 @@ local function resolvePlaceableName(uid)
     local placeable = ps:getPlaceableByUniqueId(uid)
     if placeable == nil or placeable.getName == nil then return nil end
     return placeable:getName()
+end
+
+--- Multiset (order-insensitive) equality of two arrays of plain strings, for the husbandry-
+--- pick no-op check. The picker commits in name-sorted DOMAIN order, which can differ from the
+--- stored array order even when the membership is identical; comparing as SETS avoids a
+--- spurious re-order stash -> flush -> MP broadcast on an OK that changed nothing. Counts
+--- duplicates so a genuine add/remove still registers. nil-safe.
+---@param a any
+---@param b any
+---@return boolean
+local function sameStringSet(a, b)
+    if type(a) ~= "table" or type(b) ~= "table" then return a == b end
+    if #a ~= #b then return false end
+    local counts = {}
+    for _, v in ipairs(a) do counts[v] = (counts[v] or 0) + 1 end
+    for _, v in ipairs(b) do
+        local n = counts[v]
+        if n == nil or n == 0 then return false end
+        counts[v] = n - 1
+    end
+    return true
 end
 
 --- Construct a new RLMenuHerdsmanFrame instance.
@@ -120,6 +142,8 @@ function RLMenuHerdsmanFrame.new()
     -- The rule id captured when the filter picker OPENS; the pick stashes against THIS id even
     -- if the list selection moves while the modal is up (cleared by onFilterPicked).
     self.filterPickTargetId = nil
+    -- The same capture for the husbandry picker (cleared by onHusbandriesPicked / onFrameClose).
+    self.husbandryPickTargetId = nil
     self.isReconciling = false
     self.didMeasureFirstRow = false
     Log:trace("RLMenuHerdsmanFrame.new: instance created")
@@ -184,7 +208,7 @@ function RLMenuHerdsmanFrame:onGuiSetupFinished()
     self.ruleBudgetPercentageSelector= self:getDescendantById("ruleBudgetPercentageSelector")
     self.ruleSemenSelector           = self:getDescendantById("ruleSemenSelector")
     self.ruleFilterButton            = self:getDescendantById("ruleFilterButton")
-    self.ruleHusbandriesSummary      = self:getDescendantById("ruleHusbandriesSummary")
+    self.ruleHusbandriesButton       = self:getDescendantById("ruleHusbandriesButton")
 
     local missing = {}
     if self.rulesList == nil then table.insert(missing, "rulesList") end
@@ -260,6 +284,7 @@ function RLMenuHerdsmanFrame:onFrameOpen()
     self.didMeasureLayout = false
     self.didMeasureFirstRow = false
     self.didMeasureFilterRow = false
+    self.didMeasureHusbandriesRow = false
     self.pendingChanges = {}
 
     -- Real read path: F4 edits + F7 create/delete write back through the same
@@ -301,6 +326,7 @@ function RLMenuHerdsmanFrame:onFrameClose()
     -- Drop any picker open-time id (an ESC/back dismiss closes the dialog without firing the
     -- cancel callback, so it would otherwise dangle until the next open re-captures it).
     self.filterPickTargetId = nil
+    self.husbandryPickTargetId = nil
     Log:trace("RLMenuHerdsmanFrame:onFrameClose")
 end
 
@@ -612,8 +638,33 @@ function RLMenuHerdsmanFrame:refreshRuleDetail(stored)
             end
         end
     end
-    if self.ruleHusbandriesSummary ~= nil then
-        self.ruleHusbandriesSummary:setText(RLHerdsmanRulePresenter.getHusbandrySummary(merged.targetHusbandries, resolvePlaceableName, labels))
+    if self.ruleHusbandriesButton ~= nil then
+        -- Button label: 0 targets -> a "select husbandries" CTA (mirrors the Filter button's
+        -- empty CTA); 1 -> that husbandry's resolved name (or (missing)); >= 2 -> "N selected"
+        -- (the count form - H5; the full name list is the deferred Ask-First area below).
+        local selectText = g_i18n:getText("rl_menu_herdsman_husbandry_select")
+        self.ruleHusbandriesButton:setText(RLHerdsmanRulePresenter.formatHusbandryButtonLabel(
+            merged.targetHusbandries, resolvePlaceableName, {
+                none     = selectText,
+                missing  = labels.missing,
+                selected = g_i18n:getText("rl_menu_herdsman_husbandry_count"),
+            }))
+    end
+    -- One-shot screen-space geometry of the (interactive, always-visible) Husbandries row, so
+    -- the in-row button vs title layout is provable from the log. absPosition is the element's
+    -- bottom-left edge (FS25 Y-up); reference screen 1920x1080. Per-open guard (mirror the
+    -- Filter row measurement above).
+    if not self.didMeasureHusbandriesRow
+        and self.ruleHusbandriesRow ~= nil and self.ruleHusbandriesRow.elements ~= nil then
+        self.didMeasureHusbandriesRow = true
+        for _, e in ipairs(self.ruleHusbandriesRow.elements) do
+            if e.absPosition ~= nil and e.size ~= nil then
+                local x = e.absPosition[1] * g_referenceScreenWidth
+                local w = e.size[1] * g_referenceScreenWidth
+                Log:debug("RLMenuHerdsmanFrame: ruleHusbandriesRow child profile=%s: left=%.1fpx width=%.1fpx right=%.1fpx",
+                    tostring(e.profile), x, w, x + w)
+            end
+        end
     end
 
     -- Tint the visible rows (dark alternating settings shade) AND reflow the layout so the
@@ -699,15 +750,25 @@ function RLMenuHerdsmanFrame:populateSemenSelector(merged)
     Log:trace("RLMenuHerdsmanFrame:populateSemenSelector: %d option(s), selected=%s", #values, tostring(storedSemen))
 end
 
---- The animalType index for the semen dewar pool: the rule's filter animalType (D8).
---- No filter / unresolvable filter / Any-type filter -> nil (options = just "any").
+--- The rule's animalType gate (D8): the chosen filter's animalType, or nil (ANY = all
+--- types) when there is no filter / it is unresolvable / it is an Any-type filter. The single
+--- source for both the husbandry-target gate (selectTargetableHusbandries / revalidateTargets)
+--- and the semen dewar pool.
 --- @param filterId any
 --- @return number|nil
-function RLMenuHerdsmanFrame:resolveSemenAnimalTypeIndex(filterId)
+function RLMenuHerdsmanFrame:resolveFilterAnimalType(filterId)
     if filterId == nil then return nil end
     local filter = resolveFilterById(filterId)
     if filter == nil then return nil end
     return filter.animalType
+end
+
+--- The animalType index for the semen dewar pool == the rule's filter animalType (delegates
+--- to resolveFilterAnimalType). No filter / unresolvable / Any-type -> nil (options = "any").
+--- @param filterId any
+--- @return number|nil
+function RLMenuHerdsmanFrame:resolveSemenAnimalTypeIndex(filterId)
+    return self:resolveFilterAnimalType(filterId)
 end
 
 -- =============================================================================
@@ -743,17 +804,32 @@ function RLMenuHerdsmanFrame:onClickRuleFilter(_button)
     end
 
     -- usageMatch folds ANY/nil filters in (RLFilterService:listAvailable), so a non-nil usage
-    -- AND farmId yield exactly the operation's { ANY, X } pool. Sort alpha for the picker.
-    local candidates = RLHerdsmanRulePresenter.sortFiltersByName(
-        g_rlFilterService:listAvailable(nil, farmId, pickerUsage))
+    -- AND farmId yield exactly the operation's { ANY, X } pool. Then drop filters whose
+    -- animalType the operation forbids (castrate x chicken - F6 retrofit, M4) keeping ANY-type,
+    -- and sort alpha for the picker.
+    local chickenIdx = AnimalType ~= nil and AnimalType.CHICKEN or nil
+    local scoped = RLHerdsmanRulePresenter.filterCandidateFilters(
+        g_rlFilterService:listAvailable(nil, farmId, pickerUsage), merged.operation, chickenIdx)
+    local candidates = RLHerdsmanRulePresenter.sortFiltersByName(scoped)
+
+    -- M4: a current binding the retrofit dropped (e.g. a chicken filter on a castrate rule) is
+    -- no longer in the list; flag it so the picker surfaces "current unavailable" rather than
+    -- silently preselecting row 1 (a silent rebind on OK).
+    local currentUnavailable = false
+    if merged.filterId ~= nil then
+        currentUnavailable = true
+        for _, f in ipairs(candidates) do
+            if f.id == merged.filterId then currentUnavailable = false; break end
+        end
+    end
 
     -- Capture the target id at OPEN; the pick stashes against THIS id (selection may move).
     self.filterPickTargetId = id
 
-    Log:debug("RLMenuHerdsmanFrame:onClickRuleFilter: id=%s operation=%s usage=%s farmId=%s -> %d candidate(s) currentFilterId=%s",
-        tostring(id), tostring(merged.operation), tostring(pickerUsage), tostring(farmId), #candidates, tostring(merged.filterId))
+    Log:debug("RLMenuHerdsmanFrame:onClickRuleFilter: id=%s operation=%s usage=%s farmId=%s -> %d candidate(s) currentFilterId=%s currentUnavailable=%s",
+        tostring(id), tostring(merged.operation), tostring(pickerUsage), tostring(farmId), #candidates, tostring(merged.filterId), tostring(currentUnavailable))
 
-    RLHerdsmanFilterPickerDialog.show(self.onFilterPicked, self, candidates, merged.filterId)
+    RLHerdsmanFilterPickerDialog.show(self.onFilterPicked, self, candidates, merged.filterId, currentUnavailable)
 end
 
 --- Picker result (target-first via the dialog). nil -> cancel (rule unchanged). A pick equal to
@@ -789,7 +865,167 @@ function RLMenuHerdsmanFrame:onFilterPicked(filterId)
     self:ensurePending(id).filterId = filterId
     Log:debug("RLMenuHerdsmanFrame:onFilterPicked: id=%s filterId stashed %s -> %s",
         tostring(id), tostring(merged.filterId), tostring(filterId))
+
+    -- Cross-type revalidation against the NEW merged (filterId now applied - H4): drop
+    -- type-incompatible RESOLVABLE targets (preserve unresolvable - H2) + reset semen if its
+    -- dewar leaves the new animalType pool (H1). Pinned to current merged so two edits compose.
+    local newMerged = RLHerdsmanRuleEditModel.overlayRule(stored, self.pendingChanges[id])
+    self:revalidatePendingTargetsAndSemen(id, newMerged)
     self:refreshRuleDetail(stored)
+end
+
+-- =============================================================================
+-- HUSBANDRY PICKER (in-row button -> dialog -> stash targetHusbandries)
+-- =============================================================================
+
+--- Husbandries row button click: open the multi-select picker scoped to the rule's filter
+--- animalType + operation (D8). The presenter owns the gate + sort (selectTargetableHusbandries);
+--- this frame enumerates the farm's live husbandries (RLAnimalQuery descriptors - one source,
+--- M12), resolves the filter animalType + the CHICKEN index, nil-guards farm / husbandrySystem
+--- (M5 - mirror onClickRuleFilter's refuse-to-open), and hands plain data to the dialog.
+--- @param _button table the ruleHusbandriesButton element (unused; selection = selectedRuleId)
+function RLMenuHerdsmanFrame:onClickRuleHusbandries(_button)
+    local id = self.selectedRuleId
+    if id == nil then
+        Log:debug("RLMenuHerdsmanFrame:onClickRuleHusbandries: no selected rule; ignoring")
+        return
+    end
+    local stored = self:getStoredRuleById(id)
+    if stored == nil then
+        Log:debug("RLMenuHerdsmanFrame:onClickRuleHusbandries: id=%s no stored baseline; ignoring", tostring(id))
+        return
+    end
+    local merged = RLHerdsmanRuleEditModel.overlayRule(stored, self.pendingChanges[id])
+
+    local farmId = RLAnimalInfoService.getCurrentFarmId()
+    local noHusbandrySystem = g_currentMission == nil or g_currentMission.husbandrySystem == nil
+    if farmId == nil or farmId == 0 or noHusbandrySystem then
+        Log:warning("RLMenuHerdsmanFrame:onClickRuleHusbandries: not opening (farmId=%s husbandrySystemNil=%s)",
+            tostring(farmId), tostring(noHusbandrySystem))
+        return
+    end
+
+    local descriptors = RLAnimalQuery.listHusbandryDescriptorsForFarm(farmId)
+    local chickenIdx = AnimalType ~= nil and AnimalType.CHICKEN or nil
+    local filterAnimalType = self:resolveFilterAnimalType(merged.filterId)
+    local candidates = RLHerdsmanRulePresenter.selectTargetableHusbandries(
+        descriptors, filterAnimalType, merged.operation, chickenIdx)
+
+    -- Capture the target id at OPEN; the pick stashes against THIS id (selection may move).
+    self.husbandryPickTargetId = id
+
+    Log:debug("RLMenuHerdsmanFrame:onClickRuleHusbandries: id=%s operation=%s filterType=%s farmId=%s -> %d candidate(s), %d current target(s)",
+        tostring(id), tostring(merged.operation), tostring(filterAnimalType), tostring(farmId),
+        #candidates, #(merged.targetHusbandries or {}))
+
+    RLHerdsmanHusbandryPickerDialog.show(self.onHusbandriesPicked, self, candidates, merged.targetHusbandries or {})
+end
+
+--- Picker result (target-first via the dialog). nil -> cancel (rule unchanged; targets
+--- preserved). Otherwise re-read the merged baseline at commit (H7) and stash the picked set
+--- as pending targetHusbandries. The dialog already PRESERVED checked-but-out-of-scope /
+--- unresolvable targets and guaranteed non-empty strings (H2/CR1), so this frame stashes the
+--- set as-is - it does NOT re-strip (the type-incompatible drop is a rebind/op-change concern,
+--- not a pick concern). A pick equal to the current targets with nothing else pending -> no-op
+--- (no redundant :update). Flush happens on the existing selection-change / close path.
+--- @param uniqueIds table|nil chosen target uniqueIds, or nil on cancel
+function RLMenuHerdsmanFrame:onHusbandriesPicked(uniqueIds)
+    local id = self.husbandryPickTargetId
+    self.husbandryPickTargetId = nil
+    if id == nil then
+        Log:debug("RLMenuHerdsmanFrame:onHusbandriesPicked: no captured target id; ignoring")
+        return
+    end
+    if uniqueIds == nil then
+        Log:debug("RLMenuHerdsmanFrame:onHusbandriesPicked: id=%s cancelled (no change)", tostring(id))
+        return
+    end
+
+    local stored = self:getStoredRuleById(id)
+    if stored == nil then
+        Log:debug("RLMenuHerdsmanFrame:onHusbandriesPicked: id=%s no stored baseline; ignoring", tostring(id))
+        return
+    end
+    local merged = RLHerdsmanRuleEditModel.overlayRule(stored, self.pendingChanges[id])
+
+    -- No-op when the chosen SET matches the current targets (order-insensitive): the picker
+    -- commits in name-sorted order, which can differ from the stored order even with identical
+    -- membership; a set compare avoids a spurious re-order flush + MP broadcast, and is correct
+    -- whether or not other pending edits already exist for this rule.
+    if sameStringSet(merged.targetHusbandries, uniqueIds) then
+        Log:debug("RLMenuHerdsmanFrame:onHusbandriesPicked: id=%s unchanged target set; no-op", tostring(id))
+        return
+    end
+
+    self:ensurePending(id).targetHusbandries = uniqueIds
+    Log:debug("RLMenuHerdsmanFrame:onHusbandriesPicked: id=%s targetHusbandries stashed (%d target(s))",
+        tostring(id), #uniqueIds)
+    self:refreshRuleDetail(stored)
+end
+
+--- Build a uniqueId -> animalType map for the farm's LIVE husbandries (non-nil types only),
+--- the typeByUid input to revalidateTargets. Reuses the same RLAnimalQuery descriptor source
+--- as the picker (M12), so a uid the picker would gate is gated identically on rebind cleanup,
+--- and a uid absent here is exactly an unresolvable target (revalidateTargets preserves it - H2).
+--- @param farmId number|nil
+--- @return table typeByUid map uniqueId(string) -> animalType index
+function RLMenuHerdsmanFrame:buildHusbandryTypeByUid(farmId)
+    local typeByUid = {}
+    for _, d in ipairs(RLAnimalQuery.listHusbandryDescriptorsForFarm(farmId)) do
+        if d.animalType ~= nil then typeByUid[d.uniqueId] = d.animalType end
+    end
+    return typeByUid
+end
+
+--- True when dewar `semenUid` is still in the farm's dewar pool for `filterAnimalType` -
+--- mirrors populateSemenSelector's g_dewarManager enumeration exactly. An ANY / nil
+--- filterAnimalType has no typed pool (only the "any" sentinel), so any real dewar is out of
+--- pool. Every hop nil-guarded.
+--- @param semenUid string the selected dewar uniqueId
+--- @param filterAnimalType number|nil the new filter animalType
+--- @param farmId number|nil
+--- @return boolean
+function RLMenuHerdsmanFrame:isSemenInPool(semenUid, filterAnimalType, farmId)
+    if filterAnimalType == nil or farmId == nil or g_dewarManager == nil then return false end
+    local farmDewars = g_dewarManager:getDewarsByFarm(farmId)
+    local dewars = farmDewars ~= nil and farmDewars[filterAnimalType] or nil
+    if dewars == nil then return false end
+    for _, dewar in pairs(dewars) do
+        if dewar:getUniqueId() == semenUid then return true end
+    end
+    return false
+end
+
+--- Cross-type revalidation after a filter rebind OR an operation change (H4), pinned to the
+--- passed `merged` baseline (current stored+pending - H7). Drops type-incompatible RESOLVABLE
+--- targets via the pure revalidateTargets (preserving unresolvable - H2), and resets a non-"any"
+--- ai semen to "any" ONLY when its dewar left the new animalType pool (H1: a widen / ANY keeps a
+--- valid dewar). Stashes results into pending against `id`; logs the dropped-target count.
+--- @param id any rule id
+--- @param merged table the current overlay-merged record (filter/op already applied)
+function RLMenuHerdsmanFrame:revalidatePendingTargetsAndSemen(id, merged)
+    local farmId = RLAnimalInfoService.getCurrentFarmId()
+    local chickenIdx = AnimalType ~= nil and AnimalType.CHICKEN or nil
+    local filterAnimalType = self:resolveFilterAnimalType(merged.filterId)
+    local typeByUid = self:buildHusbandryTypeByUid(farmId)
+
+    local before = merged.targetHusbandries or {}
+    local kept = RLHerdsmanRulePresenter.revalidateTargets(before, typeByUid, filterAnimalType, merged.operation, chickenIdx)
+    if #kept ~= #before then
+        self:ensurePending(id).targetHusbandries = kept
+        Log:debug("RLMenuHerdsmanFrame:revalidatePendingTargetsAndSemen: id=%s targets %d -> %d (dropped %d type-incompatible resolvable)",
+            tostring(id), #before, #kept, #before - #kept)
+    end
+
+    -- Semen reset (ai only): a non-"any" dewar that left the new animalType pool snaps to "any".
+    local semen = merged.params and merged.params.semen
+    if merged.operation == "ai" and type(semen) == "string" and semen ~= RLHerdsmanRulePresenter.SEMEN_ANY then
+        if not self:isSemenInPool(semen, filterAnimalType, farmId) then
+            self:ensurePendingParams(id).params.semen = RLHerdsmanRulePresenter.SEMEN_ANY
+            Log:debug("RLMenuHerdsmanFrame:revalidatePendingTargetsAndSemen: id=%s semen %s left the new pool; reset to any",
+                tostring(id), tostring(semen))
+        end
+    end
 end
 
 -- =============================================================================
@@ -951,6 +1187,12 @@ function RLMenuHerdsmanFrame:applyOperationChange(id, newOp)
         end
     end
 
+    -- Cross-type revalidation against the NEW merged op/filter (H4) - the SAME path a filter
+    -- rebind runs: a switch to castrate drops chicken targets/semen; a filter cleared above
+    -- widens the gate. Re-read merged so the op + filter-clear are both reflected.
+    local newMerged = RLHerdsmanRuleEditModel.overlayRule(stored, self.pendingChanges[id])
+    self:revalidatePendingTargetsAndSemen(id, newMerged)
+
     Log:debug("RLMenuHerdsmanFrame:applyOperationChange: id=%s newOp=%s (re-sectioning)", tostring(id), newOp)
     self:refreshList(id)
     self:refreshRuleDetail(stored)
@@ -960,14 +1202,15 @@ end
 -- FLUSH (pending overlay -> g_rlHerdsmanRuleService:update)
 -- =============================================================================
 
---- Flush one id's pending overlay through the real service update. Gates on nameOk +
---- operationOk + paramsOk + filterOk - filterOk covers both arms (naming -> nil filterId;
---- non-naming -> a bound filter), so an un-filtered non-naming rule is a clean gate-SKIP
---- rather than a service reject. husbandriesOk stays out of the gate until F6 (every pre-F6
---- rule has empty targetHusbandries). On a
---- validation skip OR a service reject, clears the pending overlay and reverts the display
---- to the stored record (the next render shows stored). On success, clears the overlay and
---- refreshes the stored snapshot to the persisted record.
+--- Flush one id's pending overlay through the real service update. Gates via the presenter's
+--- enabled-conditional RLHerdsmanRulePresenter.validateFlush (H3/1a): nameOk + operationOk +
+--- paramsOk + filterOk always required, AND husbandriesOk required ONLY when the rule is
+--- enabled. filterOk covers both arms (naming -> nil filterId; non-naming -> a bound filter),
+--- so an un-filtered non-naming rule is a clean gate-SKIP rather than a service reject; a
+--- disabled / incomplete rule persists with 0 targets (= no-op), and enabling a 0-target rule
+--- SKIPs here (reverting the enable). On a validation skip OR a service reject, clears the
+--- pending overlay and reverts the display to the stored record (the next render shows stored).
+--- On success, clears the overlay and refreshes the stored snapshot to the persisted record.
 --- @param id any
 --- @return string outcome "updated" | "skipped" | "rejected"
 function RLMenuHerdsmanFrame:flushPendingForId(id)
@@ -982,15 +1225,33 @@ function RLMenuHerdsmanFrame:flushPendingForId(id)
     end
 
     local merged = RLHerdsmanRuleEditModel.overlayRule(stored, pending)
-    local v = RLHerdsmanRulePresenter.validateEdit(merged)
-    -- Gate: nameOk + operationOk + paramsOk + filterOk. filterOk covers both arms (naming ->
-    -- nil filterId; non-naming -> a non-blank filterId), so an un-filtered non-naming rule is a
-    -- clean gate-SKIP (debug revert) instead of a service reject. husbandriesOk is NOT gated
-    -- until F6 (every pre-F6 rule has empty targetHusbandries; gating it would brick every flush).
-    if not (v.nameOk and v.operationOk and v.paramsOk and v.filterOk) then
+    local g = RLHerdsmanRulePresenter.validateFlush(merged)
+    -- Gate (H3/1a): nameOk + operationOk + paramsOk + filterOk, AND husbandriesOk ONLY when the
+    -- rule is enabled. filterOk covers both arms (naming -> nil filterId; non-naming -> a
+    -- non-blank filterId), so an un-filtered non-naming rule is a clean gate-SKIP (debug revert)
+    -- not a service reject. A disabled / incomplete rule persists with 0 targets (= no-op).
+
+    -- Narrow-revert (S2b): if the ONLY failure is the enabled-conditional husbandries gate (a
+    -- 0-target rule cannot be enabled) AND the user toggled enable this session, revert JUST the
+    -- enable toggle and re-evaluate - so an unrelated name / mark / budget edit made alongside the
+    -- enable is NOT discarded with the illegal enable. (A pre-F6 rule already enabled with 0
+    -- targets has no pending.enabled to drop, so it falls through to the full revert below and
+    -- stays flush-blocked until it gains a husbandry or is disabled.)
+    if not g.ok and g.husbandriesRequired and not g.husbandriesOk
+        and g.nameOk and g.operationOk and g.paramsOk and g.filterOk
+        and pending.enabled ~= nil then
+        pending.enabled = nil
+        merged = RLHerdsmanRuleEditModel.overlayRule(stored, pending)
+        g = RLHerdsmanRulePresenter.validateFlush(merged)
+        Log:debug("RLMenuHerdsmanFrame:flushPendingForId: id=%s reverted illegal enable on a 0-target rule; re-evaluating remaining edits (ok=%s)",
+            tostring(id), tostring(g.ok))
+    end
+
+    if not g.ok then
         self.pendingChanges[id] = nil
-        Log:debug("RLMenuHerdsmanFrame:flushPendingForId: id=%s skipped (nameOk=%s operationOk=%s paramsOk=%s filterOk=%s); reverted",
-            tostring(id), tostring(v.nameOk), tostring(v.operationOk), tostring(v.paramsOk), tostring(v.filterOk))
+        Log:debug("RLMenuHerdsmanFrame:flushPendingForId: id=%s skipped (nameOk=%s operationOk=%s paramsOk=%s filterOk=%s husbandriesOk=%s husbandriesRequired=%s); reverted",
+            tostring(id), tostring(g.nameOk), tostring(g.operationOk), tostring(g.paramsOk),
+            tostring(g.filterOk), tostring(g.husbandriesOk), tostring(g.husbandriesRequired))
         return "skipped"
     end
 

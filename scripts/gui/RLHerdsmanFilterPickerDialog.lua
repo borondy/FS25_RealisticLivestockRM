@@ -32,35 +32,41 @@ end
 function RLHerdsmanFilterPickerDialog.new(target, customMt)
     local self = MessageDialog.new(target, customMt or RLHerdsmanFilterPickerDialog_mt)
 
-    self.filters         = {}
-    self.callback        = nil
-    self.callbackTarget  = nil
-    self.currentFilterId = nil
-    self.selectedIndex   = nil
+    self.filters           = {}
+    self.callback          = nil
+    self.callbackTarget    = nil
+    self.currentFilterId   = nil
+    self.currentUnavailable = false  -- M4: current binding dropped by the operation scope
+    self.selectedIndex     = nil
 
     return self
 end
 
---- Static entry point. The frame passes the already-scoped, already-sorted candidate list
---- and the rule's current filterId for preselection.
+--- Static entry point. The frame passes the already-scoped, already-sorted candidate list and
+--- the rule's current filterId for preselection. `currentUnavailable` (M4) is true when the
+--- rule HAS a current filter that the operation scope dropped from the list (e.g. a chicken
+--- filter on a castrate rule): the dialog then refuses to silently preselect row 1, shows a
+--- hint, and requires an explicit pick before OK commits.
 ---@param callback function fn(target, filterId|nil) - chosen filter id on OK, nil on cancel
 ---@param target table callback target (the Herdsman frame)
 ---@param filters table[] candidate filter records (each with id + name), scoped + sorted by the frame
 ---@param currentFilterId string|nil the rule's current filter id, preselected when present in the list
-function RLHerdsmanFilterPickerDialog.show(callback, target, filters, currentFilterId)
+---@param currentUnavailable boolean|nil true when the current binding was dropped by the scope (M4)
+function RLHerdsmanFilterPickerDialog.show(callback, target, filters, currentFilterId, currentUnavailable)
     if RLHerdsmanFilterPickerDialog.INSTANCE == nil then
         RLHerdsmanFilterPickerDialog.register()
     end
 
     local dialog = RLHerdsmanFilterPickerDialog.INSTANCE
-    dialog.filters         = filters or {}
-    dialog.callback        = callback
-    dialog.callbackTarget  = target
-    dialog.currentFilterId = currentFilterId
-    dialog.selectedIndex   = nil
+    dialog.filters          = filters or {}
+    dialog.callback         = callback
+    dialog.callbackTarget   = target
+    dialog.currentFilterId  = currentFilterId
+    dialog.currentUnavailable = currentUnavailable == true
+    dialog.selectedIndex    = nil
 
-    Log:debug("RLHerdsmanFilterPickerDialog.show: %d candidate(s), currentFilterId=%s",
-        #dialog.filters, tostring(currentFilterId))
+    Log:debug("RLHerdsmanFilterPickerDialog.show: %d candidate(s), currentFilterId=%s currentUnavailable=%s",
+        #dialog.filters, tostring(currentFilterId), tostring(dialog.currentUnavailable))
     g_gui:showDialog("RLHerdsmanFilterPickerDialog")
 end
 
@@ -75,6 +81,7 @@ function RLHerdsmanFilterPickerDialog:onGuiSetupFinished()
     self.emptyListText  = self:getDescendantById("emptyListText")
     self.confirmButton  = self:getDescendantById("confirmButton")
     self.filterSliderBox = self:getDescendantById("filterSliderBox")
+    self.hintText       = self:getDescendantById("hintText")
 
     if self.filterList ~= nil then
         self.filterList:setDataSource(self)
@@ -90,8 +97,34 @@ function RLHerdsmanFilterPickerDialog:onGuiSetupFinished()
         Log:warning("RLHerdsmanFilterPickerDialog:onGuiSetupFinished: missing elements: %s", table.concat(missing, ", "))
     end
 
-    Log:trace("RLHerdsmanFilterPickerDialog:onGuiSetupFinished: elements resolved (list=%s empty=%s confirm=%s)",
-        tostring(self.filterList ~= nil), tostring(self.emptyListText ~= nil), tostring(self.confirmButton ~= nil))
+    Log:trace("RLHerdsmanFilterPickerDialog:onGuiSetupFinished: elements resolved (list=%s empty=%s confirm=%s hint=%s)",
+        tostring(self.filterList ~= nil), tostring(self.emptyListText ~= nil),
+        tostring(self.confirmButton ~= nil), tostring(self.hintText ~= nil))
+end
+
+-- =============================================================================
+-- Hint surface (M4 current-binding-unavailable; mirrors RLFilterValueSetDialog)
+-- =============================================================================
+
+function RLHerdsmanFilterPickerDialog:showHint(l10nKey)
+    if self.hintText == nil then
+        Log:warning("RLHerdsmanFilterPickerDialog:showHint: hintText element missing; cannot surface key=%s",
+            tostring(l10nKey))
+        return
+    end
+    local text = (g_i18n ~= nil and g_i18n.hasText ~= nil and g_i18n:hasText(l10nKey))
+                 and g_i18n:getText(l10nKey)
+                 or tostring(l10nKey)
+    self.hintText:setText(text)
+    if self.hintText.setVisible ~= nil then self.hintText:setVisible(true) end
+    Log:debug("RLHerdsmanFilterPickerDialog:showHint: key=%s", tostring(l10nKey))
+end
+
+function RLHerdsmanFilterPickerDialog:clearHint()
+    if self.hintText == nil then return end
+    self.hintText:setText("")
+    if self.hintText.setVisible ~= nil then self.hintText:setVisible(false) end
+    Log:trace("RLHerdsmanFilterPickerDialog:clearHint")
 end
 
 -- =============================================================================
@@ -109,26 +142,42 @@ function RLHerdsmanFilterPickerDialog:onOpen()
     if self.filterSliderBox ~= nil then self.filterSliderBox:setVisible(hasEntries) end
     if self.emptyListText ~= nil then self.emptyListText:setVisible(not hasEntries) end
     if self.confirmButton ~= nil then self.confirmButton:setDisabled(not hasEntries) end
+    self:clearHint()
 
     if hasEntries and self.filterList ~= nil then
         self.filterList:reloadData()
 
-        -- Preselect by id (NOT mirrored from the move dialog, which forces row 1): find the
-        -- candidate whose id equals the rule's current filter; default to row 1 when the id
-        -- is nil / deleted / out-of-scope. setSelectedItem highlights without firing a change
-        -- event (forceChangeEvent=false); confirm reads the row via getSelectedIndexInSection.
-        local idx = 1
-        local matched = false
-        if self.currentFilterId ~= nil then
-            for i, f in ipairs(self.filters) do
-                if f.id == self.currentFilterId then idx = i; matched = true; break end
+        if self.currentUnavailable then
+            -- M4: the rule's current filter is not in the operation-scoped list (e.g. a chicken
+            -- filter on a castrate rule). Do NOT preselect row 1 - that would silently rebind on
+            -- OK. Clear the list selection (mirror the empty-state clear in
+            -- RLMenuHerdsmanFrame:selectInitialRule) + keep selectedIndex nil, so an immediate OK
+            -- reads no row and no-ops as a cancel; surface a hint to direct an explicit pick (a
+            -- click / keyboard nav then selects a real row). Keyboard-safe: OK stays enabled.
+            self.filterList.selectedSectionIndex = 0
+            self.filterList.selectedIndex = 0
+            self.selectedIndex = nil
+            self:showHint("rl_menu_herdsman_filter_picker_currentUnavailable")
+            Log:debug("RLHerdsmanFilterPickerDialog:onOpen: %d candidate(s), current binding unavailable; no preselect, hint shown (currentFilterId=%s)",
+                #self.filters, tostring(self.currentFilterId))
+        else
+            -- Preselect by id (NOT mirrored from the move dialog, which forces row 1): find the
+            -- candidate whose id equals the rule's current filter; default to row 1 when the id
+            -- is nil / deleted. setSelectedItem highlights without firing a change event
+            -- (forceChangeEvent=false); confirm reads the row via getSelectedIndexInSection.
+            local idx = 1
+            local matched = false
+            if self.currentFilterId ~= nil then
+                for i, f in ipairs(self.filters) do
+                    if f.id == self.currentFilterId then idx = i; matched = true; break end
+                end
             end
-        end
-        self.filterList:setSelectedItem(1, idx, false, true)
-        self.selectedIndex = idx
+            self.filterList:setSelectedItem(1, idx, false, true)
+            self.selectedIndex = idx
 
-        Log:debug("RLHerdsmanFilterPickerDialog:onOpen: %d candidate(s), preselect idx=%d (matched=%s currentFilterId=%s)",
-            #self.filters, idx, tostring(matched), tostring(self.currentFilterId))
+            Log:debug("RLHerdsmanFilterPickerDialog:onOpen: %d candidate(s), preselect idx=%d (matched=%s currentFilterId=%s)",
+                #self.filters, idx, tostring(matched), tostring(self.currentFilterId))
+        end
     else
         Log:debug("RLHerdsmanFilterPickerDialog:onOpen: empty candidate list; OK disabled")
     end
@@ -175,6 +224,10 @@ end
 function RLHerdsmanFilterPickerDialog:onListClick(_list, _section, index, _cell)
     self.selectedIndex = index
     if self.confirmButton ~= nil then self.confirmButton:setDisabled(false) end
+    -- An explicit pick resolves the M4 "current unavailable" state: drop the hint + the flag so
+    -- onClickConfirm reads this row, not the suppressed preselect.
+    self.currentUnavailable = false
+    self:clearHint()
     Log:trace("RLHerdsmanFilterPickerDialog:onListClick: selected index=%d", index)
 end
 
