@@ -1544,15 +1544,18 @@ function RLMenuSettingsFrame:renderEditor()
         self:updateAlternatingElements(self.filterEditorLayout)
     end
 
-    -- Name: programmatic setText is callback-safe (the onTextChanged
-    -- callback fires only on actual user keystrokes, not on this push).
-    -- HOWEVER, the input control resets the caret to text-end on every
-    -- programmatic value push - including no-ops. When a remote
-    -- RLFilterUpdateEvent triggers refreshIfOpen -> refreshData ->
-    -- renderEditor while the user is editing in the middle of the field,
-    -- that setText stomps the caret. Skip the push when the input owns
-    -- focus AND the text is unchanged (the user is editing it now and
-    -- the overlay already captures their pending edits).
+    -- Name: caret preservation only. A programmatic setText DOES fire
+    -- onTextChanged on a value change (the callback is raised by the
+    -- inherited TextElement setter, which setText reaches without passing a
+    -- skip flag - unlike setState(idx, false) on the option widgets); the
+    -- phantom-stash that causes is handled separately by onFilterNameChanged's
+    -- value-equality guard. THIS guard is purely about the caret: the input
+    -- control resets the caret to text-end on every programmatic value push -
+    -- including no-ops. When a remote RLFilterUpdateEvent triggers
+    -- refreshIfOpen -> refreshData -> renderEditor while the user is editing in
+    -- the middle of the field, that setText stomps the caret. Skip the push
+    -- when the input owns focus AND the text is unchanged (the user is editing
+    -- it now and the overlay already captures their pending edits).
     if self.filterNameInput ~= nil then
         local desired = merged.name or ""
         local isFocused = self.filterNameInput.getIsFocused ~= nil
