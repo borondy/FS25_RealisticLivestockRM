@@ -145,6 +145,11 @@ function RLMenuHerdsmanFrame.new()
     -- The same capture for the husbandry picker (cleared by onHusbandriesPicked / onFrameClose).
     self.husbandryPickTargetId = nil
     self.isReconciling = false
+    -- Set while refreshRuleDetail pushes values into the editor widgets: the three rule
+    -- TextInput handlers early-return on it so a programmatic setText (which fires
+    -- onTextChanged on a value change) is not mistaken for a user edit (mirrors the option
+    -- widgets' setState(idx, false) suppression).
+    self.isPopulating = false
     self.didMeasureFirstRow = false
     Log:trace("RLMenuHerdsmanFrame.new: instance created")
     return self
@@ -546,12 +551,13 @@ end
 -- DETAIL PANE (read element -> presenter/edit-model call -> write element)
 -- =============================================================================
 
---- Populate the rule editor from the overlay-merged record. Read-only: every push is
---- setText / setState(idx,false) (caret/event-safe) and never stashes - only the user
---- callbacks write pending, so a stale stored value snapping to a default does not get
---- persisted. Row visibility comes from getParamVisibility + getBudgetFieldVisibility;
---- the summaries from getFilterSummary / getHusbandrySummary. nil rule -> hide the editor,
---- show the empty-state.
+--- Populate the rule editor from the overlay-merged record. The value pushes are
+--- programmatic, not user edits: setState pushes are silent (forceEvent=false), but a
+--- TextInput's setText fires onTextChanged on a value change, so they run under the
+--- isPopulating guard and the three rule TextInput handlers early-return while it is set,
+--- so a stale stored value snapping to a default is not persisted. Row visibility comes
+--- from getParamVisibility + getBudgetFieldVisibility; the summaries from getFilterSummary
+--- / getHusbandrySummary. nil rule -> hide the editor, show the empty-state.
 --- @param stored table|nil the STORED rule record (overlay is re-applied here), or nil
 function RLMenuHerdsmanFrame:refreshRuleDetail(stored)
     if stored == nil then
@@ -566,34 +572,49 @@ function RLMenuHerdsmanFrame:refreshRuleDetail(stored)
     local merged = RLHerdsmanRuleEditModel.overlayRule(stored, self.pendingChanges[stored.id])
     local op = merged.operation
     local p = merged.params or {}
-
-    -- Values.
-    setTextCaretSafe(self.ruleNameInput, merged.name or "")
-    if self.ruleOperationSelector ~= nil then
-        self.ruleOperationSelector:setState(indexOfValue(RLHerdsmanRulePresenter.OPERATION_ORDER, op) or 1, false)
-    end
-    if self.ruleEnabledToggle ~= nil then
-        self.ruleEnabledToggle:setState(merged.enabled == true and 2 or 1, false)
-    end
-    setTextCaretSafe(self.ruleMaxAnimalsInput, p.maxAnimals ~= nil and tostring(p.maxAnimals) or "")
-    if self.ruleMarkToggle ~= nil then
-        self.ruleMarkToggle:setState(p.mark == true and 2 or 1, false)
-    end
-    if self.ruleConventionToggle ~= nil then
-        self.ruleConventionToggle:setState(indexOfValue(self.conventionValues, p.convention) or 1, false)
-    end
-    -- Budget widgets: ALWAYS push a deterministic state (a malformed buy rule with no
-    -- budget table must never show a stale toggle/input - Codex + Blind-hunter finding);
-    -- real values only when a budget table exists.
     local budget = p.budget
-    if self.ruleBudgetTypeToggle ~= nil then
-        self.ruleBudgetTypeToggle:setState(indexOfValue(self.budgetTypeValues, budget and budget.type) or 1, false)
+
+    -- Values. These are programmatic pushes, NOT user edits: setState gates its callback on
+    -- forceEvent (the false here is silent), but a TextInput's setText fires onTextChanged on
+    -- a value change, so the whole push block runs under isPopulating and the three rule
+    -- TextInput handlers early-return while it is set. save/restore keeps it reentrancy-safe
+    -- (refreshRuleDetail is re-entered from genuine option edits, whose re-render text pushes
+    -- are also not user edits); the pcall + unconditional reset guarantees the flag is cleared
+    -- even if an engine layout push raises - then re-raise to preserve today's propagation.
+    local wasPopulating = self.isPopulating
+    self.isPopulating = true
+    local pushOk, pushErr = pcall(function()
+        setTextCaretSafe(self.ruleNameInput, merged.name or "")
+        if self.ruleOperationSelector ~= nil then
+            self.ruleOperationSelector:setState(indexOfValue(RLHerdsmanRulePresenter.OPERATION_ORDER, op) or 1, false)
+        end
+        if self.ruleEnabledToggle ~= nil then
+            self.ruleEnabledToggle:setState(merged.enabled == true and 2 or 1, false)
+        end
+        setTextCaretSafe(self.ruleMaxAnimalsInput, p.maxAnimals ~= nil and tostring(p.maxAnimals) or "")
+        if self.ruleMarkToggle ~= nil then
+            self.ruleMarkToggle:setState(p.mark == true and 2 or 1, false)
+        end
+        if self.ruleConventionToggle ~= nil then
+            self.ruleConventionToggle:setState(indexOfValue(self.conventionValues, p.convention) or 1, false)
+        end
+        -- Budget widgets: ALWAYS push a deterministic state (a malformed buy rule with no
+        -- budget table must never show a stale toggle/input); real values only when a budget
+        -- table exists.
+        if self.ruleBudgetTypeToggle ~= nil then
+            self.ruleBudgetTypeToggle:setState(indexOfValue(self.budgetTypeValues, budget and budget.type) or 1, false)
+        end
+        setTextCaretSafe(self.ruleBudgetFixedInput, (budget and budget.fixed ~= nil) and tostring(budget.fixed) or "")
+        if self.ruleBudgetPercentageSelector ~= nil then
+            self.ruleBudgetPercentageSelector:setState(indexOfValue(self.budgetPercentageValues, budget and budget.percentage) or 1, false)
+        end
+        self:populateSemenSelector(merged)
+    end)
+    self.isPopulating = wasPopulating
+    if not pushOk then
+        Log:error("RLMenuHerdsmanFrame:refreshRuleDetail: populate push error: %s", tostring(pushErr))
+        error(pushErr)
     end
-    setTextCaretSafe(self.ruleBudgetFixedInput, (budget and budget.fixed ~= nil) and tostring(budget.fixed) or "")
-    if self.ruleBudgetPercentageSelector ~= nil then
-        self.ruleBudgetPercentageSelector:setState(indexOfValue(self.budgetPercentageValues, budget and budget.percentage) or 1, false)
-    end
-    self:populateSemenSelector(merged)
 
     -- Visibility.
     local vis = RLHerdsmanRulePresenter.getParamVisibility(op)
@@ -717,7 +738,8 @@ end
 --- RealisticLivestock_AnimalScreen). Every hop is nil-guarded -> degrades to just "any".
 --- The per-dewar LABEL goes through F4a's formatSemenOption; the per-dewar VALUE is the
 --- dewar uniqueId. A stored semen no longer in the live pool snaps the selector to "any"
---- (legacy parity) - populate never stashes, so the stored id survives a flush.
+--- (legacy parity); the setState push is silent (forceEvent=false), so this snap does not
+--- stash and the stored id survives a flush.
 --- @param merged table the overlay-merged rule record
 function RLMenuHerdsmanFrame:populateSemenSelector(merged)
     if self.ruleSemenSelector == nil then return end
@@ -1062,6 +1084,10 @@ end
 --- Name TextInput. Stash + refresh the list row (overlay-merged name) under the reconcile
 --- guard; do NOT re-render the detail (the input already shows the typed text).
 function RLMenuHerdsmanFrame:onRuleNameChanged(element, _text)
+    if self.isPopulating then
+        Log:trace("RLMenuHerdsmanFrame:onRuleNameChanged: suppressed programmatic populate (isPopulating)")
+        return
+    end
     local id = self.selectedRuleId
     if id == nil or element == nil then return end
     local typed = element:getText() or ""
@@ -1073,6 +1099,10 @@ end
 --- maxAnimals TextInput. Parse to a number and stash; tonumber failure stashes nil ->
 --- validateParams marks it absent -> the flush gate skips (and reverts).
 function RLMenuHerdsmanFrame:onRuleMaxAnimalsChanged(element, _text)
+    if self.isPopulating then
+        Log:trace("RLMenuHerdsmanFrame:onRuleMaxAnimalsChanged: suppressed programmatic populate (isPopulating)")
+        return
+    end
     local id = self.selectedRuleId
     if id == nil or element == nil then return end
     local typed = element:getText() or ""
@@ -1082,6 +1112,10 @@ end
 
 --- budget.fixed TextInput. Parse + stash into the nested budget (params kept complete).
 function RLMenuHerdsmanFrame:onRuleBudgetFixedChanged(element, _text)
+    if self.isPopulating then
+        Log:trace("RLMenuHerdsmanFrame:onRuleBudgetFixedChanged: suppressed programmatic populate (isPopulating)")
+        return
+    end
     local id = self.selectedRuleId
     if id == nil or element == nil then return end
     local typed = element:getText() or ""

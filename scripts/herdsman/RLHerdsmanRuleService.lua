@@ -199,6 +199,104 @@ end
 RLHerdsmanRuleService._validateRuleFields = validateRuleFields
 
 -- =============================================================================
+-- Record equality (no-op-diff support)
+-- =============================================================================
+
+--- Shared empty-table sentinel for `deepEqual`'s nil-as-empty arm, so that path
+--- allocates nothing. Read-only: never mutated.
+local EMPTY = {}
+
+--- Order-insensitive multiset equality for two arrays of strings (the rule's
+--- `targetHusbandries`). nil is treated as the empty set, so an absent list and an
+--- empty `{}` compare equal. Compares element multiplicity, not order: a re-ordered
+--- but same-membership set is equal; an added / removed / duplicated element is not.
+---@param a string[]|nil
+---@param b string[]|nil
+---@return boolean equal
+local function multisetEqual(a, b)
+    local counts, na, nb = {}, 0, 0
+    if a ~= nil then
+        for _, v in ipairs(a) do counts[v] = (counts[v] or 0) + 1; na = na + 1 end
+    end
+    if b ~= nil then
+        for _, v in ipairs(b) do
+            local c = counts[v]
+            if c == nil or c == 0 then return false end
+            counts[v] = c - 1
+            nb = nb + 1
+        end
+    end
+    return na == nb
+end
+
+--- Deep value-equality with the registry's two conventions: nil and an empty table
+--- compare equal (an absent `params` key == an empty `params`, including a nested
+--- `budget`), and non-table leaves fall back to `==`. Recurses every key of both
+--- tables, treating an absent key as a nil value. NOT multiset-aware - the caller
+--- routes `targetHusbandries` through `multisetEqual`.
+---@param a any
+---@param b any
+---@return boolean equal
+local function deepEqual(a, b)
+    local ta, tb = type(a), type(b)
+    if ta ~= "table" and tb ~= "table" then
+        return a == b
+    end
+    -- One side is a table; treat a nil counterpart as an empty table. A non-nil,
+    -- non-table counterpart stays a `==` mismatch (-> false).
+    if ta ~= "table" then
+        if a ~= nil then return false end
+        a = EMPTY
+    elseif tb ~= "table" then
+        if b ~= nil then return false end
+        b = EMPTY
+    end
+    for k, av in pairs(a) do
+        if not deepEqual(av, b[k]) then return false end
+    end
+    for k, bv in pairs(b) do
+        if a[k] == nil and not deepEqual(nil, bv) then return false end
+    end
+    return true
+end
+
+--- Whole-record equality for two rule records - the no-op-diff predicate behind
+--- `update`'s "a byte-identical update never broadcasts" invariant. Pure: plain data
+--- in, boolean out. Deep over every key, so it needs NO hand-maintained field list
+--- that could drift from `validateRuleFields` / `cloneRule`; the immutable
+--- id / farmId / version are equal by construction at the no-op site, so the only
+--- differences it can surface are mutable. Two conventions: `targetHusbandries` is
+--- compared as an order-insensitive multiset, and every other key (scalars plus the
+--- nested `params` / `budget` tables) by deep value-equality with nil == empty-table.
+--- Non-table arguments fall back to `==`.
+---@param a table|any first rule record (or any value)
+---@param b table|any second rule record (or any value)
+---@return boolean equal
+function RLHerdsmanRuleService.equals(a, b)
+    if type(a) ~= "table" or type(b) ~= "table" then
+        return a == b
+    end
+    if not multisetEqual(a.targetHusbandries, b.targetHusbandries) then
+        Log:trace("RLHerdsmanRuleService.equals: targetHusbandries multiset differs")
+        return false
+    end
+    for k, av in pairs(a) do
+        if k ~= "targetHusbandries" and not deepEqual(av, b[k]) then
+            Log:trace("RLHerdsmanRuleService.equals: key '%s' differs", tostring(k))
+            return false
+        end
+    end
+    for k, bv in pairs(b) do
+        if k ~= "targetHusbandries" and a[k] == nil and not deepEqual(nil, bv) then
+            Log:trace("RLHerdsmanRuleService.equals: key '%s' present only on b", tostring(k))
+            return false
+        end
+    end
+    Log:trace("RLHerdsmanRuleService.equals: records equal")
+    return true
+end
+
+-- =============================================================================
 -- Construction
 -- =============================================================================
 
@@ -295,6 +393,11 @@ end
 --- Whole-object replacement: a partial payload that omits a mutable field would
 --- silently collapse the rule, so it is rejected rather than merged. Returns a
 --- cloned snapshot of the new stored record on success.
+---
+--- No-op skip: when the re-pinned payload equals the stored record (`equals`), the
+--- update is a no-op - it leaves state unchanged, skips the `RLHerdsmanRuleUpdateEvent`
+--- broadcast, and returns a clone of the existing record. This is still a success
+--- (NOT a rejection); the return type is unchanged.
 ---@param id string lookup id
 ---@param payload table whole-object replacement payload
 ---@return table|nil updated cloned snapshot of the stored record
@@ -343,6 +446,15 @@ function RLHerdsmanRuleService:update(id, payload)
     stored.id      = id
     stored.farmId  = existing.farmId
     stored.version = existing.version
+
+    -- No-op diff: a byte-identical update must not broadcast. Compare the re-pinned
+    -- `stored` against `existing` (not the raw payload) so the immutable re-pinning can
+    -- never fabricate a false diff. On a match, leave the registry untouched, skip the
+    -- broadcast, and return the existing snapshot - callers still see a normal success.
+    if RLHerdsmanRuleService.equals(stored, existing) then
+        Log:debug("RLHerdsmanRuleService:update: id=%s payload == stored; skipping RLHerdsmanRuleUpdateEvent (no-op)", tostring(id))
+        return cloneRule(existing)
+    end
 
     self.rulesById[id] = stored
 
