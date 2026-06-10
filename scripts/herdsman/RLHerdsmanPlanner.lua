@@ -1,18 +1,20 @@
 -- RLHerdsmanPlanner.lua
 -- Pure herdsman day-tick planner (M-Tick T1 RLRM-389 + T2a Sell/Buy RLRM-390 + T2b
--- Castrate/Naming RLRM-405) - the keystone of M-Tick.
+-- Castrate/Naming RLRM-405 + T2c AI/insemination RLRM-406) - the keystone of M-Tick.
 --
 -- `planActions(rules, ctx)` decides WHICH animals each enabled rule acts on, in run
--- order, threading cross-rule claims + a farm-scoped money ledger, and returns ordered
--- intended-action records. The surprising part - sequential state threading across rules
--- - is isolated here in one 100% headless module: data in, data out. `planActions` reads
--- no `g_*` and MUST NOT mutate `rules`, `ctx`, or any animal table (internal bookkeeping
--- copies only). The ONLY engine calls are the REAL primitives reached through injected ctx +
--- the passed-in Animal: the price path (`animal:getSellPrice()`,
--- `ctx.animalSystem:getAnimalTransportFee(...)`) and the deterministic naming list
--- (`ctx.animalNameSystem:getNamesAlphabetical(...)`) - dependency injection, not a `g_*` read.
--- AI per-op params are T2c (RLRM-406). The animal mutations (castrate flags, `animal.name`, the
--- `params.previous` write-back) + event dispatch are T3; the day-tick hook + ctx build are T4.
+-- order, threading cross-rule claims + a farm-scoped money ledger + a planner-wide dewar
+-- straw ledger, and returns ordered intended-action records. The surprising part - sequential
+-- state threading across rules - is isolated here in one 100% headless module: data in, data
+-- out. `planActions` reads no `g_*` and MUST NOT mutate `rules`, `ctx`, or any animal / dewar
+-- table (internal bookkeeping copies only). The ONLY engine calls are the REAL primitives
+-- reached through injected ctx + the passed-in Animal: the price path (`animal:getSellPrice()`,
+-- `ctx.animalSystem:getAnimalTransportFee(...)`), the deterministic naming list
+-- (`ctx.animalNameSystem:getNamesAlphabetical(...)`), and the AI eligibility predicate
+-- (`animal:getCanBeInseminatedByAnimal(dewar.animal)`) - dependency injection, not a `g_*` read.
+-- The animal mutations (castrate flags, `animal.name`, the `params.previous` write-back, the real
+-- straw decrement, setMarked/clear-stale-marks) + event dispatch are T3; the day-tick hook + ctx
+-- build are T4.
 --
 -- ctx contract (T4 builds it in-game; tests fabricate it from real Animals):
 --   ctx = {
@@ -22,10 +24,13 @@
 --     animalSystem        = <real AnimalSystem>,           -- getAnimalTransportFee (DI; T2a)
 --     animalNameSystem    = <real AnimalNameSystem>,       -- getNamesAlphabetical (DI; T2b)
 --     farmBalanceByFarmId = { [farmId] = balance },        -- ledger seed, farm-scoped (T2a)
+--     dewarsByFarmId      = { [farmId] = { [animalTypeIndex] = { {animal=<sire>, straws=n, uniqueId=s}, ... } } }, -- AI dewar pool (DI; T2c)
 --   }
 -- The caller (T4) farm-scopes BOTH `rules` and `ctx.husbandries`, and excludes legacy
 -- `reserved` dealer animals from `dealerAnimalsByType` (coexistence: legacy AIAnimalManager
 -- claims dealer animals via `animal.reserved`). The planner filters `enabled` itself.
+-- `farmBalanceByFarmId` + `dewarsByFarmId` are keyed by `rule.farmId` (the rule's owning farm);
+-- the `farmId` value type MUST match the table key type or both silently read empty.
 --
 -- Action records, emitted in run order (operation rank, then within an op
 -- `compareRulesByName`; within a rule, targets in lexicographic uniqueId order):
@@ -279,7 +284,7 @@ end
 ---      candidates from the internal REMAINING pools (one `evalCtx` per call), apply the
 ---      per-operation pricing / cap / wage / claim, and emit an action when >= 1 selected.
 ---
---- Per-operation selection (T2a Sell/Buy; T2b Castrate/Naming; T1 shape for ai):
+--- Per-operation selection (T2a Sell/Buy; T2b Castrate/Naming; T2c AI):
 ---   * Sell: shortlist = filter-match AND `getCanBeSold()`; price = real getSellPrice +
 ---     transport; sort price DESC (toKey tie-break); take top `maxAnimals`; wage per the
 ---     legacy formula; CLAIM the selected set globally (mark OR exec) - remove from the
@@ -295,7 +300,11 @@ end
 ---   * Naming: no filter, unnamed-only; convention non-"random" -> alphabetical (+WARN); the
 ---     per-rule `previous` cursor walk (shared across genders, deterministic uid order) yields
 ---     `assignments` + `previousOut`; random defers strings (no previousOut); wage `W*0.15*n`.
----   * AI: T1 behavior preserved - select ALL filter-matched, claim same-op, no cap/sort/wage (RLRM-406).
+---   * AI: filter-match + the REAL `getCanBeInseminatedByAnimal` (the SOLE eligibility gate) over
+---     the rule.farmId/type dewar bucket; genetics-desc sort, greedy best-first straw assignment
+---     against the planner-wide dewar-identity ledger, `maxAnimals` cap-then-claim (commit only the
+---     inseminated set's straws); AI wage; `mark` gates only the T3 dispatch. animals=<inseminated
+---     refs, genetics desc> + a parallel dewars=<uniqueId> array. Same-op claim, the LAST op.
 ---
 --- Claim mechanics (the two-level model): owned ops draw from a per-husbandry owned pool
 --- (shallow copy of `ctx.husbandries[uid].animals`); sell removes its CAPPED selected set
@@ -311,7 +320,7 @@ end
 --- emits no record (+ DEBUG).
 ---
 ---@param rules table[] farm-scoped rule records (the planner filters `enabled`)
----@param ctx table { husbandries, dealerAnimalsByType, filtersById, animalSystem, farmBalanceByFarmId }
+---@param ctx table { husbandries, dealerAnimalsByType, filtersById, animalSystem, animalNameSystem, farmBalanceByFarmId, dewarsByFarmId }
 ---@return table[] actions ordered action records (see the file header for per-op shapes)
 function RLHerdsmanPlanner.planActions(rules, ctx)
     if rules == nil or ctx == nil then
@@ -326,6 +335,7 @@ function RLHerdsmanPlanner.planActions(rules, ctx)
     local animalSystem = ctx.animalSystem
     local animalNameSystem = ctx.animalNameSystem
     local farmBalanceByFarmId = type(ctx.farmBalanceByFarmId) == "table" and ctx.farmBalanceByFarmId or {}
+    local dewarsByFarmId = type(ctx.dewarsByFarmId) == "table" and ctx.dewarsByFarmId or {}
 
     -- The CHICKEN type index for castrate's per-target no-op (legacy AIAnimalManager:606). Read
     -- once; AnimalType is a runtime global (populated by AnimalSystem.new well before the day-tick),
@@ -358,6 +368,13 @@ function RLHerdsmanPlanner.planActions(rules, ctx)
     local ledgerSeeded = {}
     local warnedHusbandries = {}
     local warnedAnimals = {}
+    --   warnedDewars[dewar]       - per-call dedup for the malformed-sire / nil-uniqueId dewar WARNING.
+    --   dewarStrawLedger[dewar]   - planner-wide straw projection keyed by dewar IDENTITY (table ref),
+    --     seeded lazily from d.straws and threaded across ALL AI rules in run order (the AI analog of
+    --     the farm money ledger): a later AI rule plans against straws an earlier rule's inseminated
+    --     set committed. Only the post-cap inseminated set decrements it (capped-out candidates do not).
+    local warnedDewars = {}
+    local dewarStrawLedger = {}
 
     --- Resolve a target husbandry record, or nil (+ WARN once per uid) when it is absent or
     --- malformed (missing `animals` or `animalTypeIndex`).
@@ -517,6 +534,32 @@ function RLHerdsmanPlanner.planActions(rules, ctx)
             Log:warning("%s skipping candidate without real-Animal price methods (uniqueId=%s) - not an Animal instance",
                 LOG_PREFIX, tostring(type(animal) == "table" and animal.uniqueId or animal))
             warnedAnimals[animal] = true
+        end
+    end
+
+    --- True when a dewar's sire (`dewar.animal`) carries the identity fields the REAL
+    --- getCanBeInseminatedByAnimal reads on the sire: `typeIndex` (compared to the female's
+    --- `animalTypeIndex`), `farmId`, `uniqueId`, and a `country` present in `RLConstants.AREA_CODES`.
+    --- The predicate formats `AREA_CODES[otherAnimal.country].code` UNCONDITIONALLY, so a sire with a
+    --- nil / unknown country (or any missing identity field) would raise; the AI caller treats such a
+    --- dewar as incompatible + WARN instead, honouring the planner's never-raises contract.
+    ---@param sire table|nil dewar.animal
+    ---@return boolean usable
+    local function isUsableSire(sire)
+        if type(sire) ~= "table" then return false end
+        if sire.typeIndex == nil or sire.farmId == nil or sire.uniqueId == nil then return false end
+        local country = sire.country
+        return country ~= nil and RLConstants.AREA_CODES[country] ~= nil
+    end
+
+    --- Seed the planner-wide straw ledger for a dewar exactly once from `d.straws` (non-number /
+    --- nil -> 0). Keyed by the dewar table ref so the remaining count threads across every AI rule
+    --- in the pass. Idempotent: a dewar legitimately seeded to 0 (seeded value is not nil) is never
+    --- re-seeded, so prior rules' decrements survive.
+    ---@param d table dewar record
+    local function seedDewarStraws(d)
+        if dewarStrawLedger[d] == nil then
+            dewarStrawLedger[d] = type(d.straws) == "number" and d.straws or 0
         end
     end
 
@@ -899,24 +942,195 @@ function RLHerdsmanPlanner.planActions(rules, ctx)
                 end
             end
 
-        else
-            -- AI (ai): T1 behavior preserved - select ALL filter-matched, claim same-op, cross-op
-            -- visible; no per-op params yet. RLRM-406 (T2c) adds dewar eligibility + cap + wage.
-            for _, uid in ipairs(targets) do
-                local pool = ownedPool(uid)
-                if pool ~= nil then
-                    local candidates = #pool
-                    local selected = matchFromPool(pool, filter, false, claimed)
-                    claimAll(claimed, selected)
-                    Log:debug("%s rule=%s op=%s husbandry=%s candidates=%d selected=%d",
-                        LOG_PREFIX, tostring(rule.id), op, tostring(uid), candidates, #selected)
-                    if #selected > 0 then
-                        actions[#actions + 1] = {
-                            ruleId = rule.id,
-                            operation = op,
-                            husbandryId = uid,
-                            animals = selected,
-                        }
+        elseif op == "ai" then
+            -- AI / insemination (legacy AIAnimalManager:onDayChanged :733-855). Owned-herd,
+            -- non-end-task, the LAST op. Ritter-locked genetics-first deviation: legacy assigns
+            -- scarce straws during shortlist build in nondeterministic `pairs` order BEFORE the
+            -- genetics sort (:786-799); this planner collects compatible dewars straw-IGNORANT,
+            -- sorts candidates genetics-desc FIRST, then greedily assigns scarce straws best-first
+            -- against the planner-wide dewar-identity ledger. NOT byte-parity (legacy is
+            -- nondeterministic); because greedy straw assignment is an order-dependent bipartite
+            -- matching, in the rare multi-dewar cross-compatible scarce-straw case it can inseminate
+            -- FEWER total animals (lower S/wage) than legacy - accepted to prioritise the best
+            -- genetics. The real getCanBeInseminatedByAnimal is the SOLE eligibility gate (NO
+            -- fertility==0 check); a marked AI is advisory (T3 sets the mark, dispatches no event).
+            local maxN = normalizeMaxAnimals(rule, params)
+            if maxN ~= nil then
+                local mark = params.mark == true
+                local semen = params.semen
+                for _, uid in ipairs(targets) do
+                    local h = resolveHusbandry(uid)
+                    if h ~= nil then
+                        local typeIdx = h.animalTypeIndex
+                        -- Dewar pool (legacy :735-753): farm scope = rule.farmId (the key T2a's money
+                        -- ledger uses; == legacy husbandry:getOwnerFarmId() since T4 farm-scopes rules),
+                        -- type = husbandry.animalTypeIndex. The farmId value type MUST match the table
+                        -- key type (mirror farmBalanceByFarmId, else a silent "no dewars"). DewarManager
+                        -- stores insert-order, so the planner sorts the bucket by uniqueId itself.
+                        local farmBucket = dewarsByFarmId[rule.farmId]
+                        local rawBucket = type(farmBucket) == "table" and farmBucket[typeIdx] or nil
+                        local sortedBucket = {}
+                        if type(rawBucket) == "table" then
+                            for _, d in ipairs(rawBucket) do
+                                if type(d) == "table" and d.animal ~= nil then
+                                    if d.uniqueId == nil then
+                                        -- nil uniqueId -> the action `dewars` value would be nil; skip + WARN.
+                                        if not warnedDewars[d] then
+                                            Log:warning("%s rule=%s op=ai husbandry=%s: dewar with nil uniqueId skipped",
+                                                LOG_PREFIX, tostring(rule.id), tostring(uid))
+                                            warnedDewars[d] = true
+                                        end
+                                    else
+                                        sortedBucket[#sortedBucket + 1] = d
+                                    end
+                                end
+                                -- d.animal == nil never inseminates (legacy :785) -> silently dropped.
+                            end
+                            table.sort(sortedBucket, function(x, y) return tostring(x.uniqueId) < tostring(y.uniqueId) end)
+                        end
+                        -- Semen resolution: "any" -> the whole sorted bucket; a specific uniqueId ->
+                        -- the FIRST matching dewar (uniqueId order); not found / empty bucket -> no action.
+                        local dewars, semenNotFound = nil, false
+                        if #sortedBucket > 0 then
+                            if semen == "any" then
+                                dewars = sortedBucket
+                            else
+                                for _, d in ipairs(sortedBucket) do
+                                    if d.uniqueId == semen then dewars = { d }; break end
+                                end
+                                if dewars == nil then semenNotFound = true end
+                            end
+                        end
+
+                        if dewars == nil then
+                            -- Distinct no-action causes: a specific semen matching no dewar is a
+                            -- likely config error (WARN); a nil/empty farm-or-type bucket is routine (DEBUG).
+                            if semenNotFound then
+                                Log:warning("%s rule=%s op=ai husbandry=%s: semen '%s' matched no dewar (likely config error) - no action",
+                                    LOG_PREFIX, tostring(rule.id), tostring(uid), tostring(semen))
+                            else
+                                Log:debug("%s rule=%s op=ai husbandry=%s no-op: no dewars for farm/type (farmId=%s typeIndex=%s)",
+                                    LOG_PREFIX, tostring(rule.id), tostring(uid), tostring(rule.farmId), tostring(typeIdx))
+                            end
+                        else
+                            -- Seed the planner-wide straw ledger for every resolved dewar (once each), so
+                            -- remaining straws thread across ALL AI rules (no cross-rule overcommit).
+                            for _, d in ipairs(dewars) do seedDewarStraws(d) end
+                            local pool = ownedPool(uid)
+                            -- Candidate eligibility (legacy :766-807): filter-matched (matchFromPool) AND
+                            -- not same-op-claimed (matchFromPool, so claimed animals never reach the scratch
+                            -- assignment) AND >= 1 compatible dewar. Straw-IGNORANT here - the predicate is
+                            -- pure, so collecting ALL compatible dewars (vs legacy's first-match break :796)
+                            -- is observationally safe and is the mechanism behind the genetics-first deviation.
+                            local matched = matchFromPool(pool, filter, false, claimed)
+                            local candidates = {}
+                            for _, a in ipairs(matched) do
+                                local g = a.genetics
+                                local gm, gq, gf, gh, gp
+                                if type(g) == "table" then gm, gq, gf, gh, gp = g.metabolism, g.quality, g.fertility, g.health, g.productivity end
+                                local geneticsOk = type(gm) == "number" and type(gq) == "number"
+                                    and type(gf) == "number" and type(gh) == "number" and (gp == nil or type(gp) == "number")
+                                if not geneticsOk then
+                                    -- nil / non-number genetics sub-field -> skip + WARN (fail closed; never
+                                    -- index-nil in the sum). Deduped per call (the pool is re-scanned per op).
+                                    if not warnedAnimals[a] then
+                                        Log:warning("%s rule=%s op=ai skipping animal with nil/non-number genetics (uniqueId=%s) - fail closed",
+                                            LOG_PREFIX, tostring(rule.id), tostring(type(a) == "table" and a.uniqueId or a))
+                                        warnedAnimals[a] = true
+                                    end
+                                elseif type(a.getCanBeInseminatedByAnimal) ~= "function" then
+                                    -- A matched row can carry a valid identity + genetics yet be a non-Animal data
+                                    -- table without the real predicate method (the AI analog of Sell/Buy's
+                                    -- isPriceableAnimal guard) - skip + WARN (deduped), never a call-on-nil-method raise.
+                                    if not warnedAnimals[a] then
+                                        Log:warning("%s rule=%s op=ai skipping candidate without getCanBeInseminatedByAnimal (uniqueId=%s) - not an Animal instance",
+                                            LOG_PREFIX, tostring(rule.id), tostring(type(a) == "table" and a.uniqueId or a))
+                                        warnedAnimals[a] = true
+                                    end
+                                else
+                                    -- Compatible dewars in uniqueId order (straw-ignorant). A malformed sire
+                                    -- (missing identity / country not in AREA_CODES) is treated incompatible +
+                                    -- WARN, never indexed-nil/raised, via isUsableSire before the predicate.
+                                    local compatible = {}
+                                    for _, d in ipairs(dewars) do
+                                        local sire = d.animal
+                                        if not isUsableSire(sire) then
+                                            if not warnedDewars[d] then
+                                                Log:warning("%s rule=%s op=ai husbandry=%s: malformed sire on dewar uniqueId=%s (missing identity / country not in AREA_CODES) - treated incompatible",
+                                                    LOG_PREFIX, tostring(rule.id), tostring(uid), tostring(d.uniqueId))
+                                                warnedDewars[d] = true
+                                            end
+                                        elseif a:getCanBeInseminatedByAnimal(sire) == true then
+                                            compatible[#compatible + 1] = d
+                                        end
+                                    end
+                                    if #compatible >= 1 then
+                                        candidates[#candidates + 1] = {
+                                            animal = a,
+                                            genetics = gm + gq + gf + gh + (gp or 0),
+                                            compatibleDewars = compatible,
+                                            key = animalKey(a),
+                                            ord = #candidates + 1,
+                                        }
+                                    end
+                                end
+                            end
+                            local eligibleCount = #candidates
+                            -- Genetics DESC, then identity key (toKey) ASC, then a stable ord tiebreak so a
+                            -- toKey collision is still deterministic (decides who straddles the cap).
+                            table.sort(candidates, function(x, y)
+                                if x.genetics ~= y.genetics then return x.genetics > y.genetics end
+                                if x.key ~= y.key then return x.key < y.key end
+                                return x.ord < y.ord
+                            end)
+                            -- Greedy best-first straw assignment against a per-rule SCRATCH view of the
+                            -- planner-wide ledger (its current remaining already reflects prior AI rules'
+                            -- commits). The assignable set (genetics order) defines S over ALL candidates, uncapped.
+                            local scratch = {}
+                            local assignable = {}
+                            for _, c in ipairs(candidates) do
+                                for _, d in ipairs(c.compatibleDewars) do
+                                    local rem = scratch[d]
+                                    if rem == nil then rem = dewarStrawLedger[d] or 0; scratch[d] = rem end
+                                    if rem >= 1 then
+                                        scratch[d] = rem - 1
+                                        assignable[#assignable + 1] = { animal = c.animal, dewar = d }
+                                        break
+                                    end
+                                end
+                            end
+                            local S = #assignable
+                            local n = math.min(maxN, S)
+                            -- Cap-then-claim: inseminate the first n of the assignable (genetics-best) set;
+                            -- commit ONLY their straws to the planner-wide ledger (capped-out candidates
+                            -- consume nothing and stay available for a later AI rule).
+                            local inseminatedAnimals, inseminatedDewars = {}, {}
+                            for i = 1, n do
+                                local item = assignable[i]
+                                inseminatedAnimals[i] = item.animal
+                                inseminatedDewars[i] = item.dewar.uniqueId
+                                dewarStrawLedger[item.dewar] = (dewarStrawLedger[item.dewar] or 0) - 1
+                            end
+                            local W = wageFor(typeIdx)
+                            -- Wage (legacy :829): per-animal 1.2 exec / 0.45 mark, plus the shortlist term
+                            -- min(S, n*5)*0.2 at 1.0 exec / 0.35 mark - over THIS planner's S/n.
+                            local wage = W * n * (mark and 0.45 or 1.2)
+                                + W * math.min(S, n * 5) * 0.2 * (mark and 0.35 or 1)
+                            Log:debug("%s rule=%s op=ai husbandry=%s eligible=%d assignable=%d inseminated=%d wage=%.2f mark=%s semen=%s",
+                                LOG_PREFIX, tostring(rule.id), tostring(uid), eligibleCount, S, n, wage, tostring(mark), tostring(semen))
+                            if n > 0 then
+                                -- Same-op claim covers ONLY the inseminated set (two AI rules never inseminate
+                                -- one animal); AI is the last op so cross-op visibility is moot. mark never gates the claim.
+                                claimAll(claimed, inseminatedAnimals)
+                                actions[#actions + 1] = { ruleId = rule.id, operation = "ai", husbandryId = uid,
+                                    animals = inseminatedAnimals, dewars = inseminatedDewars, mark = mark, wage = wage }
+                            elseif eligibleCount == 0 then
+                                Log:debug("%s rule=%s op=ai husbandry=%s no-op: no eligible candidates", LOG_PREFIX, tostring(rule.id), tostring(uid))
+                            else
+                                Log:debug("%s rule=%s op=ai husbandry=%s no-op: %d eligible but all straws exhausted",
+                                    LOG_PREFIX, tostring(rule.id), tostring(uid), eligibleCount)
+                            end
+                        end
                     end
                 end
             end
