@@ -554,6 +554,40 @@ function RLHerdsmanRuleService:clear()
 end
 
 -- =============================================================================
+-- Naming cursor (M-Tick T3) - server-only day-tick state
+-- =============================================================================
+
+--- Advance the stored alphabetical-naming cursor for a rule, in place on the LIVE record.
+--- Additive M-Tick write: `getById` / `list` / `listForFarm` all return defensive clones, so
+--- the day-tick executor cannot persist the advanced cursor through the plan it received -
+--- this `_rawGetById` write is the single in-place path. The cursor is server-authoritative
+--- day-tick state (clients never run the naming tick), so it persists via `saveToXMLFile` on
+--- the next save and broadcasts NO `RLHerdsmanRuleUpdateEvent`. Honest consequence: client
+--- replicas hold a stale `params.previous` until the next full state sync - intended and
+--- harmless. Fails closed: an unknown id (rule deleted mid-tick) or a missing `params` table
+--- warns + returns false, never raising.
+---@param id string rule id
+---@param previous string|nil advanced cursor value to store at `params.previous`
+---@return boolean written true iff the cursor was written to a live record
+function RLHerdsmanRuleService:setNamingCursor(id, previous)
+    local stored = self:_rawGetById(id)
+    if stored == nil then
+        Log:warning("RLHerdsmanRuleService:setNamingCursor: unknown id '%s' (rule deleted mid-tick?); no-op", tostring(id))
+        return false
+    end
+    if type(stored.params) ~= "table" then
+        Log:warning("RLHerdsmanRuleService:setNamingCursor: id=%s has no params table (params=%s); no-op",
+            tostring(id), tostring(stored.params))
+        return false
+    end
+
+    stored.params.previous = previous
+    Log:debug("RLHerdsmanRuleService:setNamingCursor: id=%s params.previous=%s (server-only, no broadcast)",
+        tostring(id), tostring(previous))
+    return true
+end
+
+-- =============================================================================
 -- XML IO (S2)
 -- =============================================================================
 

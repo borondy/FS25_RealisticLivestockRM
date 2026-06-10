@@ -147,6 +147,13 @@ source(modDirectory .. "scripts/events/RLHerdsmanRuleStateEvent.lua")
 -- RLFilterEvaluator (11g), RLAnimalUtil (top of file). No game state at load.
 source(modDirectory .. "scripts/herdsman/RLHerdsmanPlanner.lua")
 
+-- SECTION 11j: Herdsman day-tick executor (M-Tick T3). Applies the planner's actions in-game
+-- (the in-game wall): dispatches the AI sell/buy/insemination events, mutates castrate/naming
+-- directly, sets marks for mark-mode, deducts the per-farm wage. References the AI events +
+-- RLHerdsmanRuleService only at call time (dependency-injected ctx), so it loads after 11i with
+-- no game state at load. Ships DORMANT - no day-tick hook (T4 wires the tick + ctx build).
+source(modDirectory .. "scripts/herdsman/RLHerdsmanExecutor.lua")
+
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")
 source(modDirectory .. "scripts/gui/elements/RenderElement.lua")
