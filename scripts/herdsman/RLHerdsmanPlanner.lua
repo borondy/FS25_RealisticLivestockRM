@@ -1,16 +1,18 @@
 -- RLHerdsmanPlanner.lua
--- Pure herdsman day-tick planner (M-Tick T1 RLRM-389 + T2a Sell/Buy RLRM-390) - the
--- keystone of M-Tick.
+-- Pure herdsman day-tick planner (M-Tick T1 RLRM-389 + T2a Sell/Buy RLRM-390 + T2b
+-- Castrate/Naming RLRM-405) - the keystone of M-Tick.
 --
 -- `planActions(rules, ctx)` decides WHICH animals each enabled rule acts on, in run
 -- order, threading cross-rule claims + a farm-scoped money ledger, and returns ordered
 -- intended-action records. The surprising part - sequential state threading across rules
 -- - is isolated here in one 100% headless module: data in, data out. `planActions` reads
 -- no `g_*` and MUST NOT mutate `rules`, `ctx`, or any animal table (internal bookkeeping
--- copies only). The ONLY engine calls are the REAL price primitives reached through the
--- injected `ctx.animalSystem` + the passed-in Animal (`animal:getSellPrice()`,
--- `ctx.animalSystem:getAnimalTransportFee(...)`) - dependency injection, not a `g_*` read.
--- Castrate + Naming + AI per-op params are T2b; event dispatch is T3; the day-tick hook is T4.
+-- copies only). The ONLY engine calls are the REAL primitives reached through injected ctx +
+-- the passed-in Animal: the price path (`animal:getSellPrice()`,
+-- `ctx.animalSystem:getAnimalTransportFee(...)`) and the deterministic naming list
+-- (`ctx.animalNameSystem:getNamesAlphabetical(...)`) - dependency injection, not a `g_*` read.
+-- AI per-op params are T2c (RLRM-406). The animal mutations (castrate flags, `animal.name`, the
+-- `params.previous` write-back) + event dispatch are T3; the day-tick hook + ctx build are T4.
 --
 -- ctx contract (T4 builds it in-game; tests fabricate it from real Animals):
 --   ctx = {
@@ -18,6 +20,7 @@
 --     dealerAnimalsByType = { [animalTypeIndex] = { Animal, ... } },
 --     filtersById         = { [filterId] = filterRecord },
 --     animalSystem        = <real AnimalSystem>,           -- getAnimalTransportFee (DI; T2a)
+--     animalNameSystem    = <real AnimalNameSystem>,       -- getNamesAlphabetical (DI; T2b)
 --     farmBalanceByFarmId = { [farmId] = balance },        -- ledger seed, farm-scoped (T2a)
 --   }
 -- The caller (T4) farm-scopes BOTH `rules` and `ctx.husbandries`, and excludes legacy
@@ -29,7 +32,10 @@
 --   sell { ruleId, operation="sell", husbandryId, animals=<price desc>, mark, wage, amountGained? }
 --        (`amountGained` present iff `mark==false`; a marked sell is advisory - no money/event)
 --   buy  { ruleId, operation="buy",  husbandryId, animals=<price asc>,  amountSpent, wage }
---   castrate/naming/ai { ruleId, operation, husbandryId, animals } (T1 shape; per-op params T2b)
+--   castrate { ruleId, operation="castrate", husbandryId, animals=<survivors>, mark, wage }
+--   naming   { ruleId, operation="naming", husbandryId, animals=<named>, convention, wage,
+--              assignments?, previousOut? } (assignments+previousOut iff alphabetical AND >=1 named)
+--   ai       { ruleId, operation="ai", husbandryId, animals } (T1 shape; per-op params = RLRM-406/T2c)
 --
 -- Run order = operation order (RLHerdsmanRuleService.OPERATION_ORDER: sell -> buy ->
 -- castrate -> naming -> ai) then RLHerdsmanRuleService.compareRulesByName within an op
@@ -37,8 +43,8 @@
 -- buy fills the space / spends the proceeds).
 --
 -- Candidate match is RLFilterEvaluator.evaluate (pure, fails closed: a nil / deleted
--- filter selects nothing, never raises - D16). Naming carries no filter and selects ALL
--- remaining animals in its targets (T1 intake 3a; T2b narrows to unnamed-only).
+-- filter selects nothing, never raises - D16). Naming carries no filter and selects every
+-- remaining UNNAMED animal in its targets (legacy `:683` exact `name ~= ""` skip).
 
 local Log = RmLogging.getLogger("RLRM")
 
@@ -223,6 +229,38 @@ local function validateBuyBudget(rule, params)
     return t, b.fixed, b.percentage, false
 end
 
+--- Reproduce legacy's per-animal alphabetical-naming cursor walk (AIAnimalManager:695-713)
+--- on a sorted name list, given the incoming cursor (already normalized "" -> nil by the
+--- caller). Returns the assigned name AND the advanced cursor; `names` is guaranteed non-empty
+--- by the caller (an empty gender list is a caller-side skip, never reaches here).
+---
+--- Pick rule: the first index `i` where `prev == nil OR name > prev OR i == #names`. (Legacy
+--- writes `(name ~= prev and name >= prev)`, which is exactly `name > prev` for strings.) Then
+--- if `i` is the last index AND `prev == name`, WRAP - assign `names[1]`, cursor `names[1]`;
+--- otherwise assign `name`, cursor `name`. Legacy-faithful consequences: `prev` nil/"" ->
+--- `names[1]`; `prev == last` -> wrap; `prev` past the last name (stale) -> picks the LAST name,
+--- NO wrap; `prev` mid-range-not-in-list -> first name `> prev` (skips ahead); a single-element
+--- list / more animals than names -> the cursor cycles and names repeat (intended, no dedup).
+---@param names string[] non-empty, alphabetically sorted
+---@param prev string|nil incoming cursor (nil = start of sequence)
+---@return string assigned name
+---@return string cursorOut advanced cursor
+local function walkCursor(names, prev)
+    local last = #names
+    for i = 1, last do
+        local name = names[i]
+        if prev == nil or name > prev or i == last then
+            if i == last and prev == name then
+                return names[1], names[1]   -- exact-last wrap
+            end
+            return name, name
+        end
+    end
+    -- Unreachable for a non-empty list (the `i == last` clause always fires); a defensive
+    -- fallthrough so a future caller can never receive nil.
+    return names[1], names[1]
+end
+
 -- =============================================================================
 -- Public entry point
 -- =============================================================================
@@ -241,7 +279,7 @@ end
 ---      candidates from the internal REMAINING pools (one `evalCtx` per call), apply the
 ---      per-operation pricing / cap / wage / claim, and emit an action when >= 1 selected.
 ---
---- Per-operation selection (T2a Sell/Buy; T1 shape for castrate/naming/ai):
+--- Per-operation selection (T2a Sell/Buy; T2b Castrate/Naming; T1 shape for ai):
 ---   * Sell: shortlist = filter-match AND `getCanBeSold()`; price = real getSellPrice +
 ---     transport; sort price DESC (toKey tie-break); take top `maxAnimals`; wage per the
 ---     legacy formula; CLAIM the selected set globally (mark OR exec) - remove from the
@@ -251,8 +289,13 @@ end
 ---     buy markup); sort price ASC; consume cheapest until the next price exceeds the
 ---     remaining budget (strict `>`) or `maxAnimals`; claim from the dealer pool, append to
 ---     the destination owned pool, and DEBIT the farm ledger.
----   * Castrate / naming / ai: T1 behavior preserved - select ALL filter-matched (naming:
----     all remaining), claim same-op, no cap / sort / wage (T2b).
+---   * Castrate: resolve-first + per-target chicken no-op; per survivor hard-skip female /
+---     isCastrated / fertility==0 (nil genetics -> skip+WARN); wage `W*0.5*n*(mark?0.35:1)` (single
+---     term); `mark` action field gates only the T3 mutation. Same-op claim, cross-op visible.
+---   * Naming: no filter, unnamed-only; convention non-"random" -> alphabetical (+WARN); the
+---     per-rule `previous` cursor walk (shared across genders, deterministic uid order) yields
+---     `assignments` + `previousOut`; random defers strings (no previousOut); wage `W*0.15*n`.
+---   * AI: T1 behavior preserved - select ALL filter-matched, claim same-op, no cap/sort/wage (RLRM-406).
 ---
 --- Claim mechanics (the two-level model): owned ops draw from a per-husbandry owned pool
 --- (shallow copy of `ctx.husbandries[uid].animals`); sell removes its CAPPED selected set
@@ -281,7 +324,14 @@ function RLHerdsmanPlanner.planActions(rules, ctx)
     local dealerByType = type(ctx.dealerAnimalsByType) == "table" and ctx.dealerAnimalsByType or {}
     local filtersById = type(ctx.filtersById) == "table" and ctx.filtersById or {}
     local animalSystem = ctx.animalSystem
+    local animalNameSystem = ctx.animalNameSystem
     local farmBalanceByFarmId = type(ctx.farmBalanceByFarmId) == "table" and ctx.farmBalanceByFarmId or {}
+
+    -- The CHICKEN type index for castrate's per-target no-op (legacy AIAnimalManager:606). Read
+    -- once; AnimalType is a runtime global (populated by AnimalSystem.new well before the day-tick),
+    -- so a missing table just yields nil -> no target is treated as chicken (fail-open, matching
+    -- wageFor's lazy-AnimalType posture; in practice AnimalType is always present at tick time).
+    local chickenTypeIndex = type(AnimalType) == "table" and AnimalType.CHICKEN or nil
 
     -- One evalCtx per planActions call: RLFilterEvaluator.evaluate MUTATES its third arg
     -- (per-call warning / type-mismatch dedup sets), so NEVER pass the planner's input ctx
@@ -505,8 +555,9 @@ function RLHerdsmanPlanner.planActions(rules, ctx)
 
         if op == "naming" and rule.filterId ~= nil then
             -- The service floor forbids a naming filterId; a stray one (stale / migrated data)
-            -- is ignored - naming selects ALL in T1 - but surface it so the mis-tag is visible.
-            Log:debug("%s rule=%s op=naming carries a non-nil filterId=%s; ignored (naming selects all in T1)",
+            -- is ignored - naming has no filter (it selects every remaining unnamed animal) - but
+            -- surface it so the mis-tag is visible.
+            Log:debug("%s rule=%s op=naming carries a non-nil filterId=%s; ignored (naming has no filter)",
                 LOG_PREFIX, tostring(rule.id), tostring(rule.filterId))
         end
 
@@ -690,14 +741,172 @@ function RLHerdsmanPlanner.planActions(rules, ctx)
                 end
             end
 
+        elseif op == "castrate" then
+            -- Castrate (legacy AIAnimalManager:606-667): owned-herd, no cap, no sort, sequential.
+            -- Resolve the husbandry FIRST (malformed -> skip + WARN, unchanged), THEN per-target
+            -- no-op a chicken-type husbandry (:606; other targets of a multi-target rule proceed).
+            -- Candidates come via the filter; per survivor apply the hard floor (:621) the user
+            -- filter cannot express - female / already-castrated / infertile - plus a nil-genetics
+            -- guard (fail closed). `mark` (coerced == true) only sets the action field that gates the
+            -- T3 mutation, never the claim. Same-op claim (mark-independent), cross-op visible
+            -- (survivors stay in the owned pool - one animal may be castrated AND named the same day).
+            local mark = params.mark == true
+            for _, uid in ipairs(targets) do
+                local h = resolveHusbandry(uid)
+                if h ~= nil then
+                    if chickenTypeIndex ~= nil and h.animalTypeIndex == chickenTypeIndex then
+                        Log:debug("%s rule=%s op=castrate husbandry=%s: chicken-type target no-op (legacy :606); other targets proceed",
+                            LOG_PREFIX, tostring(rule.id), tostring(uid))
+                    else
+                        local pool = ownedPool(uid)
+                        local candidates = #pool
+                        local matched = matchFromPool(pool, filter, false, claimed)
+                        local selected = {}
+                        for _, a in ipairs(matched) do
+                            local g = a.genetics
+                            if a.gender == "female" or a.isCastrated then
+                                -- Hard floor (:621), silent. Checked first so the genetics read is
+                                -- short-circuited for females (legacy reaches genetics.fertility only past here).
+                            elseif type(g) ~= "table" or g.fertility == nil then
+                                -- nil genetics/fertility -> skip + WARN (never index-nil; fail-closed
+                                -- posture). Deduped per call (warnedAnimals - the pool is re-scanned per op).
+                                if not warnedAnimals[a] then
+                                    Log:warning("%s rule=%s op=castrate skipping animal with nil genetics/fertility (uniqueId=%s) - fail closed",
+                                        LOG_PREFIX, tostring(rule.id), tostring(type(a) == "table" and a.uniqueId or a))
+                                    warnedAnimals[a] = true
+                                end
+                            elseif g.fertility == 0 then
+                                -- Infertile -> hard-skip (:621), silent.
+                            else
+                                selected[#selected + 1] = a
+                            end
+                        end
+                        local n = #selected
+                        local W = wageFor(h.animalTypeIndex)
+                        -- Single-term wage (:644) - NO min(S, n*5) shortlist component (that is a
+                        -- sell/buy-only term). mark halves-then-discounts to the 0.35 advisory rate.
+                        local wage = W * 0.5 * n * (mark and 0.35 or 1)
+                        Log:debug("%s rule=%s op=castrate husbandry=%s candidates=%d selected=%d mark=%s wage=%.2f",
+                            LOG_PREFIX, tostring(rule.id), tostring(uid), candidates, n, tostring(mark), wage)
+                        if n > 0 then
+                            -- Same-op claim covers EVERY survivor (mark-independent): a later castrate
+                            -- rule cannot re-pick them; they stay in the pool for naming/ai (cross-op).
+                            claimAll(claimed, selected)
+                            actions[#actions + 1] = { ruleId = rule.id, operation = "castrate", husbandryId = uid,
+                                animals = selected, mark = mark, wage = wage }
+                        end
+                    end
+                end
+            end
+
+        elseif op == "naming" then
+            -- Naming (legacy AIAnimalManager:673-727): owned-herd, no filter (selects ALL remaining),
+            -- narrowed to unnamed-only (:683, exact ~= "" - a whitespace-only name counts as named).
+            -- No cap, no mark. Needs the real name system (DI) for getNamesAlphabetical; a missing one
+            -- is a T4 wiring error -> fail closed (skip + WARN), mirroring the sell/buy guard.
+            if type(animalNameSystem) ~= "table" or type(animalNameSystem.getNamesAlphabetical) ~= "function" then
+                Log:warning("%s rule=%s op=naming skipped: ctx.animalNameSystem missing/invalid (T4 wiring)", LOG_PREFIX, tostring(rule.id))
+            else
+                -- convention (:685): "random" -> random; anything else -> alphabetical (the legacy
+                -- else-branch), WARN when it is not literally "alphabetical" (stale "" / "legacy" / nil).
+                local convention = params.convention
+                local isRandom = convention == "random"
+                local conventionOut = isRandom and "random" or "alphabetical"
+                if not isRandom and convention ~= "alphabetical" then
+                    Log:warning("%s rule=%s op=naming: convention '%s' is not 'random'/'alphabetical' - treating as alphabetical (legacy else-branch)",
+                        LOG_PREFIX, tostring(rule.id), tostring(convention))
+                end
+                -- One per-rule cursor (rule.params.previous), shared across the male/female lists (the
+                -- legacy quirk, kept). "" is the wire's nil sentinel and ANY non-string is corrupt
+                -- persisted data -> normalize to nil (start of sequence) instead of letting walkCursor's
+                -- `name > prev` raise on a number/table (fail-closed, like normalizeMaxAnimals/validateBuyBudget).
+                local cursor = params.previous
+                if type(cursor) ~= "string" or cursor == "" then cursor = nil end
+                -- The cursor threads across the WHOLE rule in deterministic uid order, NOT per-target:
+                -- which animal gets which name is a pure function of the rule's candidate set + toKey
+                -- order, independent of how animals are grouped into target husbandries (spec: "which
+                -- animal gets which alphabetical name is reproducible"). Gather every unnamed unclaimed
+                -- candidate across all targets into one stream, sort ONCE by toKey, walk the shared
+                -- cursor, then partition the named animals back into per-target actions.
+                local stream = {}    -- { { animal = a, uid = <husbandry uid> }, ... } rule-wide
+                local byTarget = {}  -- [uid] = { h, candidates, named = {}, assignments = {} }
+                for _, uid in ipairs(targets) do
+                    local h = resolveHusbandry(uid)
+                    if h ~= nil then
+                        local pool = ownedPool(uid)
+                        byTarget[uid] = { h = h, candidates = #pool, named = {}, assignments = {} }
+                        -- noFilter (naming trait): every remaining unclaimed animal, then unnamed-only.
+                        local matched = matchFromPool(pool, filter, traits.noFilter == true, claimed)
+                        for _, a in ipairs(matched) do
+                            if a.name == nil or a.name == "" then
+                                stream[#stream + 1] = { animal = a, uid = uid }
+                            end
+                        end
+                    end
+                end
+                -- Deterministic rule-wide order via the three-field identity key (nil-key animals were
+                -- already dropped by matchFromPool, so every stream entry has a key).
+                table.sort(stream, function(x, y) return animalKey(x.animal) < animalKey(y.animal) end)
+                for _, item in ipairs(stream) do
+                    local a = item.animal
+                    local names = animalNameSystem:getNamesAlphabetical(a.gender)
+                    if type(names) == "table" and #names > 0 then
+                        local bucket = byTarget[item.uid]
+                        if isRandom then
+                            -- Random: T3 generates the string; the planner only selects + counts
+                            -- (non-empty list) for wage and never advances the cursor.
+                            bucket.named[#bucket.named + 1] = a
+                        else
+                            local assignedName
+                            assignedName, cursor = walkCursor(names, cursor)
+                            bucket.named[#bucket.named + 1] = a
+                            bucket.assignments[#bucket.assignments + 1] = { animal = a, name = assignedName }
+                        end
+                    else
+                        -- Empty gender list (:695 ipairs never runs) -> skip: no name, not counted,
+                        -- cursor unchanged.
+                        Log:debug("%s rule=%s op=naming husbandry=%s: empty name list for gender=%s (uniqueId=%s) - skipped, uncounted",
+                            LOG_PREFIX, tostring(rule.id), tostring(item.uid), tostring(a.gender), tostring(a.uniqueId))
+                    end
+                end
+                -- Emit one action per target (lexicographic target order) that named >= 1 animal; the
+                -- per-husbandry wage uses that husbandry's type. `previousOut` is the RULE-FINAL cursor
+                -- (after the whole rule-wide walk) - the same value on every action of the rule, so T3
+                -- writes rule.params.previous back once per rule regardless of which action it reads.
+                for _, uid in ipairs(targets) do
+                    local bucket = byTarget[uid]
+                    if bucket ~= nil then
+                        local named = bucket.named
+                        local n = #named
+                        local W = wageFor(bucket.h.animalTypeIndex)
+                        local wage = W * 0.15 * n   -- single term (:688/:707), no shortlist component
+                        Log:debug("%s rule=%s op=naming husbandry=%s candidates=%d named=%d convention=%s wage=%.2f",
+                            LOG_PREFIX, tostring(rule.id), tostring(uid), bucket.candidates, n, conventionOut, wage)
+                        if n > 0 then
+                            -- Same-op claim covers the named set; cross-op visible (named animals stay
+                            -- in the owned pool - one animal may be castrated AND named the same day).
+                            claimAll(claimed, named)
+                            local action = { ruleId = rule.id, operation = "naming", husbandryId = uid,
+                                animals = named, convention = conventionOut, wage = wage }
+                            if not isRandom then
+                                -- assignments + previousOut iff alphabetical AND >= 1 named (random omits both).
+                                action.assignments = bucket.assignments
+                                action.previousOut = cursor
+                            end
+                            actions[#actions + 1] = action
+                        end
+                    end
+                end
+            end
+
         else
-            -- Castrate / naming / ai: T1 behavior preserved (select ALL matched, claim same-op,
-            -- cross-op visible; no cap / sort / wage / mark yet - T2b). Action carries the T1 shape.
+            -- AI (ai): T1 behavior preserved - select ALL filter-matched, claim same-op, cross-op
+            -- visible; no per-op params yet. RLRM-406 (T2c) adds dewar eligibility + cap + wage.
             for _, uid in ipairs(targets) do
                 local pool = ownedPool(uid)
                 if pool ~= nil then
                     local candidates = #pool
-                    local selected = matchFromPool(pool, filter, traits.noFilter == true, claimed)
+                    local selected = matchFromPool(pool, filter, false, claimed)
                     claimAll(claimed, selected)
                     Log:debug("%s rule=%s op=%s husbandry=%s candidates=%d selected=%d",
                         LOG_PREFIX, tostring(rule.id), op, tostring(uid), candidates, #selected)
