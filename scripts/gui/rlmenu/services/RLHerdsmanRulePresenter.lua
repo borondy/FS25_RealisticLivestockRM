@@ -33,15 +33,16 @@ RLHerdsmanRulePresenter = {}
 -- =============================================================================
 
 --- Canonical run / visual order for rule sections (D3 "visual order = run order";
---- SS7). Sell frees space before Buy fills it, matching legacy onDayChanged order.
---- Presenter-owned: the service deliberately does NOT own ordering. The operation
---- VALIDITY set still comes from RLHerdsmanRuleService.OPERATIONS (no duplication).
-RLHerdsmanRulePresenter.OPERATION_ORDER = { "sell", "buy", "castrate", "naming", "ai" }
+--- SS7). OWNED by RLHerdsmanRuleService.OPERATION_ORDER (M-Tick T1): the presenter's
+--- section sort and the planner's run-order sort share one source of truth. Re-exported
+--- here so the presenter's own callers + tests keep referencing it under this name. The
+--- operation VALIDITY set comes from RLHerdsmanRuleService.OPERATIONS (no duplication).
+RLHerdsmanRulePresenter.OPERATION_ORDER = RLHerdsmanRuleService.OPERATION_ORDER
 
---- operation -> rank, derived from OPERATION_ORDER for O(1) section placement and
---- "is this one of the five orderable operations" membership.
+--- operation -> rank, derived from the service's OPERATION_ORDER for O(1) section
+--- placement and "is this one of the five orderable operations" membership.
 local OPERATION_RANK = {}
-for rank, op in ipairs(RLHerdsmanRulePresenter.OPERATION_ORDER) do
+for rank, op in ipairs(RLHerdsmanRuleService.OPERATION_ORDER) do
     OPERATION_RANK[op] = rank
 end
 
@@ -141,17 +142,16 @@ local function isKnownOperation(operation)
     return OPERATION_RANK[operation] ~= nil
 end
 
---- Comparator for rules within a section: alphabetical by name (case-insensitive),
---- nil-safe `tostring(id)` tie-break. Persisted list rules always carry an id, so the
---- tie-break is deterministic (mirrors RLHerdsmanRuleService:saveToXMLFile's id sort).
----@param a table rule record
----@param b table rule record
+--- Comparator for rules within a section: delegates to the hoisted
+--- RLHerdsmanRuleService.compareRulesByName (M-Tick T1) so the presenter's section /
+--- filter sort and the planner's within-op run-order sort use one comparator and cannot
+--- drift. Same contract: alphabetical by name (case-insensitive), nil-safe `tostring(id)`
+--- tie-break. Reused for filter lists too (sortFiltersByName).
+---@param a table record with `name` + `id`
+---@param b table record with `name` + `id`
 ---@return boolean
 local function compareRulesByName(a, b)
-    local an = string.lower(tostring(a.name or ""))
-    local bn = string.lower(tostring(b.name or ""))
-    if an ~= bn then return an < bn end
-    return tostring(a.id) < tostring(b.id)
+    return RLHerdsmanRuleService.compareRulesByName(a, b)
 end
 
 -- =============================================================================

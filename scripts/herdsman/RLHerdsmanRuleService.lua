@@ -48,9 +48,9 @@ local RLHerdsmanRuleService_mt = { __index = RLHerdsmanRuleService }
 RLHerdsmanRuleService.UNIQUE_ID_PREFIX = "rlHerdRule_"
 
 --- Canonical operation set. A rule's `operation` MUST be one of these keys.
---- Kept as a set for O(1) validation; the value is informational only - run /
---- visual ordering is an M-Frame/M-Tick concern, not the service's, so it is
---- NOT used for sorting here.
+--- Kept as a set for O(1) validation. The canonical run / visual ORDER of these
+--- operations lives in `OPERATION_ORDER` below - the service owns it now (M-Tick T1)
+--- so the M-Frame presenter and the M-Tick planner share one source of truth.
 RLHerdsmanRuleService.OPERATIONS = {
     sell     = true,
     buy      = true,
@@ -58,6 +58,30 @@ RLHerdsmanRuleService.OPERATIONS = {
     naming   = true,
     ai       = true,
 }
+
+--- Canonical run / visual order for the five operations (D3 "visual order = run
+--- order"; SS7): Sell frees herd space before Buy fills it, mirroring legacy
+--- `AIAnimalManager:onDayChanged`. The single source of truth for BOTH consumers -
+--- the M-Frame presenter (section placement) and the M-Tick planner (run order).
+--- Each consumer derives its own operation -> rank map from this list (no shared
+--- rank table, so a consumer's load order can never read a half-built map).
+RLHerdsmanRuleService.OPERATION_ORDER = { "sell", "buy", "castrate", "naming", "ai" }
+
+--- Within-operation comparator: alphabetical by name (case-insensitive), with a
+--- nil-safe `tostring(id)` tie-break. Persisted records always carry an id, so the
+--- tie-break is deterministic (mirrors `saveToXMLFile`'s id sort). Hoisted here from
+--- the presenter (M-Tick T1) so the presenter's section sort and the planner's
+--- within-op run-order sort cannot drift. Generic over any `{ name, id }` record, so
+--- the presenter reuses it for filter lists too.
+---@param a table record with `name` + `id`
+---@param b table record with `name` + `id`
+---@return boolean
+function RLHerdsmanRuleService.compareRulesByName(a, b)
+    local an = string.lower(tostring(a.name or ""))
+    local bn = string.lower(tostring(b.name or ""))
+    if an ~= bn then return an < bn end
+    return tostring(a.id) < tostring(b.id)
+end
 
 --- Default `version` assigned on create when the caller omits one. Frozen after
 --- create; exists for the S3 wire / S5 state-convergence layers (UInt16 later),

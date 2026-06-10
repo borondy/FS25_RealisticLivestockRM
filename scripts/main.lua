@@ -142,6 +142,11 @@ source(modDirectory .. "scripts/events/RLHerdsmanRuleUpdateEvent.lua")
 source(modDirectory .. "scripts/events/RLHerdsmanRuleDeleteEvent.lua")
 source(modDirectory .. "scripts/events/RLHerdsmanRuleStateEvent.lua")
 
+-- SECTION 11i: Herdsman day-tick planner (M-Tick T1). Pure run-order + candidate
+-- selection + sequential claim; consumes RLHerdsmanRuleService.OPERATION_ORDER (11h),
+-- RLFilterEvaluator (11g), RLAnimalUtil (top of file). No game state at load.
+source(modDirectory .. "scripts/herdsman/RLHerdsmanPlanner.lua")
+
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")
 source(modDirectory .. "scripts/gui/elements/RenderElement.lua")
