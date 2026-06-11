@@ -3,9 +3,10 @@
 -- RLHerdsmanPlanner.planActions (T1/T2) into the SAME mutations legacy
 -- AIAnimalManager:onDayChanged performs (MUTATION PARITY): it dispatches the SAME
 -- events (AIAnimalSellEvent / AIAnimalBuyEvent / AIAnimalInseminationEvent), applies
--- castrate + naming as direct server-side field writes (no event - mirroring the legacy
--- wart, NOT fixing it), sets the AI_MANAGER_* mark for mark-mode actions instead of
--- executing, persists the naming cursor, and deducts the herdsman wage once per farm
+-- castrate + naming as direct server-side field writes AND broadcasts AnimalCastrateEvent /
+-- AnimalNameChangeEvent per animal (caller-mutates-first, no sendLocal) so those writes sync
+-- to clients, sets the AI_MANAGER_* mark for mark-mode actions instead of executing,
+-- persists the naming cursor, and deducts the herdsman wage once per farm
 -- via MoneyType.HERDSMAN_WAGES.
 --
 -- T3 makes NO candidate decisions: the plan is authoritative. The executor obeys
@@ -37,7 +38,7 @@
 --   "no-space" | "no-money" | "mark-mode" | "missing-placeable" | "bad-data".
 --
 -- Parity anchors in AIAnimalManager:onDayChanged: Sell broadcast / Buy broadcast /
--- Castrate field writes / Naming walk / AI broadcast; wage in
+-- Castrate field writes + event / Naming walk + event / AI broadcast; wage in
 -- RealisticLivestock_FSBaseMission:onDayChanged. T3 SETS marks for mark-mode; clear-stale
 -- is T4.
 --
@@ -110,7 +111,8 @@ end
 
 --- Apply the planned actions in-game (server-only), mirroring legacy
 --- AIAnimalManager:onDayChanged. Per action: dispatch the SAME event legacy does (sell /
---- buy / ai), apply castrate + naming directly (no event), OR set the AI_MANAGER_* mark for
+--- buy / ai), apply castrate + naming directly THEN broadcast AnimalCastrateEvent /
+--- AnimalNameChangeEvent per animal so clients sync, OR set the AI_MANAGER_* mark for
 --- a mark-mode action; accumulate the herdsman wage per farm and deduct it once per farm at
 --- the end. Fails LOUD on a missing STRUCTURAL ctx dep (a T4-wiring bug), fails CLOSED
 --- (skip + WARNING, never raise) on a per-action data problem. Reads no g_*; the dispatch
@@ -333,8 +335,9 @@ function RLHerdsmanExecutor._doBuy(action, ctx, placeable, farmId, count)
     return true, true, nil
 end
 
---- Castrate (no event - mirror the legacy wart; relies on legacy's periodic sync): exec
---- sets isCastrated + zeroes genetics.fertility per animal; mark sets AI_MANAGER_CASTRATE.
+--- Castrate: exec sets isCastrated + zeroes genetics.fertility per animal AND broadcasts
+--- AnimalCastrateEvent per animal (caller-mutates-first, no sendLocal) so clients sync; mark
+--- sets AI_MANAGER_CASTRATE.
 ---@param action table
 ---@param ctx table
 ---@param placeable table
@@ -363,13 +366,20 @@ function RLHerdsmanExecutor._doCastrate(action, ctx, placeable, farmId, count)
     for _, animal in ipairs(action.animals) do
         animal.isCastrated = true
         animal.genetics.fertility = 0
+        -- MP sync: broadcast WITHOUT sendLocal. AnimalCastrateEvent:run applies the castrate on
+        -- server AND client, so the server already mutated above; sendLocal would re-run run()
+        -- locally (redundant re-mutation, possible double broadcast). @see RLAnimalInfoService.castrateAnimal.
+        ctx.server:broadcastEvent(AnimalCastrateEvent.new(placeable, animal))
+        Log:debug("%s rule=%s op=castrate husbandry=%s farm=%s: broadcast AnimalCastrateEvent uniqueId=%s",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(animal.uniqueId))
     end
     return true, true, nil
 end
 
---- Naming (no event): alphabetical writes the planner-assigned names + advances the
---- server-only cursor via ruleService:setNamingCursor; random generates a fresh name per
---- animal and never advances the cursor. Naming has no mark param. Wage always charged.
+--- Naming: alphabetical writes the planner-assigned names + advances the server-only cursor
+--- via ruleService:setNamingCursor; random generates a fresh name per animal and never advances
+--- the cursor. Each named animal broadcasts AnimalNameChangeEvent (caller-mutates-first, no
+--- sendLocal) so clients sync. Naming has no mark param. Wage always charged.
 ---@param action table
 ---@param ctx table
 ---@param placeable table
@@ -381,7 +391,13 @@ end
 function RLHerdsmanExecutor._doNaming(action, ctx, placeable, farmId, count)
     if action.convention == "random" then
         for _, animal in ipairs(action.animals) do
-            animal.name = ctx.animalNameSystem:getRandomName(animal.gender)
+            -- Capture the generated name into a local so the field write and the broadcast carry
+            -- the SAME value (an empty name list -> getRandomName nil -> name cleared on both sides).
+            local name = ctx.animalNameSystem:getRandomName(animal.gender)
+            animal.name = name
+            ctx.server:broadcastEvent(AnimalNameChangeEvent.new(placeable, animal, name))
+            Log:debug("%s rule=%s op=naming(random) husbandry=%s farm=%s: broadcast AnimalNameChangeEvent uniqueId=%s name=%s",
+                LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(animal.uniqueId), tostring(name))
         end
         return true, true, nil
     end
@@ -402,8 +418,13 @@ function RLHerdsmanExecutor._doNaming(action, ctx, placeable, farmId, count)
         end
     end
 
+    -- Broadcast inside the SAME validated loop that writes (assignments validated above; the
+    -- planner guarantees assignments <-> animals 1:1), so mutation count == broadcast count.
     for _, entry in ipairs(action.assignments) do
         entry.animal.name = entry.name
+        ctx.server:broadcastEvent(AnimalNameChangeEvent.new(placeable, entry.animal, entry.name))
+        Log:debug("%s rule=%s op=naming(alpha) husbandry=%s farm=%s: broadcast AnimalNameChangeEvent uniqueId=%s name=%s",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(entry.animal.uniqueId), tostring(entry.name))
     end
 
     -- Persist the advanced cursor once per rule (server-only, no broadcast - clients never
