@@ -11,7 +11,10 @@
 --   * run(env)/clearStaleMarks/buildPlannerCtx/buildExecutorCtx read NO g_*; they take the
 --     injected `env` and return plain data, so the whole orchestration (per-farm loop, clear-
 --     stale-marks, ctx shaping, wage readout) is unit-tested on REAL Animals headless. Prod and
---     tests differ ONLY in how `env` is built (live globals vs injected fakes).
+--     tests differ ONLY in how `env` is built (live globals vs injected fakes). clearStaleMarks
+--     also broadcasts AnimalMarkEvent (active=false) per cleared animal through env.server (caller-
+--     mutates-first, no sendLocal) so mark REMOVALS sync to MP clients - the CLEAR-direction mirror
+--     of the executor's SET-direction AnimalMarkEvent broadcast.
 --
 -- Server-only via the in-handler g_server guard (the RLRM-218 fix), exactly as
 -- RLMessageAggregator does: onStartMission registers on ALL peers, so server-only-ness comes
@@ -97,14 +100,23 @@ end
 
 --- Clear each enabled sell/castrate/ai rule's op mark on EVERY animal of its target husbandries,
 --- BEFORE the executor runs (decision 1b): executeActions re-SETS the mark for mark-mode actions,
---- so clearing afterwards would wipe a freshly-set mark. Full legacy parity incl. zero-selection
---- passes (the mark clears even when no candidate matches this tick). Owns its own unresolvable-
---- target guard (it runs before the planner): a target absent from the live placeables is
---- skipped + WARNed. Every per-animal setMarked is wrapped in RmSafeUtils.safeAnimalCall so one
---- malformed animal cannot abort the loop (project mandate).
+--- so clearing afterwards would wipe a freshly-set mark. Each animal actually cleared ALSO
+--- broadcasts AnimalMarkEvent (active=false) through the injected server (caller-mutates-first, no
+--- sendLocal) so the REMOVAL syncs to MP clients - the CLEAR-direction mirror of the executor's
+--- SET-direction broadcast (@see RLHerdsmanExecutor setMarkOnAll) and the player path
+--- (@see RLAnimalInfoService.markAnimal). Full legacy parity incl. zero-selection passes (the mark
+--- clears even when no candidate matches this tick). Owns its own unresolvable-target guard (it runs
+--- before the planner): a target absent from the live placeables is skipped + WARNed. Every
+--- per-animal mutation + broadcast is wrapped in RmSafeUtils.safeAnimalCall so one malformed animal
+--- cannot abort the loop or leave a half-applied state (project mandate). markKey is always a
+--- non-nil AI_MANAGER_* key here (the MARK_BY_OPERATION gate), so AnimalMarkEvent's destructive
+--- clear-all mode (key=nil) is structurally unreachable - no nil-key guard needed.
 ---@param enabledRules table array of ENABLED rules for the farm (run applies the enabled filter)
 ---@param husbandriesById table { [uniqueId] = placeable }
-local function clearStaleMarks(enabledRules, husbandriesById)
+---@param server any injected server (env.server); broadcast only when non-nil. The live tick is
+---  server-gated by run(), so a nil server is a defensive unit-call path that still clears but does
+---  not broadcast.
+local function clearStaleMarks(enabledRules, husbandriesById, server)
     for _, rule in ipairs(enabledRules) do
         local markKey = MARK_BY_OPERATION[rule.operation]
         if markKey ~= nil then
@@ -117,7 +129,19 @@ local function clearStaleMarks(enabledRules, husbandriesById)
                     for _, animal in pairs(placeable:getClusters()) do
                         RmSafeUtils.safeAnimalCall(animal, "RLHerdsmanDayTick:clearStaleMark", function()
                             -- Mirror legacy's gate (AIAnimalManager's clear-stale legs): only clear a set mark.
-                            if animal:getMarked(markKey) then animal:setMarked(markKey, false) end
+                            if animal:getMarked(markKey) then
+                                animal:setMarked(markKey, false)
+                                -- MP sync: broadcast WITHOUT sendLocal. AnimalMarkEvent:run applies setMarked on
+                                -- server AND client, so the server already cleared above; sendLocal would re-run
+                                -- run() locally (redundant re-clear, possible double broadcast). Scoped inside the
+                                -- getMarked gate + safeAnimalCall, so the broadcast is exactly as scoped as the
+                                -- mutation and shares its isolation boundary.
+                                if server ~= nil then
+                                    server:broadcastEvent(AnimalMarkEvent.new(placeable, animal, markKey, false))
+                                    Log:debug("%s clearStaleMarks: broadcast AnimalMarkEvent uniqueId=%s key=%s active=false",
+                                        LOG_PREFIX, tostring(animal.uniqueId), tostring(markKey))
+                                end
+                            end
                         end)
                     end
                 end
@@ -260,7 +284,8 @@ function RLHerdsmanDayTick.run(env)
                 local husbandriesById = indexHusbandriesByUniqueId(env.husbandriesForFarm(farmId) or {})
 
                 -- Clear BEFORE execute (decision 1b): the executor re-sets marks for mark-mode actions.
-                clearStaleMarks(enabledRules, husbandriesById)
+                -- env.server threads the dispatch boundary so cleared marks broadcast to MP clients.
+                clearStaleMarks(enabledRules, husbandriesById, env.server)
 
                 local plan = RLHerdsmanPlanner.planActions(enabledRules, buildPlannerCtx(farm, husbandriesById, env))
 
