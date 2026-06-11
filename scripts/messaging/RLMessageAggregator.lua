@@ -22,8 +22,44 @@ RLMessageAggregator.AGGREGATABLE = {
     AI_MANAGER_SOLD_SINGLE = "sales",
     AI_MANAGER_SOLD_MULTIPLE = "sales",
     AI_MANAGER_BOUGHT_SINGLE = "purchases",
-    AI_MANAGER_BOUGHT_MULTIPLE = "purchases"
+    AI_MANAGER_BOUGHT_MULTIPLE = "purchases",
+    -- New herdsman count-only categories (M-Tick T5, RLRM-408, decision 1b): castrate / named /
+    -- inseminated / mark each fold into their own daily summary on the host (sold/bought already do
+    -- via sales/purchases above). No money - the buckets carry a count only.
+    AI_MANAGER_CASTRATED_SINGLE = "castrations",
+    AI_MANAGER_CASTRATED_MULTIPLE = "castrations",
+    AI_MANAGER_NAMED_SINGLE = "namings",
+    AI_MANAGER_NAMED_MULTIPLE = "namings",
+    AI_MANAGER_INSEMINATED_SINGLE = "inseminations",
+    AI_MANAGER_INSEMINATED_MULTIPLE = "inseminations",
+    AI_MANAGER_MARK_SELL_SINGLE = "markSales",
+    AI_MANAGER_MARK_SELL_MULTIPLE = "markSales",
+    AI_MANAGER_MARK_CASTRATE_SINGLE = "markCastrations",
+    AI_MANAGER_MARK_CASTRATE_MULTIPLE = "markCastrations",
+    AI_MANAGER_MARK_INSEMINATED_SINGLE = "markInseminations",
+    AI_MANAGER_MARK_INSEMINATED_MULTIPLE = "markInseminations"
 }
+
+-- The new count-only herdsman summary categories in their FIXED emission order (decision 1b):
+-- consolidateDay emits each non-empty bucket as one DAILY_*_SUMMARY with { count, husbandryName },
+-- mirroring DAILY_BIRTHS_SUMMARY. Ordered (not pairs) so the daily messages append deterministically.
+RLMessageAggregator.HERDSMAN_SUMMARY_CATEGORIES = {
+    { category = "castrations",       id = "DAILY_CASTRATIONS_SUMMARY" },
+    { category = "namings",           id = "DAILY_NAMINGS_SUMMARY" },
+    { category = "inseminations",     id = "DAILY_INSEMINATIONS_SUMMARY" },
+    { category = "markSales",         id = "DAILY_MARK_SELL_SUMMARY" },
+    { category = "markCastrations",   id = "DAILY_MARK_CASTRATE_SUMMARY" },
+    { category = "markInseminations", id = "DAILY_MARK_INSEMINATE_SUMMARY" }
+}
+
+-- Membership set derived from the ordered list above, so queueMessage routes the herdsman ids to
+-- the shared count-only accumulate branch (kept in sync automatically - one source of truth).
+RLMessageAggregator.HERDSMAN_SUMMARY_CATEGORY_SET = {}
+for _, entry in ipairs(RLMessageAggregator.HERDSMAN_SUMMARY_CATEGORIES) do
+    RLMessageAggregator.HERDSMAN_SUMMARY_CATEGORY_SET[entry.category] = true
+end
+
+local Log = RmLogging.getLogger("RLRM")
 
 
 function RLMessageAggregator.initialize()
@@ -71,7 +107,15 @@ function RLMessageAggregator.queueMessage(husbandry, id, animal, args, date)
             deaths = { count = 0, reasons = {} },
             sales = { count = 0, totalValue = 0 },
             purchases = { count = 0, totalValue = 0 },
-            overcrowding = { count = 0, totalValue = 0 }
+            overcrowding = { count = 0, totalValue = 0 },
+            -- New herdsman count-only buckets (T5). MUST be initialized here or the first message
+            -- of each category nil-indexes pending.<category>.count below.
+            castrations = { count = 0 },
+            namings = { count = 0 },
+            inseminations = { count = 0 },
+            markSales = { count = 0 },
+            markCastrations = { count = 0 },
+            markInseminations = { count = 0 }
         }
         RLMessageAggregator.pending[husbandry] = pending
     end
@@ -139,6 +183,17 @@ function RLMessageAggregator.queueMessage(husbandry, id, animal, args, date)
 
         pending.purchases.count = pending.purchases.count + count
         pending.purchases.totalValue = pending.purchases.totalValue + value
+
+    elseif RLMessageAggregator.HERDSMAN_SUMMARY_CATEGORY_SET[category] then
+        -- New herdsman count-only categories (T5): the _MULTIPLE ids carry the count in args[1],
+        -- the _SINGLE ids carry none (+1). No money, so just accumulate the count.
+        local count = 1
+        if string.sub(id, -9) == "_MULTIPLE" then
+            count = (args ~= nil and tonumber(args[1])) or 1
+        end
+        pending[category].count = pending[category].count + count
+        Log:trace("RLMessageAggregator: queued %s -> %s (+%d, day total %d)",
+            tostring(id), category, count, pending[category].count)
     end
 end
 
@@ -226,6 +281,18 @@ function RLMessageAggregator.consolidateDay()
                     local moneyStr = g_i18n:formatMoney(pending.purchases.totalValue, 2, true, true)
                     husbandry:addRLMessageDirect("DAILY_PURCHASES_SUMMARY", nil,
                         { tostring(pending.purchases.count), husbandryName, moneyStr })
+                end
+
+                -- New herdsman count-only summaries (T5): one DAILY_*_SUMMARY per non-empty bucket,
+                -- args { count, husbandryName } (no money), in the fixed category order.
+                for _, entry in ipairs(RLMessageAggregator.HERDSMAN_SUMMARY_CATEGORIES) do
+                    local bucket = pending[entry.category]
+                    if bucket ~= nil and bucket.count > 0 then
+                        husbandry:addRLMessageDirect(entry.id, nil,
+                            { tostring(bucket.count), husbandryName })
+                        Log:debug("RLMessageAggregator: daily summary %s count=%d at %s",
+                            entry.id, bucket.count, tostring(husbandryName))
+                    end
                 end
             end
         end

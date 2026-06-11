@@ -229,5 +229,37 @@ RLMessage = {
 		["text"] = "dailyPurchasesSummary",
 		["title"] = "movement",
 		["importance"] = 2
+	},
+	-- New herdsman daily summaries (M-Tick T5, RLRM-408). title="aiManager" groups them with the
+	-- per-op herdsman messages; importance=2 matches the other routine dailies (births/sales).
+	["DAILY_CASTRATIONS_SUMMARY"] = {
+		["text"] = "dailyCastrationsSummary",
+		["title"] = "aiManager",
+		["importance"] = 2
+	},
+	["DAILY_NAMINGS_SUMMARY"] = {
+		["text"] = "dailyNamingsSummary",
+		["title"] = "aiManager",
+		["importance"] = 2
+	},
+	["DAILY_INSEMINATIONS_SUMMARY"] = {
+		["text"] = "dailyInseminationsSummary",
+		["title"] = "aiManager",
+		["importance"] = 2
+	},
+	["DAILY_MARK_SELL_SUMMARY"] = {
+		["text"] = "dailyMarkSellSummary",
+		["title"] = "aiManager",
+		["importance"] = 2
+	},
+	["DAILY_MARK_CASTRATE_SUMMARY"] = {
+		["text"] = "dailyMarkCastrateSummary",
+		["title"] = "aiManager",
+		["importance"] = 2
+	},
+	["DAILY_MARK_INSEMINATE_SUMMARY"] = {
+		["text"] = "dailyMarkInseminateSummary",
+		["title"] = "aiManager",
+		["importance"] = 2
 	}
 }

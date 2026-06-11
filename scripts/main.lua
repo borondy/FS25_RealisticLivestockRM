@@ -154,6 +154,12 @@ source(modDirectory .. "scripts/herdsman/RLHerdsmanPlanner.lua")
 -- no game state at load. Ships DORMANT - no day-tick hook (T4 wires the tick + ctx build).
 source(modDirectory .. "scripts/herdsman/RLHerdsmanExecutor.lua")
 
+-- SECTION 11j2: Herdsman day-tick messages (M-Tick T5). The player-notification readout: a pure
+-- buildMessages (summary.results -> AI_MANAGER_* records) + a thin emit (server-local addRLMessage +
+-- one AIBulkMessageEvent broadcast per husbandry). References AIBulkMessageEvent (SECTION 9) + the
+-- aggregator only at call time, so it loads after 11j and before the 11k tick that invokes emit.
+source(modDirectory .. "scripts/herdsman/RLHerdsmanMessages.lua")
+
 -- SECTION 11k: Herdsman day-tick wiring (M-Tick T4). The tick that fires the planner (11i) ->
 -- executor (11j) once per day server-side: a MessageType.DAY_CHANGED subscriber (registered from
 -- RealisticLivestock_FSBaseMission:onStartMission) assembles the env from g_* and calls the

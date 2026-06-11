@@ -654,6 +654,12 @@
 		<text name="rl_message_dailySalesSummary" text="Sold %s animals at %s for %s"/>
 		<text name="rl_message_dailyOvercrowdingSummary" text="Overcrowding: sold %s newborns at %s for %s"/>
 		<text name="rl_message_dailyPurchasesSummary" text="Bought %s animals at %s for %s"/>
+		<text name="rl_message_dailyCastrationsSummary" text="Castrated %s animals at %s"/>
+		<text name="rl_message_dailyNamingsSummary" text="Named %s animals at %s"/>
+		<text name="rl_message_dailyInseminationsSummary" text="Inseminated %s animals at %s"/>
+		<text name="rl_message_dailyMarkSellSummary" text="Marked %s animals for sale at %s"/>
+		<text name="rl_message_dailyMarkCastrateSummary" text="Marked %s animals for castration at %s"/>
+		<text name="rl_message_dailyMarkInseminateSummary" text="Marked %s animals for insemination at %s"/>
 
 
 

@@ -272,13 +272,20 @@ function RLHerdsmanDayTick.run(env)
                         LOG_PREFIX, tostring(farmId), #enabledRules)
                 end
 
-                local summary = RLHerdsmanExecutor.executeActions(plan, buildExecutorCtx(husbandriesById, env))
+                local execCtx = buildExecutorCtx(husbandriesById, env)
+                local summary = RLHerdsmanExecutor.executeActions(plan, execCtx)
                 local wageByFarm = summary.wageByFarm or {}
 
                 -- Wage readout (DEBUG, surface only - T3 already deducted it; T4 never re-deducts).
                 for fid, wage in pairs(wageByFarm) do
                     Log:debug("%s wage readout: farm=%s wage=%s (deducted by executor)", LOG_PREFIX, tostring(fid), tostring(wage))
                 end
+
+                -- T5 (RLRM-408) OWNS this hook: surface the executed/marked ops as player messages -
+                -- the parity readout legacy AIAnimalManager:onDayChanged emitted. T4's frozen contract
+                -- had no message seam; execCtx (carrying husbandryPlaceablesById - the SAME placeable
+                -- handles T3 dispatched its events against) is in scope right here, after executeActions.
+                RLHerdsmanMessages.emit(summary, execCtx)
 
                 local dispatched = 0
                 for _, row in ipairs(summary.results or {}) do
