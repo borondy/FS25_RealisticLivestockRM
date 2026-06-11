@@ -93,8 +93,8 @@ end
 
 --- Shallow-copy an args array. emit hands the LOCAL sink its own copy because in INDIVIDUAL mode
 --- placeable:addRLMessage forwards to PlaceableHusbandryAnimals:addRLMessageDirect, which
---- tostring-coerces its args IN PLACE; the wire record must keep the pristine args (count as a
---- NUMBER, legacy parity), so the two sinks must never share one table - exactly as
+--- tostring-coerces its args IN PLACE; the wire record must keep its own pristine args table, so
+--- the two sinks must never share one - exactly as
 --- AIAnimalManager:onDayChanged builds two separate arg literals per op. (In SUMMARY mode the
 --- aggregator buckets the message and never calls addRLMessageDirect, so the copy is a harmless
 --- no-op there; the copy is load-bearing only on the individual-mode path.)
@@ -131,7 +131,8 @@ RLHerdsmanMessages.ID_FAMILY       = ID_FAMILY
 ---   5. else                      -> genuine skip (no record)
 --- then count-normalize: n = tonumber(count); nil/non-number or n < 1 -> skip; floor(n) == 1 ->
 --- _SINGLE else _MULTIPLE. Args: sell/buy exec carry money (SINGLE {money}, MULTIPLE {count,money});
---- all others SINGLE {}, MULTIPLE {count}; count is a NUMBER (legacy parity).
+--- all others SINGLE {}, MULTIPLE {count}; the count arg is a STRING (the canonical RL message
+--- arg type), while record.count stays numeric.
 ---@param results table|nil T3 summary.results (array of executor result rows)
 ---@param formatMoney fun(amount:number):string injected money formatter (g_i18n:formatMoney closure)
 ---@return table built { records = {{husbandryId,id,args,mark,count,warn}, ...}, skips = {{row,reason,level}, ...} }
@@ -184,6 +185,10 @@ function RLHerdsmanMessages.buildMessages(results, formatMoney)
                     local count = math.floor(n)         -- fractional (corrupt) -> floor; legacy counts are integers
                     local single = count == 1
                     local id = single and idSet.single or idSet.multiple
+                    -- MULTIPLE messages carry the count as a STRING (the canonical RL message arg
+                    -- type: readStream reads strings, addRLMessageDirect tostring-coerces, the
+                    -- savegame uses setString); SINGLE omits it. record.count below stays numeric.
+                    local fmtCount = string.format("%d", count)
                     local args, warn
 
                     if isMoney then
@@ -199,9 +204,9 @@ function RLHerdsmanMessages.buildMessages(results, formatMoney)
                             warn = "nil/non-number amount on dispatched " .. tostring(op)
                                 .. " (husbandry=" .. tostring(row.husbandryId) .. ") - formatted 0"
                         end
-                        args = single and { money } or { count, money }
+                        args = single and { money } or { fmtCount, money }
                     else
-                        args = single and {} or { count }
+                        args = single and {} or { fmtCount }
                     end
 
                     records[#records + 1] = {
@@ -284,7 +289,7 @@ function RLHerdsmanMessages.emit(summary, ctx)
             local wireMessages = {}
             for _, rec in ipairs(recs) do
                 -- Local sink gets its OWN args copy (addRLMessageDirect mutates in place); the wire
-                -- record keeps the pristine args (count as a NUMBER) - legacy's two-table pattern.
+                -- record keeps its own pristine args table - legacy's two-table pattern.
                 placeable:addRLMessage(rec.id, nil, copyArgs(rec.args))
                 wireMessages[#wireMessages + 1] = { id = rec.id, args = rec.args }
 

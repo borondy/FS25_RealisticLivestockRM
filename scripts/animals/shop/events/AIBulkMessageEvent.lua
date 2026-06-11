@@ -65,7 +65,21 @@ function AIBulkMessageEvent:writeStream(streamId, connection)
 		streamWriteString(streamId, message.id)
 		streamWriteUInt8(streamId, #message.args)
 
-		for j = 1, #message.args do streamWriteString(streamId, message.args[j]) end
+		-- Coerce each arg to a string at the wire boundary. RL message args are canonically
+		-- strings everywhere they serialize (readStream reads them as strings;
+		-- addRLMessageDirect tostring-coerces; the savegame uses setString) - but the engine's
+		-- streamWriteString does NOT coerce a number, it throws. This one chokepoint keeps every
+		-- caller safe (RLHerdsmanMessages and legacy AIAnimalManager alike). A non-string,
+		-- non-number arg is a corrupt caller: WARN, then still coerce so the broadcast survives.
+		for j = 1, #message.args do
+			local arg = message.args[j]
+			local argType = type(arg)
+			if argType ~= "string" and argType ~= "number" then
+				Log:warning("AIBulkMessageEvent:writeStream: message '%s' arg %d is a %s (expected string/number) - coercing via tostring",
+					tostring(message.id), j, argType)
+			end
+			streamWriteString(streamId, tostring(arg))
+		end
 
 	end
 
