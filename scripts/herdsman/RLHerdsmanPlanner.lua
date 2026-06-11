@@ -4,7 +4,8 @@
 --
 -- `planActions(rules, ctx)` decides WHICH animals each enabled rule acts on, in run
 -- order, threading cross-rule claims + a farm-scoped money ledger + a planner-wide dewar
--- straw ledger, and returns ordered intended-action records. The surprising part - sequential
+-- straw ledger + a per-husbandry free-slot ledger, and returns ordered intended-action
+-- records. The surprising part - sequential
 -- state threading across rules - is isolated here in one 100% headless module: data in, data
 -- out. `planActions` reads no `g_*` and MUST NOT mutate `rules`, `ctx`, or any animal / dewar
 -- table (internal bookkeeping copies only). The ONLY engine calls are the REAL primitives
@@ -18,7 +19,7 @@
 --
 -- ctx contract (T4 builds it in-game; tests fabricate it from real Animals):
 --   ctx = {
---     husbandries         = { [uniqueId] = { animalTypeIndex = n, animals = { Animal, ... } } },
+--     husbandries         = { [uniqueId] = { animalTypeIndex = n, animals = { Animal, ... }, freeSlots = n } },
 --     dealerAnimalsByType = { [animalTypeIndex] = { Animal, ... } },
 --     filtersById         = { [filterId] = filterRecord },
 --     animalSystem        = <real AnimalSystem>,           -- getAnimalTransportFee (DI; T2a)
@@ -31,6 +32,11 @@
 -- claims dealer animals via `animal.reserved`). The planner filters `enabled` itself.
 -- `farmBalanceByFarmId` + `dewarsByFarmId` are keyed by `rule.farmId` (the rule's owning farm);
 -- the `farmId` value type MUST match the table key type or both silently read empty.
+-- `freeSlots` is the destination husbandry's total free animal-slot count (T4 sources
+-- `placeable:getNumOfFreeAnimalSlots()`); the Buy branch caps selection on it (one animal == one
+-- slot, mirroring `AIAnimalBuyEvent.validate`'s space gate) via a per-husbandry slot ledger seeded
+-- once, credited by an executed sell's count, debited by a buy's count. Only Buy requires it; other
+-- ops tolerate a nil `freeSlots` (a sell on such a husbandry just skips its slot credit).
 --
 -- Action records, emitted in run order (operation rank, then within an op
 -- `compareRulesByName`; within a rule, targets in lexicographic uniqueId order):
@@ -368,6 +374,18 @@ function RLHerdsmanPlanner.planActions(rules, ctx)
     local ledgerSeeded = {}
     local warnedHusbandries = {}
     local warnedAnimals = {}
+    --   slotLedger[uid]           - running free-slot projection per husbandry uid (the slot analog of
+    --     the farm money ledger): seeded once from ctx.husbandries[uid].freeSlots (finite, floored),
+    --     credited by an executed sell's count, debited by a buy's count. nil = unseeded OR seeded to a
+    --     missing/non-finite value (a buy then fails closed, mirroring the nil-balance posture).
+    --   slotLedgerSeeded[uid]     - idempotency marker so a credit/debit is never overwritten by a re-seed.
+    --   slotSeed[uid]             - the original floored seed, kept to distinguish the two buy no-op
+    --     causes: seed <= 0 is a full barn (seed-zero); seed > 0 with remaining <= 0 is ledger-exhausted.
+    --   warnedSlots[uid]          - per-call dedup for the missing/non-finite freeSlots buy WARNING.
+    local slotLedger = {}
+    local slotLedgerSeeded = {}
+    local slotSeed = {}
+    local warnedSlots = {}
     --   warnedDewars[dewar]       - per-call dedup for the malformed-sire / nil-uniqueId dewar WARNING.
     --   dewarStrawLedger[dewar]   - planner-wide straw projection keyed by dewar IDENTITY (table ref),
     --     seeded lazily from d.straws and threaded across ALL AI rules in run order (the AI analog of
@@ -433,6 +451,29 @@ function RLHerdsmanPlanner.planActions(rules, ctx)
             ledgerSeeded[farmId] = true
             local v = farmBalanceByFarmId[farmId]
             if type(v) == "number" then ledger[farmId] = v end
+        end
+    end
+
+    --- Seed the per-husbandry free-slot ledger exactly once from ctx.husbandries[uid].freeSlots
+    --- (the slot analog of seedLedger). Only a FINITE number seeds (floored to an integer slot
+    --- count); a missing / non-number / non-finite (NaN, +-inf) value leaves slotLedger[uid] nil ->
+    --- a buy then fails closed (the space-gate WARN). A fabricated negative IS seeded (floored, so
+    --- it stays negative) so the buy gate takes the full-barn no-op path, not a WARN. slotSeed
+    --- records the original seed (full-barn vs ledger-exhausted no-op distinction). Idempotent so an
+    --- executed sell's credit + a buy's debit are never overwritten by a re-seed.
+    ---@param uid string
+    local function seedSlotLedger(uid)
+        if not slotLedgerSeeded[uid] then
+            slotLedgerSeeded[uid] = true
+            local h = husbandries[uid]
+            local v = type(h) == "table" and h.freeSlots or nil
+            -- Finite check: NaN ~= NaN; +-inf compare equal to math.huge / -math.huge. Only a finite
+            -- number seeds; everything else leaves the ledger nil (buy fails closed).
+            if type(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge then
+                local floored = math.floor(v)
+                slotLedger[uid] = floored
+                slotSeed[uid] = floored
+            end
         end
     end
 
@@ -678,6 +719,16 @@ function RLHerdsmanPlanner.planActions(rules, ctx)
                                     if type(ledger[rule.farmId]) == "number" then
                                         ledger[rule.farmId] = ledger[rule.farmId] + amountGained
                                     end
+                                    -- Executed sell frees engine slots synchronously (T3 dispatches
+                                    -- sendLocal in plan order), so credit THIS husbandry's free-slot
+                                    -- ledger by the sold count - a later buy here can fill them. Only a
+                                    -- SEEDED ledger is credited; a husbandry with nil freeSlots (never a
+                                    -- buy target) skips the credit silently (mirror the money-ledger
+                                    -- sell-credit nil guard); a marked sell credits nothing (this block).
+                                    seedSlotLedger(uid)
+                                    if type(slotLedger[uid]) == "number" then
+                                        slotLedger[uid] = slotLedger[uid] + n
+                                    end
                                 end
                                 actions[#actions + 1] = action
                             end
@@ -701,81 +752,113 @@ function RLHerdsmanPlanner.planActions(rules, ctx)
                     for _, uid in ipairs(targets) do
                         local h = resolveHusbandry(uid)
                         if h ~= nil then
-                            seedLedger(rule.farmId)
-                            local balance = ledger[rule.farmId]
-                            if type(balance) ~= "number" then
-                                -- nil farm balance -> fail closed (mirror T1's nil-identity posture).
-                                Log:warning("%s rule=%s op=buy husbandry=%s skipped: nil farm balance (ledger[%s])",
-                                    LOG_PREFIX, tostring(rule.id), tostring(uid), tostring(rule.farmId))
-                            elseif balance <= 0 then
-                                -- Zero / negative balance -> no-op. MUST gate BEFORE math.clamp:
-                                -- the real engine math.clamp RAISES on max < min (clamp(_, 0, <0)),
-                                -- so a negative balance must never reach it (the headless IMPL is
-                                -- lenient and masked this; filed as a lib-fidelity follow-up).
-                                Log:debug("%s rule=%s op=buy husbandry=%s no-op: balance <= 0 (%.2f)",
-                                    LOG_PREFIX, tostring(rule.id), tostring(uid), balance)
+                            -- SPACE gate BEFORE the money gate (mirror AIAnimalBuyEvent.validate -
+                            -- space then money). seedSlotLedger reads ctx.husbandries[uid].freeSlots
+                            -- once; the running slot count threads executed-sell credits + buy debits,
+                            -- so a same-tick sell frees barn space before a later buy fills it.
+                            seedSlotLedger(uid)
+                            local slotsRemaining = slotLedger[uid]
+                            if slotsRemaining == nil then
+                                -- Missing / non-number / non-finite freeSlots at a buy target -> fail
+                                -- closed (skip + WARN, deduped per uid). T4 sources freeSlots
+                                -- unconditionally; a nil here is fabricated / test ctx.
+                                if not warnedSlots[uid] then
+                                    Log:warning("%s rule=%s op=buy husbandry=%s skipped: missing/non-finite freeSlots - fail closed",
+                                        LOG_PREFIX, tostring(rule.id), tostring(uid))
+                                    warnedSlots[uid] = true
+                                end
+                            elseif slotsRemaining <= 0 then
+                                -- No space: full barn (seed <= 0) vs ledger-exhausted (an earlier buy
+                                -- on THIS husbandry consumed every slot this tick) - distinct causes.
+                                if slotSeed[uid] <= 0 then
+                                    Log:debug("%s rule=%s op=buy husbandry=%s no-op: full barn (freeSlots <= 0: %d)",
+                                        LOG_PREFIX, tostring(rule.id), tostring(uid), slotsRemaining)
+                                else
+                                    Log:debug("%s rule=%s op=buy husbandry=%s no-op: slot ledger exhausted by earlier buys (seed=%d)",
+                                        LOG_PREFIX, tostring(rule.id), tostring(uid), slotSeed[uid])
+                                end
                             else
-                                local budget = (budgetType == "percentage")
-                                    and math.floor(balance * budgetPct / 100) or budgetFixed
-                                budget = math.clamp(budget, 0, balance)   -- balance > 0 here -> clamp safe
-                                if budget <= 0 then
-                                    -- A 0% percentage (or a fixed budget that floors to 0) on a
-                                    -- positive balance -> no-op this target.
-                                    Log:debug("%s rule=%s op=buy husbandry=%s no-op: budget <= 0 (balance=%.2f)",
+                                seedLedger(rule.farmId)
+                                local balance = ledger[rule.farmId]
+                                if type(balance) ~= "number" then
+                                    -- nil farm balance -> fail closed (mirror T1's nil-identity posture).
+                                    Log:warning("%s rule=%s op=buy husbandry=%s skipped: nil farm balance (ledger[%s])",
+                                        LOG_PREFIX, tostring(rule.id), tostring(uid), tostring(rule.farmId))
+                                elseif balance <= 0 then
+                                    -- Zero / negative balance -> no-op. MUST gate BEFORE math.clamp:
+                                    -- the real engine math.clamp RAISES on max < min (clamp(_, 0, <0)),
+                                    -- so a negative balance must never reach it (the headless IMPL is
+                                    -- lenient and masked this; filed as a lib-fidelity follow-up).
+                                    Log:debug("%s rule=%s op=buy husbandry=%s no-op: balance <= 0 (%.2f)",
                                         LOG_PREFIX, tostring(rule.id), tostring(uid), balance)
                                 else
-                                    local typeIdx = h.animalTypeIndex
-                                    local pool = dealerPool(typeIdx)
-                                    local candidates = #pool   -- BEFORE filter + affordability
-                                    local matched = matchFromPool(pool, filter, false, claimed)
-                                    -- Affordable shortlist (price <= budget); S = shortlist size.
-                                    local shortlist = {}
-                                    for _, a in ipairs(matched) do
-                                        if not isPriceableAnimal(a, false) then
-                                            warnNotPriceable(a)
-                                        else
-                                            local p = priceOf(a, BUY_MARKUP)
-                                            if p <= budget then
-                                                shortlist[#shortlist + 1] = { animal = a, price = p, key = animalKey(a) }
+                                    local budget = (budgetType == "percentage")
+                                        and math.floor(balance * budgetPct / 100) or budgetFixed
+                                    budget = math.clamp(budget, 0, balance)   -- balance > 0 here -> clamp safe
+                                    if budget <= 0 then
+                                        -- A 0% percentage (or a fixed budget that floors to 0) on a
+                                        -- positive balance -> no-op this target.
+                                        Log:debug("%s rule=%s op=buy husbandry=%s no-op: budget <= 0 (balance=%.2f)",
+                                            LOG_PREFIX, tostring(rule.id), tostring(uid), balance)
+                                    else
+                                        local typeIdx = h.animalTypeIndex
+                                        local pool = dealerPool(typeIdx)
+                                        local candidates = #pool   -- BEFORE filter + affordability
+                                        local matched = matchFromPool(pool, filter, false, claimed)
+                                        -- Affordable shortlist (price <= budget); S = shortlist size.
+                                        local shortlist = {}
+                                        for _, a in ipairs(matched) do
+                                            if not isPriceableAnimal(a, false) then
+                                                warnNotPriceable(a)
+                                            else
+                                                local p = priceOf(a, BUY_MARKUP)
+                                                if p <= budget then
+                                                    shortlist[#shortlist + 1] = { animal = a, price = p, key = animalKey(a) }
+                                                end
                                             end
                                         end
-                                    end
-                                    local S = #shortlist
-                                    table.sort(shortlist, function(x, y)
-                                        if x.price ~= y.price then return x.price < y.price end
-                                        return x.key < y.key
-                                    end)
-                                    local selected, selectedKeys, amountSpent = {}, {}, 0
-                                    local remaining = budget
-                                    for _, item in ipairs(shortlist) do
-                                        -- Strict `>`: a candidate priced exactly at the remainder IS bought.
-                                        if item.price > remaining or #selected >= maxN then break end
-                                        selected[#selected + 1] = item.animal
-                                        selectedKeys[item.key] = true
-                                        amountSpent = amountSpent + item.price
-                                        remaining = remaining - item.price
-                                    end
-                                    local n = #selected
-                                    local W = wageFor(typeIdx)
-                                    local wage = W * n + W * math.min(S, n * 5) * 0.15
-                                    -- `matched` distinguishes the three Buy no-op causes (T8.1):
-                                    -- matched=0 filter-empty; matched>0 & affordable=0 all-unaffordable;
-                                    -- affordable>0 & selected<cap budget-consumed mid-loop.
-                                    Log:debug("%s rule=%s op=buy husbandry=%s candidates=%d matched=%d affordable=%d selected=%d budgetAtEntry=%.2f amountSpent=%.2f wage=%.2f",
-                                        LOG_PREFIX, tostring(rule.id), tostring(uid), candidates, #matched, S, n, budget, amountSpent, wage)
-                                    if n > 0 then
-                                        -- Remove bought from the dealer pool; claim same-op; append
-                                        -- to the destination owned pool (cross-op visible); debit the
-                                        -- ledger so a later same-farm buy can't double-spend.
-                                        dealerRemaining[typeIdx] = poolMinus(pool, selectedKeys)
-                                        claimAll(claimed, selected)
-                                        local destPool = ownedPool(uid)
-                                        if destPool ~= nil then
-                                            for _, a in ipairs(selected) do destPool[#destPool + 1] = a end
+                                        local S = #shortlist
+                                        table.sort(shortlist, function(x, y)
+                                            if x.price ~= y.price then return x.price < y.price end
+                                            return x.key < y.key
+                                        end)
+                                        local selected, selectedKeys, amountSpent = {}, {}, 0
+                                        local remaining = budget
+                                        for _, item in ipairs(shortlist) do
+                                            -- Three break conditions: budget (strict `>`, so a candidate
+                                            -- priced exactly at the remainder IS bought), the maxAnimals
+                                            -- cap, and free slots (one animal == one slot). slotsRemaining
+                                            -- is the ledger value at this target's entry.
+                                            if item.price > remaining or #selected >= maxN or #selected >= slotsRemaining then break end
+                                            selected[#selected + 1] = item.animal
+                                            selectedKeys[item.key] = true
+                                            amountSpent = amountSpent + item.price
+                                            remaining = remaining - item.price
                                         end
-                                        ledger[rule.farmId] = ledger[rule.farmId] - amountSpent
-                                        actions[#actions + 1] = { ruleId = rule.id, operation = "buy", husbandryId = uid,
-                                            animals = selected, amountSpent = amountSpent, wage = wage }
+                                        local n = #selected
+                                        local W = wageFor(typeIdx)
+                                        local wage = W * n + W * math.min(S, n * 5) * 0.15
+                                        -- `matched` distinguishes the three Buy no-op causes (T8.1):
+                                        -- matched=0 filter-empty; matched>0 & affordable=0 all-unaffordable;
+                                        -- affordable>0 & selected<cap budget-OR-slot-consumed mid-loop.
+                                        Log:debug("%s rule=%s op=buy husbandry=%s candidates=%d matched=%d affordable=%d selected=%d slotsAtEntry=%d budgetAtEntry=%.2f amountSpent=%.2f wage=%.2f",
+                                            LOG_PREFIX, tostring(rule.id), tostring(uid), candidates, #matched, S, n, slotsRemaining, budget, amountSpent, wage)
+                                        if n > 0 then
+                                            -- Remove bought from the dealer pool; claim same-op; append
+                                            -- to the destination owned pool (cross-op visible); debit the
+                                            -- money ledger (no double-spend) AND the slot ledger (the
+                                            -- destination has n fewer free slots for a later buy).
+                                            dealerRemaining[typeIdx] = poolMinus(pool, selectedKeys)
+                                            claimAll(claimed, selected)
+                                            local destPool = ownedPool(uid)
+                                            if destPool ~= nil then
+                                                for _, a in ipairs(selected) do destPool[#destPool + 1] = a end
+                                            end
+                                            ledger[rule.farmId] = ledger[rule.farmId] - amountSpent
+                                            slotLedger[uid] = slotLedger[uid] - n
+                                            actions[#actions + 1] = { ruleId = rule.id, operation = "buy", husbandryId = uid,
+                                                animals = selected, amountSpent = amountSpent, wage = wage }
+                                        end
                                     end
                                 end
                             end

@@ -151,7 +151,8 @@ local function clearStaleMarks(enabledRules, husbandriesById, server)
 end
 
 --- Shape the FROZEN planner ctx (T1 + T2a/b/c) for ONE farm: husbandries keyed by uniqueId with
---- their type + live clusters, the reserved-excluded dealer pool (built once per type, re-read
+--- their type + live clusters + free animal-slot count (the planner's Buy space cap), the
+--- reserved-excluded dealer pool (built once per type, re-read
 --- freshly per farm), the farm-scoped balance ledger seed, and the materialized dewar pool
 --- (raw dewar OBJECT -> { animal, straws, uniqueId } - the planner's per-T2c nil-guards filter,
 --- T4 materializes faithfully). filtersById + the service refs pass straight through from env.
@@ -169,6 +170,10 @@ local function buildPlannerCtx(farm, husbandriesById, env)
         husbandries[uid] = {
             animalTypeIndex = typeIndex,
             animals = placeable:getClusters(),
+            -- The planner's Buy slot cap: total free animal slots (no-arg, mirrors
+            -- AIAnimalBuyEvent.validate's space gate). Unguarded spec-method call, same posture as
+            -- getAnimalTypeIndex/getClusters above; the subscriber's safeCall wrap is the isolation boundary.
+            freeSlots = placeable:getNumOfFreeAnimalSlots(),
         }
         -- Reserved-exclusion is parity-critical (legacy AIAnimalManager claims dealer animals
         -- via animal.reserved). Memoized across same-type husbandries on this farm.
