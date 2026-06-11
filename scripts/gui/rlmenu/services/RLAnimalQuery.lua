@@ -63,44 +63,48 @@ function RLAnimalQuery.formatHusbandryLabel(husbandry, fallbackIndex)
     return name
 end
 
---- Project the farm's live husbandries into plain `{ uniqueId, animalType, name }`
---- descriptors for the F6 husbandry picker + the pure target gate (RLHerdsmanRulePresenter).
---- Reuses listHusbandriesForFarm (one enumeration source, already name-sorted) so the picker
---- cannot drift from the Info tab (M12). `uniqueId` is the placeable's getUniqueId() (the
---- persisted target key); `animalType` is getAnimalTypeIndex() (nil for a not-fully-loaded /
---- non-animal placeable - the pure gate excludes nil-type from typed lists, H6); `name` uses
---- the formatHusbandryLabel "Husbandry N" fallback so the picker + sort never see an empty
---- label. A husbandry whose uniqueId is nil / non-string / empty is SKIPPED (it could never
---- round-trip as a stored target) + warned. Returns a fresh array (empty for nil / farmless).
+--- Project the farm's live husbandries into plain `{ uniqueId, animalType, name }` descriptors for
+--- the F6 husbandry picker + the pure target gate (RLHerdsmanRulePresenter). Reuses
+--- listHusbandriesForFarm (one enumeration source, already name-sorted) so the picker cannot drift
+--- from the Info tab (M12). The `uniqueId` field holds the STABLE TARGET KEY from
+--- RLHusbandryTargetKey.keyFor (the placeable's uniqueId on server/host, its net-object-id on a pure
+--- client) - the field name is kept because the picker / presenter / wire treat it as one opaque
+--- unique string, and keying it the SAME way the decoded targets are keyed is what makes the
+--- picker's pre-check match. `animalType` is getAnimalTypeIndex() (nil for a not-fully-loaded /
+--- non-animal placeable - the pure gate excludes nil-type from typed lists, H6); `name` uses the
+--- formatHusbandryLabel "Husbandry N" fallback so the picker + sort never see an empty label. A
+--- husbandry with no usable key (keyFor returns nil + :warning) is SKIPPED (it could never
+--- round-trip as a stored target). Returns a fresh array (empty for nil / farmless).
 ---@param farmId number|nil
----@return table descriptors array of { uniqueId = string, animalType = number|nil, name = string }
+---@return table descriptors array of { uniqueId = string, animalType = number|nil, name = string } (uniqueId = stable target key)
 function RLAnimalQuery.listHusbandryDescriptorsForFarm(farmId)
     local placeables = RLAnimalQuery.listHusbandriesForFarm(farmId)
     local descriptors = {}
     local skipped = 0
     for i, placeable in ipairs(placeables) do
-        local uniqueId = placeable.getUniqueId ~= nil and placeable:getUniqueId() or nil
-        if type(uniqueId) ~= "string" or uniqueId == "" then
+        local key = RLHusbandryTargetKey.keyFor(placeable)
+        if type(key) ~= "string" or key == "" then
+            -- keyFor already :warning'd the unkeyable placeable (nil/empty uniqueId on server,
+            -- nil/0 net-object-id on a pure client); just count it for the summary.
             skipped = skipped + 1
-            Log:warning("RLAnimalQuery.listHusbandryDescriptorsForFarm: husbandry '%s' has no usable uniqueId (%s); skipped",
-                RLAnimalQuery.formatHusbandryLabel(placeable, i), tostring(uniqueId))
         else
             local animalType = placeable.getAnimalTypeIndex ~= nil and placeable:getAnimalTypeIndex() or nil
             if animalType == nil then
                 -- H6: a nil-type husbandry (not-fully-loaded / non-animal placeable) is excluded
                 -- from typed picker lists by the pure gate and never matches the castrate
                 -- exclusion; log it per-case so its disappearance from the picker is traceable.
-                Log:debug("RLAnimalQuery.listHusbandryDescriptorsForFarm: husbandry '%s' (uniqueId=%s) has nil animalType; excluded from typed lists (H6)",
-                    RLAnimalQuery.formatHusbandryLabel(placeable, i), tostring(uniqueId))
+                Log:debug("RLAnimalQuery.listHusbandryDescriptorsForFarm: husbandry '%s' (key=%s) has nil animalType; excluded from typed lists (H6)",
+                    RLAnimalQuery.formatHusbandryLabel(placeable, i), tostring(key))
             end
             descriptors[#descriptors + 1] = {
-                uniqueId   = uniqueId,
+                -- field name kept (picker/presenter domain); value is the stable target key.
+                uniqueId   = key,
                 animalType = animalType,
                 name       = RLAnimalQuery.formatHusbandryLabel(placeable, i),
             }
         end
     end
-    Log:debug("RLAnimalQuery.listHusbandryDescriptorsForFarm: farmId=%s -> %d descriptor(s), %d skipped (no uniqueId)",
+    Log:debug("RLAnimalQuery.listHusbandryDescriptorsForFarm: farmId=%s -> %d descriptor(s), %d skipped (no usable target key)",
         tostring(farmId), #descriptors, skipped)
     return descriptors
 end

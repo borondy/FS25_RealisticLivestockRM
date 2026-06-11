@@ -1,9 +1,11 @@
 -- RLHerdsmanHusbandryPickerDialog.lua
--- Multi-select modal that picks the husbandry targets for a herdsman rule (F6, RLRM-388).
+-- Multi-select modal that picks the husbandry targets for a herdsman rule (F6).
 -- The Herdsman frame computes the animalType-gated, name-sorted candidate descriptors and
 -- the rule's current targets, then passes both in; this dialog is presentation-only - it
--- renders the checkbox list, tracks per-uniqueId selection, and returns the chosen uniqueId
--- array (or nil on cancel) to the caller.
+-- renders the checkbox list, tracks selection keyed by the descriptor's stable target key, and
+-- returns the chosen key array (or nil on cancel) to the caller. That key is an opaque unique
+-- string - a placeable uniqueId on server/host, its net-object-id on a pure client (see
+-- RLHusbandryTargetKey) - which this dialog never interprets, so the same code serves both.
 --
 -- ADAPTS (does not verbatim-mirror) RLFilterValueSetDialog: the checkbox cell binding,
 -- select-all, the RL_SELECT/MENU_ACTIVATE action events + onClose cleanup, the
@@ -46,12 +48,12 @@ function RLHerdsmanHusbandryPickerDialog.new(target, customMt)
 end
 
 --- Static entry point. The frame passes the already animalType-gated + name-sorted candidate
---- descriptors and the rule's current target uniqueIds (pre-checked; targets not in the
---- candidate list - out-of-scope or unresolvable - render no row but are PRESERVED on commit).
----@param callback function fn(target, uniqueIds|nil) - chosen uniqueId array on OK, nil on cancel
+--- descriptors and the rule's current target keys (pre-checked; targets not in the candidate list -
+--- out-of-scope or unresolvable - render no row but are PRESERVED on commit).
+---@param callback function fn(target, keys|nil) - chosen target-key array on OK, nil on cancel
 ---@param target table callback target (the Herdsman frame)
----@param candidates table[] candidate descriptors { uniqueId, animalType, name }, scoped + sorted by the frame
----@param currentTargets table|nil the rule's current target uniqueId strings (pre-checked)
+---@param candidates table[] candidate descriptors { uniqueId, animalType, name } (uniqueId = stable target key), scoped + sorted by the frame
+---@param currentTargets table|nil the rule's current target keys (pre-checked)
 function RLHerdsmanHusbandryPickerDialog.show(callback, target, candidates, currentTargets)
     if RLHerdsmanHusbandryPickerDialog.INSTANCE == nil then
         RLHerdsmanHusbandryPickerDialog.register()

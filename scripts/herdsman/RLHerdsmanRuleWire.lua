@@ -20,14 +20,17 @@
 -- an empty/whitespace filterId from ever being created, so "" on the wire is unambiguously a
 -- nil draft, and a crafted whitespace token stays verbatim for the receiver floor to reject.
 --
--- targetHusbandries is a node-object list, not a uniqueId-string list. The engine
--- maintains a stable cross-machine node id per placeable, so each target resolves
--- string -> live placeable on write (g_currentMission.placeableSystem) and back to
--- string on read (placeable:getUniqueId). A uniqueId that does not resolve to a live
--- placeable on write is skipped (the count reflects only what is written, so the
--- stream stays aligned); a node-object that does not resolve on read is skipped
--- likewise. Both emit :warning. This is the one field that can transiently diverge on
--- the create hop -- bounded, and reconciled by the later state-sync slice.
+-- targetHusbandries travels as a node-object list (NetworkUtil.write/readNodeObject), NEVER as a
+-- string list - the node-object id is the only placeable handle stable across machines. The STORED
+-- string key is context-dependent (RLHusbandryTargetKey): server/host/dedi key by the persisted
+-- uniqueId, a pure client by the net-object-id - because getUniqueId() is a savegame identifier the
+-- engine streams to a client ONLY for preplaced barns; a player-bought barn streams none, so a
+-- uniqueId-keyed target can never match on a client. writeTargets maps key -> live placeable
+-- (RLHusbandryTargetKey.resolve), readTargets maps the decoded placeable -> key
+-- (RLHusbandryTargetKey.keyFor). An unresolvable key on write / an unkeyable placeable on read is
+-- skipped (the count reflects only what is written, so the stream stays aligned), both with a
+-- :warning. This is the one field that can transiently diverge - bounded, reconciled by the later
+-- state-sync.
 --
 -- The operation token precedes the params block, so writer and reader take the
 -- identical "is there a codec for this operation?" branch: an unknown operation
@@ -142,26 +145,28 @@ RLHerdsmanRuleWire._PARAMS_WIRE_CODECS = PARAMS_WIRE_CODECS
 -- targetHusbandries node-object list IO
 -- =============================================================================
 
---- Write the rule's target husbandries as a UInt16 count followed by one
---- node-object per resolvable target. Each stored uniqueId is resolved to a live
---- placeable via the placeable system; a uniqueId with no live placeable is skipped
---- with a `:warning` and the count reflects only what is written, so the read side
---- stays byte-aligned.
+--- Write the rule's target husbandries as a UInt16 count followed by one node-object per resolvable
+--- target. Each stored key (uniqueId on server, net-object-id on a pure client) is resolved to a
+--- live husbandry placeable via RLHusbandryTargetKey.resolve; a key with no live placeable is
+--- skipped with a `:warning` and the count reflects only what is written, so the read side stays
+--- byte-aligned.
 ---@param streamId number
----@param targets string[] stored target uniqueId strings (dense array)
+---@param targets string[] stored target key strings (uniqueId server / net-object-id client; dense array)
 ---@param ruleId any rule id, for log context only
 local function writeTargets(streamId, targets, ruleId)
-    local placeableSystem = g_currentMission ~= nil and g_currentMission.placeableSystem or nil
-
     local resolved = {}
     if type(targets) == "table" then
-        for _, uniqueId in ipairs(targets) do
-            local placeable = placeableSystem ~= nil and placeableSystem:getPlaceableByUniqueId(uniqueId) or nil
+        for _, key in ipairs(targets) do
+            local placeable = RLHusbandryTargetKey.resolve(key)
             if placeable ~= nil then
                 resolved[#resolved + 1] = placeable
             else
-                Log:warning("RLHerdsmanRuleWire.writeTargets: rule id=%s target uniqueId '%s' does not resolve to a live placeable; skipping (count excludes it)",
-                    tostring(ruleId), tostring(uniqueId))
+                -- A stored target whose placeable no longer resolves drops from the flushed set (the
+                -- count reflects only what is written). On a client this is the bounded residual: a
+                -- barn deleted between a join-time decode and this re-send narrows the set, and the
+                -- server replaces with the narrowed set. Loud + bounded, never silent.
+                Log:warning("RLHerdsmanRuleWire.writeTargets: rule id=%s target key '%s' does not resolve to a live husbandry placeable; dropping it from the flushed set (count excludes it; bounded residual)",
+                    tostring(ruleId), tostring(key))
             end
         end
     end
@@ -175,14 +180,14 @@ local function writeTargets(streamId, targets, ruleId)
         tostring(ruleId), #resolved, type(targets) == "table" and #targets or 0)
 end
 
---- Read the target husbandries: a UInt16 count, then one node-object per entry,
---- each mapped back to its uniqueId. A node-object that does not resolve to a live
---- placeable on this machine (or whose uniqueId is nil) is skipped with a `:warning`;
---- `readNodeObject` always consumes its fixed-width id, so the stream stays aligned
---- regardless. Order is preserved.
+--- Read the target husbandries: a UInt16 count, then one node-object per entry, each mapped back to
+--- its context key (uniqueId on server, net-object-id on a pure client) via RLHusbandryTargetKey.keyFor.
+--- A node-object that does not resolve to a live placeable on this machine, or a placeable that is
+--- unkeyable (keyFor returns nil + :warning), is skipped; `readNodeObject` always consumes its
+--- fixed-width id, so the stream stays aligned regardless. Order is preserved.
 ---@param streamId number
 ---@param ruleId any rule id, for log context only
----@return string[] targets resolved uniqueId strings in wire order
+---@return string[] targets resolved target key strings in wire order
 local function readTargets(streamId, ruleId)
     local count = streamReadUInt16(streamId)
     local targets = {}
@@ -192,12 +197,12 @@ local function readTargets(streamId, ruleId)
             Log:warning("RLHerdsmanRuleWire.readTargets: rule id=%s target %d/%d did not resolve to a live placeable on read; skipping (bounded, state-sync reconciled)",
                 tostring(ruleId), i, count)
         else
-            local uniqueId = placeable:getUniqueId()
-            if uniqueId == nil or uniqueId == "" then
-                Log:warning("RLHerdsmanRuleWire.readTargets: rule id=%s target %d/%d resolved a placeable with nil/empty uniqueId; skipping",
-                    tostring(ruleId), i, count)
-            else
-                targets[#targets + 1] = uniqueId
+            -- Context-keyed: server stores the uniqueId, a pure client the net-object-id (the only
+            -- handle a bought barn streams). keyFor fails closed (nil + :warning) on an unkeyable
+            -- placeable, so the stored target count reflects only the keyable ones.
+            local key = RLHusbandryTargetKey.keyFor(placeable)
+            if key ~= nil then
+                targets[#targets + 1] = key
             end
         end
     end

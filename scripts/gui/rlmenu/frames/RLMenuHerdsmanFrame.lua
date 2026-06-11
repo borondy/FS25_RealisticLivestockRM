@@ -88,15 +88,14 @@ local function resolveFilterById(filterId)
 end
 
 --- Injected husbandry-name resolver for getHusbandrySummary / formatHusbandryButtonLabel.
---- NIL-GUARDED: a deleted / stale placeable returns nil (NOT a crash) so the presenter
---- substitutes labels.missing.
----@param uid any placeable uniqueId
+--- Resolves the rule's stored target key (uniqueId on server, net-object-id on a pure client) via
+--- RLHusbandryTargetKey.resolve. NIL-GUARDED: a deleted / stale / unresolvable key returns nil (NOT
+--- a crash) so the presenter substitutes labels.missing - resolve stays quiet on a clean not-found,
+--- so this render-path resolver does not spam the log.
+---@param key any stable target key (uniqueId server / net-object-id client)
 ---@return string|nil placeable name
-local function resolvePlaceableName(uid)
-    local mission = g_currentMission
-    local ps = mission ~= nil and mission.placeableSystem or nil
-    if ps == nil or ps.getPlaceableByUniqueId == nil then return nil end
-    local placeable = ps:getPlaceableByUniqueId(uid)
+local function resolvePlaceableName(key)
+    local placeable = RLHusbandryTargetKey.resolve(key)
     if placeable == nil or placeable.getName == nil then return nil end
     return placeable:getName()
 end

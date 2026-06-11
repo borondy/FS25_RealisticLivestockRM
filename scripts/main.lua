@@ -133,7 +133,10 @@ source(modDirectory .. "scripts/utils/RLQuickFilterToSavedFilter.lua")
 -- service (mirrors 11g): the service's saveToXMLFile/loadFromXMLFile call into
 -- RLHerdsmanRuleSerialization. Wire + Create/Update/Delete/State events after the
 -- service (the service references them only at call time, nil-guarded). Create ->
--- Update -> Delete -> State order mirrors 11g's filter events.
+-- Update -> Delete -> State order mirrors 11g's filter events. RLHusbandryTargetKey first:
+-- the wire (readTargets/writeTargets) + RLAnimalQuery (13b) + the Herdsman frame (13) all
+-- key husbandry targets through it (uniqueId on server, net-object-id on a pure client).
+source(modDirectory .. "scripts/herdsman/RLHusbandryTargetKey.lua")
 source(modDirectory .. "scripts/herdsman/RLHerdsmanRuleSerialization.lua")
 source(modDirectory .. "scripts/herdsman/RLHerdsmanRuleService.lua")
 source(modDirectory .. "scripts/herdsman/RLHerdsmanRuleWire.lua")
