@@ -5,8 +5,9 @@
 -- events (AIAnimalSellEvent / AIAnimalBuyEvent / AIAnimalInseminationEvent), applies
 -- castrate + naming as direct server-side field writes AND broadcasts AnimalCastrateEvent /
 -- AnimalNameChangeEvent per animal (caller-mutates-first, no sendLocal) so those writes sync
--- to clients, sets the AI_MANAGER_* mark for mark-mode actions instead of executing,
--- persists the naming cursor, and deducts the herdsman wage once per farm
+-- to clients, sets the AI_MANAGER_* mark for mark-mode actions (broadcasting AnimalMarkEvent
+-- per animal, caller-mutates-first, no sendLocal, so marks sync to clients too) instead of
+-- executing, persists the naming cursor, and deducts the herdsman wage once per farm
 -- via MoneyType.HERDSMAN_WAGES.
 --
 -- T3 makes NO candidate decisions: the plan is authoritative. The executor obeys
@@ -85,13 +86,33 @@ local function resolveWage(action)
     return 0
 end
 
---- Set an AI_MANAGER_* mark on every animal of a mark-mode action. setMarked is fully real
---- headless (the visual-marker call self-no-ops when the Animal has no visual instance).
----@param animals table array of Animal
----@param markKey string
-local function setMarkOnAll(animals, markKey)
-    for _, animal in ipairs(animals) do
+--- Set an AI_MANAGER_* mark on every animal of a mark-mode action AND broadcast AnimalMarkEvent
+--- per animal (caller-mutates-first, no sendLocal) so the mark syncs to MP clients - the same
+--- shape the player path (@see RLAnimalInfoService.markAnimal) and the castrate / naming exec legs
+--- use. setMarked is fully real headless (the visual-marker call self-no-ops with no visual
+--- instance). Fails CLOSED on a nil markKey: AnimalMarkEvent treats key=nil as a destructive
+--- clear-ALL-marks (@see AnimalMarkEvent.new), so a nil key skips the whole action (no setMarked,
+--- no broadcast) rather than wiping every mark on every client.
+---@param ctx table dispatch context (ctx.server:broadcastEvent)
+---@param placeable table husbandry placeable owning the animals' cluster system (the event object)
+---@param action table the mark-mode action (animals + ruleId / operation / husbandryId for the log row)
+---@param markKey string the AI_MANAGER_* mark to set + broadcast
+---@param farmId number owning farm (log context)
+local function setMarkOnAll(ctx, placeable, action, markKey, farmId)
+    if markKey == nil then
+        Log:warning("%s rule=%s op=%s husbandry=%s farm=%s: nil mark key - skipped (no setMarked, no broadcast; nil key is AnimalMarkEvent clear-all)",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.operation), tostring(action.husbandryId), tostring(farmId))
+        return
+    end
+    for _, animal in ipairs(action.animals) do
         animal:setMarked(markKey, true)
+        -- MP sync: broadcast WITHOUT sendLocal. AnimalMarkEvent:run applies setMarked on server AND
+        -- client, so the server already marked above; sendLocal would re-run run() locally (redundant
+        -- re-mark, possible double broadcast). @see RLAnimalInfoService.markAnimal.
+        ctx.server:broadcastEvent(AnimalMarkEvent.new(placeable, animal, markKey, true))
+        Log:debug("%s rule=%s op=%s husbandry=%s farm=%s: broadcast AnimalMarkEvent uniqueId=%s key=%s",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.operation), tostring(action.husbandryId),
+            tostring(farmId), tostring(animal.uniqueId), tostring(markKey))
     end
 end
 
@@ -113,7 +134,8 @@ end
 --- AIAnimalManager:onDayChanged. Per action: dispatch the SAME event legacy does (sell /
 --- buy / ai), apply castrate + naming directly THEN broadcast AnimalCastrateEvent /
 --- AnimalNameChangeEvent per animal so clients sync, OR set the AI_MANAGER_* mark for
---- a mark-mode action; accumulate the herdsman wage per farm and deduct it once per farm at
+--- a mark-mode action AND broadcast AnimalMarkEvent per animal so the mark syncs to clients;
+--- accumulate the herdsman wage per farm and deduct it once per farm at
 --- the end. Fails LOUD on a missing STRUCTURAL ctx dep (a T4-wiring bug), fails CLOSED
 --- (skip + WARNING, never raise) on a per-action data problem. Reads no g_*; the dispatch
 --- boundary is injected via ctx.
@@ -272,7 +294,7 @@ end
 ---@return string|nil skipReason
 function RLHerdsmanExecutor._doSell(action, ctx, placeable, farmId, count)
     if action.mark == true then
-        setMarkOnAll(action.animals, MARK_BY_OPERATION.sell)
+        setMarkOnAll(ctx, placeable, action, MARK_BY_OPERATION.sell, farmId)
         return true, false, "mark-mode"
     end
 
@@ -348,7 +370,7 @@ end
 ---@return string|nil skipReason
 function RLHerdsmanExecutor._doCastrate(action, ctx, placeable, farmId, count)
     if action.mark == true then
-        setMarkOnAll(action.animals, MARK_BY_OPERATION.castrate)
+        setMarkOnAll(ctx, placeable, action, MARK_BY_OPERATION.castrate, farmId)
         return true, false, "mark-mode"
     end
 
@@ -449,7 +471,7 @@ end
 ---@return string|nil skipReason
 function RLHerdsmanExecutor._doAi(action, ctx, placeable, farmId, count)
     if action.mark == true then
-        setMarkOnAll(action.animals, MARK_BY_OPERATION.ai)
+        setMarkOnAll(ctx, placeable, action, MARK_BY_OPERATION.ai, farmId)
         return true, false, "mark-mode"
     end
 
