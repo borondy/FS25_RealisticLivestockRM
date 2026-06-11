@@ -281,6 +281,7 @@ function RealisticLivestock_FSBaseMission:onStartMission()
     RLSettings.applyDefaultSettings()
     RLDebugUtils.dumpSettingsOnce()
     RLMessageAggregator.initialize()
+    RLHerdsmanDayTick.subscribe()
 
     local temp = self.environment.weather.temperatureUpdater.currentMin or 20
 	local isServer = self:getIsServer()

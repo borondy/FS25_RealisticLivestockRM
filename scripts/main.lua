@@ -154,6 +154,12 @@ source(modDirectory .. "scripts/herdsman/RLHerdsmanPlanner.lua")
 -- no game state at load. Ships DORMANT - no day-tick hook (T4 wires the tick + ctx build).
 source(modDirectory .. "scripts/herdsman/RLHerdsmanExecutor.lua")
 
+-- SECTION 11k: Herdsman day-tick wiring (M-Tick T4). The tick that fires the planner (11i) ->
+-- executor (11j) once per day server-side: a MessageType.DAY_CHANGED subscriber (registered from
+-- RealisticLivestock_FSBaseMission:onStartMission) assembles the env from g_* and calls the
+-- dual-run run(env). Loads after 11j (consumes both at call time); no game state at load.
+source(modDirectory .. "scripts/herdsman/RLHerdsmanDayTick.lua")
+
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")
 source(modDirectory .. "scripts/gui/elements/RenderElement.lua")
