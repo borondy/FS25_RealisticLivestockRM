@@ -284,7 +284,7 @@
         <text name="rl_ui_earTag" text="Kulak Küpesi"/>
         <text name="rl_ui_species" text="Tür"/>
         <text name="rl_ui_strawSingle" text="Sperma Tüpü"/>
-        <text name="rl_ui_strawMultiple" text="Separma Tüpleri"/>
+        <text name="rl_ui_strawMultiple" text="Sperma Tüpleri"/>
         <text name="rl_ui_artificialInsemination" text="Suni Tohumlama"/>
         <text name="rl_ui_semenPurchaseNoPermission" text="Hayvan ticareti yapma veya suni tohumlama satın alma izniniz yok."/>
         <text name="rl_ui_semenPurchaseNoPermission_github" text="Hayvan ticareti yapma veya sperma satın alma izniniz yok."/>
@@ -796,5 +796,76 @@
         <!-- Missing keys (English fallback) -->
         <text name="input_RL_RENAME" text="Yeniden Adlandır"/>
         <text name="input_RL_CYCLE_FILTER" text="Kaydedilen Filtreyi Döngüye Al"/>
+
+        <!-- Herdsman M-Frame (English fallback) -->
+        <text name="rl_menu_herdsman_title" text="Herdsman"/>
+        <text name="rl_menu_herdsman_empty" text="No herdsman rules yet"/>
+        <text name="rl_menu_herdsman_empty_editor" text="Select a rule to edit"/>
+        <text name="rl_menu_herdsman_section_sell" text="Sell"/>
+        <text name="rl_menu_herdsman_section_buy" text="Buy"/>
+        <text name="rl_menu_herdsman_section_castrate" text="Castrate"/>
+        <text name="rl_menu_herdsman_section_naming" text="Naming"/>
+        <text name="rl_menu_herdsman_section_ai" text="Artificial Insemination"/>
+        <text name="rl_menu_herdsman_detail_operation" text="Operation"/>
+        <text name="rl_menu_herdsman_detail_enabled" text="Enabled"/>
+        <text name="rl_menu_herdsman_detail_convention" text="Naming Convention"/>
+        <text name="rl_menu_herdsman_detail_budgetfixed" text="Fixed Amount"/>
+        <text name="rl_menu_herdsman_detail_budgetpercentage" text="Herd Value %"/>
+        <text name="rl_menu_herdsman_detail_semen" text="Semen"/>
+        <text name="rl_menu_herdsman_detail_husbandries" text="Husbandries"/>
+        <text name="rl_menu_herdsman_detail_none" text="(none)"/>
+        <text name="rl_menu_herdsman_detail_missing" text="(missing)"/>
+        <text name="rl_menu_herdsman_filter_select" text="Select filter"/>
+        <text name="rl_menu_herdsman_filter_picker_title" text="Select Filter"/>
+        <text name="rl_menu_herdsman_filter_picker_empty" text="No filters available for this operation."/>
+        <text name="rl_menu_herdsman_filter_picker_currentUnavailable" text="Current filter unavailable for this operation."/>
+        <text name="rl_menu_herdsman_husbandry_select" text="Select husbandries"/>
+        <text name="rl_menu_herdsman_husbandry_count" text="%d selected"/>
+        <text name="rl_menu_herdsman_husbandry_picker_title" text="Select Husbandries"/>
+        <text name="rl_menu_herdsman_husbandry_picker_empty" text="No husbandries available for this rule."/>
+        <text name="rl_menu_herdsman_husbandry_emptyRejected" text="Select at least one husbandry."/>
+        <text name="rl_menu_herdsman_new_button" text="New rule"/>
+        <text name="rl_menu_herdsman_duplicate_button" text="Duplicate"/>
+        <text name="rl_menu_herdsman_delete_button" text="Delete"/>
+        <text name="rl_menu_herdsman_delete_confirm_text" text="Delete rule &quot;%s&quot;? This cannot be undone."/>
+        <text name="rl_menu_herdsman_default_name" text="New rule"/>
+        <text name="rl_menu_herdsman_duplicate_suffix" text=" (copy)"/>
+        <text name="rl_menu_herdsman_duplicate_suffix_n" text=" (copy %d)"/>
+        <text name="rl_menu_herdsman_legacy_banner" text="Legacy herdsman tasks are still active. Disable them on the animal screen to avoid double execution."/>
+
+        <!-- Saveable filters (English fallback) -->
+        <text name="rl_menu_filters_quick_filter_title" text="Quick filter"/>
+        <text name="rl_ui_qf_saveFilter" text="Save filter"/>
+        <text name="rl_ui_qf_saveDropsValue" text="Saved filters don't support Value; this condition will not be carried over."/>
+        <text name="rl_menu_filters_empty_editor" text="Select a filter to edit"/>
+        <text name="rl_menu_filters_editor_title_name" text="Name"/>
+        <text name="rl_menu_filters_editor_title_animal_type" text="Animal type"/>
+        <text name="rl_menu_filters_editor_title_op" text="Conditions"/>
+        <text name="rl_menu_filters_animal_type_any" text="Any"/>
+        <text name="rl_menu_filters_op_and" text="Match ALL"/>
+        <text name="rl_menu_filters_op_or" text="Match ANY"/>
+        <text name="rl_menu_filters_add_group_not_implemented" text="Add group is not yet implemented in this version."/>
+        <text name="rl_menu_filters_duplicate_button" text="Duplicate"/>
+        <text name="rl_menu_filters_delete_button" text="Delete"/>
+        <text name="rl_menu_filters_duplicate_suffix" text=" (copy)"/>
+        <text name="rl_menu_filters_duplicate_suffix_n" text=" (copy %d)"/>
+        <text name="rl_menu_filters_delete_confirm_text" text="Delete filter &quot;%s&quot;? This cannot be undone."/>
+        <text name="rl_menu_filters_editor_title_usage" text="Show on"/>
+        <text name="rl_menu_filters_usage_any" text="All screens"/>
+        <text name="rl_menu_filters_usage_owned" text="Owned-herd screens"/>
+        <text name="rl_menu_filters_usage_dealer" text="Dealer screens"/>
+        <text name="rl_menu_filters_valueOutOfRange_both" text="Value must be between %d and %d"/>
+        <text name="rl_menu_filters_valueOutOfRange_min" text="Value must be at least %d"/>
+        <text name="rl_menu_filters_valueOutOfRange_max" text="Value must be at most %d"/>
+        <text name="rl_menu_filter_chip_quick" text="Filter: QF"/>
+        <text name="rl_menu_filter_chip_quick_plus_saved" text="Filter: QF + %s"/>
+
+        <!-- Daily summary messages (English fallback) -->
+        <text name="rl_message_dailyCastrationsSummary" text="Castrated %s animals at %s"/>
+        <text name="rl_message_dailyNamingsSummary" text="Named %s animals at %s"/>
+        <text name="rl_message_dailyInseminationsSummary" text="Inseminated %s animals at %s"/>
+        <text name="rl_message_dailyMarkSellSummary" text="Marked %s animals for sale at %s"/>
+        <text name="rl_message_dailyMarkCastrateSummary" text="Marked %s animals for castration at %s"/>
+        <text name="rl_message_dailyMarkInseminateSummary" text="Marked %s animals for insemination at %s"/>
     </texts>
 </l10n>
