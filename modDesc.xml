@@ -1,6 +1,6 @@
 <modDesc descVersion="107">
     <author>Ritter</author>
-    <version>1.2.6.0-dev.2</version>
+    <version>1.2.6.0-dev.3</version>
     <title>
         <en>Realistic Livestock - Ritter version</en>
         <it>Allevamento Realistico - Versione Ritter</it>
@@ -23,6 +23,27 @@ Documentation: https://rittermod.github.io/FS25_RealisticLivestockRM
 Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivestockRM
 
 Changelog
+
+1.2.6.0-dev.3:
+
+Fixed:
+- Multiplayer: settings changed in the RL Menu (Settings -> General) now sync to the server, persist across save/reload, and update live for other players - previously these changes were silently lost on dedicated servers.
+
+Compatibility:
+- FS25_AnimalFoodCalculator is now a blocking conflict instead of a dismissible warning - it breaks RLRM's animal feeding and milk/egg/wool output, so the game stops and prompts a restart to disable it.
+
+Translations:
+- Turkish: filled in the many menu, herdsman, settings, and message strings that were still showing in English (contributed by Cyber-Syntax).
+
+Herdsman automation tasks (preview - now editable in-game and running on day-change):
+- New Herdsman tab in the RL Menu: create, duplicate, and delete named automation tasks. Each task runs one action - sell, buy, castrate, naming, or AI insemination - on the animals matched by one of your saved filters, across the pens you choose.
+- Task editor: set a name, enable or disable the task, and configure its options (animals per day, budget, naming convention, AI semen choice). Each task can either "mark for review" (flag matching animals) or perform the action outright.
+- Pick the filter and target pens from inside the editor: the filter list is scoped to the task's action (buy draws from the dealer pool; sell, castrate, and AI from your own herd), and the pen list is limited to the filter's animal type (castrate hides chicken pens). A task needs a filter and at least one pen only to be enabled, so incomplete drafts can be saved disabled.
+- Tasks now run automatically: on each day-change the enabled tasks execute server-side, in order (sell -> buy -> castrate -> naming -> AI), respecting each task's animal cap, budget, and the destination pen's free space. A herdsman wage is deducted per farm.
+- Day-change notifications: the herdsman posts the same per-pen messages the legacy herdsman did (sold, bought, castrated, named, inseminated, or "marked for ..."), and folds them into daily counts when message summary mode is on.
+- The new menu-based herdsman tasks run alongside the legacy per-pen herdsman, not instead of it. An orange banner in the editor warns when a pen still has the legacy herdsman enabled - avoid running both for the same pen, or actions and wages get applied twice.
+- Multiplayer: task create / edit / delete sync to all players and an open menu refreshes live; the day-change actions (sell, buy, castrate, naming, AI, and animal marks) replicate to clients, including on dedicated servers.
+
 
 1.2.5.0:
 
