@@ -1,6 +1,6 @@
 # Mod Compatibility
 
-Realistic Livestock RM rewrites the animal system from the ground up. That makes it incompatible with many other mods that change the same systems, and gives it sharp edges when paired with mods that modify animal data. This page lists the mods the game will warn you about at startup. That a mod is NOT on this list does NOT mean that it is tested and confirmed to work. 
+Realistic Livestock RM rewrites the animal system from the ground up. That makes it incompatible with many other mods that change the same systems, and gives it sharp edges when paired with mods that modify animal data. This page lists the mods RLRM will block or warn you about at startup. That a mod is NOT on this list does NOT mean that it is tested and confirmed to work. 
 
 > **Note:** This documentation was generated with AI assistance and may contain inaccuracies. If you spot an error, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues).
 
@@ -18,20 +18,9 @@ If any of these mods is enabled when you start the game, RLRM detects them, show
 | **FS25_MoreVisualAnimals** | Extracted subset of RL's visual changes. Overlapping animation and visual hooks. |
 | **FS25_EnhancedLivestock** | Another version of the original mod. |
 | **FS25_EnhancedAnimalSystem** | Extensive changes to the animal system that conflict with RLRM. |
+| **FS25_AnimalFoodCalculator** | Breaks the core animal loop with RLRM: blocks food and water intake and halts milk, egg, and wool output, plus a significant performance impact that grows with herd size. A dismissible warning proved insufficient for a silent husbandry break. |
 
 If you previously played with **FS25_RealisticLivestock** (the original), RLRM migrates your savegame automatically the first time you load it - just disable the old mod and enable RLRM in its place.
-
----
-
-## Other Conflicts That Cause Issues
-
-These mods load alongside RLRM but cause noticeable problems. The game continues - you will see a dismissible **Mod Compatibility Warning** dialog at startup with a link back to this page.
-
-| Mod | Symptom |
-|-----|---------|
-| **FS25_AnimalFoodCalculator** | Significant performance impact that grows with herd size and other side effects. |
-
-You can dismiss the warning and keep playing, but expect issues. 
 
 ---
 
