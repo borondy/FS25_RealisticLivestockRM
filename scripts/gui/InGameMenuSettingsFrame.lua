@@ -25,6 +25,8 @@ InGameMenuSettingsFrame.onFrameOpen = Utils.appendedFunction(InGameMenuSettingsF
 
 function RL_InGameMenuSettingsFrame:onFrameClose()
 
+	Log:debug("RL_InGameMenuSettingsFrame:onFrameClose: closing legacy settings page (g_server=%s); will save-if-server then broadcast full settings set", tostring(g_server ~= nil))
+
 	if g_server ~= nil then RLSettings.saveToXMLFile() end
 
 	RL_BroadcastSettingsEvent.sendEvent()

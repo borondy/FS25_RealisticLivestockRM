@@ -338,6 +338,8 @@ function RealisticLivestock_FSBaseMission:sendInitialClientState(connection, _, 
 		if not setting.ignore then setting.state = setting.state or setting.default end
 	end
 
+    Log:debug("RealisticLivestock_FSBaseMission:sendInitialClientState: pushing full settings set to joining client (this is the server -> client re-push that defines what the client sees on join)")
+
     connection:sendEvent(RL_BroadcastSettingsEvent.new())
     connection:sendEvent(AnimalSystemStateEvent.new(animalSystem.countries, animalSystem.animals, animalSystem.aiAnimals))
     connection:sendEvent(HusbandryMessageStateEvent.new(g_currentMission.husbandrySystem.placeables))

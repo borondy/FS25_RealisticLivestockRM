@@ -3442,6 +3442,16 @@ function RLMenuSettingsFrame:onClickGeneralSetting(state, widget)
     Log:debug("RLMenuSettingsFrame:onClickGeneralSetting: name='%s' newState=%d", name, newState)
 
     RLSettings.applyChange(name, newState)
+
+    -- Sync the change off this client. Broadcast the single setting via the same
+    -- event the legacy GAME SETTINGS page uses on close (InGameMenuSettingsFrame
+    -- onFrameClose -> RL_BroadcastSettingsEvent.sendEvent()), here in its
+    -- single-setting form. The server validates the sender (master-user),
+    -- persists, and relays to other clients (RLRM-395). Without this the RLMenu
+    -- change stayed local and the server reverted it on save/reload.
+    Log:debug("RLMenuSettingsFrame:onClickGeneralSetting: broadcasting '%s' via RL_BroadcastSettingsEvent.sendEvent", name)
+    RL_BroadcastSettingsEvent.sendEvent(name)
+
     self:refreshGeneralSubtab()
 end
 
