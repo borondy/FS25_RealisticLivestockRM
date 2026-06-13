@@ -857,5 +857,40 @@
 		<text name="rl_menu_herdsman_duplicate_suffix" text=" (copy)"/>
 		<text name="rl_menu_herdsman_duplicate_suffix_n" text=" (copy %d)"/>
 		<text name="rl_menu_herdsman_legacy_banner" text="Legacy herdsman tasks are still active. Disable them on the animal screen to avoid double execution."/>
+		<!-- Filter condition editor (English fallback) -->
+		<text name="rl_menu_filters_add_condition" text="Add condition"/>
+		<text name="rl_menu_filters_add_group_button" text="Add group"/>
+		<text name="rl_menu_filters_edit_condition" text="Edit condition"/>
+		<text name="rl_menu_filters_delete_condition" text="Delete condition"/>
+		<text name="rl_menu_filters_dialog_title" text="Edit condition"/>
+		<text name="rl_menu_filters_field_label" text="Field"/>
+		<text name="rl_menu_filters_cmp_label" text="Compare"/>
+		<text name="rl_menu_filters_value_label" text="Value"/>
+		<text name="rl_menu_filters_value_invalid_number" text="Invalid number"/>
+		<text name="rl_menu_filters_preserved_banner" text="%d condition(s) hidden - editable in a later phase. Saved on close."/>
+		<text name="rl_menu_filters_field_age" text="Age"/>
+		<text name="rl_menu_filters_field_isCastrated" text="Castrated"/>
+		<text name="rl_menu_filters_field_isPregnant" text="Pregnant"/>
+		<text name="rl_menu_filters_field_isLactating" text="Lactating"/>
+		<text name="rl_menu_filters_field_hasName" text="Has name"/>
+		<text name="rl_menu_filters_field_hasAnyDisease" text="Has any disease"/>
+		<text name="rl_menu_filters_field_hasAnyMark" text="Has any mark"/>
+		<text name="rl_menu_filters_field_weight" text="Weight"/>
+		<text name="rl_menu_filters_field_health" text="Health"/>
+		<text name="rl_menu_filters_field_genetics_metabolism" text="Genetics: metabolism"/>
+		<text name="rl_menu_filters_field_genetics_health" text="Genetics: health"/>
+		<text name="rl_menu_filters_field_genetics_fertility" text="Genetics: fertility"/>
+		<text name="rl_menu_filters_field_genetics_quality" text="Genetics: quality"/>
+		<text name="rl_menu_filters_field_genetics_productivity" text="Genetics: productivity"/>
+		<text name="rl_menu_filters_field_genetics_overall" text="Genetics: overall"/>
+		<text name="rl_menu_filters_gender_male" text="Male"/>
+		<text name="rl_menu_filters_gender_female" text="Female"/>
+		<text name="rl_menu_filters_emptyValueRejected" text="Value cannot be empty"/>
+		<text name="rl_menu_filters_subtypeRequiresAnimalType" text="Set the filter's animal type first to edit this condition"/>
+		<text name="rl_menu_filters_invalidNumber" text="Enter a valid number"/>
+		<text name="rl_menu_filters_enumValueDrifted" text="Stored value no longer valid - pick a replacement"/>
+		<text name="rl_menu_filters_valueSet_title" text="Select values"/>
+		<text name="rl_menu_filters_valueSet_summary" text="%d selected"/>
+		<text name="rl_menu_filters_valueSet_button" text="Edit values..."/>
 	</texts>
 </l10n>
