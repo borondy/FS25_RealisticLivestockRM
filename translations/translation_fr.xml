@@ -718,9 +718,9 @@
 
 <text name="rl_bridge_version_unknown" text="Realistic Livestock : la version %s de %s n'a pas été testée avec la version %s de Realistic Livestock. Utilisation de la configuration '%s'. Si vous rencontrez des problèmes avec les animaux exotiques, veuillez les signaler à %s."/>
 <!-- TODO: localise -->
-<text name="rl_bridge_configoverride_conflict_header" text="Realistic Livestock: Conflict detected. Two or more bridges/packs replaced configuration for the same animal type. Last-loaded mod wins. If you continue you will have visual glitches and ghost animals."/>
+<text name="rl_bridge_configoverride_conflict_header" text="Realistic Livestock : Conflit détecté. Deux bridges/packs ou plus ont remplacé la configuration du même type d’animal. Le dernier mod chargé sera utilisé. Si vous continuez, vous aurez des bugs visuels et des animaux fantômes."/>
 <!-- TODO: localise -->
-<text name="rl_bridge_configoverride_conflict_line" text="%s: applied by %s"/>
+<text name="rl_bridge_configoverride_conflict_line" text="%s : appliqué par %s"/>
 
 		<!-- Menu à onglets RL -->
 <text name="input_RL_MENU" text="Ouvrir le menu RL (nouveau)"/>
@@ -809,56 +809,56 @@
 
 <!-- Clés manquantes (retour anglais) -->
 <text name="input_RL_RENAME" text="Renommer"/>
-<text name="input_RL_CYCLE_FILTER" text="Cycle Saved Filter"/>
-<text name="rl_mod_warn_title" text="Mod Compatibility Warning"/>
-<text name="rl_mod_warn_message" text="The following mod(s) loaded with Realistic Livestock RM may cause issues:%s&#10;&#10;See %s for details. The game will continue."/>
+<text name="input_RL_CYCLE_FILTER" text="Changer le filtre sauvegardé"/>
+<text name="rl_mod_warn_title" text="Avertissement de compatibilité des mods"/>
+<text name="rl_mod_warn_message" text="Les mods suivants chargés avec Realistic Livestock RM peuvent provoquer des problèmes :%s&#10;&#10;Voir %s pour plus de détails. Le jeu continuera."/>
 <text name="rl_mod_compat_url" text="https://rittermod.github.io/FS25_RealisticLivestockRM/user-guide/reference-mod-compatibility"/>
-<text name="rl_mod_warn_FS25_AnimalFoodCalculator" text="FS25_AnimalFoodCalculator: significant performance impact that grows with herd size."/>
+<text name="rl_mod_warn_FS25_AnimalFoodCalculator" text="FS25_AnimalFoodCalculator : impact significatif sur les performances qui augmente avec la taille du troupeau."/>
 
 <!-- Settings tab shell (English fallback) -->
-<text name="rl_menu_settings_title" text="Settings"/>
-<text name="rl_menu_settings_tab_general" text="General"/>
-<text name="rl_menu_settings_tab_filters" text="Filters"/>
+<text name="rl_menu_settings_title" text="Paramètres"/>
+<text name="rl_menu_settings_tab_general" text="Général"/>
+<text name="rl_menu_settings_tab_filters" text="Filtres"/>
 
 <!-- Filters tab list -->
 <text name="rl_menu_filters_quick_filter_title" text="Quick filter"/>
 <text name="rl_ui_qf_saveFilter" text="Save filter"/>
 <text name="rl_ui_qf_saveDropsValue" text="Saved filters don't support Value; this condition will not be carried over."/>
-<text name="rl_menu_filters_empty" text="No saved filters yet"/>
-<text name="rl_menu_filters_empty_no_farm" text="You need a farm to save filters"/>
-<text name="rl_menu_filters_new_button" text="New filter"/>
-<text name="rl_menu_filters_default_name" text="New filter"/>
-<text name="rl_menu_filters_detail_placeholder" text="To be implemented"/>
+<text name="rl_menu_filters_empty" text="Aucun filtre sauvegardé pour le moment"/>
+<text name="rl_menu_filters_empty_no_farm" text="Vous devez posséder une ferme pour sauvegarder des filtres"/>
+<text name="rl_menu_filters_new_button" text="Nouveau filtre"/>
+<text name="rl_menu_filters_default_name" text="Nouveau filtre"/>
+<text name="rl_menu_filters_detail_placeholder" text="À implémenter"/>
 		<!-- Editor + Duplicate/Delete (English fallback) -->
-		<text name="rl_menu_filters_empty_editor" text="Select a filter to edit"/>
-		<text name="rl_menu_filters_editor_title_name" text="Name"/>
-		<text name="rl_menu_filters_editor_title_animal_type" text="Animal type"/>
+		<text name="rl_menu_filters_empty_editor" text="Sélectionnez un filtre à modifier"/>
+		<text name="rl_menu_filters_editor_title_name" text="Nom"/>
+		<text name="rl_menu_filters_editor_title_animal_type" text="Type d’animal"/>
 		<text name="rl_menu_filters_editor_title_op" text="Conditions"/>
-		<text name="rl_menu_filters_animal_type_any" text="Any"/>
-		<text name="rl_menu_filters_op_and" text="Match ALL"/>
-		<text name="rl_menu_filters_op_or" text="Match ANY"/>
-		<text name="rl_menu_filters_add_group_not_implemented" text="Add group is not yet implemented in this version."/>
-		<text name="rl_menu_filters_duplicate_button" text="Duplicate"/>
-		<text name="rl_menu_filters_delete_button" text="Delete"/>
-		<text name="rl_menu_filters_duplicate_suffix" text=" (copy)"/>
-		<text name="rl_menu_filters_duplicate_suffix_n" text=" (copy %d)"/>
-		<text name="rl_menu_filters_delete_confirm_text" text="Delete filter &quot;%s&quot;? This cannot be undone."/>
+		<text name="rl_menu_filters_animal_type_any" text="Tous"/>
+		<text name="rl_menu_filters_op_and" text="Correspond à TOUS"/>
+		<text name="rl_menu_filters_op_or" text="Correspond à AU MOINS UN"/>
+		<text name="rl_menu_filters_add_group_not_implemented" text="L’ajout de groupe n’est pas encore implémenté dans cette version."/>
+		<text name="rl_menu_filters_duplicate_button" text="Dupliquer"/>
+		<text name="rl_menu_filters_delete_button" text="Supprimer"/>
+		<text name="rl_menu_filters_duplicate_suffix" text=" (copie)"/>
+		<text name="rl_menu_filters_duplicate_suffix_n" text=" (copie %d)"/>
+		<text name="rl_menu_filters_delete_confirm_text" text="Supprimer le filtre &quot;%s&quot; ? Cette action est irréversible."/>
 		<!-- Usage scope axis -->
-		<text name="rl_menu_filters_editor_title_usage" text="Show on"/>
-		<text name="rl_menu_filters_usage_any" text="All screens"/>
-		<text name="rl_menu_filters_usage_owned" text="Owned-herd screens"/>
-		<text name="rl_menu_filters_usage_dealer" text="Dealer screens"/>
-		<text name="rl_menu_filters_valueOutOfRange_both" text="Value must be between %d and %d"/>
-		<text name="rl_menu_filters_valueOutOfRange_min" text="Value must be at least %d"/>
-		<text name="rl_menu_filters_valueOutOfRange_max" text="Value must be at most %d"/>
+		<text name="rl_menu_filters_editor_title_usage" text="Afficher sur"/>
+		<text name="rl_menu_filters_usage_any" text="Tous les écrans"/>
+		<text name="rl_menu_filters_usage_owned" text="Écrans du troupeau possédé"/>
+		<text name="rl_menu_filters_usage_dealer" text="Écrans du concessionnaire"/>
+		<text name="rl_menu_filters_valueOutOfRange_both" text="La valeur doit être comprise entre %d et %d"/>
+		<text name="rl_menu_filters_valueOutOfRange_min" text="La valeur doit être au moins de %d"/>
+		<text name="rl_menu_filters_valueOutOfRange_max" text="La valeur doit être au maximum de %d"/>
 
 <!-- Filter cycle + chip MVP -->
-<text name="rl_menu_filter_chip_none" text="No filter"/>
-<text name="rl_menu_filter_chip_active" text="Filter: %s"/>
-<text name="rl_menu_filter_chip_quick" text="Filter: QF"/>
-<text name="rl_menu_filter_chip_quick_plus_saved" text="Filter: QF + %s"/>
-<text name="rl_menu_cycle_filter_button" text="Cycle filter"/>
-<text name="rl_menu_filter_chip_unnamed" text="(unnamed)"/>
+<text name="rl_menu_filter_chip_none" text="Aucun filtre"/>
+<text name="rl_menu_filter_chip_active" text="Filtre : %s"/>
+<text name="rl_menu_filter_chip_quick" text="Filtre : QF"/>
+<text name="rl_menu_filter_chip_quick_plus_saved" text="Filtre : QF + %s"/>
+<text name="rl_menu_cycle_filter_button" text="Changer de filtre"/>
+<text name="rl_menu_filter_chip_unnamed" text="(sans nom)"/>
 		<!-- Herdsman rule lifecycle -->
 		<text name="rl_menu_herdsman_new_button" text="New rule"/>
 		<text name="rl_menu_herdsman_duplicate_button" text="Duplicate"/>
