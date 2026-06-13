@@ -12,6 +12,12 @@
 --   targetHusbandries: streamWriteUInt16 count, then NetworkUtil.writeNodeObject per target
 --   params:            PARAMS_WIRE_CODECS[operation].write   (skipped + :warning on unknown op)
 --
+-- params fail-closed (move only): the move codec's `read` returns nil for a present-but-
+-- unreconstructable destination, which makes readRule return nil so the receiver DROPS the whole
+-- record. The codec always consumes its fixed-width bytes (two bools + the 24-bit node-id) before
+-- the nil return, so a multi-record stream stays byte-aligned across the dropped record. The three
+-- receivers already cope: Create/Update run() guard `rule == nil`, State run() warn-skips a nil hole.
+--
 -- filterId is operation-gated AND carries nil via a "" -> nil coercion: a non-naming rule
 -- may be an unfiltered draft (filterId nil) or carry a non-empty (non-whitespace) filterId;
 -- naming never carries one. The operation token already on the wire tells the reader whether
@@ -55,8 +61,10 @@ RLHerdsmanRuleWire.NIL_INT_SENTINEL = -1
 --- (and reads) no params bytes, so the record stays byte-aligned and the service
 --- floor rejects the unknown operation downstream.
 ---
---- Field types match the persisted XML shape (the rule's stored `params` table):
+--- Field types (the wire shape of the rule's `params` table; `move` DIVERGES from the
+--- persisted XML shape - see the note below):
 ---   sell      -> maxAnimals Int32, mark Bool
+---   move      -> mark Bool, hasDest Bool, then (only when hasDest) one dest node-object
 ---   buy       -> maxAnimals Int32; budget.type String, budget.fixed Int32, budget.percentage Float32
 ---   castrate  -> mark Bool
 ---   naming    -> convention String, previous String ("" sentinel for nil cursor)
@@ -65,7 +73,14 @@ RLHerdsmanRuleWire.NIL_INT_SENTINEL = -1
 --- The codec is a transport, not a validator: it round-trips type-correct values
 --- verbatim. Per-operation VALUE validation is the picker / M-Frame's job; the
 --- service floor + the receiver's `applyIncomingCreate` enforce the invariants.
----@type table<string, { write: fun(streamId:number, params:table), read: fun(streamId:number):table }>
+---
+--- ONE exception: `move`'s `read` returns nil for a present-but-unreconstructable destination
+--- (a node-object that does not resolve, or a resolved-but-unkeyable placeable), which makes
+--- `readRule` return nil so the WHOLE record is dropped fail-closed - the destination is never
+--- silently stripped to a mark-only draft. The dest travels as a node-object re-keyed per machine
+--- (RLHusbandryTargetKey: server uniqueId / pure-client net-object-id), where the XML stores a
+--- verbatim string - the two codecs share a semantic contract, not a byte representation.
+---@type table<string, { write: fun(streamId:number, params:table), read: fun(streamId:number):table|nil }>
 local PARAMS_WIRE_CODECS = {
     sell = {
         write = function(streamId, p)
@@ -76,6 +91,59 @@ local PARAMS_WIRE_CODECS = {
             local maxAnimals = streamReadInt32(streamId)
             local mark = streamReadBool(streamId)
             return { maxAnimals = maxAnimals, mark = mark }
+        end,
+    },
+    move = {
+        -- `mark` is a required bool; `destinationHusbandry` is optional. The dest travels as a
+        -- node-object re-keyed per machine via RLHusbandryTargetKey (the only placeable handle
+        -- stable across machines for a bought barn), NOT a raw string. A present dest that cannot
+        -- be reconstructed on the receiver fail-CLOSES the whole record (read -> nil -> readRule
+        -- -> nil -> the record is dropped): the destination must never silently strip to a
+        -- mark-only draft.
+        write = function(streamId, p)
+            streamWriteBool(streamId, p.mark == true)
+            -- hasDest is the INTENT (`~= nil`), deliberately NOT a non-whitespace test: a present-
+            -- but-empty/whitespace/non-string dest still sets hasDest=true and (not resolving)
+            -- writes a null node-id so the receiver drops the record; a nil dest writes only the
+            -- two bools (an inert draft that round-trips).
+            local hasDest = p.destinationHusbandry ~= nil
+            streamWriteBool(streamId, hasDest)
+            if hasDest then
+                local placeable = RLHusbandryTargetKey.resolve(p.destinationHusbandry)
+                if placeable ~= nil then
+                    NetworkUtil.writeNodeObject(streamId, placeable)
+                    Log:trace("RLHerdsmanRuleWire move.write: dest key '%s' -> node-object",
+                        tostring(p.destinationHusbandry))
+                else
+                    -- Fail-closed on write: a present dest whose key does not resolve writes a null
+                    -- node-id (id 0). A single-record event cannot skip mid-stream without desync,
+                    -- so the receiver reads getObject(0)==nil and drops the whole record.
+                    NetworkUtil.writeNodeObjectId(streamId, 0)
+                    Log:warning("RLHerdsmanRuleWire move.write: dest key '%s' does not resolve to a live husbandry placeable; writing a null node-id (receiver fail-closes the record)",
+                        tostring(p.destinationHusbandry))
+                end
+            end
+        end,
+        read = function(streamId)
+            local mark = streamReadBool(streamId)
+            local hasDest = streamReadBool(streamId)
+            if not hasDest then
+                return { mark = mark }
+            end
+            -- Consume the fixed-width node-id BEFORE evaluating validity so the stream stays
+            -- byte-aligned even when the record is dropped.
+            local placeable = NetworkUtil.readNodeObject(streamId)
+            if placeable == nil then
+                Log:warning("RLHerdsmanRuleWire move.read: dest node-object did not resolve to a live placeable on this peer; dropping the record (fail-closed)")
+                return nil
+            end
+            local key = RLHusbandryTargetKey.keyFor(placeable)
+            if key == nil then
+                Log:warning("RLHerdsmanRuleWire move.read: dest placeable is unkeyable on this peer (keyFor nil); dropping the record (fail-closed)")
+                return nil
+            end
+            Log:trace("RLHerdsmanRuleWire move.read: dest reconstructed to key '%s'", tostring(key))
+            return { mark = mark, destinationHusbandry = key }
         end,
     },
     buy = {
@@ -260,8 +328,14 @@ end
 --- order. `operation` is read before `filterId`/`params` so it can drive both
 --- branches. The reconstructed record is returned as-is; the caller (event `run()`
 --- -> `applyIncomingCreate`) re-validates it against the S1 floor before storing.
+---
+--- Returns nil (fail-closed drop) when a PRESENT params codec's `read` returns nil - today only
+--- `move`, for a present-but-unreconstructable destination. The codec consumes its fixed-width
+--- bytes first, so the stream stays byte-aligned for any following record, and the three receivers
+--- cope with the nil: Create/Update `run()` guard `rule == nil`, State `run()` warn-skips a nil
+--- hole. The unknown-operation branch is unaffected (it keeps `params={}` and the floor rejects it).
 ---@param streamId number
----@return table rule reconstructed rule record
+---@return table|nil rule reconstructed rule record, or nil when a present codec fail-closes
 function RLHerdsmanRuleWire.readRule(streamId)
     local id = streamReadString(streamId)
     local name = streamReadString(streamId)
@@ -290,6 +364,16 @@ function RLHerdsmanRuleWire.readRule(streamId)
     local codec = PARAMS_WIRE_CODECS[operation]
     if codec ~= nil then
         params = codec.read(streamId)
+        if params == nil then
+            -- Fail-closed drop: a PRESENT codec whose `read` returned nil (a present-but-
+            -- unreconstructable move destination) drops the WHOLE record. The codec has already
+            -- consumed its fixed-width bytes, so the stream stays aligned for any following record.
+            -- The three receivers cope: Create/Update run() guard `rule == nil`; State run()
+            -- warn-skips a nil hole.
+            Log:warning("RLHerdsmanRuleWire.readRule: id=%s operation=%s codec read returned nil; dropping the whole record (fail-closed)",
+                tostring(id), tostring(operation))
+            return nil
+        end
     else
         params = {}
         Log:warning("RLHerdsmanRuleWire.readRule: id=%s has unknown operation '%s'; no params read (record stays aligned, floor rejects on apply)",
