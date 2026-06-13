@@ -76,8 +76,12 @@ local BUY_MARKUP = 1.075
 
 --- Per-operation claim traits - the explicit table that drives how each operation threads
 --- state across the sequential rule passes (the two-level claim model, intake 1a):
----   * `removesFromHerd` (sell) - an END-TASK op: a selected animal leaves the owned pool,
----     so it is absent from EVERY later rule's candidates (global claim).
+---   * `removesFromPlanPool` (sell, move) - an OUT op: a selected animal leaves its SOURCE
+---     husbandry's plan pool, so it is absent from EVERY later rule's candidates (global claim).
+---     Sell removes it from the owned herd; move relocates it to the destination pen (the
+---     dest-add lands on the next tick) - behaviorally the same plan-pool effect this tick, so
+---     one neutral OUT name covers both. The shared trait NAME is declared here; the actual
+---     pool removal lives in each op's dispatch branch.
 ---   * `sourcesFromDealer` + `addsToHerd` (buy) - candidates come from the dealer pool, NOT
 ---     the owned herd; a bought animal joins the destination husbandry's owned pool so later
 ---     cross-op rules (castrate / naming / ai) see it.
@@ -88,7 +92,8 @@ local BUY_MARKUP = 1.075
 --- An operation with an empty traits table (castrate / ai) is a plain owned-herd, non-end-task,
 --- filtered op.
 RLHerdsmanPlanner.OPERATION_TRAITS = {
-    sell     = { removesFromHerd = true },
+    sell     = { removesFromPlanPool = true },
+    move     = { removesFromPlanPool = true },
     buy      = { sourcesFromDealer = true, addsToHerd = true },
     castrate = {},
     naming   = { noFilter = true },

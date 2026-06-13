@@ -15,12 +15,12 @@
 --
 -- Validity floor (enforced on BOTH create and update):
 --   * `name`              non-empty string
---   * `operation`         one of sell|buy|castrate|naming|ai
+--   * `operation`         one of sell|move|buy|castrate|naming|ai
 --   * `farmId`            integer (the owning farm)
 --   * `enabled`           boolean
 --   * `params`            table (opaque here; the per-operation codec is S2)
 --   * `targetHusbandries` array (may be empty -> inert rule, no targets)
---   * `filterId`          buy/sell/castrate/ai: nil (incomplete draft) OR a non-empty
+--   * `filterId`          buy/sell/move/castrate/ai: nil (incomplete draft) OR a non-empty
 --                          (non-whitespace) string; naming: MUST be nil
 --
 -- Scope boundary (deliberately NOT here):
@@ -53,6 +53,7 @@ RLHerdsmanRuleService.UNIQUE_ID_PREFIX = "rlHerdRule_"
 --- so the M-Frame presenter and the M-Tick planner share one source of truth.
 RLHerdsmanRuleService.OPERATIONS = {
     sell     = true,
+    move     = true,
     buy      = true,
     castrate = true,
     naming   = true,
@@ -65,7 +66,7 @@ RLHerdsmanRuleService.OPERATIONS = {
 --- the M-Frame presenter (section placement) and the M-Tick planner (run order).
 --- Each consumer derives its own operation -> rank map from this list (no shared
 --- rank table, so a consumer's load order can never read a half-built map).
-RLHerdsmanRuleService.OPERATION_ORDER = { "sell", "buy", "castrate", "naming", "ai" }
+RLHerdsmanRuleService.OPERATION_ORDER = { "sell", "move", "buy", "castrate", "naming", "ai" }
 
 --- Within-operation comparator: alphabetical by name (case-insensitive), with a
 --- nil-safe `tostring(id)` tie-break. Persisted records always carry an id, so the
@@ -185,7 +186,7 @@ local function validateRuleFields(r)
         return false, string.format("name must be a non-empty string (got %s)", tostring(r.name))
     end
     if type(r.operation) ~= "string" or not RLHerdsmanRuleService.OPERATIONS[r.operation] then
-        return false, string.format("operation must be one of sell|buy|castrate|naming|ai (got %s)", tostring(r.operation))
+        return false, string.format("operation must be one of sell|move|buy|castrate|naming|ai (got %s)", tostring(r.operation))
     end
     if type(r.farmId) ~= "number" or math.floor(r.farmId) ~= r.farmId then
         return false, string.format("farmId must be an integer (got %s)", tostring(r.farmId))

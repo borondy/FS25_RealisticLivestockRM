@@ -241,7 +241,11 @@ function RLMenuHerdsmanFrame:onGuiSetupFinished()
     if self.ruleOperationSelector ~= nil then
         local opTexts = {}
         for i, op in ipairs(RLHerdsmanRulePresenter.OPERATION_ORDER) do
-            opTexts[i] = g_i18n:getText(OPERATION_TITLE_KEY[op])
+            -- An operation without a section title key (a not-yet-UI-wired op) falls back to its
+            -- raw name instead of crashing getText on a nil key - mirrors the nil-key guard in
+            -- getTitleForSectionHeader. The real label is seeded when that op's UI is wired.
+            local key = OPERATION_TITLE_KEY[op]
+            opTexts[i] = key ~= nil and g_i18n:getText(key) or op
         end
         self.ruleOperationSelector:setTexts(opTexts)
     end
