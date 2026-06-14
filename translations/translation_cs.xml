@@ -307,6 +307,7 @@
 		<text name="rl_mark_aiManager_castrate" text="牧工标记待阉割"/>
 		<text name="rl_mark_aiManager_disease" text="牧工标记待治疗"/>
 		<text name="rl_mark_aiManager_ai" text="牧工标记待授精"/>
+		<text name="rl_mark_aiManager_move" text="Herdsman marked for moving"/>
 		<text name="rl_mark_player" text="玩家标记"/>
 
 

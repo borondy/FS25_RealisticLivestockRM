@@ -302,6 +302,7 @@
 		<text name="rl_mark_aiManager_castrate" text="Vom Herdenmanager zur Kastration markiert"/>
 		<text name="rl_mark_aiManager_disease" text="Vom Herdenmanager zur Behandlung markiert"/>
 		<text name="rl_mark_aiManager_ai" text="Vom Herdenmanager für künstliche Besamung markiert"/>
+		<text name="rl_mark_aiManager_move" text="Herdsman marked for moving"/>
 		<text name="rl_mark_player" text="Vom Spieler markiert"/>
 
 

@@ -73,6 +73,7 @@ local MARK_BY_OPERATION = {
     sell     = "AI_MANAGER_SELL",
     castrate = "AI_MANAGER_CASTRATE",
     ai       = "AI_MANAGER_INSEMINATE",
+    move     = "AI_MANAGER_MOVE",
 }
 
 -- =============================================================================

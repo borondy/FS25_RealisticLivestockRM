@@ -306,6 +306,7 @@
 		<text name="rl_mark_aiManager_castrate" text="Lomittaja on merkinnyt kastrointiin"/>
 		<text name="rl_mark_aiManager_disease" text="Lomittaja on merkinnyt hoitoa varten"/>
 		<text name="rl_mark_aiManager_ai" text="Lomittaja on merkinnyt keinosiemennykseen"/>
+		<text name="rl_mark_aiManager_move" text="Herdsman marked for moving"/>
 		<text name="rl_mark_player" text="Pelaajan merkitsemä"/>
 
 

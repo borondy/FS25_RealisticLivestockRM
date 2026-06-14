@@ -309,6 +309,7 @@
         <text name="rl_mark_aiManager_castrate" text="Mandriano contrassegnato per castrazione"/>
         <text name="rl_mark_aiManager_disease" text="Mandriano contrassegnato per trattamento"/>
         <text name="rl_mark_aiManager_ai" text="Mandriano contrassegnato per inseminazione artificiale"/>
+        <text name="rl_mark_aiManager_move" text="Herdsman marked for moving"/>
         <text name="rl_mark_player" text="Contrassegnato dal giocatore"/>
 
         <!-- AI - BUYING -->

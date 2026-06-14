@@ -319,6 +319,7 @@
 <text name="rl_mark_aiManager_castrate" text="Marqué pour castration par l'éleveur"/>
 <text name="rl_mark_aiManager_disease" text="Marqué pour traitement par l'éleveur"/>
 <text name="rl_mark_aiManager_ai" text="Marqué pour insémination artificielle par l'éleveur"/>
+<text name="rl_mark_aiManager_move" text="Herdsman marked for moving"/>
 <text name="rl_mark_player" text="Marqué par le joueur"/>
 
 

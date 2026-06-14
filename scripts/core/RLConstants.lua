@@ -32,6 +32,12 @@ RLConstants.MARKS = {
         ["priority"] = 4,
         ["text"] = "aiManager_ai"
     },
+    ["AI_MANAGER_MOVE"] = {
+        ["key"] = "AI_MANAGER_MOVE",
+        ["active"] = false,
+        ["priority"] = 6,
+        ["text"] = "aiManager_move"
+    },
     ["PLAYER"] = {
         ["key"] = "PLAYER",
         ["active"] = false,

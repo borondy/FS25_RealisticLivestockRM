@@ -320,6 +320,7 @@
         <text name="rl_mark_aiManager_castrate" text="Pastýř označil pro kastraci"/>
         <text name="rl_mark_aiManager_disease" text="Pastýř označil pro léčení"/>
         <text name="rl_mark_aiManager_ai" text="Pastýř označil pro umělou inseminaci"/>
+        <text name="rl_mark_aiManager_move" text="Herdsman marked for moving"/>
         <text name="rl_mark_player" text="Označeno hráčem"/>
 
 

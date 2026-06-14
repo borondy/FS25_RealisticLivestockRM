@@ -45,7 +45,7 @@
 -- A result row: { ruleId, husbandryId, farmId, operation, count, skippedCount, mark,
 --   amountGained, amountSpent, dispatched, skipReason }. `dispatched` is true iff the event
 --   broadcast / direct mutation was applied; `skipReason` is nil when dispatched, else one of
---   "no-space" | "no-money" | "mark-mode" | "missing-placeable" | "bad-data" | "not-in-husbandry".
+--   "no-space" | "no-money" | "mark-mode" | "missing-placeable" | "missing-dest" | "bad-data" | "not-in-husbandry".
 --   On a guarded direct-mutation leg (castrate exec / naming / mark-mode) `count` is the count
 --   ACTUALLY mutated/marked and `skippedCount` is the membership-skip count (planned - actual);
 --   the unguarded legs (sell / buy / ai exec) report the planned count with skippedCount 0. An exec
@@ -75,6 +75,7 @@ local MARK_BY_OPERATION = {
     sell     = "AI_MANAGER_SELL",
     castrate = "AI_MANAGER_CASTRATE",
     ai       = "AI_MANAGER_INSEMINATE",
+    move     = "AI_MANAGER_MOVE",
 }
 
 -- =============================================================================
@@ -357,6 +358,8 @@ function RLHerdsmanExecutor._executeOne(action, ctx, summary, wageFarmOrder)
         chargeWage, dispatched, skipReason, actualCount, skippedCount = RLHerdsmanExecutor._doNaming(action, ctx, placeable, farmId, count)
     elseif op == "ai" then
         chargeWage, dispatched, skipReason, actualCount, skippedCount = RLHerdsmanExecutor._doAi(action, ctx, placeable, farmId, count)
+    elseif op == "move" then
+        chargeWage, dispatched, skipReason, actualCount, skippedCount = RLHerdsmanExecutor._doMove(action, ctx, placeable, farmId, count)
     else
         chargeWage, dispatched, skipReason = false, false, "bad-data"
         Log:warning("%s rule=%s husbandry=%s farm=%s: unknown operation '%s' - skipped (no wage)",
@@ -681,5 +684,79 @@ function RLHerdsmanExecutor._doAi(action, ctx, placeable, farmId, count)
     end
 
     ctx.server:broadcastEvent(AIAnimalInseminationEvent.new(placeable, items), true)
+    return true, true, nil
+end
+
+--- Move: exec broadcasts AIAnimalMoveEvent (the event resolves the live source clusters + relocates
+--- them to the dest husbandry on the server); mark sets AI_MANAGER_MOVE on the source-pen animals.
+--- Unlike sell/buy/ai, move has NO legacy analog - it is a new server-authoritative AI event, NOT a
+--- broadcast of the player AnimalMoveEvent (which is request/response and cannot be server-broadcast).
+---
+--- Mark mode is DEST-INDEPENDENT and checked FIRST: it marks source-pen animals, so a missing /
+--- degenerate dest must not block it (parity with the sell mark leg). The exec leg then fails CLOSED
+--- on the structural problems (dest == source, or dest absent from ctx) with NO wage, and charges the
+--- wage on a validate REJECTION (no-space / unsupported-type) - the same posture buy uses (wage on a
+--- validate reject, none on a bad-data early return). Validation is TYPE-level: a husbandry source pen
+--- is single-type, so one representative subtype answers dest type-support + total free slots
+--- (@see AIAnimalMoveEvent.validate); no per-subtype loop. Move is an UNGUARDED event-dispatched leg
+--- (AIAnimalMoveEvent:run resolves membership itself), so it reports the planned count + skippedCount 0
+--- and charges the planned wage - no actual/planned scaling (that is the mark + other guarded legs only).
+---@param action table
+---@param ctx table
+---@param placeable table the already-resolved SOURCE husbandry placeable
+---@param farmId number
+---@param count number
+---@return boolean chargeWage
+---@return boolean dispatched
+---@return string|nil skipReason
+---@return number|nil actualMarked nil on the unguarded move exec leg; count marked on the mark leg
+---@return number|nil skippedCount membership-skip count on the mark leg (nil on the unguarded exec leg)
+function RLHerdsmanExecutor._doMove(action, ctx, placeable, farmId, count)
+    if action.mark == true then
+        return setMarkOnAll(ctx, placeable, action, MARK_BY_OPERATION.move, farmId)
+    end
+
+    -- Structural fail-closed (no wage), checked BEFORE validate: a same-pen move is a no-op. The
+    -- slice-5 picker prevents authoring it; this is the defensive backstop.
+    if action.destinationHusbandry == action.husbandryId then
+        Log:warning("%s rule=%s op=move husbandry=%s farm=%s: destination == source - skipped (no-op, no wage)",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId))
+        return false, false, "bad-data"
+    end
+
+    -- Dest resolves DI-purely from the SAME owner-farm uniqueId->placeable map the source came from:
+    -- an owner-farm dest is guaranteed a member (the picker only offers owner-farm husbandries), so no
+    -- g_* read / RLHusbandryTargetKey.resolve is needed, keeping the decision path dual-runnable. An
+    -- absent dest is a barn deleted / transferred since the rule was authored.
+    local dest = ctx.husbandryPlaceablesById[action.destinationHusbandry]
+    if dest == nil then
+        Log:warning("%s rule=%s op=move husbandry=%s farm=%s: destination '%s' not in ctx - skipped (no dispatch, no wage)",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(action.destinationHusbandry))
+        return false, false, "missing-dest"
+    end
+
+    -- TYPE-level gate (one representative subtype: the source pen is single-type). A reject still
+    -- charges the wage (buy parity); this is the R3-at-execute overflow (slice 3 leaves the dest uncapped).
+    local errorCode = AIAnimalMoveEvent.validate(placeable, dest, count, action.animals[1].subTypeIndex)
+    if errorCode == AnimalMoveEvent.MOVE_ERROR_NOT_ENOUGH_SPACE then
+        Log:warning("%s rule=%s op=move husbandry=%s farm=%s count=%d: destination has no room - dispatch skipped (wage charged)",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), count)
+        return true, false, "no-space"
+    elseif errorCode == AnimalMoveEvent.MOVE_ERROR_ANIMAL_NOT_SUPPORTED then
+        Log:warning("%s rule=%s op=move husbandry=%s farm=%s: destination does not support the animal type - dispatch skipped (wage charged)",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId))
+        return true, false, "bad-data"
+    elseif errorCode ~= nil then
+        Log:warning("%s rule=%s op=move husbandry=%s farm=%s: validate rejected (errorCode=%s) - dispatch skipped (wage charged)",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(errorCode))
+        return true, false, "bad-data"
+    end
+
+    -- broadcastEvent(..., true) runs the local :run SYNCHRONOUSLY, so two moves to the same dest the
+    -- same tick do not over-fill: the first move's updateNow reduces the dest's free slots before the
+    -- second _doMove's validate reads them (the same synchronicity sell/buy rely on).
+    ctx.server:broadcastEvent(AIAnimalMoveEvent.new(placeable, dest, action.animals), true)
+    Log:debug("%s rule=%s op=move husbandry=%s farm=%s: broadcast AIAnimalMoveEvent dest=%s count=%d",
+        LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(action.destinationHusbandry), count)
     return true, true, nil
 end

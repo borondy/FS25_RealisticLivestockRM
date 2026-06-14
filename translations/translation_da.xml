@@ -300,6 +300,7 @@
 		<text name="rl_mark_aiManager_castrate" text="Dyrepasser markeret til sterilisering"/>
 		<text name="rl_mark_aiManager_disease" text="Dyrepasser markeret til behandling"/>
 		<text name="rl_mark_aiManager_ai" text="Dyrepasser markeret til assisteret avl"/>
+		<text name="rl_mark_aiManager_move" text="Herdsman marked for moving"/>
 		<text name="rl_mark_player" text="Markeret af Spiller"/>
 
 

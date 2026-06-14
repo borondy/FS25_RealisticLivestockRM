@@ -62,6 +62,7 @@ source(modDirectory .. "scripts/animals/shop/controllers/AnimalScreenMoveFarm.lu
 -- SECTION 7: Animal Shop - Events
 source(modDirectory .. "scripts/animals/shop/events/AIAnimalBuyEvent.lua")
 source(modDirectory .. "scripts/animals/shop/events/AIAnimalInseminationEvent.lua")
+source(modDirectory .. "scripts/animals/shop/events/AIAnimalMoveEvent.lua")
 source(modDirectory .. "scripts/animals/shop/events/AIAnimalSellEvent.lua")
 source(modDirectory .. "scripts/animals/shop/events/AIBulkMessageEvent.lua")
 source(modDirectory .. "scripts/animals/shop/events/AnimalBuyEvent.lua")

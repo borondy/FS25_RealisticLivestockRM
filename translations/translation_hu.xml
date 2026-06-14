@@ -320,6 +320,7 @@
 		<text name="rl_mark_aiManager_castrate" text="Az állatgondozó kasztrálásra jelölte ki"/>
 		<text name="rl_mark_aiManager_disease" text="Az állatgondozó kezelésre jelölte ki"/>
 		<text name="rl_mark_aiManager_ai" text="Az állatgondozó mesterséges megtermékenyítésre jelölte ki"/>
+		<text name="rl_mark_aiManager_move" text="Herdsman marked for moving"/>
 		<text name="rl_mark_player" text="Játékos által megjelölve"/>
 
 
