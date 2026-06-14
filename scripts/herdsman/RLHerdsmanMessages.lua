@@ -1,5 +1,5 @@
 -- RLHerdsmanMessages.lua
--- M-Tick T5 (RLRM-408) - the player-notification readout for the new rule-driven herdsman
+-- M-Tick T5 - the player-notification readout for the new rule-driven herdsman
 -- day-tick. T3 (RLHerdsmanExecutor.executeActions) applies the planned mutations and returns a
 -- per-action summary.results but, by decision 1a, emits NO notifications. Legacy
 -- AIAnimalManager:onDayChanged surfaced every executed/marked op as an AI_MANAGER_* message via

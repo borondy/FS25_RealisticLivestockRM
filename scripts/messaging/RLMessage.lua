@@ -252,7 +252,7 @@ RLMessage = {
 		["title"] = "movement",
 		["importance"] = 2
 	},
-	-- New herdsman daily summaries (M-Tick T5, RLRM-408). title="aiManager" groups them with the
+	-- New herdsman daily summaries (M-Tick T5). title="aiManager" groups them with the
 	-- per-op herdsman messages; importance=2 matches the other routine dailies (births/sales).
 	["DAILY_CASTRATIONS_SUMMARY"] = {
 		["text"] = "dailyCastrationsSummary",

@@ -1,8 +1,8 @@
 -- RLHerdsmanRuleEditModel.lua
--- Pure edit-state model for the Herdsman rule detail pane (M-Frame F4b, RLRM-385).
+-- Pure edit-state model for the Herdsman rule detail pane (M-Frame F4b).
 --
 -- The two pure edit-transition functions the detail pane needs, extracted OUT of the
--- frame (Codex F4b triage C2) so they are dual-run rather than inline-and-untested:
+-- frame (Codex F4b triage) so they are dual-run rather than inline-and-untested:
 --   * overlayRule(stored, pending)               -> merged whole-record for live render + the flush payload
 --   * reshapeParamsForOperation(currentParams, op) -> reshaped params when the operation changes
 --

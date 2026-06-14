@@ -23,7 +23,7 @@ function RLConsoleCommandManager.new()
         addConsoleCommand("rlFilterList", "List all saveable filters currently in memory", "listFilters", self, "")
         addConsoleCommand("rlFilterClear", "Clear all saveable filters (SP diagnostic only)", "clearFilters", self, "")
         -- Herdsman rules -- dev seed/inspect for the new menu (M-Frame) until the
-        -- F7 action bar provides a create UI (RLRM-396). The frame reads the real
+        -- F7 action bar provides a create UI. The frame reads the real
         -- g_rlHerdsmanRuleService, so seeded rules drive F3 list / F4 detail / F7
         -- actions and persist + sync like real rules.
         addConsoleCommand("rlHerdsmanRuleCreate", "Seed a few disabled herdsman rules (sell/buy/ai x2, farm 1) for menu dev", "createHerdsmanRules", self, "")
@@ -575,7 +575,7 @@ end
 -- Herdsman rules -- dev seed/inspect for menu development (mirror the filter
 -- commands). The Herdsman frame (M-Frame) reads g_rlHerdsmanRuleService, but no
 -- create UI exists until F7, so these seed/inspect the registry. Superseded when
--- F7 ships the action bar (RLRM-396). SP-only via the outer registration guard.
+-- F7 ships the action bar. SP-only via the outer registration guard.
 -- =============================================================================
 
 

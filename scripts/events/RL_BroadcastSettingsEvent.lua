@@ -28,7 +28,7 @@ function RL_BroadcastSettingsEvent:readStream(streamId, connection)
     Log:debug("RL_BroadcastSettingsEvent:readStream: received settings event over wire (readAll=%s)", tostring(readAll))
 
     -- Deserialize wire pairs onto self.pending but do NOT commit them here.
-    -- The state commit is deferred to run() so the master-user gate (RLRM-284)
+    -- The state commit is deferred to run() so the master-user gate
     -- can reject a non-admin event before any mutation reaches RLSettings.SETTINGS
     -- (Pattern A: mutate-after-validate). A locally-constructed send keeps
     -- self.pending nil - its state is already live in SETTINGS.
@@ -98,7 +98,7 @@ function RL_BroadcastSettingsEvent:run(connection)
         branch, tostring(g_server ~= nil), tostring(connection ~= nil))
 
     -- Server receiving a client-originated event: validate sender authority
-    -- BEFORE any mutation (RLRM-284). connection:getIsServer() is false only when
+    -- BEFORE any mutation. connection:getIsServer() is false only when
     -- WE are the server and the event arrived from a remote client; on a client
     -- receiving the server's broadcast (or the late-join full-set push) it is
     -- true, so the gate and relay below are both skipped. Mirrors

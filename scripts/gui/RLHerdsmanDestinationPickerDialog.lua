@@ -23,7 +23,7 @@ local modDirectory = g_currentModDirectory
 -- =============================================================================
 
 --- Load + register the singleton dialog instance. Called EAGERLY from the explicit dialog
---- registration block in RealisticLivestock_FSBaseMission (RLRM-386: a lazy register-on-show
+--- registration block in RealisticLivestock_FSBaseMission (a lazy register-on-show
 --- never produces a showable dialog, so onOpen would not fire).
 function RLHerdsmanDestinationPickerDialog.register()
     local dialog = RLHerdsmanDestinationPickerDialog.new()

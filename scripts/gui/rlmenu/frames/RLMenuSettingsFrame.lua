@@ -3447,7 +3447,7 @@ function RLMenuSettingsFrame:onClickGeneralSetting(state, widget)
     -- event the legacy GAME SETTINGS page uses on close (InGameMenuSettingsFrame
     -- onFrameClose -> RL_BroadcastSettingsEvent.sendEvent()), here in its
     -- single-setting form. The server validates the sender (master-user),
-    -- persists, and relays to other clients (RLRM-395). Without this the RLMenu
+    -- persists, and relays to other clients. Without this the RLMenu
     -- change stayed local and the server reverted it on save/reload.
     Log:debug("RLMenuSettingsFrame:onClickGeneralSetting: broadcasting '%s' via RL_BroadcastSettingsEvent.sendEvent", name)
     RL_BroadcastSettingsEvent.sendEvent(name)

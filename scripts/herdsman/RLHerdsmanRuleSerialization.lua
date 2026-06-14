@@ -18,7 +18,7 @@
 -- Per-operation params types are grounded in the legacy AI-animal job save/load
 -- behavior. The rule keeps ONLY the operation params; the legacy
 -- age/gender/disease/genetics selection block now lives in the rule's saved
--- filter (SS10), so it is intentionally absent here.
+-- filter, so it is intentionally absent here.
 --
 -- Defensive contracts (fail-closed; mirrors RLFilterSerialization skipping a
 -- filter whose mandatory .group subtree is absent):
@@ -344,7 +344,7 @@ function RLHerdsmanRuleSerialization.readRule(xmlFile, ruleKey)
     local filterId = xmlFile:getString(ruleKey .. "#filterId")
 
     -- Load-time floor: read-side twin of validateRuleFields' filterId-vs-operation
-    -- rule. naming carries no filter; a non-naming rule binds at most one (D6/SS10) -
+    -- rule. naming carries no filter; a non-naming rule binds at most one (D6) -
     -- an absent #filterId reads back nil (a legal incomplete draft), but a
     -- present-but-empty/whitespace non-naming filterId, or any filterId on a naming
     -- rule, is corruption -> skip (fail-closed, like the missing-id / unknown-op /

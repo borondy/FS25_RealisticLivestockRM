@@ -1,5 +1,5 @@
 -- RLHerdsmanExecutor.lua
--- M-Tick T3 (RLRM-391) - the in-game executor wall. Turns the pure plan from
+-- M-Tick T3 - the in-game executor wall. Turns the pure plan from
 -- RLHerdsmanPlanner.planActions (T1/T2) into the SAME mutations legacy
 -- AIAnimalManager:onDayChanged performs (MUTATION PARITY): it dispatches the SAME
 -- events (AIAnimalSellEvent / AIAnimalBuyEvent / AIAnimalInseminationEvent), applies
@@ -22,7 +22,7 @@
 -- T3 makes NO candidate decisions: the plan is authoritative. The executor obeys
 -- action.mark / action.wage / action.animals verbatim; it never selects, caps, sorts,
 -- computes wage, or reorders. It also does NOT clear stale marks (that is T4, the
--- clear-before-execute ordering) and emits NO player notifications (that is T5/RLRM-408 -
+-- clear-before-execute ordering) and emits NO player notifications (that is T5 -
 -- the returned summary carries the per-action data T5 needs).
 --
 -- Dependency injection (Rule C), no g_* reads. The dispatch boundary arrives through

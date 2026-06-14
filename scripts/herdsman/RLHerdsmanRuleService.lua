@@ -61,7 +61,7 @@ RLHerdsmanRuleService.OPERATIONS = {
 }
 
 --- Canonical run / visual order for the five operations (D3 "visual order = run
---- order"; SS7): Sell frees herd space before Buy fills it, mirroring legacy
+--- order"): Sell frees herd space before Buy fills it, mirroring legacy
 --- `AIAnimalManager:onDayChanged`. The single source of truth for BOTH consumers -
 --- the M-Frame presenter (section placement) and the M-Tick planner (run order).
 --- Each consumer derives its own operation -> rank map from this list (no shared
@@ -163,7 +163,7 @@ local function isDenseArray(t)
     return count == #t
 end
 
---- Validate a candidate rule against the validity floor (the SS4 record rules).
+--- Validate a candidate rule against the validity floor (the record rules).
 --- Used by BOTH `create` and `update` so the same constraints gate every write.
 --- Returns `true` on success, or `false` plus a short reason string a caller can
 --- surface in a `:warning`. Does NOT mutate the rule.
@@ -203,7 +203,7 @@ local function validateRuleFields(r)
     if not isDenseArray(r.targetHusbandries) then
         return false, "targetHusbandries must be a dense array (map-shaped or sparse keys rejected; no normalization here)"
     end
-    -- filterId-vs-operation (D6/SS10): naming carries no filter; a non-naming rule
+    -- filterId-vs-operation (D6): naming carries no filter; a non-naming rule
     -- binds at most one filter by id - nil is a legal incomplete draft (the rule is
     -- inert until a filter is picked), and a present filterId must stay a non-empty
     -- (non-whitespace) string. Resolution against RLFilterService is deferred to
@@ -532,7 +532,7 @@ function RLHerdsmanRuleService:list()
     return out
 end
 
---- Rules whose frozen `farmId` equals `farmId` (SS4: farmId is the owning farm),
+--- Rules whose frozen `farmId` equals `farmId` (farmId is the owning farm),
 --- as cloned snapshots. Order is undefined (see `list`).
 ---@param farmId integer owning farm id to match against
 ---@return table[] rules cloned snapshots

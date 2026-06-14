@@ -967,7 +967,7 @@ function RLMenuHerdsmanFrame:onFilterPicked(filterId)
     -- dewar leaves the new animalType pool (H1). Pinned to current merged so two edits compose.
     local newMerged = RLHerdsmanRuleEditModel.overlayRule(stored, self.pendingChanges[id])
     self:revalidatePendingTargetsAndSemen(id, newMerged)
-    -- Drop a now-type-incompatible move destination (the filter-rebind axis - C2). Recompute the
+    -- Drop a now-type-incompatible move destination (the filter-rebind axis). Recompute the
     -- merged record first so the dest sees the post-target-revalidation source set.
     local afterTargets = RLHerdsmanRuleEditModel.overlayRule(stored, self.pendingChanges[id])
     self:revalidatePendingDestination(id, afterTargets, afterTargets.targetHusbandries)
@@ -1060,7 +1060,7 @@ function RLMenuHerdsmanFrame:onHusbandriesPicked(uniqueIds)
     self:ensurePending(id).targetHusbandries = uniqueIds
     Log:debug("RLMenuHerdsmanFrame:onHusbandriesPicked: id=%s targetHusbandries stashed (%d target(s))",
         tostring(id), #uniqueIds)
-    -- Drop a move destination that the new source set turned into a source (the source-set axis - C2).
+    -- Drop a move destination that the new source set turned into a source (the source-set axis).
     local afterPick = RLHerdsmanRuleEditModel.overlayRule(stored, self.pendingChanges[id])
     self:revalidatePendingDestination(id, afterPick, uniqueIds)
     self:refreshRuleDetail(stored)
@@ -1131,7 +1131,7 @@ function RLMenuHerdsmanFrame:revalidatePendingTargetsAndSemen(id, merged)
     end
 end
 
---- Revalidate a move rule's pending destination after a filter rebind OR a source-set change (C2) -
+--- Revalidate a move rule's pending destination after a filter rebind OR a source-set change -
 --- the dest twin of revalidatePendingTargetsAndSemen. Drops a now-type-incompatible RESOLVABLE dest
 --- (the picker's gate) or a dest that became a source (preserving an unresolvable one), and stashes
 --- the survivor. No-op for a non-move rule or a nil dest. `sourceUids` is the rule's source target
@@ -1442,7 +1442,7 @@ end
 --- enabled-conditional RLHerdsmanRulePresenter.validateFlush (H3/1a): nameOk + operationOk +
 --- paramsOk always required; AND both husbandriesOk (>= 1 target) and a bound non-naming filter
 --- are required ONLY when the rule is enabled (F7's enabled-conditional filter, the frame-side
---- twin of RLRM-404). A disabled / incomplete rule therefore persists as a draft (nil filterId
+--- twin of the relaxed service floor). A disabled / incomplete rule therefore persists as a draft (nil filterId
 --- / 0 targets = no-op); enabling an unfiltered or 0-target rule SKIPs here (the narrow-revert
 --- below drops just the enable, keeping unrelated edits). On a validation skip OR a service
 --- reject, clears the pending overlay and reverts the display to the stored record (the next
@@ -1465,7 +1465,7 @@ function RLMenuHerdsmanFrame:flushPendingForId(id)
     local g = RLHerdsmanRulePresenter.validateFlush(merged)
     -- Gate (H3/1a): nameOk + operationOk + paramsOk always; husbandriesOk (>= 1 target) AND a
     -- bound non-naming filter required ONLY when enabled (F7's enabled-conditional filter, the
-    -- frame-side twin of RLRM-404). A disabled / incomplete rule persists as a draft (nil
+    -- frame-side twin of the relaxed service floor). A disabled / incomplete rule persists as a draft (nil
     -- filterId / 0 targets = no-op); an enabled rule missing either is handled by the
     -- narrow-revert below (drop just the enable), not a service reject.
 
@@ -1805,7 +1805,7 @@ end
 -- =============================================================================
 
 --- Re-read the rule registry for the current farm, KEEPING the local pending overlay
---- (local-pending-wins for F7; the authoritative-surface mid-edit reconcile is RLRM-396).
+--- (local-pending-wins for F7; the authoritative-surface mid-edit reconcile is deferred).
 --- Drops pending whose id is gone from the re-read snapshot (orphan prune) and clears the
 --- selection to the empty-state when the selected id was pruned (so a stale focused input
 --- cannot re-stash a resurrected orphan). Rebuilds + reloads under isReconciling, re-pins the

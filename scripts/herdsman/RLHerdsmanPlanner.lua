@@ -1,6 +1,6 @@
 -- RLHerdsmanPlanner.lua
--- Pure herdsman day-tick planner (M-Tick T1 RLRM-389 + T2a Sell/Buy RLRM-390 + T2b
--- Castrate/Naming RLRM-405 + T2c AI/insemination RLRM-406) - the keystone of M-Tick.
+-- Pure herdsman day-tick planner (M-Tick T1 + T2a Sell/Buy + T2b
+-- Castrate/Naming + T2c AI/insemination) - the keystone of M-Tick.
 --
 -- `planActions(rules, ctx)` decides WHICH animals each enabled rule acts on, in run
 -- order, threading cross-rule claims + a farm-scoped money ledger + a planner-wide dewar
@@ -50,7 +50,7 @@
 --   castrate { ruleId, operation="castrate", husbandryId, animals=<survivors>, mark, wage }
 --   naming   { ruleId, operation="naming", husbandryId, animals=<named>, convention, wage,
 --              assignments?, previousOut? } (assignments+previousOut iff alphabetical AND >=1 named)
---   ai       { ruleId, operation="ai", husbandryId, animals } (T1 shape; per-op params = RLRM-406/T2c)
+-- ai { ruleId, operation="ai", husbandryId, animals } (T1 shape; per-op params = T2c)
 --
 -- Run order = operation order (RLHerdsmanRuleService.OPERATION_ORDER: sell -> move -> buy ->
 -- castrate -> naming -> ai) then RLHerdsmanRuleService.compareRulesByName within an op
@@ -293,7 +293,7 @@ end
 --- Algorithm:
 ---   1. Filter to runnable rules: `enabled == true`; operation in OPERATION_ORDER (else
 ---      skip + WARN); non-naming with `filterId == nil` is an incomplete draft -> skip +
----      DEBUG (RLRM-404). Disabled rules skip + DEBUG.
+--- DEBUG. Disabled rules skip + DEBUG.
 ---   2. Sort runnable rules by operation rank, then `compareRulesByName`.
 ---   3. Per rule, dedupe + lexicographically order its targets, then per target select
 ---      candidates from the internal REMAINING pools (one `evalCtx` per call), apply the
@@ -679,7 +679,7 @@ function RLHerdsmanPlanner.planActions(rules, ctx)
                         if h ~= nil then
                             local pool = ownedPool(uid)
                             local candidates = #pool
-                            -- Shortlist = filter-matched AND sellable (getCanBeSold, RLRM-151;
+                            -- Shortlist = filter-matched AND sellable (getCanBeSold;
                             -- nil counts as a skip, matching legacy `not getCanBeSold()`). S =
                             -- shortlist size, pre-cap (the wage's `min(S, n*5)` operand).
                             local matched = matchFromPool(pool, filter, false, claimed)

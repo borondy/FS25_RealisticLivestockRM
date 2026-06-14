@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <!--
     rlHerdsmanHusbandryPickerDialog.xml
-    Multi-select husbandry picker for a herdsman rule (F6, RLRM-388). The frame supplies
+ Multi-select husbandry picker for a herdsman rule (F6). The frame supplies
     the already animalType-gated + sorted candidate descriptors; this dialog renders the
     checkbox list, tracks per-uniqueId selection, and returns the chosen uniqueId array.
 

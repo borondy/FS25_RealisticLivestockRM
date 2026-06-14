@@ -1,5 +1,5 @@
 -- RLHerdsmanRulePresenter.lua
--- Pure view-model for the Herdsman rule menu frame (M-Frame F1, RLRM-382).
+-- Pure view-model for the Herdsman rule menu frame (M-Frame F1).
 --
 -- The single home for every list / detail / visibility / validation decision the
 -- Herdsman frame needs, so the frame `.lua` stays bind-only (read element -> call a
@@ -32,8 +32,8 @@ RLHerdsmanRulePresenter = {}
 -- Constants
 -- =============================================================================
 
---- Canonical run / visual order for rule sections (D3 "visual order = run order";
---- SS7). OWNED by RLHerdsmanRuleService.OPERATION_ORDER (M-Tick T1): the presenter's
+--- Canonical run / visual order for rule sections (D3 "visual order = run order").
+--- OWNED by RLHerdsmanRuleService.OPERATION_ORDER (M-Tick T1): the presenter's
 --- section sort and the planner's run-order sort share one source of truth. Re-exported
 --- here so the presenter's own callers + tests keep referencing it under this name. The
 --- operation VALIDITY set comes from RLHerdsmanRuleService.OPERATIONS (no duplication).
@@ -50,7 +50,7 @@ end
 --- carries exactly these keys (defaulting false) so callers can key-test safely.
 local PARAM_KEYS = { "filter", "maxAnimals", "budget", "mark", "convention", "previous", "semen", "destination" }
 
---- operation -> set of VISIBLE detail-pane params (true). Grounded in the SS10
+--- operation -> set of VISIBLE detail-pane params (true). Grounded in the
 --- legacy-parity matrix (AIAnimalManager.new settings defaults): Sell maxAnimals+mark;
 --- Move maxAnimals+mark+destination; Buy budget+maxAnimals; Castrate mark (no cap);
 --- Naming convention+previous (no filter, no cap); AI maxAnimals+mark+semen. `filter`
@@ -582,7 +582,7 @@ function RLHerdsmanRulePresenter.sortFiltersByName(filters)
 end
 
 -- =============================================================================
--- AnimalType compatibility + husbandry targeting (F6, RLRM-388)
+-- AnimalType compatibility + husbandry targeting (F6)
 -- =============================================================================
 
 --- The ONE operation x animalType compatibility predicate (M1). The single locked rule:
@@ -764,7 +764,7 @@ function RLHerdsmanRulePresenter.revalidateTargets(targetHusbandries, typeByUid,
 end
 
 --- Revalidate a MOVE rule's stored `destinationHusbandry` after a filter rebind OR a source-set
---- change (C2) - the single-key twin of revalidateTargets, durable against BOTH gate axes. A nil
+--- change - the single-key twin of revalidateTargets, durable against BOTH gate axes. A nil
 --- dest stays nil. A dest ABSENT from `typeByUid` is UNRESOLVABLE (deleted / transient / nil-type)
 --- and is PRESERVED - protecting the `(missing)` repair affordance + MP transient-divergence. A
 --- RESOLVABLE dest drops to nil when EITHER its type is no longer keepHusbandryType-admitted (the
@@ -969,11 +969,11 @@ end
 --- target list (inert rule), but the editor requires >= 1 so a saved rule actually
 --- does something. Re-asserts the naming-filterId-nil and operation-enum rules so the
 --- UI never green-lights a draft the service rejects on save. The animalType
---- target-gate + castrate chicken-exclusion stay out of scope (-> RLRM-388/F6):
+--- target-gate + castrate chicken-exclusion stay out of scope (-> F6):
 ---   * nameOk         - `name` is a non-blank string (not all-whitespace)
 ---   * operationOk    - `operation` is in the canonical RLHerdsmanRuleService.OPERATIONS set
 ---   * filterOk       - naming: `filterId == nil`; non-naming: a filter is required only when
----                      `enabled` (RLRM-404 twin) - a disabled draft may carry a nil filterId;
+---                      `enabled` - a disabled draft may carry a nil filterId;
 ---                      a present filterId must always be a non-blank string
 ---   * filterRequired - non-naming AND `enabled` (surfaced for the frame's flush narrow-revert)
 ---   * husbandriesOk  - `#targetHusbandries >= 1`
@@ -994,7 +994,7 @@ function RLHerdsmanRulePresenter.validateEdit(draft)
     local nameOk = type(draft.name) == "string" and draft.name:gsub("%s", "") ~= ""
     local operationOk = isKnownOperation(draft.operation)
 
-    -- filterId-vs-operation, enabled-conditional (the frame-side twin of RLRM-404's relaxed
+    -- filterId-vs-operation, enabled-conditional (the frame-side twin of the relaxed
     -- service floor): naming MUST carry a nil filterId; a non-naming rule needs a filter only
     -- to be ENABLED (mirrors F6's enabled-conditional husbandries) - a disabled draft may carry
     -- a nil filterId (an incomplete draft, inert until a filter is picked). A present filterId
@@ -1081,8 +1081,8 @@ end
 -- =============================================================================
 
 --- Build a fresh "New rule" draft for the service create call: a disabled Sell draft (the
---- operation users reach for first), filterId nil (an incomplete draft, valid only post-
---- RLRM-404), zero targets, and Sell's default params. No id / version - the service assigns
+--- operation users reach for first), filterId nil (an incomplete draft, valid only with the relaxed floor),
+--- zero targets, and Sell's default params. No id / version - the service assigns
 --- the id and defaults the version on create. The caller supplies the (immutable) farmId and
 --- the collision-free name (computeDefaultRuleName). Plain data in / plain data out.
 ---@param farmId number the owning farm id

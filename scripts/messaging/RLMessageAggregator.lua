@@ -23,7 +23,7 @@ RLMessageAggregator.AGGREGATABLE = {
     AI_MANAGER_SOLD_MULTIPLE = "sales",
     AI_MANAGER_BOUGHT_SINGLE = "purchases",
     AI_MANAGER_BOUGHT_MULTIPLE = "purchases",
-    -- New herdsman count-only categories (M-Tick T5, RLRM-408, decision 1b): castrate / named /
+    -- New herdsman count-only categories (M-Tick T5, decision 1b): castrate / named /
     -- inseminated / mark each fold into their own daily summary on the host (sold/bought already do
     -- via sales/purchases above). No money - the buckets carry a count only.
     AI_MANAGER_CASTRATED_SINGLE = "castrations",
