@@ -42,13 +42,17 @@
 -- `compareRulesByName`; within a rule, targets in lexicographic uniqueId order):
 --   sell { ruleId, operation="sell", husbandryId, animals=<price desc>, mark, wage, amountGained? }
 --        (`amountGained` present iff `mark==false`; a marked sell is advisory - no money/event)
+--   move { ruleId, operation="move", husbandryId=<source>, animals=<genetics desc>, destinationHusbandry, mark, wage }
+--        (OUT op like sell: the selected set leaves the SOURCE plan pool this tick; the
+--        destination-side add lands next day - no same-day dest-add. No money/event - the
+--        relocation is the executor's, slice 4.)
 --   buy  { ruleId, operation="buy",  husbandryId, animals=<price asc>,  amountSpent, wage }
 --   castrate { ruleId, operation="castrate", husbandryId, animals=<survivors>, mark, wage }
 --   naming   { ruleId, operation="naming", husbandryId, animals=<named>, convention, wage,
 --              assignments?, previousOut? } (assignments+previousOut iff alphabetical AND >=1 named)
 --   ai       { ruleId, operation="ai", husbandryId, animals } (T1 shape; per-op params = RLRM-406/T2c)
 --
--- Run order = operation order (RLHerdsmanRuleService.OPERATION_ORDER: sell -> buy ->
+-- Run order = operation order (RLHerdsmanRuleService.OPERATION_ORDER: sell -> move -> buy ->
 -- castrate -> naming -> ai) then RLHerdsmanRuleService.compareRulesByName within an op
 -- (mirrors legacy AIAnimalManager:onDayChanged - sell frees herd space + funds buys before
 -- buy fills the space / spends the proceeds).
@@ -736,6 +740,98 @@ function RLHerdsmanPlanner.planActions(rules, ctx)
                                     end
                                 end
                                 actions[#actions + 1] = action
+                            end
+                        end
+                    end
+                end
+            end
+
+        elseif op == "move" then
+            -- Move is an OUT op (the `removesFromPlanPool` trait it shares with sell): the
+            -- selected, capped set leaves its SOURCE plan pool + same-op claim UNCONDITIONALLY
+            -- (mark OR exec, success-agnostic - the planner never learns whether the execute
+            -- later fails), so no later-ordered rule can plan the moved animals. That is exactly
+            -- what keeps a "castrate the rest" rule off the moved breeding bull. R2: the selected
+            -- set is deliberately NOT appended to the destination's owned pool this tick - the buy
+            -- dest-add is the asymmetry to AVOID, because a move can fail at execute and a same-day
+            -- dest-add would resurrect a cross-pen snip; destination rules pick the animals up next
+            -- day. No animalSystem guard: move prices nothing (selection reads only a.genetics +
+            -- the identity fields, so a non-Animal data table is fine here - the executor resolves
+            -- live membership). Genetics has NO floor (unlike AI, which skips a candidate with any
+            -- nil/non-number field): move has no genetics requirement, so the per-field-coerced sum
+            -- only decides who survives the cap - a whole-nil genetics scores 0 (sorts last) yet
+            -- stays selectable.
+            local dest = params.destinationHusbandry
+            if type(dest) ~= "string" or dest:gsub("%s", "") == "" then
+                -- Dest-less / empty-or-whitespace dest -> clean no-op: select nothing, claim
+                -- nothing, emit nothing. You cannot relocate without a destination, and claiming
+                -- animals out of the pool for a move that does nothing would wrongly suppress
+                -- "castrate the rest". Checked ONCE at the rule level (dest is a rule param, not
+                -- per-target) BEFORE the target loop and normalizeMaxAnimals, so the no-op cause is
+                -- unambiguous.
+                Log:debug("%s rule=%s op=move no-op: missing/empty destinationHusbandry (%s)",
+                    LOG_PREFIX, tostring(rule.id), tostring(dest))
+            else
+                local maxN = normalizeMaxAnimals(rule, params)
+                if maxN ~= nil then
+                    local mark = params.mark == true
+                    for _, uid in ipairs(targets) do
+                        local h = resolveHusbandry(uid)
+                        if h ~= nil then
+                            local pool = ownedPool(uid)
+                            local candidates = #pool
+                            -- Shortlist == ALL matched candidates (no eligibility step between match
+                            -- and shortlist, unlike sell's getCanBeSold) -> S == #matched. S exists
+                            -- only for the cap and the DEBUG line; it is never a wage operand.
+                            local matched = matchFromPool(pool, filter, false, claimed)
+                            local shortlist = {}
+                            for _, a in ipairs(matched) do
+                                -- Per-field-coerced genetics sum: each field contributes its value
+                                -- when type == "number", else 0, so a nil / non-number / non-table
+                                -- genetics never raises and never skips (fail-soft).
+                                local g = a.genetics
+                                local gm, gq, gf, gh, gp
+                                if type(g) == "table" then gm, gq, gf, gh, gp = g.metabolism, g.quality, g.fertility, g.health, g.productivity end
+                                local score = (type(gm) == "number" and gm or 0)
+                                    + (type(gq) == "number" and gq or 0)
+                                    + (type(gf) == "number" and gf or 0)
+                                    + (type(gh) == "number" and gh or 0)
+                                    + (type(gp) == "number" and gp or 0)
+                                shortlist[#shortlist + 1] = { animal = a, genetics = score, key = animalKey(a), ord = #shortlist + 1 }
+                            end
+                            local S = #shortlist
+                            -- Genetics DESC (the best survive the cap), then identity key ASC, then a
+                            -- stable build-order ord tiebreak - the same comparator shape the AI op
+                            -- uses, so an equal-sum tie straddling the cap is still deterministic.
+                            table.sort(shortlist, function(x, y)
+                                if x.genetics ~= y.genetics then return x.genetics > y.genetics end
+                                if x.key ~= y.key then return x.key < y.key end
+                                return x.ord < y.ord
+                            end)
+                            local selected, selectedKeys = {}, {}
+                            for i = 1, math.min(maxN, S) do
+                                local item = shortlist[i]
+                                selected[i] = item.animal
+                                selectedKeys[item.key] = true
+                            end
+                            local n = #selected
+                            -- Single-term wage (castrate-parity rate): W*0.5*n*(mark?0.35:1). W is
+                            -- resolved PER TARGET so a mixed-type multi-target move wages each pen by
+                            -- its own type; n = the PLANNED selected count (charge planned, like
+                            -- sell/buy/castrate - slice 4's executor scales actual/planned later).
+                            local W = wageFor(h.animalTypeIndex)
+                            local wage = W * 0.5 * n * (mark and 0.35 or 1)
+                            Log:debug("%s rule=%s op=move husbandry=%s candidates=%d shortlist=%d selected=%d mark=%s dest=%s wage=%.2f",
+                                LOG_PREFIX, tostring(rule.id), tostring(uid), candidates, S, n, tostring(mark), tostring(dest), wage)
+                            if n > 0 then
+                                -- R1: the selected set leaves the SOURCE pool + same-op claim,
+                                -- UNCONDITIONAL (mark OR exec). Capped-out matches are NOT claimed -
+                                -- they stay candidates for a later same-op move and for later cross-op
+                                -- rules. R2: NEVER touch ownedPool(dest) - no same-day dest-add.
+                                remainingByHusbandry[uid] = poolMinus(pool, selectedKeys)
+                                claimAll(claimed, selected)
+                                actions[#actions + 1] = { ruleId = rule.id, operation = "move", husbandryId = uid,
+                                    animals = selected, destinationHusbandry = dest, mark = mark, wage = wage }
                             end
                         end
                     end
