@@ -231,6 +231,20 @@
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_husbandries"/>
                     </Bitmap>
 
+                    <!-- Destination (move only; hidden for other ops via setRowVisible). Button-as-value:
+                         an in-row rl_settingsButton whose label is the chosen destination husbandry name
+                         (or a "Select destination" CTA / (missing)) and whose click opens the SINGLE-select
+                         destination picker. Mirrors the Husbandries row above (rl_settingsButton +
+                         fs25_settingsButtonBg, tinted + collapsed by updateAlternatingElements). The frame
+                         setTexts the label via formatDestinationButtonLabel on each render. -->
+                    <Bitmap profile="fs25_multiTextOptionContainer" id="ruleDestinationRow">
+                        <Button profile="rl_settingsButton" id="ruleDestinationButton" onClick="onClickRuleDestination">
+                            <ThreePartBitmap profile="fs25_settingsButtonBg"/>
+                            <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                        </Button>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_destination"/>
+                    </Bitmap>
+
                 </ScrollingLayout>
             </GuiElement>
 

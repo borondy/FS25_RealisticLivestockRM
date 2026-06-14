@@ -48,15 +48,16 @@ end
 
 --- Stable key order for the param-visibility map. Every getParamVisibility result
 --- carries exactly these keys (defaulting false) so callers can key-test safely.
-local PARAM_KEYS = { "filter", "maxAnimals", "budget", "mark", "convention", "previous", "semen" }
+local PARAM_KEYS = { "filter", "maxAnimals", "budget", "mark", "convention", "previous", "semen", "destination" }
 
 --- operation -> set of VISIBLE detail-pane params (true). Grounded in the SS10
 --- legacy-parity matrix (AIAnimalManager.new settings defaults): Sell maxAnimals+mark;
---- Buy budget+maxAnimals; Castrate mark (no cap); Naming convention+previous (no
---- filter, no cap); AI maxAnimals+mark+semen. `filter` shows for every operation
---- except naming. Params absent from a set default to false (hidden).
+--- Move maxAnimals+mark+destination; Buy budget+maxAnimals; Castrate mark (no cap);
+--- Naming convention+previous (no filter, no cap); AI maxAnimals+mark+semen. `filter`
+--- shows for every operation except naming. Params absent from a set default to false (hidden).
 local PARAM_VISIBILITY = {
     sell     = { filter = true, maxAnimals = true, mark = true },
+    move     = { filter = true, maxAnimals = true, mark = true, destination = true },
     buy      = { filter = true, maxAnimals = true, budget = true },
     castrate = { filter = true, mark = true },
     naming   = { convention = true, previous = true },
@@ -70,6 +71,7 @@ local PARAM_VISIBILITY = {
 --- ticket-faithful at {ANY, OWNED}.
 local ALLOWED_USAGES = {
     sell     = { [RLFilterUsage.ANY] = true, [RLFilterUsage.OWNED]  = true },
+    move     = { [RLFilterUsage.ANY] = true, [RLFilterUsage.OWNED]  = true },
     buy      = { [RLFilterUsage.ANY] = true, [RLFilterUsage.DEALER] = true },
     castrate = { [RLFilterUsage.ANY] = true, [RLFilterUsage.OWNED]  = true },
     naming   = { [RLFilterUsage.ANY] = true, [RLFilterUsage.OWNED]  = true },
@@ -203,7 +205,7 @@ end
 --- the full PARAM_KEYS set so callers can key-test without nil-checking. Unknown
 --- operation -> all-false + warning.
 ---@param operation any rule operation key
----@return table map keyed by filter|maxAnimals|budget|mark|convention|previous|semen (all boolean)
+---@return table map keyed by filter|maxAnimals|budget|mark|convention|previous|semen|destination (all boolean)
 function RLHerdsmanRulePresenter.getParamVisibility(operation)
     local visible = PARAM_VISIBILITY[operation]
     if visible == nil then
@@ -215,9 +217,9 @@ function RLHerdsmanRulePresenter.getParamVisibility(operation)
         out[key] = visible ~= nil and visible[key] == true
     end
 
-    Log:trace("RLHerdsmanRulePresenter.getParamVisibility: operation=%s filter=%s maxAnimals=%s budget=%s mark=%s convention=%s previous=%s semen=%s",
+    Log:trace("RLHerdsmanRulePresenter.getParamVisibility: operation=%s filter=%s maxAnimals=%s budget=%s mark=%s convention=%s previous=%s semen=%s destination=%s",
         tostring(operation), tostring(out.filter), tostring(out.maxAnimals), tostring(out.budget),
-        tostring(out.mark), tostring(out.convention), tostring(out.previous), tostring(out.semen))
+        tostring(out.mark), tostring(out.convention), tostring(out.previous), tostring(out.semen), tostring(out.destination))
     return out
 end
 
@@ -276,6 +278,10 @@ end
 function RLHerdsmanRulePresenter.defaultParamsForOperation(operation)
     local params
     if operation == "sell" then
+        params = { maxAnimals = 5, mark = false }
+    elseif operation == "move" then
+        -- No destinationHusbandry key: an inert draft (the dest is picked separately), mirroring a
+        -- nil filterId. The cap + mark seed the same as sell; the planner caps a move on maxAnimals.
         params = { maxAnimals = 5, mark = false }
     elseif operation == "buy" then
         params = { maxAnimals = 5, budget = { type = "fixed", fixed = 5000, percentage = 1 } }
@@ -355,6 +361,10 @@ end
 --- budgetType / budgetFixed / budgetPercentage result keys.
 local PARAM_VALIDATORS = {
     sell = {
+        { field = "maxAnimals", get = function(p) return p.maxAnimals end, check = isValidMaxAnimals },
+        { field = "mark",       get = function(p) return p.mark end,       check = isValidMark },
+    },
+    move = {
         { field = "maxAnimals", get = function(p) return p.maxAnimals end, check = isValidMaxAnimals },
         { field = "mark",       get = function(p) return p.mark end,       check = isValidMark },
     },
@@ -683,6 +693,37 @@ function RLHerdsmanRulePresenter.selectTargetableHusbandries(husbandries, filter
     return out
 end
 
+--- Gate + order the SINGLE-select destination candidate list for a MOVE rule (decision 3b). Reuses
+--- selectTargetableHusbandries with operation "move" (type-compatible with every type) for the
+--- animalType-gated, name-sorted owner-farm candidate set, then DROPS any descriptor whose
+--- `uniqueId` is in `excludeUids` (the rule's own source targetHusbandries): a source pen is never a
+--- valid destination, which also keeps every offered dest resolvable in the executor's DI-pure
+--- per-farm ctx map (source==dest would be bad data). Returns a NEW array; inputs never mutated.
+---@param husbandries table[]|nil descriptors { uniqueId, animalType, name }
+---@param filterAnimalType any filter scope animalType, or nil for ANY (all types)
+---@param chickenTypeIndex any resolved CHICKEN index, or nil
+---@param excludeUids table|nil array of source uniqueId strings to exclude from the dest candidates
+---@return table[] sorted candidate descriptors (sources removed)
+function RLHerdsmanRulePresenter.selectDestinationHusbandries(husbandries, filterAnimalType, chickenTypeIndex, excludeUids)
+    local gated = RLHerdsmanRulePresenter.selectTargetableHusbandries(husbandries, filterAnimalType, "move", chickenTypeIndex)
+    local excluded = {}
+    if type(excludeUids) == "table" then
+        for _, uid in ipairs(excludeUids) do excluded[uid] = true end
+    end
+    local out = {}
+    local removed = 0
+    for _, h in ipairs(gated) do
+        if type(h) == "table" and excluded[h.uniqueId] then
+            removed = removed + 1
+        else
+            out[#out + 1] = h
+        end
+    end
+    Log:trace("RLHerdsmanRulePresenter.selectDestinationHusbandries: filterType=%s -> %d candidate(s), %d source(s) excluded",
+        tostring(filterAnimalType), #out, removed)
+    return out
+end
+
 --- Revalidate a rule's stored target uniqueIds after a filter rebind OR an operation change
 --- (H2/H4). For each uid: if it is ABSENT from `typeByUid` it is UNRESOLVABLE (a deleted /
 --- transiently-unloaded placeable, or a nil-type one the frame did not map) and is PRESERVED
@@ -720,6 +761,47 @@ function RLHerdsmanRulePresenter.revalidateTargets(targetHusbandries, typeByUid,
     Log:trace("RLHerdsmanRulePresenter.revalidateTargets: operation=%s filterType=%s -> %d kept (%d preserved-unresolvable), %d dropped",
         tostring(operation), tostring(filterAnimalType), #kept, preserved, dropped)
     return kept
+end
+
+--- Revalidate a MOVE rule's stored `destinationHusbandry` after a filter rebind OR a source-set
+--- change (C2) - the single-key twin of revalidateTargets, durable against BOTH gate axes. A nil
+--- dest stays nil. A dest ABSENT from `typeByUid` is UNRESOLVABLE (deleted / transient / nil-type)
+--- and is PRESERVED - protecting the `(missing)` repair affordance + MP transient-divergence. A
+--- RESOLVABLE dest drops to nil when EITHER its type is no longer keepHusbandryType-admitted (the
+--- picker's gate, operation "move") OR its `uniqueId` is now a member of `sourceUids` (a post-pick
+--- source edit turned the dest into a source - the executor treats source==dest as bad data).
+---@param destinationHusbandry any the stored dest uniqueId string, or nil
+---@param typeByUid table|nil map uniqueId -> animalType index for LIVE husbandries (non-nil types only)
+---@param filterAnimalType any filter scope animalType, or nil for ANY
+---@param chickenTypeIndex any resolved CHICKEN index, or nil
+---@param sourceUids table|nil array of the rule's source target uniqueId strings
+---@return any destinationHusbandry the surviving dest key, or nil
+function RLHerdsmanRulePresenter.revalidateDestination(destinationHusbandry, typeByUid, filterAnimalType, chickenTypeIndex, sourceUids)
+    if destinationHusbandry == nil then
+        Log:trace("RLHerdsmanRulePresenter.revalidateDestination: nil dest -> nil")
+        return nil
+    end
+    local types = type(typeByUid) == "table" and typeByUid or {}
+    local at = types[destinationHusbandry]
+    if at == nil then
+        -- Unresolvable (deleted / transient / nil-type): PRESERVE the (missing) repair affordance.
+        Log:trace("RLHerdsmanRulePresenter.revalidateDestination: dest %s unresolvable -> preserved", tostring(destinationHusbandry))
+        return destinationHusbandry
+    end
+    if not keepHusbandryType(at, filterAnimalType, "move", chickenTypeIndex) then
+        Log:trace("RLHerdsmanRulePresenter.revalidateDestination: dest %s now type-incompatible -> dropped", tostring(destinationHusbandry))
+        return nil
+    end
+    if type(sourceUids) == "table" then
+        for _, uid in ipairs(sourceUids) do
+            if uid == destinationHusbandry then
+                Log:trace("RLHerdsmanRulePresenter.revalidateDestination: dest %s is now a source -> dropped", tostring(destinationHusbandry))
+                return nil
+            end
+        end
+    end
+    Log:trace("RLHerdsmanRulePresenter.revalidateDestination: dest %s kept", tostring(destinationHusbandry))
+    return destinationHusbandry
 end
 
 -- =============================================================================
@@ -784,6 +866,28 @@ function RLHerdsmanRulePresenter.formatHusbandryButtonLabel(targetHusbandries, r
     end
     Log:trace("RLHerdsmanRulePresenter.formatHusbandryButtonLabel: %d targets -> selected form", count)
     return string.format(labels.selected, count)
+end
+
+--- Single-key summary for the detail-pane destination BUTTON (move rules). nil / non-string / empty
+--- / WHITESPACE-only key -> `labels.none` (the "Select destination" CTA - the blank-trim matches
+--- validateEdit's present-but-blank rejection, unlike formatHusbandryButtonLabel's 1-target branch
+--- which shows `(missing)` for a whitespace key); a resolvable non-blank key -> the husbandry name
+--- via the injected `resolveName(uid)`; an unresolvable non-blank key -> `labels.missing`.
+---@param destinationHusbandry any the stored dest uniqueId string, or nil
+---@param resolveName function|nil function(uid) -> name string|nil (frame wires the placeableSystem lookup)
+---@param labels table { none = string, missing = string }
+---@return string label
+function RLHerdsmanRulePresenter.formatDestinationButtonLabel(destinationHusbandry, resolveName, labels)
+    local hasKey = type(destinationHusbandry) == "string" and destinationHusbandry:gsub("%s", "") ~= ""
+    if not hasKey then
+        Log:trace("RLHerdsmanRulePresenter.formatDestinationButtonLabel: blank/absent dest -> none CTA")
+        return labels.none
+    end
+    local resolved = nil
+    if resolveName ~= nil then resolved = resolveName(destinationHusbandry) end
+    local label = (type(resolved) == "string" and resolved ~= "") and resolved or labels.missing
+    Log:trace("RLHerdsmanRulePresenter.formatDestinationButtonLabel: dest %s -> %q", tostring(destinationHusbandry), tostring(label))
+    return label
 end
 
 --- Human-readable filter summary for the detail pane. Resolves `filterId` via the
@@ -874,14 +978,17 @@ end
 ---   * filterRequired - non-naming AND `enabled` (surfaced for the frame's flush narrow-revert)
 ---   * husbandriesOk  - `#targetHusbandries >= 1`
 ---   * paramsOk       - `validateParams(operation, params).ok` (per-op param value domains)
----   * valid          - nameOk AND operationOk AND filterOk AND husbandriesOk AND paramsOk
+---   * destinationOk  - move dest gate (the filterOk twin): an ENABLED move needs a non-blank
+---                      `params.destinationHusbandry`; a disabled move may carry nil; non-move ops n/a (true)
+---   * destinationRequired - move AND `enabled` (surfaced for the frame's flush narrow-revert)
+---   * valid          - nameOk AND operationOk AND filterOk AND husbandriesOk AND paramsOk AND destinationOk
 --- nil / non-table draft -> all-false.
 ---@param draft table|nil { name, operation, enabled, filterId, targetHusbandries, params }
----@return table { valid, nameOk, operationOk, filterOk, filterRequired, husbandriesOk, paramsOk } (all boolean)
+---@return table { valid, nameOk, operationOk, filterOk, filterRequired, husbandriesOk, paramsOk, destinationOk, destinationRequired } (all boolean)
 function RLHerdsmanRulePresenter.validateEdit(draft)
     if type(draft) ~= "table" then
         Log:trace("RLHerdsmanRulePresenter.validateEdit: nil/non-table draft -> all false")
-        return { valid = false, nameOk = false, operationOk = false, filterOk = false, filterRequired = false, husbandriesOk = false, paramsOk = false }
+        return { valid = false, nameOk = false, operationOk = false, filterOk = false, filterRequired = false, husbandriesOk = false, paramsOk = false, destinationOk = false, destinationRequired = false }
     end
 
     local nameOk = type(draft.name) == "string" and draft.name:gsub("%s", "") ~= ""
@@ -908,13 +1015,32 @@ function RLHerdsmanRulePresenter.validateEdit(draft)
 
     local husbandriesOk = type(draft.targetHusbandries) == "table" and #draft.targetHusbandries >= 1
 
+    -- destinationHusbandry-vs-operation, enabled-conditional (the dest twin of filterOk): only a
+    -- `move` rule has a destination, and it needs one only to be ENABLED (a disabled move draft may
+    -- carry a nil dest - inert until picked). A present dest must always be a non-blank string. For a
+    -- non-move op the dest is n/a (true). destinationRequired (== move AND enabled) is surfaced for
+    -- the frame's flush narrow-revert (drop just the enable on a dest-less move).
+    local destinationRequired = draft.operation == "move" and draft.enabled == true
+    local destinationOk
+    if draft.operation == "move" then
+        local dest = type(draft.params) == "table" and draft.params.destinationHusbandry or nil
+        local present = type(dest) == "string" and dest:gsub("%s", "") ~= ""
+        if draft.enabled == true then
+            destinationOk = present
+        else
+            destinationOk = dest == nil or present
+        end
+    else
+        destinationOk = true
+    end
+
     local paramsOk = RLHerdsmanRulePresenter.validateParams(draft.operation, draft.params).ok
 
-    local valid = nameOk and operationOk and filterOk and husbandriesOk and paramsOk
+    local valid = nameOk and operationOk and filterOk and husbandriesOk and paramsOk and destinationOk
 
-    Log:trace("RLHerdsmanRulePresenter.validateEdit: nameOk=%s operationOk=%s filterOk=%s filterRequired=%s husbandriesOk=%s paramsOk=%s -> valid=%s",
-        tostring(nameOk), tostring(operationOk), tostring(filterOk), tostring(filterRequired), tostring(husbandriesOk), tostring(paramsOk), tostring(valid))
-    return { valid = valid, nameOk = nameOk, operationOk = operationOk, filterOk = filterOk, filterRequired = filterRequired, husbandriesOk = husbandriesOk, paramsOk = paramsOk }
+    Log:trace("RLHerdsmanRulePresenter.validateEdit: nameOk=%s operationOk=%s filterOk=%s filterRequired=%s husbandriesOk=%s paramsOk=%s destinationOk=%s destinationRequired=%s -> valid=%s",
+        tostring(nameOk), tostring(operationOk), tostring(filterOk), tostring(filterRequired), tostring(husbandriesOk), tostring(paramsOk), tostring(destinationOk), tostring(destinationRequired), tostring(valid))
+    return { valid = valid, nameOk = nameOk, operationOk = operationOk, filterOk = filterOk, filterRequired = filterRequired, husbandriesOk = husbandriesOk, paramsOk = paramsOk, destinationOk = destinationOk, destinationRequired = destinationRequired }
 end
 
 --- The detail-pane FLUSH gate (H3/1a) - the enabled-conditional refinement of validateEdit.
@@ -926,24 +1052,26 @@ end
 --- `husbandriesRequired` (== the enabled flag) and `filterRequired` (== non-naming AND enabled,
 --- from validateEdit) are surfaced for the frame's narrow-revert + revert logging. The
 --- enabled-conditional filter requirement is baked into validateEdit's `filterOk`, so `ok`
---- consumes it directly (no separate filter arm here). Encoded here (not ad-hoc in the frame)
---- so the gate dual-runs. nil / non-table draft -> not ok. This supersedes the pre-F6 frame
+--- consumes it directly (no separate filter arm here); the move destination gate is likewise baked
+--- into validateEdit's `destinationOk` and consumed the same way. Encoded here (not ad-hoc in the
+--- frame) so the gate dual-runs. nil / non-table draft -> not ok. This supersedes the pre-F6 frame
 --- gate that excluded husbandriesOk entirely.
 ---@param draft table|nil merged rule record (includes `enabled`)
----@return table { ok, nameOk, operationOk, filterOk, filterRequired, paramsOk, husbandriesOk, husbandriesRequired } (all boolean)
+---@return table { ok, nameOk, operationOk, filterOk, filterRequired, paramsOk, husbandriesOk, husbandriesRequired, destinationOk, destinationRequired } (all boolean)
 function RLHerdsmanRulePresenter.validateFlush(draft)
     local v = RLHerdsmanRulePresenter.validateEdit(draft)
     local husbandriesRequired = type(draft) == "table" and draft.enabled == true
-    local ok = v.nameOk and v.operationOk and v.filterOk and v.paramsOk
+    local ok = v.nameOk and v.operationOk and v.filterOk and v.paramsOk and v.destinationOk
         and (not husbandriesRequired or v.husbandriesOk)
 
-    Log:trace("RLHerdsmanRulePresenter.validateFlush: nameOk=%s operationOk=%s filterOk=%s filterRequired=%s paramsOk=%s husbandriesOk=%s husbandriesRequired=%s -> ok=%s",
+    Log:trace("RLHerdsmanRulePresenter.validateFlush: nameOk=%s operationOk=%s filterOk=%s filterRequired=%s paramsOk=%s destinationOk=%s destinationRequired=%s husbandriesOk=%s husbandriesRequired=%s -> ok=%s",
         tostring(v.nameOk), tostring(v.operationOk), tostring(v.filterOk), tostring(v.filterRequired), tostring(v.paramsOk),
-        tostring(v.husbandriesOk), tostring(husbandriesRequired), tostring(ok))
+        tostring(v.destinationOk), tostring(v.destinationRequired), tostring(v.husbandriesOk), tostring(husbandriesRequired), tostring(ok))
     return {
         ok = ok,
         nameOk = v.nameOk, operationOk = v.operationOk, filterOk = v.filterOk, filterRequired = v.filterRequired,
         paramsOk = v.paramsOk, husbandriesOk = v.husbandriesOk,
+        destinationOk = v.destinationOk, destinationRequired = v.destinationRequired,
         husbandriesRequired = husbandriesRequired,
     }
 end

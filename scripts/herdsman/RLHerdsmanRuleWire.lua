@@ -64,7 +64,7 @@ RLHerdsmanRuleWire.NIL_INT_SENTINEL = -1
 --- Field types (the wire shape of the rule's `params` table; `move` DIVERGES from the
 --- persisted XML shape - see the note below):
 ---   sell      -> maxAnimals Int32, mark Bool
----   move      -> mark Bool, hasDest Bool, then (only when hasDest) one dest node-object
+---   move      -> maxAnimals Int32, mark Bool, hasDest Bool, then (only when hasDest) one dest node-object
 ---   buy       -> maxAnimals Int32; budget.type String, budget.fixed Int32, budget.percentage Float32
 ---   castrate  -> mark Bool
 ---   naming    -> convention String, previous String ("" sentinel for nil cursor)
@@ -94,26 +94,29 @@ local PARAMS_WIRE_CODECS = {
         end,
     },
     move = {
-        -- `mark` is a required bool; `destinationHusbandry` is optional. The dest travels as a
-        -- node-object re-keyed per machine via RLHusbandryTargetKey (the only placeable handle
-        -- stable across machines for a bought barn), NOT a raw string. A present dest that cannot
-        -- be reconstructed on the receiver fail-CLOSES the whole record (read -> nil -> readRule
-        -- -> nil -> the record is dropped): the destination must never silently strip to a
-        -- mark-only draft.
+        -- `maxAnimals` (the planner's per-move cap) is a required Int; `mark` is a required bool;
+        -- `destinationHusbandry` is optional. maxAnimals leads the params block (a fixed-width
+        -- Int32) so it is always consumed before the optional dest, keeping the record byte-aligned
+        -- even when a fail-closed dest drops it. The dest travels as a node-object re-keyed per
+        -- machine via RLHusbandryTargetKey (the only placeable handle stable across machines for a
+        -- bought barn), NOT a raw string. A present dest that cannot be reconstructed on the
+        -- receiver fail-CLOSES the whole record (read -> nil -> readRule -> nil -> the record is
+        -- dropped): the destination must never silently strip to a mark-only draft.
         write = function(streamId, p)
+            streamWriteInt32(streamId, p.maxAnimals)
             streamWriteBool(streamId, p.mark == true)
             -- hasDest is the INTENT (`~= nil`), deliberately NOT a non-whitespace test: a present-
             -- but-empty/whitespace/non-string dest still sets hasDest=true and (not resolving)
             -- writes a null node-id so the receiver drops the record; a nil dest writes only the
-            -- two bools (an inert draft that round-trips).
+            -- Int + two bools (an inert draft that round-trips).
             local hasDest = p.destinationHusbandry ~= nil
             streamWriteBool(streamId, hasDest)
             if hasDest then
                 local placeable = RLHusbandryTargetKey.resolve(p.destinationHusbandry)
                 if placeable ~= nil then
                     NetworkUtil.writeNodeObject(streamId, placeable)
-                    Log:trace("RLHerdsmanRuleWire move.write: dest key '%s' -> node-object",
-                        tostring(p.destinationHusbandry))
+                    Log:trace("RLHerdsmanRuleWire move.write: maxAnimals=%s dest key '%s' -> node-object",
+                        tostring(p.maxAnimals), tostring(p.destinationHusbandry))
                 else
                     -- Fail-closed on write: a present dest whose key does not resolve writes a null
                     -- node-id (id 0). A single-record event cannot skip mid-stream without desync,
@@ -125,10 +128,11 @@ local PARAMS_WIRE_CODECS = {
             end
         end,
         read = function(streamId)
+            local maxAnimals = streamReadInt32(streamId)
             local mark = streamReadBool(streamId)
             local hasDest = streamReadBool(streamId)
             if not hasDest then
-                return { mark = mark }
+                return { maxAnimals = maxAnimals, mark = mark }
             end
             -- Consume the fixed-width node-id BEFORE evaluating validity so the stream stays
             -- byte-aligned even when the record is dropped.
@@ -142,8 +146,8 @@ local PARAMS_WIRE_CODECS = {
                 Log:warning("RLHerdsmanRuleWire move.read: dest placeable is unkeyable on this peer (keyFor nil); dropping the record (fail-closed)")
                 return nil
             end
-            Log:trace("RLHerdsmanRuleWire move.read: dest reconstructed to key '%s'", tostring(key))
-            return { mark = mark, destinationHusbandry = key }
+            Log:trace("RLHerdsmanRuleWire move.read: maxAnimals=%s dest reconstructed to key '%s'", tostring(maxAnimals), tostring(key))
+            return { maxAnimals = maxAnimals, mark = mark, destinationHusbandry = key }
         end,
     },
     buy = {

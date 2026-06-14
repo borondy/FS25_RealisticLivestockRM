@@ -34,7 +34,7 @@
 --  * naming @previous is written ONLY when convention=="alphabetical" AND it is
 --    a non-empty string (legacy parity); it is OPTIONAL
 --    on read (absent -> nil).
---  * move @mark is a required field (nil on read -> record skipped); move
+--  * move @maxAnimals and @mark are required fields (nil on read -> record skipped); move
 --    @destinationHusbandry mirrors @filterId - written ONLY when a non-empty/non-whitespace
 --    string (absent -> an inert draft), an absent value reads back nil, and a present-but-
 --    empty/whitespace value makes the codec read return nil so the WHOLE record is dropped
@@ -84,18 +84,20 @@ local PARAMS_CODECS = {
         end,
     },
     move = {
-        -- `mark` is the required field (fail-closed twin of castrate's `validate`).
-        -- `destinationHusbandry` mirrors the serializer's `filterId` floor: OPTIONAL (absent =
-        -- an inert draft), but when present it must be a non-empty (non-whitespace) string -
-        -- enforced at BOTH ends so an invalid in-memory dest is never silently laundered to disk
-        -- (validate fails -> writeRule skips + :warning) and a present-but-empty/whitespace dest
-        -- on load returns nil so readRule drops the WHOLE record.
+        -- `maxAnimals` and `mark` are required fields. `maxAnimals` is required because the
+        -- planner caps a move on it; a move that round-trips with no cap would silently no-op
+        -- (the persistence gap this slice closes). `destinationHusbandry` mirrors the serializer's
+        -- `filterId` floor: OPTIONAL (absent = an inert draft), but when present it must be a
+        -- non-empty (non-whitespace) string - enforced at BOTH ends so an invalid in-memory dest
+        -- is never silently laundered to disk (validate fails -> writeRule skips + :warning) and a
+        -- present-but-empty/whitespace dest on load returns nil so readRule drops the WHOLE record.
         validate = function(p)
-            return p.mark ~= nil
+            return p.maxAnimals ~= nil and p.mark ~= nil
                 and (p.destinationHusbandry == nil
                     or (type(p.destinationHusbandry) == "string" and p.destinationHusbandry:gsub("%s", "") ~= ""))
         end,
         write = function(x, k, p)
+            x:setInt(k .. "#maxAnimals", p.maxAnimals)
             x:setBool(k .. "#mark", p.mark)
             -- Emit the dest only when a non-empty/non-whitespace string (absent -> draft, no attr).
             -- validate already blocks an invalid in-memory dest, so this guard's live job is the
@@ -105,15 +107,16 @@ local PARAMS_CODECS = {
             end
         end,
         read = function(x, k)
+            local maxAnimals = x:getInt(k .. "#maxAnimals")
             local mark = x:getBool(k .. "#mark")
-            if mark == nil then return nil end
+            if maxAnimals == nil or mark == nil then return nil end
             -- dest: absent -> nil (legal inert draft); present-but-empty/whitespace -> nil return so
             -- the whole record is dropped (params-internal twin of readRule's #filterId skip - the
             -- top-level #filterId is floored in readRule, but dest lives inside params so the skip
             -- must originate here).
             local dest = x:getString(k .. "#destinationHusbandry")
             if dest ~= nil and dest:gsub("%s", "") == "" then return nil end
-            return { mark = mark, destinationHusbandry = dest }
+            return { maxAnimals = maxAnimals, mark = mark, destinationHusbandry = dest }
         end,
     },
     buy = {
