@@ -1141,7 +1141,7 @@ function Animal:updateWeight(foodFactor)
     local metabolism = self.genetics.metabolism
     local adultMonth = subType.reproductionMinAgeMonth * 1.5
 
-    local baseIncrease = ((targetWeight - minWeight) / adultMonth) / 24
+    local baseIncrease = ((targetWeight - minWeight) / adultMonth) / (24 * g_currentMission.environment.daysPerPeriod)
     local increase = baseIncrease * (self.gender == "female" and 0.6 or 1.0) * (1 + ((adultMonth - self.age) / 75)) *
     math.min(foodFactor * 1.25, 1)
 
