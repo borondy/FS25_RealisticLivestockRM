@@ -52,10 +52,13 @@ RLHerdsmanMessages = {}
 --- verification surface; the mutation-parity trace lives in the executor's [executeActions] rows).
 local LOG_PREFIX = "[herdsmanMessages]"
 
---- operation -> the AI_MANAGER_* id families legacy emits. `exec` is the executed-op family (and,
---- for sell/buy, carries the money amount field name); `mark` is the mark-mode family (count-only;
---- nil for buy/naming, which have no mark family - T3 never sets mark on them, but a corrupt row
---- that does is WARNed + skipped before the id lookup). Mirrors AIAnimalManager:onDayChanged exactly.
+--- operation -> the AI_MANAGER_* id families. sell/buy/castrate/naming/ai mirror the ids
+--- AIAnimalManager:onDayChanged emits; move follows the SAME count-only shape but is net-new (the
+--- legacy day-tick emits no move message). `exec` is the executed-op family (and, for sell/buy,
+--- carries the money amount field name; move is count-only, no amountField); `mark` is the mark-mode
+--- family (count-only; nil for buy/naming, which have no mark family - T3 never sets mark on them,
+--- but a corrupt row that does is WARNed + skipped before the id lookup). Mapped ops: sell, buy,
+--- castrate, naming, ai, move.
 local ID_FAMILY = {
     sell = {
         exec = { single = "AI_MANAGER_SOLD_SINGLE",   multiple = "AI_MANAGER_SOLD_MULTIPLE",   amountField = "amountGained" },
@@ -76,6 +79,10 @@ local ID_FAMILY = {
     ai = {
         exec = { single = "AI_MANAGER_INSEMINATED_SINGLE",      multiple = "AI_MANAGER_INSEMINATED_MULTIPLE" },
         mark = { single = "AI_MANAGER_MARK_INSEMINATED_SINGLE", multiple = "AI_MANAGER_MARK_INSEMINATED_MULTIPLE" },
+    },
+    move = {
+        exec = { single = "AI_MANAGER_MOVED_SINGLE",     multiple = "AI_MANAGER_MOVED_MULTIPLE" },   -- count-only, no amountField
+        mark = { single = "AI_MANAGER_MARK_MOVE_SINGLE", multiple = "AI_MANAGER_MARK_MOVE_MULTIPLE" },
     },
 }
 

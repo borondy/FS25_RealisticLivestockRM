@@ -204,6 +204,28 @@ RLMessage = {
 		["title"] = "aiManager",
 		["importance"] = 3
 	},
+	-- Herdsman move op (count-only, no money). Net-new herdsman family (the legacy day-tick emits no
+	-- move message); separate from the player-path MOVED_ANIMALS_SOURCE_*/TARGET_* movement ids.
+	["AI_MANAGER_MOVED_SINGLE"] = {
+		["text"] = "aiManager_movedAnimals_single",
+		["title"] = "aiManager",
+		["importance"] = 3
+	},
+	["AI_MANAGER_MOVED_MULTIPLE"] = {
+		["text"] = "aiManager_movedAnimals_multiple",
+		["title"] = "aiManager",
+		["importance"] = 3
+	},
+	["AI_MANAGER_MARK_MOVE_SINGLE"] = {
+		["text"] = "aiManager_mark_move_single",
+		["title"] = "aiManager",
+		["importance"] = 3
+	},
+	["AI_MANAGER_MARK_MOVE_MULTIPLE"] = {
+		["text"] = "aiManager_mark_move_multiple",
+		["title"] = "aiManager",
+		["importance"] = 3
+	},
 	-- Daily summary message types
 	["DAILY_BIRTHS_SUMMARY"] = {
 		["text"] = "dailyBirthsSummary",
@@ -259,6 +281,16 @@ RLMessage = {
 	},
 	["DAILY_MARK_INSEMINATE_SUMMARY"] = {
 		["text"] = "dailyMarkInseminateSummary",
+		["title"] = "aiManager",
+		["importance"] = 2
+	},
+	["DAILY_MOVES_SUMMARY"] = {
+		["text"] = "dailyMovesSummary",
+		["title"] = "aiManager",
+		["importance"] = 2
+	},
+	["DAILY_MARK_MOVE_SUMMARY"] = {
+		["text"] = "dailyMarkMoveSummary",
 		["title"] = "aiManager",
 		["importance"] = 2
 	}

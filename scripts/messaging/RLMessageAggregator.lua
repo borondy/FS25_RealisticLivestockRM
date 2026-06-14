@@ -37,7 +37,12 @@ RLMessageAggregator.AGGREGATABLE = {
     AI_MANAGER_MARK_CASTRATE_SINGLE = "markCastrations",
     AI_MANAGER_MARK_CASTRATE_MULTIPLE = "markCastrations",
     AI_MANAGER_MARK_INSEMINATED_SINGLE = "markInseminations",
-    AI_MANAGER_MARK_INSEMINATED_MULTIPLE = "markInseminations"
+    AI_MANAGER_MARK_INSEMINATED_MULTIPLE = "markInseminations",
+    -- Move op (count-only, net-new herdsman family - no legacy analog): same fold pattern, no money.
+    AI_MANAGER_MOVED_SINGLE = "moves",
+    AI_MANAGER_MOVED_MULTIPLE = "moves",
+    AI_MANAGER_MARK_MOVE_SINGLE = "markMoves",
+    AI_MANAGER_MARK_MOVE_MULTIPLE = "markMoves"
 }
 
 -- The new count-only herdsman summary categories in their FIXED emission order (decision 1b):
@@ -49,7 +54,10 @@ RLMessageAggregator.HERDSMAN_SUMMARY_CATEGORIES = {
     { category = "inseminations",     id = "DAILY_INSEMINATIONS_SUMMARY" },
     { category = "markSales",         id = "DAILY_MARK_SELL_SUMMARY" },
     { category = "markCastrations",   id = "DAILY_MARK_CASTRATE_SUMMARY" },
-    { category = "markInseminations", id = "DAILY_MARK_INSEMINATE_SUMMARY" }
+    { category = "markInseminations", id = "DAILY_MARK_INSEMINATE_SUMMARY" },
+    -- Move op appended at the END so the 6 shipped tuples keep their deterministic append order.
+    { category = "moves",             id = "DAILY_MOVES_SUMMARY" },
+    { category = "markMoves",         id = "DAILY_MARK_MOVE_SUMMARY" }
 }
 
 -- Membership set derived from the ordered list above, so queueMessage routes the herdsman ids to
@@ -115,7 +123,9 @@ function RLMessageAggregator.queueMessage(husbandry, id, animal, args, date)
             inseminations = { count = 0 },
             markSales = { count = 0 },
             markCastrations = { count = 0 },
-            markInseminations = { count = 0 }
+            markInseminations = { count = 0 },
+            moves = { count = 0 },
+            markMoves = { count = 0 }
         }
         RLMessageAggregator.pending[husbandry] = pending
     end

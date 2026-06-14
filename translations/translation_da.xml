@@ -624,6 +624,10 @@
 		<text name="rl_message_aiManager_mark_ai_multiple" text="Hyrden har mærket %s dyr til AI"/>
 		<text name="rl_message_aiManager_ai_single" text="Hyrden har med succes gjort et dyr drægtig"/>
 		<text name="rl_message_aiManager_ai_multiple" text="Hyrden har med succes gjort %s dyr drægtige"/>
+		<text name="rl_message_aiManager_movedAnimals_single" text="Herdsman moved 1 animal"/>
+		<text name="rl_message_aiManager_movedAnimals_multiple" text="Herdsman moved %s animals"/>
+		<text name="rl_message_aiManager_mark_move_single" text="Herdsman marked 1 animal for moving"/>
+		<text name="rl_message_aiManager_mark_move_multiple" text="Herdsman marked %s animals for moving"/>
 
 
 
@@ -660,6 +664,8 @@
         <text name="rl_message_dailyMarkSellSummary" text="Marked %s animals for sale at %s"/>
         <text name="rl_message_dailyMarkCastrateSummary" text="Marked %s animals for castration at %s"/>
         <text name="rl_message_dailyMarkInseminateSummary" text="Marked %s animals for insemination at %s"/>
+        <text name="rl_message_dailyMovesSummary" text="Moved %s animals from %s"/>
+        <text name="rl_message_dailyMarkMoveSummary" text="Marked %s animals for moving from %s"/>
         <text name="rl_message_dailySalesSummary" text="Solgt %s dyr på %s for %s"/>
         <text name="rl_settings_accidentsChance_tooltip_github" text="Ændre sandsynligheden for, at dyr dør på grund af tilfældige ulykker"/>
         <text name="rl_settings_deathEnabled_label_github" text="Dødsfald"/>
