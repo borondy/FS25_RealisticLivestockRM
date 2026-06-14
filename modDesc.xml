@@ -24,6 +24,19 @@ Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivest
 
 Changelog
 
+1.2.6.0-dev.4:
+
+Fixed:
+- Hardened against a possible crash when a mod or game code path looked up a missing (nil) text label - the lookup now falls back safely instead of stopping the game, and logs a warning.
+
+Translations:
+- French: filled in the mod-compatibility warning and saved-filter UI strings (settings tabs, filter editor, filter chips, cycle filter) that were still showing in English (contributed by squall39).
+- All languages: the new filter condition-editor labels now fall back to English instead of showing raw text codes in languages that have not translated them yet.
+
+Herdsman automation tasks (preview):
+- New "move" action: a herdsman task can now relocate the animals matched by a saved filter from your chosen source pens to a single destination pen.
+
+
 1.2.6.0-dev.3:
 
 Fixed:
