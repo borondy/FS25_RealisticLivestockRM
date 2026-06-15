@@ -122,7 +122,7 @@ Press **R** in the animal menu to open the animal screen. It has seven tabs:
 
 ### Map & Mod Support
 
-The mod includes built-in support for third-party maps that add exotic animal types. When you load a supported map, the mod automatically detects the installed map version and loads the matching configuration for full breeding and reproduction.
+RLRM works on virtually any map out of the box - it does not need to be on a list. The maps below are special only because they add their own custom animal types or breeds; for those, the mod includes built-in support and auto-detects the installed map version so the custom animals also get full breeding and reproduction. On any other map, the standard animals just work.
 
 - **[Hof Bergmann](map-hof-bergmann.md)** - Ducks, geese, cats, rabbits, alpacas, and quail fully supported with breeding, genetics, and reproduction. See the [dedicated page](map-hof-bergmann.md) for supported versions and known limitations (pasture bulls, dogs).
 - **[Witcombe](map-witcombe.md)** - UK breeds (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) fully supported with breeding, genetics, and reproduction. See the [dedicated page](map-witcombe.md) for supported versions and the Hereford heritage profile.

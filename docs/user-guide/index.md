@@ -37,7 +37,7 @@ If you previously used the original [FS25 Realistic Livestock](https://github.co
 
 ### Map Support
 
-The mod automatically detects supported maps and their installed version, loading the matching configuration for exotic animals.
+RLRM works on virtually any map out of the box - it does not need to be on a supported list. The maps below are the ones that add their own custom animal types or breeds; for those, the mod auto-detects the map and its installed version and loads matching support so the custom animals also get full genetics and breeding.
 
 - **[Hof Bergmann](map-hof-bergmann.md)** - Ducks, geese, cats, rabbits, alpacas, and quail fully supported with breeding, genetics, and reproduction
 - **[Witcombe](map-witcombe.md)** - UK breeds (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) fully supported with breeding, genetics, and reproduction. Hereford also gets a heritage breed profile.
