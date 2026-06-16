@@ -224,6 +224,131 @@ function RLHerdsmanRulePresenter.getParamVisibility(operation)
 end
 
 -- =============================================================================
+-- Detail-pane tooltip descriptors (RLRM-402)
+-- =============================================================================
+
+--- A binary editor row's selector is either state 1 or state 2; any other value means the
+--- caller has no resolvable per-state tooltip key to build.
+---@param state any
+---@return boolean
+local function isBinaryState(state)
+    return state == 1 or state == 2
+end
+
+--- Build a `{ key, arg }` tooltip descriptor for ONE detail-pane editor row, or nil when the
+--- row/operation combination has no help text (unknown operation, a field whose row is hidden
+--- for that operation, an out-of-domain selector state, or an unknown field). PURE: returns
+--- plain data only - the frame resolves `key` through g_i18n and formats the live value per
+--- `arg`, so this function never touches g_i18n / elements.
+---
+--- `arg` tells the frame how to format the live value into the string's single `%s`:
+---   nil       -> the string has no placeholder; the frame setText(getText(key)) verbatim
+---   "number"  -> g_i18n:formatNumber (a per-day animal count)
+---   "money"   -> g_i18n:formatMoney  (a per-day fixed budget)
+---   "percent" -> tostring(pct).."%"  (a farm-money percentage)
+---   "option"  -> the semen selector's current option text (a dewar label)
+---
+--- Key families (the deliberate two-family split, no third namespace): the op-param rows REUSE
+--- the already-translated legacy `rl_ui_herdsmanTooltip_*` strings (enabled for the legacy ops,
+--- convention, budget|type, semen); the new-menu-only controls + the per-pen maxAnimals/budget +
+--- the Action states + move's all-new rows get `rl_menu_herdsman_*` keys. `move` is new-menu-only
+--- (legacy AnimalScreen has no move op), so its enabled/maxAnimals/destination rows have no legacy
+--- key and use the new menu family. The maxAnimals gate reuses PARAM_VISIBILITY (single source of
+--- truth) so a tooltip is offered for exactly the operations whose maxAnimals row is shown.
+---@param operation any rule operation key
+---@param field any row field token: operation|name|enabled|maxAnimals|mark|convention|"budget|type"|"budget|fixed"|"budget|percentage"|semen|filter|husbandries|destination
+---@param state any the widget's 1-based selector state, for the state-keyed rows (enabled/mark/convention/budget|type)
+---@param value any the live param value, for the value-keyed rows (semen: SEMEN_ANY vs a dewar uniqueId)
+---@return table|nil descriptor `{ key = string, arg = nil|"number"|"money"|"percent"|"option" }`, or nil
+function RLHerdsmanRulePresenter.getTooltipDescriptor(operation, field, state, value)
+    if not isKnownOperation(operation) then
+        Log:trace("RLHerdsmanRulePresenter.getTooltipDescriptor: unknown operation '%s' -> nil", tostring(operation))
+        return nil
+    end
+
+    local key, arg
+
+    if field == "operation" then
+        key = "rl_menu_herdsman_operation_tooltip"
+    elseif field == "name" then
+        key = "rl_menu_herdsman_name_tooltip"
+    elseif field == "enabled" then
+        -- Move is new-menu-only (no legacy AnimalScreen move op -> no rl_ui_herdsmanTooltip_move_*),
+        -- so its enabled row uses the new menu key; every other op reuses its legacy per-state string.
+        if operation == "move" then
+            key = "rl_menu_herdsman_enabled_move_tooltip"
+        elseif isBinaryState(state) then
+            key = string.format("rl_ui_herdsmanTooltip_%s_enabled_%d", tostring(operation), state)
+        else
+            Log:trace("RLHerdsmanRulePresenter.getTooltipDescriptor: enabled state '%s' out of {1,2} (operation=%s) -> nil",
+                tostring(state), tostring(operation))
+            return nil
+        end
+    elseif field == "maxAnimals" then
+        -- Offered for exactly the operations whose maxAnimals row is visible (sell/buy/ai/move).
+        local vis = PARAM_VISIBILITY[operation]
+        if vis == nil or vis.maxAnimals ~= true then
+            Log:trace("RLHerdsmanRulePresenter.getTooltipDescriptor: maxAnimals not shown for operation '%s' -> nil", tostring(operation))
+            return nil
+        end
+        key = string.format("rl_menu_herdsman_maxAnimals_%s_tooltip", tostring(operation))
+        arg = "number"
+    elseif field == "mark" then
+        -- The Mark toggle is the Action selector (decision 2b): state 1 = Perform (mark=false),
+        -- state 2 = Mark only (mark=true). Each state has its own explicit help string.
+        if state == 1 then
+            key = "rl_menu_herdsman_action_perform_tooltip"
+        elseif state == 2 then
+            key = "rl_menu_herdsman_action_markOnly_tooltip"
+        else
+            Log:trace("RLHerdsmanRulePresenter.getTooltipDescriptor: mark state '%s' out of {1,2} -> nil", tostring(state))
+            return nil
+        end
+    elseif field == "convention" then
+        if not isBinaryState(state) then
+            Log:trace("RLHerdsmanRulePresenter.getTooltipDescriptor: convention state '%s' out of {1,2} -> nil", tostring(state))
+            return nil
+        end
+        key = string.format("rl_ui_herdsmanTooltip_naming_convention_%d", state)
+    elseif field == "budget|type" then
+        if not isBinaryState(state) then
+            Log:trace("RLHerdsmanRulePresenter.getTooltipDescriptor: budget|type state '%s' out of {1,2} -> nil", tostring(state))
+            return nil
+        end
+        key = string.format("rl_ui_herdsmanTooltip_buy_budget|type_%d", state)
+    elseif field == "budget|fixed" then
+        key = "rl_menu_herdsman_budgetFixed_tooltip"
+        arg = "money"
+    elseif field == "budget|percentage" then
+        key = "rl_menu_herdsman_budgetPercentage_tooltip"
+        arg = "percent"
+    elseif field == "semen" then
+        -- Keyed on the VALUE (the "any" sentinel vs a real dewar), not a selector state. The
+        -- any-string has no placeholder; a dewar reuses the legacy "%s" string (arg=option).
+        if value == RLHerdsmanRulePresenter.SEMEN_ANY then
+            key = "rl_ui_herdsmanTooltip_ai_semen_any"
+        else
+            key = "rl_ui_herdsmanTooltip_ai_semen"
+            arg = "option"
+        end
+    elseif field == "filter" then
+        key = "rl_menu_herdsman_filter_tooltip"
+    elseif field == "husbandries" then
+        key = "rl_menu_herdsman_husbandries_tooltip"
+    elseif field == "destination" then
+        key = "rl_menu_herdsman_destination_tooltip"
+    else
+        Log:trace("RLHerdsmanRulePresenter.getTooltipDescriptor: unknown field '%s' (operation=%s) -> nil",
+            tostring(field), tostring(operation))
+        return nil
+    end
+
+    Log:trace("RLHerdsmanRulePresenter.getTooltipDescriptor: operation=%s field=%s state=%s value=%s -> key=%s arg=%s",
+        tostring(operation), tostring(field), tostring(state), tostring(value), tostring(key), tostring(arg))
+    return { key = key, arg = arg }
+end
+
+-- =============================================================================
 -- Detail-pane param value domains, defaults + validation
 -- =============================================================================
 

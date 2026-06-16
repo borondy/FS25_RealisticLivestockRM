@@ -782,6 +782,23 @@
         <text name="rl_menu_ai_empty_no_stock" text="No bulls available at the dealer for this species"/>
         <text name="rl_menu_ai_empty_no_species" text="No animal species registered"/>
         <text name="rl_menu_herdsman_title" text="Herdsman"/>
+        <text name="rl_menu_herdsman_detail_action" text="Action"/>
+        <text name="rl_menu_herdsman_action_perform" text="Perform"/>
+        <text name="rl_menu_herdsman_action_markOnly" text="Mark only"/>
+        <text name="rl_menu_herdsman_action_perform_tooltip" text="The herdsman performs this task on matching animals."/>
+        <text name="rl_menu_herdsman_action_markOnly_tooltip" text="The herdsman only flags matching animals - the task is not performed, at reduced wage."/>
+        <text name="rl_menu_herdsman_operation_tooltip" text="The task the herdsman performs on matching animals."/>
+        <text name="rl_menu_herdsman_name_tooltip" text="A name to identify this task."/>
+        <text name="rl_menu_herdsman_filter_tooltip" text="The saved filter that decides which animals this task matches."/>
+        <text name="rl_menu_herdsman_husbandries_tooltip" text="The husbandries this task runs in. Budget and limits apply to each one separately."/>
+        <text name="rl_menu_herdsman_maxAnimals_sell_tooltip" text="The herdsman sells up to %s matching animals per day, in each selected husbandry."/>
+        <text name="rl_menu_herdsman_maxAnimals_buy_tooltip" text="The herdsman buys up to %s matching animals per day, in each selected husbandry."/>
+        <text name="rl_menu_herdsman_maxAnimals_ai_tooltip" text="The herdsman inseminates up to %s matching animals per day, in each selected husbandry."/>
+        <text name="rl_menu_herdsman_maxAnimals_move_tooltip" text="The herdsman moves up to %s matching animals per day, in each selected husbandry."/>
+        <text name="rl_menu_herdsman_budgetFixed_tooltip" text="The herdsman spends up to %s per day, in each selected husbandry."/>
+        <text name="rl_menu_herdsman_budgetPercentage_tooltip" text="The herdsman spends up to %s of your farm's money per day, in each selected husbandry."/>
+        <text name="rl_menu_herdsman_destination_tooltip" text="The husbandry the herdsman moves matching animals into."/>
+        <text name="rl_menu_herdsman_enabled_move_tooltip" text="Whether the herdsman runs this move task each day."/>
         <text name="rl_menu_herdsman_empty" text="No herdsman rules yet"/>
         <text name="rl_menu_herdsman_empty_editor" text="Select a rule to edit"/>
         <text name="rl_menu_herdsman_section_sell" text="Sell"/>

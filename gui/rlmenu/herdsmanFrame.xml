@@ -101,6 +101,13 @@
                                  size="100% 100%"
                                  position="0px 0px">
 
+                    <!-- Per-row help line (RLRM-402): each row's tooltip Text lives INSIDE its value
+                         widget (the legacy rl_aiTooltip home in AnimalScreen.xml) - the row container
+                         clips to its own bounds, so the right-margin tooltip must hang off the
+                         non-clipping widget, not the row. rlMenu_herdsmanRowTooltip (anchorMiddleRight)
+                         pins it to the widget's right edge + a margin offset; the frame grabs it
+                         recursively off the row (getDescendantByName) and sets the text per render. -->
+
                     <!-- Name (always visible) -->
                     <Bitmap profile="fs25_multiTextOptionContainer" id="ruleNameRow">
                         <TextInput profile="fs25_settingsTextInput" id="ruleNameInput"
@@ -113,20 +120,23 @@
                             <Bitmap profile="fs25_textInputIconBox">
                                 <Bitmap profile="fs25_textInputIcon"/>
                             </Bitmap>
+                            <Text profile="rlMenu_herdsmanRowTooltipInput" name="tooltip"/>
                         </TextInput>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_name"/>
                     </Bitmap>
 
                     <!-- Operation (5-state; reuses F3's section labels) -->
                     <Bitmap profile="fs25_multiTextOptionContainer" id="ruleOperationRow">
-                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="ruleOperationSelector" onClick="onRuleOperationChanged"/>
+                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="ruleOperationSelector" onClick="onRuleOperationChanged">
+                            <Text profile="rlMenu_herdsmanRowTooltip" name="tooltip"/>
+                        </MultiTextOption>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_operation"/>
                     </Bitmap>
 
                     <!-- Enabled (binary) -->
                     <Bitmap profile="fs25_multiTextOptionContainer" id="ruleEnabledRow">
                         <BinaryOption profile="fs25_settingsBinaryOption" id="ruleEnabledToggle" onClick="onRuleEnabledChanged">
-                            <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                            <Text profile="rlMenu_herdsmanRowTooltip" name="tooltip"/>
                         </BinaryOption>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_enabled"/>
                     </Bitmap>
@@ -143,6 +153,7 @@
                             <Bitmap profile="fs25_textInputIconBox">
                                 <Bitmap profile="fs25_textInputIcon"/>
                             </Bitmap>
+                            <Text profile="rlMenu_herdsmanRowTooltipInput" name="tooltip"/>
                         </TextInput>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_ui_maxAnimals"/>
                     </Bitmap>
@@ -150,15 +161,15 @@
                     <!-- mark (binary; sell/castrate/ai) -->
                     <Bitmap profile="fs25_multiTextOptionContainer" id="ruleMarkRow">
                         <BinaryOption profile="fs25_settingsBinaryOption" id="ruleMarkToggle" onClick="onRuleMarkChanged">
-                            <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                            <Text profile="rlMenu_herdsmanRowTooltip" name="tooltip"/>
                         </BinaryOption>
-                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_ui_mark"/>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_action"/>
                     </Bitmap>
 
                     <!-- convention (binary, 2-value; naming only) -->
                     <Bitmap profile="fs25_multiTextOptionContainer" id="ruleConventionRow">
                         <BinaryOption profile="fs25_settingsBinaryOption" id="ruleConventionToggle" onClick="onRuleConventionChanged">
-                            <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                            <Text profile="rlMenu_herdsmanRowTooltip" name="tooltip"/>
                         </BinaryOption>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_convention"/>
                     </Bitmap>
@@ -166,7 +177,7 @@
                     <!-- budget.type (binary, 2-value; buy only) -->
                     <Bitmap profile="fs25_multiTextOptionContainer" id="ruleBudgetTypeRow">
                         <BinaryOption profile="fs25_settingsBinaryOption" id="ruleBudgetTypeToggle" onClick="onRuleBudgetTypeChanged">
-                            <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                            <Text profile="rlMenu_herdsmanRowTooltip" name="tooltip"/>
                         </BinaryOption>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_ui_budgetType"/>
                     </Bitmap>
@@ -183,6 +194,7 @@
                             <Bitmap profile="fs25_textInputIconBox">
                                 <Bitmap profile="fs25_textInputIcon"/>
                             </Bitmap>
+                            <Text profile="rlMenu_herdsmanRowTooltipInput" name="tooltip"/>
                         </TextInput>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_budgetfixed"/>
                     </Bitmap>
@@ -191,14 +203,18 @@
                          buy + budget.type=percentage). Option texts are the frame's
                          tostring(v).."%" render. -->
                     <Bitmap profile="fs25_multiTextOptionContainer" id="ruleBudgetPercentageRow">
-                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="ruleBudgetPercentageSelector" onClick="onRuleBudgetPercentageChanged"/>
+                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="ruleBudgetPercentageSelector" onClick="onRuleBudgetPercentageChanged">
+                            <Text profile="rlMenu_herdsmanRowTooltip" name="tooltip"/>
+                        </MultiTextOption>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_budgetpercentage"/>
                     </Bitmap>
 
                     <!-- semen (MultiTextOption; ai only; options enumerated live from
                          g_dewarManager, "any" prepended by the frame) -->
                     <Bitmap profile="fs25_multiTextOptionContainer" id="ruleSemenRow">
-                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="ruleSemenSelector" onClick="onRuleSemenChanged"/>
+                        <MultiTextOption profile="fs25_settingsMultiTextOption" id="ruleSemenSelector" onClick="onRuleSemenChanged">
+                            <Text profile="rlMenu_herdsmanRowTooltip" name="tooltip"/>
+                        </MultiTextOption>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_semen"/>
                     </Bitmap>
 
@@ -211,7 +227,7 @@
                     <Bitmap profile="fs25_multiTextOptionContainer" id="ruleFilterRow">
                         <Button profile="rl_settingsButton" id="ruleFilterButton" onClick="onClickRuleFilter">
                             <ThreePartBitmap profile="fs25_settingsButtonBg"/>
-                            <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                            <Text profile="rlMenu_herdsmanRowTooltip" name="tooltip"/>
                         </Button>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_info_filter_button"/>
                     </Bitmap>
@@ -226,7 +242,7 @@
                     <Bitmap profile="fs25_multiTextOptionContainer" id="ruleHusbandriesRow">
                         <Button profile="rl_settingsButton" id="ruleHusbandriesButton" onClick="onClickRuleHusbandries">
                             <ThreePartBitmap profile="fs25_settingsButtonBg"/>
-                            <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                            <Text profile="rlMenu_herdsmanRowTooltip" name="tooltip"/>
                         </Button>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_husbandries"/>
                     </Bitmap>
@@ -240,7 +256,7 @@
                     <Bitmap profile="fs25_multiTextOptionContainer" id="ruleDestinationRow">
                         <Button profile="rl_settingsButton" id="ruleDestinationButton" onClick="onClickRuleDestination">
                             <ThreePartBitmap profile="fs25_settingsButtonBg"/>
-                            <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                            <Text profile="rlMenu_herdsmanRowTooltip" name="tooltip"/>
                         </Button>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_destination"/>
                     </Bitmap>

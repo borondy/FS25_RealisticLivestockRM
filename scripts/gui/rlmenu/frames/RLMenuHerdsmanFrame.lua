@@ -261,7 +261,13 @@ function RLMenuHerdsmanFrame:onGuiSetupFinished()
         })
     end
     if self.ruleMarkToggle ~= nil then
-        self.ruleMarkToggle:setTexts({ g_i18n:getText("rl_ui_dontMark"), g_i18n:getText("rl_ui_mark") })
+        -- The Mark row is the Action selector (RLRM-402, decision 2b): state 1 Perform
+        -- (mark=false), state 2 Mark only (mark=true). The manual per-animal Mark/Unmark button
+        -- keeps reading the untouched rl_ui_mark / rl_ui_dontMark strings.
+        self.ruleMarkToggle:setTexts({
+            g_i18n:getText("rl_menu_herdsman_action_perform"),
+            g_i18n:getText("rl_menu_herdsman_action_markOnly"),
+        })
     end
     if self.ruleConventionToggle ~= nil then
         self.ruleConventionToggle:setTexts({
@@ -288,6 +294,38 @@ function RLMenuHerdsmanFrame:onGuiSetupFinished()
         self.rulesList:setDelegate(self)
         Log:trace("RLMenuHerdsmanFrame:onGuiSetupFinished: rulesList bound")
     end
+
+    -- Per-row tooltip help lines (RLRM-402). The tooltip Text lives INSIDE each row's value widget
+    -- (the legacy rl_aiTooltip home - the row container clips to its bounds, so a right-margin tooltip
+    -- must hang off the non-clipping widget); getDescendantByName is recursive, so grabbing off the
+    -- ROW still finds it wherever it sits in the row subtree (mirrors
+    -- RLMenuSettingsFrame:populateGeneralSubtab). setVisible(true) on grab in case the profile
+    -- defaults hidden (as legacy RealisticLivestock_AnimalScreen does). The text is (re)set per render
+    -- in refreshRuleDetail via the pure RLHerdsmanRulePresenter.getTooltipDescriptor.
+    self.tooltips = {}
+    local function grabTooltip(row, field)
+        if row == nil then return end
+        local t = row:getDescendantByName("tooltip")
+        if t == nil then
+            Log:trace("RLMenuHerdsmanFrame:onGuiSetupFinished: row '%s' has no tooltip child", field)
+            return
+        end
+        t:setVisible(true)
+        self.tooltips[field] = t
+    end
+    grabTooltip(self.ruleOperationRow, "operation")
+    grabTooltip(self.ruleNameRow, "name")
+    grabTooltip(self.ruleEnabledRow, "enabled")
+    grabTooltip(self.ruleMaxAnimalsRow, "maxAnimals")
+    grabTooltip(self.ruleMarkRow, "mark")
+    grabTooltip(self.ruleConventionRow, "convention")
+    grabTooltip(self.ruleBudgetTypeRow, "budget|type")
+    grabTooltip(self.ruleBudgetFixedRow, "budget|fixed")
+    grabTooltip(self.ruleBudgetPercentageRow, "budget|percentage")
+    grabTooltip(self.ruleSemenRow, "semen")
+    grabTooltip(self.ruleFilterRow, "filter")
+    grabTooltip(self.ruleHusbandriesRow, "husbandries")
+    grabTooltip(self.ruleDestinationRow, "destination")
 
     -- Action bar (single-tier; no Filters Tier 2/3 - the herdsman frame has no conditions
     -- sub-list): Back / New / Duplicate / Delete. Code-driven footer (menuButtonInfo), not XML,
@@ -325,6 +363,9 @@ function RLMenuHerdsmanFrame:onFrameOpen()
     self.didMeasureFirstRow = false
     self.didMeasureFilterRow = false
     self.didMeasureHusbandriesRow = false
+    self.didMeasureNameRow = false
+    self.didMeasureMaxAnimalsRow = false
+    self.didMeasureBudgetFixedRow = false
     self.pendingChanges = {}
 
     -- Real read path: F4 edits + F7 create/delete write back through the same
@@ -762,6 +803,52 @@ function RLMenuHerdsmanFrame:refreshRuleDetail(stored)
         end
     end
 
+    -- Per-row help text (RLRM-402). Re-resolved every render (op-dynamic: an op-change swaps the
+    -- strings); the always-visible rows set unconditionally, the conditional rows only when their
+    -- row is shown (the SAME gating as the setVisible toggles above). Content + arg come from the
+    -- pure RLHerdsmanRulePresenter.getTooltipDescriptor; the frame formats the live value per arg.
+    local enabledState    = (merged.enabled == true) and 2 or 1
+    local markState       = (p.mark == true) and 2 or 1
+    local conventionState = indexOfValue(self.conventionValues, p.convention) or 1
+    local budgetTypeState = indexOfValue(self.budgetTypeValues, budget and budget.type) or 1
+    -- Resolve semen from the SELECTOR's snapped index, not raw p.semen: populateSemenSelector
+    -- snaps a stale / absent dewar id to "any" (state 1), so the tooltip key family AND the option
+    -- label must follow the DISPLAYED option - else a stale dewar yields the dewar tooltip ("...from
+    -- %s") filled with the fallback "any" label, disagreeing with what the selector shows.
+    local semenIdx        = indexOfValue(self.semenValues, p.semen or RLHerdsmanRulePresenter.SEMEN_ANY) or 1
+    local semenValue      = self.semenValues[semenIdx] or RLHerdsmanRulePresenter.SEMEN_ANY
+    local semenOptionText = (self.semenTexts ~= nil and self.semenTexts[semenIdx]) or ""
+
+    local tipKeys = {}
+    local function tip(field, state, value, raw)
+        local key = self:applyRowTooltip(self.tooltips[field], field, op, state, value, raw)
+        if key ~= nil then tipKeys[#tipKeys + 1] = field .. "=" .. key end
+    end
+    tip("operation")
+    tip("name")
+    tip("enabled", enabledState)
+    tip("husbandries")
+    if vis.maxAnimals then tip("maxAnimals", nil, nil, p.maxAnimals) end
+    if vis.mark then tip("mark", markState) end
+    if vis.convention then tip("convention", conventionState) end
+    if vis.semen then tip("semen", nil, semenValue, semenOptionText) end
+    if vis.filter then tip("filter") end
+    if vis.destination then tip("destination") end
+    if vis.budget and budget ~= nil then tip("budget|type", budgetTypeState) end
+    if bvis.fixed then tip("budget|fixed", nil, nil, budget and budget.fixed) end
+    if bvis.percentage then tip("budget|percentage", nil, nil, budget and budget.percentage) end
+    Log:debug("RLMenuHerdsmanFrame:refreshRuleDetail: tooltips op=%s keys[%s]", tostring(op), table.concat(tipKeys, " "))
+
+    -- One-shot in-row geometry of the TextInput rows + their tooltip Text (RLRM-402 Ask-First:
+    -- does fs25_multiTextOptionTooltip anchor cleanly inside a TextInput row?). Per-open guards.
+    self:logTooltipRowGeometryOnce("ruleNameRow", self.ruleNameRow, self.tooltips["name"], "didMeasureNameRow")
+    if vis.maxAnimals then
+        self:logTooltipRowGeometryOnce("ruleMaxAnimalsRow", self.ruleMaxAnimalsRow, self.tooltips["maxAnimals"], "didMeasureMaxAnimalsRow")
+    end
+    if bvis.fixed then
+        self:logTooltipRowGeometryOnce("ruleBudgetFixedRow", self.ruleBudgetFixedRow, self.tooltips["budget|fixed"], "didMeasureBudgetFixedRow")
+    end
+
     -- Tint the visible rows (dark alternating settings shade) AND reflow the layout so the
     -- per-operation hidden rows collapse instead of leaving gaps. MUST run after the
     -- setVisible toggles above (mirror RLMenuSettingsFrame:renderEditor).
@@ -771,6 +858,94 @@ function RLMenuHerdsmanFrame:refreshRuleDetail(stored)
         tostring(merged.id), tostring(op), tostring(vis.maxAnimals), tostring(vis.mark),
         tostring(vis.convention), tostring(vis.budget), tostring(bvis.fixed), tostring(bvis.percentage),
         tostring(vis.semen), tostring(vis.filter))
+end
+
+--- Format a live param value into a tooltip string's single `%s`, per the presenter descriptor's
+--- `arg`. number -> g_i18n:formatNumber; money -> g_i18n:formatMoney; percent -> the selector's
+--- displayed "N%" (indexOfValue(...) or 1 mirrors how refreshRuleDetail seeds the percentage
+--- selector, so a nil/non-member percentage reads the selector's current/first whitelist value,
+--- not a bare 0); option -> the semen selector's current option label (passed in). Unknown arg -> "".
+--- @param arg string|nil descriptor arg
+--- @param raw any the live value (number for number/money/percent; option label for option)
+--- @return string formatted
+function RLMenuHerdsmanFrame:formatTooltipArg(arg, raw)
+    if arg == "number" then
+        return g_i18n:formatNumber(tonumber(raw) or 0, 0)
+    elseif arg == "money" then
+        return g_i18n:formatMoney(tonumber(raw) or 0, 0, true)
+    elseif arg == "percent" then
+        local pct = self.budgetPercentageValues[indexOfValue(self.budgetPercentageValues, tonumber(raw)) or 1]
+        return tostring(pct or 0) .. "%"
+    elseif arg == "option" then
+        return tostring(raw or "")
+    end
+    return ""
+end
+
+--- Resolve + write ONE detail row's tooltip from the pure presenter descriptor. Reads the
+--- descriptor for (op, field, state, value); arg=nil writes getText(key) verbatim, else
+--- string.format(getText(key), formatTooltipArg(arg, raw)). A nil descriptor (the presenter
+--- already trace-logged why) or a missing tooltip element writes nothing. Returns the written
+--- key (or nil) for refreshRuleDetail's per-render summary log. Mirrors the Settings frame's
+--- per-render tooltip:setText (RLMenuSettingsFrame:refreshGeneralSubtab), NOT the legacy
+--- focus-gated updateTooltip.
+--- @param tooltipElem table|nil the row's tooltip Text element
+--- @param field string row field token
+--- @param op string rule operation
+--- @param state any selector state (state-keyed rows)
+--- @param value any live value used by the descriptor (semen any-vs-dewar)
+--- @param raw any live value to format into %s (per descriptor arg)
+--- @return string|nil key the written i18n key, or nil
+function RLMenuHerdsmanFrame:applyRowTooltip(tooltipElem, field, op, state, value, raw)
+    if tooltipElem == nil then return nil end
+    local d = RLHerdsmanRulePresenter.getTooltipDescriptor(op, field, state, value)
+    if d == nil then return nil end
+    if d.arg == nil then
+        tooltipElem:setText(g_i18n:getText(d.key))
+    else
+        tooltipElem:setText(string.format(g_i18n:getText(d.key), self:formatTooltipArg(d.arg, raw)))
+    end
+    return d.key
+end
+
+--- Live-update ONE value-row's tooltip after a TextInput edit, WITHOUT a full refreshRuleDetail -
+--- a re-render would push setText(tostring(tonumber(typed))) into the FOCUSED input and stomp the
+--- caret on partial input ("05", "5."). Resolves the merged operation for the current selection,
+--- then re-resolves just that row's tooltip via applyRowTooltip with the freshly-typed value.
+--- No-op if nothing is selected / the rule is not in the snapshot.
+--- @param field string the row field token ("maxAnimals" | "budget|fixed")
+--- @param raw any the live value to format into the tooltip %s
+function RLMenuHerdsmanFrame:refreshValueRowTooltip(field, raw)
+    local id = self.selectedRuleId
+    if id == nil then return end
+    local stored = self:getStoredRuleById(id)
+    if stored == nil then return end
+    local merged = RLHerdsmanRuleEditModel.overlayRule(stored, self.pendingChanges[id])
+    self:applyRowTooltip(self.tooltips[field], field, merged.operation, nil, nil, raw)
+end
+
+--- One-shot geometry of a TextInput editor row + its tooltip Text, so RLRM-402's Ask-First (does
+--- fs25_multiTextOptionTooltip anchor cleanly inside a TextInput row?) is provable from the log,
+--- not eyeballed. Mirrors the Filter/Husbandries/Destination row measurement (absPosition is the
+--- element's bottom-left edge, FS25 Y-up; reference screen 1920x1080). Per-open guard via
+--- `guardField` (reset in onFrameOpen).
+--- @param rowName string log label
+--- @param row table|nil row container
+--- @param tooltipElem table|nil the row's tooltip Text
+--- @param guardField string the self[guardField] one-shot flag
+function RLMenuHerdsmanFrame:logTooltipRowGeometryOnce(rowName, row, tooltipElem, guardField)
+    if self[guardField] or row == nil then return end
+    self[guardField] = true
+    local rw = (row.size and row.size[1] or 0) * g_referenceScreenWidth
+    local rh = (row.size and row.size[2] or 0) * g_referenceScreenHeight
+    Log:debug("RLMenuHerdsmanFrame: %s measured: row=%.1fx%.1fpx", rowName, rw, rh)
+    if tooltipElem ~= nil and tooltipElem.absPosition ~= nil and tooltipElem.size ~= nil then
+        local x = tooltipElem.absPosition[1] * g_referenceScreenWidth
+        local w = tooltipElem.size[1] * g_referenceScreenWidth
+        Log:debug("RLMenuHerdsmanFrame: %s tooltip: left=%.1fpx width=%.1fpx right=%.1fpx visible=%s",
+            rowName, x, w, x + w,
+            tostring(tooltipElem.getIsVisible ~= nil and tooltipElem:getIsVisible()))
+    end
 end
 
 --- Apply the alternating dark settings-row tint to the visible editor rows AND reflow
@@ -840,6 +1015,9 @@ function RLMenuHerdsmanFrame:populateSemenSelector(merged)
     end
 
     self.semenValues = values
+    -- Parallel option-text array (RLRM-402): the tooltip's %s for a dewar semen value is that
+    -- dewar's option label, looked up by the same index as semenValues.
+    self.semenTexts = texts
     self.ruleSemenSelector:setTexts(texts)
     local storedSemen = (merged.params and merged.params.semen) or RLHerdsmanRulePresenter.SEMEN_ANY
     self.ruleSemenSelector:setState(indexOfValue(values, storedSemen) or 1, false)
@@ -1310,6 +1488,8 @@ function RLMenuHerdsmanFrame:onRuleMaxAnimalsChanged(element, _text)
     local typed = element:getText() or ""
     self:ensurePendingParams(id).params.maxAnimals = tonumber(typed)
     Log:debug("RLMenuHerdsmanFrame:onRuleMaxAnimalsChanged: id=%s typed=%q parsed=%s", tostring(id), typed, tostring(tonumber(typed)))
+    -- Live tooltip update WITHOUT a full re-render (which would stomp the caret mid-type) - F1.
+    self:refreshValueRowTooltip("maxAnimals", tonumber(typed))
 end
 
 --- budget.fixed TextInput. Parse + stash into the nested budget (params kept complete).
@@ -1325,6 +1505,8 @@ function RLMenuHerdsmanFrame:onRuleBudgetFixedChanged(element, _text)
     if type(pending.params.budget) ~= "table" then pending.params.budget = {} end
     pending.params.budget.fixed = tonumber(typed)
     Log:debug("RLMenuHerdsmanFrame:onRuleBudgetFixedChanged: id=%s typed=%q parsed=%s", tostring(id), typed, tostring(tonumber(typed)))
+    -- Live tooltip update WITHOUT a full re-render (which would stomp the caret mid-type) - F1.
+    self:refreshValueRowTooltip("budget|fixed", tonumber(typed))
 end
 
 --- Enabled BinaryOption: state 1=false, 2=true (top-level field).
@@ -1374,6 +1556,9 @@ function RLMenuHerdsmanFrame:onRuleBudgetPercentageChanged(state, _widget)
     if type(pending.params.budget) ~= "table" then pending.params.budget = {} end
     pending.params.budget.percentage = self.budgetPercentageValues[state]
     Log:debug("RLMenuHerdsmanFrame:onRuleBudgetPercentageChanged: id=%s percentage=%s", tostring(id), tostring(self.budgetPercentageValues[state]))
+    -- Re-render so the budget% tooltip follows the new value (F1; mirrors the sibling selector
+    -- handlers - the silent setState push during re-render does not re-fire this handler).
+    self:refreshRuleDetail(self:getStoredRuleById(id))
 end
 
 --- semen MultiTextOption: state -> the per-render semenValues[state] (any | dewar uid).
@@ -1382,6 +1567,8 @@ function RLMenuHerdsmanFrame:onRuleSemenChanged(state, _widget)
     if id == nil then return end
     self:ensurePendingParams(id).params.semen = self.semenValues[state]
     Log:debug("RLMenuHerdsmanFrame:onRuleSemenChanged: id=%s semen=%s", tostring(id), tostring(self.semenValues[state]))
+    -- Re-render so the semen tooltip follows the new value (F1; mirrors the sibling selector handlers).
+    self:refreshRuleDetail(self:getStoredRuleById(id))
 end
 
 --- operation MultiTextOption: the D5 op-change. Reshape params via the edit-model, clear
