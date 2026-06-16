@@ -234,6 +234,9 @@ source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuBuyFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuAIFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuSettingsFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuHerdsmanFrame.lua")
+-- Pure tab-visibility + anchor policy (no g_*). Loaded before RLMenu so the
+-- RLMenu.MODE_TRAILER / TRAILER_* constants can re-export the policy's values.
+source(modDirectory .. "scripts/gui/rlmenu/RLMenuTabPolicy.lua")
 source(modDirectory .. "scripts/gui/rlmenu/RLMenu.lua")
 
 -- SECTION 14: Migration System
