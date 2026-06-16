@@ -230,6 +230,17 @@ function RLMenuBuyFrame:refreshTypes()
     Log:debug("RLMenuBuyFrame:refreshTypes: farmId=%s types=%d",
         tostring(farmId), #self.sortedTypes)
 
+    -- Trailer-dealer: scope the sidebar to trailer-supported types (locked to the current
+    -- type once the trailer is non-empty). An empty result falls through to the zero-types
+    -- empty-state path below. The non-trailer Buy keeps every registered type (probe nil).
+    local trailer = self:getTrailerDealerContext()
+    if trailer ~= nil then
+        local before = #self.sortedTypes
+        self.sortedTypes = RLAnimalBuyService.filterTrailerSupportedTypes(self.sortedTypes, trailer)
+        Log:debug("RLMenuBuyFrame:refreshTypes: trailer-dealer type filter %d -> %d",
+            before, #self.sortedTypes)
+    end
+
     if self.subCategoryDotBox ~= nil then
         for i, dot in pairs(self.subCategoryDotBox.elements) do
             dot:delete()
@@ -595,7 +606,12 @@ function RLMenuBuyFrame:onClickBuy()
     end
 
     local price = RLAnimalBuyService.computeBuyPrice(animal)
-    local fee = (animal.getTranportationFee and animal:getTranportationFee(1)) or 0
+    -- Trailer-dealer buys carry no transport fee (legacy AnimalScreenDealerTrailer:getSourcePrice
+    -- returns fee 0, and startTrailerBuyFlow dispatches fee 0), so the confirmation is price-only.
+    local fee = 0
+    if self:getTrailerDealerContext() == nil then
+        fee = (animal.getTranportationFee and animal:getTranportationFee(1)) or 0
+    end
     local confirmText = RLAnimalBuyService.buildSingleConfirmationText(animal, price, fee)
 
     Log:debug("RLMenuBuyFrame:onClickBuy: single buy for farmId=%s uniqueId=%s price=%.0f fee=%.0f",
@@ -634,6 +650,8 @@ function RLMenuBuyFrame:onClickBuySelected()
     end
 
     local totalPrice, totalFee, _, count = RLAnimalBuyService.computeBulkTotal(animals)
+    -- Trailer-dealer buys carry no transport fee (legacy parity); the confirmation is price-only.
+    if self:getTrailerDealerContext() ~= nil then totalFee = 0 end
     local confirmText = RLAnimalBuyService.buildBulkConfirmationText(count, totalPrice, totalFee)
 
     Log:debug("RLMenuBuyFrame:onClickBuySelected: bulk buy %d animals, price=%.0f fee=%.0f",
@@ -667,18 +685,56 @@ function RLMenuBuyFrame:onBuyConfirmed(clickYes)
 end
 
 
+--- Resolve the held livestock trailer when the Buy tab is open in MODE_TRAILER + dealer
+--- counterpart, else nil. Fail-closed (preserves the trailer-mode safe-default contract): returns
+--- the trailer ONLY when g_rlMenu is live, the open mode is MODE_TRAILER, the counterpart is
+--- TRAILER_DEALER, and trailerVehicle is a live livestock trailer (the same liveness gate
+--- RLMenu.openTrailerFromBridge uses). A torn-down / externally-deleted / non-trailer ref
+--- never reaches the raw getNumOfFreeAnimalSlots / getOwnerFarmId reads downstream.
+--- @return table|nil trailer The held livestock trailer in trailer-dealer context, or nil
+function RLMenuBuyFrame:getTrailerDealerContext()
+    if g_rlMenu == nil
+        or g_rlMenu.openMode ~= RLMenu.MODE_TRAILER
+        or g_rlMenu.trailerCounterpart ~= RLMenu.TRAILER_DEALER then
+        Log:trace("RLMenuBuyFrame:getTrailerDealerContext: not trailer-dealer context -> nil")
+        return nil
+    end
+
+    local trailer = g_rlMenu.trailerVehicle
+    if trailer == nil or trailer.spec_livestockTrailer == nil then
+        Log:trace("RLMenuBuyFrame:getTrailerDealerContext: trailerVehicle nil or not a livestock trailer -> nil")
+        return nil
+    end
+
+    Log:trace("RLMenuBuyFrame:getTrailerDealerContext: trailer-dealer context resolved")
+    return trailer
+end
+
+
 --- Open the destination picker for the confirmed purchase.
 --- EPPs are filtered: AnimalBuyEvent:run dispatches via
 --- `self.object:addAnimals(self.animals)`, and RLRM
 --- has no `addAnimals(animals)` override for ExtendedProductionPoint - only
 --- for PlaceableHusbandryAnimals and LivestockTrailer. Dispatching Buy to an
 --- EPP would crash the server. Future enhancement may add EPP support.
+--- In trailer-dealer context the trailer IS the destination: route to
+--- startTrailerBuyFlow and RETURN before any destination query / dialog.
 --- @param animals table Array of cluster objects (same subType)
 --- @param price number Positive total buy price (pre-sign-flip)
 --- @param fee number Positive total transport fee (pre-sign-flip)
 function RLMenuBuyFrame:startBuyFlow(animals, price, fee)
     if animals == nil or #animals == 0 then
         Log:debug("RLMenuBuyFrame:startBuyFlow: no animals")
+        return
+    end
+
+    -- Trailer-dealer: the trailer is the destination, so skip the destination
+    -- dialog and route to the trailer-scoped flow. Absent (FULL/DEALER/husbandry)
+    -- the existing destination-dialog path below runs unchanged.
+    if self:getTrailerDealerContext() ~= nil then
+        Log:debug("RLMenuBuyFrame:startBuyFlow: trailer-dealer context, routing to startTrailerBuyFlow (%d animals)",
+            #animals)
+        self:startTrailerBuyFlow(animals, price)
         return
     end
 
@@ -728,6 +784,80 @@ function RLMenuBuyFrame:startBuyFlow(animals, price, fee)
     self.pendingBuyFee = fee
 
     AnimalMoveDestinationDialog.show(self.onBuyDestinationSelected, self, entries)
+end
+
+
+--- Buy the confirmed batch straight INTO the held trailer (no destination dialog).
+--- Mutation parity with legacy AnimalScreenDealerTrailer:applySource/applySourceBulk: the
+--- destination is the trailer, the owner farm is trailer:getOwnerFarmId() (NOT self.farmId),
+--- the transport fee is 0 (a trailer buy has no transport leg). Runs the cumulative-capacity
+--- survivor ledger (RLAnimalBuyService.filterBuyableAnimals); when nothing fits it surfaces the
+--- SPECIFIC firstErrorCode (legacy parity) or the generic all-capacity-skip message; otherwise
+--- it reuses the shared partial-confirm + dispatch path with the fee forced to 0.
+--- @param animals table Array of cluster objects (same subType) the user confirmed
+--- @param _price number Positive pre-validation total (unused; price is recomputed for survivors)
+function RLMenuBuyFrame:startTrailerBuyFlow(animals, _price)
+    local trailer = self:getTrailerDealerContext()
+    if trailer == nil then
+        Log:warning("RLMenuBuyFrame:startTrailerBuyFlow: trailer context resolved nil, clearing pending state")
+        self:clearPendingBuyState()
+        return
+    end
+
+    local originalCount = (animals ~= nil) and #animals or 0
+    local ownerFarmId = trailer:getOwnerFarmId()
+    local result = RLAnimalBuyService.filterBuyableAnimals(trailer, animals, ownerFarmId, AnimalBuyEvent.validate)
+
+    local validCount    = #result.valid
+    local rejectedCount  = #result.rejected
+    local totalCount     = validCount + rejectedCount
+
+    Log:debug("RLMenuBuyFrame:startTrailerBuyFlow: trailer='%s' %d valid, %d rejected (of %d), firstErrorCode=%s",
+        tostring(trailer.getName and trailer:getName()),
+        validCount, rejectedCount, originalCount, tostring(result.firstErrorCode))
+
+    if validCount == 0 then
+        -- Specific error when a validate gate fired (legacy AnimalScreenDealerTrailer parity);
+        -- generic message when every animal was a capacity skip.
+        if result.firstErrorCode ~= nil then
+            InfoDialog.show(RLAnimalBuyService.getErrorText(result.firstErrorCode))
+        else
+            InfoDialog.show(g_i18n:getText("rl_ui_moveAllRejected"))
+        end
+        self:clearPendingBuyState()
+        return
+    end
+
+    if rejectedCount > 0 then
+        Log:warning("RLMenuBuyFrame:startTrailerBuyFlow: %d of %d animals skipped (firstErrorCode=%s)",
+            rejectedCount, totalCount, tostring(result.firstErrorCode))
+    end
+
+    -- Recompute price for the VALID subset (single source of the 1.075 markup). A trailer
+    -- buy carries NO transport fee: legacy fires AnimalBuyEvent.new(trailer, ..., 0).
+    local validPrice = RLAnimalBuyService.computeBulkTotal(result.valid)
+    local validFee   = 0
+
+    self.pendingBuyDestination = trailer
+    self.pendingBuyAnimals     = result.valid
+    self.pendingBuyPrice       = validPrice
+    self.pendingBuyFee         = validFee
+
+    -- Selection clearing is DEFERRED to dispatch (no pre-dialog clear): on a successful trailer
+    -- buy onBuyComplete re-runs refreshTypes, whose onTypeChanged resets self.selectedAnimals = {}
+    -- AFTER the server confirms, so rejected animals never linger; and cancelling the partial-
+    -- confirm below preserves the selection (husbandry-path parity). dispatchPendingBuy still
+    -- clears the survivors at dispatch as usual.
+
+    if rejectedCount > 0 then
+        local text = RLAnimalBuyService.buildPartialConfirmationText(
+            validCount, totalCount, result.rejected, validPrice, validFee)
+        YesNoDialog.show(self.onBuyPartialConfirmed, self, text, g_i18n:getText("ui_attention"))
+        return
+    end
+
+    -- Full acceptance: dispatch immediately (reuses the shared dispatch path).
+    self:dispatchPendingBuy()
 end
 
 
@@ -850,8 +980,12 @@ end
 --- arrived too late to safely drive dialogs / list refreshes.
 --- Post-buy refresh: reloadAnimalList + updateCartDisplay +
 --- RLDetailPaneHelper.updateMoneyDisplay. The pen-info row is permanently hidden
---- by initialize(), so no updateTypeHeader. Sidebar types do NOT change -
---- empty types render the empty-animals text.
+--- by initialize(), so no updateTypeHeader. For the NON-trailer Buy the sidebar
+--- types do NOT change - empty types render the empty-animals text. TRAILER-DEALER
+--- EXCEPTION: a successful buy into a previously-EMPTY trailer now LOCKS its type,
+--- so re-run refreshTypes (which re-applies filterTrailerSupportedTypes) to collapse
+--- the sidebar to the locked type; refreshTypes itself reloads list / cart / money,
+--- so that branch returns early.
 --- @param errorCode number
 function RLMenuBuyFrame:onBuyComplete(errorCode)
     if not self.isFrameOpen or self.activeAnimalTypeIndex == nil then
@@ -865,6 +999,11 @@ function RLMenuBuyFrame:onBuyComplete(errorCode)
         Log:debug("RLMenuBuyFrame:onBuyComplete: buy failed, errorCode=%d", errorCode)
     else
         Log:info("RLMenuBuyFrame:onBuyComplete: buy succeeded")
+        if self:getTrailerDealerContext() ~= nil then
+            Log:debug("RLMenuBuyFrame:onBuyComplete: trailer-dealer success, re-locking sidebar to current type")
+            self:refreshTypes()
+            return
+        end
     end
 
     self:reloadAnimalList()
@@ -897,6 +1036,8 @@ function RLMenuBuyFrame:computeCartTotals()
     local totalPrice = 0
     local totalFee = 0
     local count = 0
+    -- Trailer-dealer buys carry no transport fee (legacy parity); the cart total is price-only.
+    local includeFee = self:getTrailerDealerContext() == nil
 
     for _, sectionKey in ipairs(self.sectionOrder) do
         local items = self.itemsBySection[sectionKey]
@@ -909,7 +1050,9 @@ function RLMenuBuyFrame:computeCartTotals()
                     if self.selectedAnimals[identityKey] then
                         -- 1.075 dealer markup matches the in-game buy-screen pricing
                         totalPrice = totalPrice + (cluster:getSellPrice() or 0) * 1.075
-                        totalFee = totalFee + (cluster:getTranportationFee(1) or 0)
+                        if includeFee then
+                            totalFee = totalFee + (cluster:getTranportationFee(1) or 0)
+                        end
                         count = count + 1
                     end
                 end

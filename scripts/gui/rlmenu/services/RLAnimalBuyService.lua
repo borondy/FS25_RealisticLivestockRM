@@ -239,6 +239,129 @@ function RLAnimalBuyService.buyAnimals(destination, animals, totalPrice, totalFe
 end
 
 
+--- Filter a dealer-buy batch to the survivors a trailer destination can accept.
+--- Contract: reproduces the legacy AnimalScreenDealerTrailer:applySourceBulk pre-filter
+--- (per-animal base-game validate, numAnimals = 1, fee 0) AND adds the running-count
+--- capacity ledger the legacy controller lacks (the over-queue gap the legacy bulk
+--- pre-filter has for the dealer-trailer leg). The client filter is advisory: the injected validate is the
+--- authoritative base-game gate and the server AnimalBuyEvent:run re-validates the whole
+--- batch, so this caps the survivors at the trailer's free slots before dispatch, it does
+--- not predict the server verdict.
+---
+--- For each animal, in order: skip a nil subTypeIndex (warn; counted in neither result);
+--- run validate(destination, subTypeIndex, age, 1, -computeBuyPrice, 0, ownerFarmId) and on a
+--- non-nil error record { animal, reason = errorCode } (capturing the FIRST code); then a
+--- running-count capacity check that rejects { animal, reason = "NO_CAPACITY" } when the
+--- destination's per-(sub)type free slots do NOT strictly exceed the survivors queued so far.
+--- A single #valid counter against the per-(sub)type free read is correct for the trailer's
+--- per-TYPE capacity (getNumOfFreeAnimalSlots is per-type total-used; a per-subtype
+--- counter would over-fill a shared per-type place).
+---
+--- Returns the { valid, rejected } shape of AnimalScreenMoveFarm.buildMoveValidationResult so
+--- the frame's shared partial-confirm + dispatch path binds unchanged, PLUS firstErrorCode for
+--- the all-rejected error surface (the LEDGER MECHANISM mirrors RLAnimalMoveService.filterMovableAnimals,
+--- which returns a tuple - a different shape, deliberately not copied here).
+---
+--- Pure / dual-run: takes the destination + validate as parameters; computeBuyPrice is pure
+--- (reads animal:getSellPrice). The only call onto the destination is getNumOfFreeAnimalSlots,
+--- so a headless test drives it with a mock destination and an injected validator.
+--- @param destination table Buy destination (the held trailer); capacity read via getNumOfFreeAnimalSlots
+--- @param animals table|nil Array of Animal/cluster refs to buy (nil -> empty result)
+--- @param ownerFarmId number Owning farm id passed to the validator (trailer:getOwnerFarmId())
+--- @param validate function (object, subTypeIndex, age, numAnimals, buyPrice, feePrice, farmId) -> errorCode|nil (AnimalBuyEvent.validate in production)
+--- @return table result { valid = {<animal>...}, rejected = {{animal, reason}...}, firstErrorCode = <code|nil> }
+function RLAnimalBuyService.filterBuyableAnimals(destination, animals, ownerFarmId, validate)
+    local result = { valid = {}, rejected = {}, firstErrorCode = nil }
+
+    -- NET-NEW nil guard (the mirrored filters do not guard nil): a caller whose
+    -- trailer context resolved no animals gets the empty result, never a crash.
+    if animals == nil then
+        Log:debug("RLAnimalBuyService.filterBuyableAnimals: nil animals -> empty result")
+        return result
+    end
+
+    for _, animal in ipairs(animals) do
+        local label = animal.name or animal.uniqueId or "?"
+
+        if animal.subTypeIndex == nil then
+            Log:warning("RLAnimalBuyService.filterBuyableAnimals: animal '%s' has nil subTypeIndex, skipping",
+                tostring(label))
+        else
+            -- Negated price + numAnimals = 1, exactly as legacy applySource/applySourceBulk.
+            local price = -RLAnimalBuyService.computeBuyPrice(animal)
+            local errorCode = validate(destination, animal.subTypeIndex, animal.age, 1, price, 0, ownerFarmId)
+
+            if errorCode ~= nil then
+                if result.firstErrorCode == nil then result.firstErrorCode = errorCode end
+                result.rejected[#result.rejected + 1] = { animal = animal, reason = errorCode }
+                Log:trace("RLAnimalBuyService.filterBuyableAnimals: '%s' rejected by validate (errorCode=%s)",
+                    tostring(label), tostring(errorCode))
+            else
+                local freeSlots = destination:getNumOfFreeAnimalSlots(animal.subTypeIndex)
+                if not RLTrailerEndpointService.hasRoom(freeSlots, #result.valid) then
+                    result.rejected[#result.rejected + 1] = { animal = animal, reason = "NO_CAPACITY" }
+                    Log:trace("RLAnimalBuyService.filterBuyableAnimals: '%s' rejected by capacity (free=%s, queued=%d)",
+                        tostring(label), tostring(freeSlots), #result.valid)
+                else
+                    result.valid[#result.valid + 1] = animal
+                    Log:trace("RLAnimalBuyService.filterBuyableAnimals: '%s' passed (queued=%d)",
+                        tostring(label), #result.valid)
+                end
+            end
+        end
+    end
+
+    Log:debug("RLAnimalBuyService.filterBuyableAnimals: %d valid, %d rejected, firstErrorCode=%s",
+        #result.valid, #result.rejected, tostring(result.firstErrorCode))
+    return result
+end
+
+
+--- Filter a stock-type list to the subset a trailer can hold for the Buy sidebar.
+--- Contract: mirrors legacy AnimalScreenDealerTrailer:getSourceAnimalTypes. When the trailer
+--- is LOCKED to a current type (non-empty), keep ONLY that type's entry, UNCONDITIONALLY - the
+--- current type is structurally aboard, so never re-test supportsType (a degenerate / mixed-type
+--- trailer could fail it and collapse the sidebar to empty). When UNLOCKED (empty), keep each
+--- entry the trailer structurally supports.
+---
+--- Pure / dual-run: takes the trailer as a parameter and routes both reads through the nil-safe
+--- RLTrailerEndpointService getters (getCurrentType / supportsType), which reach no g_*, so a
+--- headless test drives it with a mock trailer.
+--- @param types table|nil Array of type entries (each carries .typeIndex; from RLDealerQuery.listDealerTypes)
+--- @param trailer table The held livestock trailer
+--- @return table kept Subset of `types` the trailer can hold (the single locked type, or all supported)
+function RLAnimalBuyService.filterTrailerSupportedTypes(types, trailer)
+    local kept = {}
+
+    if types == nil then
+        Log:debug("RLAnimalBuyService.filterTrailerSupportedTypes: nil types -> {}")
+        return kept
+    end
+
+    local currentType = RLTrailerEndpointService.getCurrentType(trailer)
+    if currentType ~= nil then
+        -- Locked: keep only the current type's entry, unconditionally.
+        for _, entry in ipairs(types) do
+            if entry.typeIndex == currentType.typeIndex then
+                kept[#kept + 1] = entry
+            end
+        end
+        Log:debug("RLAnimalBuyService.filterTrailerSupportedTypes: locked to typeIndex=%s, %d of %d kept",
+            tostring(currentType.typeIndex), #kept, #types)
+        return kept
+    end
+
+    -- Unlocked: keep each structurally-supported type.
+    for _, entry in ipairs(types) do
+        if RLTrailerEndpointService.supportsType(trailer, entry.typeIndex) then
+            kept[#kept + 1] = entry
+        end
+    end
+    Log:debug("RLAnimalBuyService.filterTrailerSupportedTypes: unlocked, %d of %d supported", #kept, #types)
+    return kept
+end
+
+
 --- Map an AnimalBuyEvent error code to a localized error string.
 --- Delegates to AnimalScreenDealerFarm.BUY_ERROR_CODE_MAPPING (shape
 --- `[code] = { warning = bool, text = i18n_key }`).
