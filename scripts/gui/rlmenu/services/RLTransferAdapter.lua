@@ -61,6 +61,12 @@ RLTransferAdapter.COUNTERPART_NAME_KEY = "rl_menu_transfer_counterpart"
 RLTransferAdapter.LOAD_LABEL_KEY       = "rl_menu_transfer_load"
 RLTransferAdapter.UNLOAD_LABEL_KEY     = "rl_menu_transfer_unload"
 
+-- Shop action-label keys for the trailer move buttons. A concrete adapter
+-- overrides the generic load/unload keys above with these so it needs no new
+-- translation key (these keys ship in every locale).
+RLTransferAdapter.MOVE_TO_TRAILER_KEY = "shop_moveToTrailer"
+RLTransferAdapter.MOVE_TO_FARM_KEY    = "shop_moveToFarm"
+
 -- =============================================================================
 -- Pure helpers (dual-run boundary)
 -- =============================================================================
@@ -118,6 +124,46 @@ function RLTransferAdapter.formatCapacityLabel(name, used, total)
     return string.format("%s (%d/%d)", name, safeUsed, safeTotal)
 end
 
+--- Resolve the move plan - which side is source/target and the AnimalMoveEvent
+--- moveType string - for a transfer direction. This carries the parity-critical
+--- SOURCE/TARGET routing the legacy trailer-at-pen controller hard-coded: loading
+--- the trailer fires moveType "SOURCE" (counterpart -> trailer); unloading fires
+--- "TARGET" (trailer -> counterpart). A concrete adapter maps sourceSide /
+--- targetSide onto its real objects and hands them to RLAnimalMoveService.
+--- Fail-closed: any unknown / nil direction returns nil (the caller treats nil as
+--- a no-op and never guesses an endpoint). Pure: dual-run boundary.
+--- @param direction string  DIR_INTO_TRAILER | DIR_OUT_OF_TRAILER
+--- @return table|nil plan  { sourceSide, targetSide, moveType } or nil
+function RLTransferAdapter.resolveMovePlan(direction)
+    if direction == RLTransferAdapter.DIR_INTO_TRAILER then
+        return {
+            sourceSide = RLTransferAdapter.SIDE_COUNTERPART,
+            targetSide = RLTransferAdapter.SIDE_TRAILER,
+            moveType   = "SOURCE",
+        }
+    elseif direction == RLTransferAdapter.DIR_OUT_OF_TRAILER then
+        return {
+            sourceSide = RLTransferAdapter.SIDE_TRAILER,
+            targetSide = RLTransferAdapter.SIDE_COUNTERPART,
+            moveType   = "TARGET",
+        }
+    end
+    return nil
+end
+
+--- The legacy-parity i18n KEY for a pen transfer's footer action label. Loading
+--- the trailer reads "move to trailer"; unloading reads "move to farm". Returns
+--- the KEY (the frame resolves it); an unknown / nil direction defaults to the
+--- move-to-trailer key (mirrors actionLabelKey's load default). Pure: dual-run.
+--- @param direction string  DIR_INTO_TRAILER | DIR_OUT_OF_TRAILER
+--- @return string i18nKey
+function RLTransferAdapter.penActionLabelKey(direction)
+    if direction == RLTransferAdapter.DIR_OUT_OF_TRAILER then
+        return RLTransferAdapter.MOVE_TO_FARM_KEY
+    end
+    return RLTransferAdapter.MOVE_TO_TRAILER_KEY
+end
+
 -- =============================================================================
 -- NULL adapter (shell) - empty display, empty enumeration, no-op dispatch
 -- =============================================================================
@@ -126,8 +172,9 @@ end
 --- Used for both pen and world until the concrete adapters land. getDisplayData
 --- returns an i18n KEY name (the frame resolves it) so the contract stays pure.
 RLTransferAdapter.NULL = {
+    --- @param _context table|nil  { trailer, counterpart, counterpartHandle } (ignored)
     --- @return table display  { name = i18n KEY, used = 0, total = 0 }
-    getDisplayData = function(_self)
+    getDisplayData = function(_self, _context)
         return {
             name  = RLTransferAdapter.COUNTERPART_NAME_KEY,
             used  = 0,

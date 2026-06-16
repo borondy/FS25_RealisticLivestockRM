@@ -242,6 +242,11 @@ source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuTransferFrame.lua")
 -- Pure tab-visibility + anchor policy (no g_*). Loaded before RLMenu so the
 -- RLMenu.MODE_TRAILER / TRAILER_* constants can re-export the policy's values.
 source(modDirectory .. "scripts/gui/rlmenu/RLMenuTabPolicy.lua")
+-- Concrete PEN counterpart adapter (Phase 8 M2). In-game tier; registers itself
+-- into RLTransferAdapter._adapters[RLMenuTabPolicy.PEN] at load, so it must follow
+-- RLMenuTabPolicy (PEN constant) and the services it calls (RLTransferAdapter,
+-- RLAnimalQuery, RLAnimalMoveService, all sourced above). No RLMenu dependency.
+source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferPenAdapter.lua")
 source(modDirectory .. "scripts/gui/rlmenu/RLMenu.lua")
 
 -- SECTION 14: Migration System

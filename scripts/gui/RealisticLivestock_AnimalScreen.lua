@@ -34,7 +34,8 @@ function RealisticLivestock_AnimalScreen.show(husbandry, vehicle, isDealer)
     -- Dealer-only redirect: shop "Buy Animals" + walk-up dealer trigger
     -- without a trailer. RLMenu's Buy tab routes the same AnimalBuyEvent via
     -- RLAnimalBuyService, so mutation parity is preserved across the redirect.
-    -- Trailer flavors and husbandry walk-up fall through to legacy unchanged.
+    -- Dealer-trailer + husbandry walk-up fall through to legacy; the pen-trailer
+    -- flavor redirects below.
     if husbandry == nil and vehicle == nil and isDealer == true then
         if g_rlMenu ~= nil then
             Log:info("AnimalScreen.show: dealer-shape -> RLMenu (page=1 mode=dealer)")
@@ -42,6 +43,27 @@ function RealisticLivestock_AnimalScreen.show(husbandry, vehicle, isDealer)
             return
         end
         Log:warning("AnimalScreen.show: dealer-shape matched but g_rlMenu nil, falling through to legacy")
+    end
+
+    -- Pen-trailer redirect: a livestock trailer triggered AT a real animal pen
+    -- (husbandry + vehicle, not a dealer). Routes to RLMenu's Transfer tab, which
+    -- fires the SAME AnimalMoveEvent via RLTransferPenAdapter -> RLAnimalMoveService
+    -- (mutation parity), leaving the legacy AnimalScreenTrailerFarm controller
+    -- dormant for this flow. The gate fails closed on BOTH axes: a non-animal /
+    -- stale husbandry (RLAnimalQuery.listAnimalsForHusbandry needs spec_husbandryAnimals)
+    -- OR a non-livestock / stale vehicle falls through to legacy rather than redirect.
+    -- The spec_livestockTrailer check matches openTrailerFromBridge's own acceptance
+    -- gate, so a vehicle the bridge would reject reaches legacy instead of being
+    -- swallowed (no menu, no fallback). Mirrors the dealer redirect above + its INFO log.
+    if husbandry ~= nil and vehicle ~= nil and vehicle.spec_livestockTrailer ~= nil
+        and husbandry.spec_husbandryAnimals ~= nil then
+        if g_rlMenu ~= nil then
+            Log:info("AnimalScreen.show: pen-trailer-shape -> RLMenu (mode=trailer counterpart=pen)")
+            RLMenu.openFromBridge(nil, RLMenu.MODE_TRAILER,
+                { trailer = vehicle, counterpart = RLMenu.TRAILER_PEN, counterpartHandle = husbandry })
+            return
+        end
+        Log:warning("AnimalScreen.show: pen-trailer-shape matched but g_rlMenu nil, falling through to legacy")
     end
 
     g_animalScreen.isTrailerFarm = husbandry ~= nil and vehicle ~= nil

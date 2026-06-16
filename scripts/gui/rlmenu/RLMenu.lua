@@ -554,10 +554,16 @@ function RLMenu.openTrailerFromBridge(context)
         local priorRestorePage = g_rlMenu.restorePage
         local priorTrailerVehicle = g_rlMenu.trailerVehicle
         local priorTrailerCounterpart = g_rlMenu.trailerCounterpart
+        local priorTrailerCounterpartHandle = g_rlMenu.trailerCounterpartHandle
 
         g_rlMenu.openMode = RLMenu.MODE_TRAILER
         g_rlMenu.trailerVehicle = trailer
         g_rlMenu.trailerCounterpart = counterpart
+        -- The counterpart engine handle a concrete adapter enumerates (the pen
+        -- husbandry for the pen redirect; nil for world until RLRM-431). Moves in
+        -- lockstep with the other two trailer fields - stored here, cleared in
+        -- onClose + the keyboard reset, rolled back below on a showGui throw.
+        g_rlMenu.trailerCounterpartHandle = context.counterpartHandle
         g_rlMenu.restorePageIndex = 1
         g_rlMenu.restorePage = nil
 
@@ -573,6 +579,7 @@ function RLMenu.openTrailerFromBridge(context)
             g_rlMenu.restorePage = priorRestorePage
             g_rlMenu.trailerVehicle = priorTrailerVehicle
             g_rlMenu.trailerCounterpart = priorTrailerCounterpart
+            g_rlMenu.trailerCounterpartHandle = priorTrailerCounterpartHandle
         end
         return
     end
@@ -586,6 +593,7 @@ function RLMenu.openTrailerFromBridge(context)
     local priorRestorePage = g_rlMenu.restorePage
     local priorTrailerVehicle = g_rlMenu.trailerVehicle
     local priorTrailerCounterpart = g_rlMenu.trailerCounterpart
+    local priorTrailerCounterpartHandle = g_rlMenu.trailerCounterpartHandle
 
     local isEmpty = RLTrailerEndpointService.isEmpty(trailer)
     local anchor = RLMenuTabPolicy.anchorPage(counterpart, isEmpty)
@@ -593,6 +601,9 @@ function RLMenu.openTrailerFromBridge(context)
     g_rlMenu.openMode = RLMenu.MODE_TRAILER
     g_rlMenu.trailerVehicle = trailer
     g_rlMenu.trailerCounterpart = counterpart
+    -- nil for the dealer counterpart (no pen/world handle); stored in lockstep
+    -- with the other two trailer fields so the reset sites clear all three.
+    g_rlMenu.trailerCounterpartHandle = context.counterpartHandle
     g_rlMenu.restorePageIndex = anchor
     g_rlMenu.restorePage = nil
 
@@ -610,6 +621,7 @@ function RLMenu.openTrailerFromBridge(context)
         g_rlMenu.restorePage = priorRestorePage
         g_rlMenu.trailerVehicle = priorTrailerVehicle
         g_rlMenu.trailerCounterpart = priorTrailerCounterpart
+        g_rlMenu.trailerCounterpartHandle = priorTrailerCounterpartHandle
     end
 end
 

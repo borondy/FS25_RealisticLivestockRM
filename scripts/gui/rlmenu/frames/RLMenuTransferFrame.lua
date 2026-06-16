@@ -54,6 +54,11 @@ function RLMenuTransferFrame.new()
     -- switch (the two sides are different animal universes).
     self.selectedAnimals   = {}
 
+    -- In-flight lock: a transfer is a server round-trip in MP, so the action
+    -- button (selection-gated, not request-gated) is locked between dispatch and
+    -- onTransferComplete to block a duplicate submit. Re-initialized on every open.
+    self.movePending       = false
+
     self.isFrameOpen = false
     self.hasCustomMenuButtons = true
 
@@ -149,6 +154,20 @@ function RLMenuTransferFrame:onFrameOpen()
     self.adapter = RLTransferAdapter.forCounterpart(self.counterpart)
     self.farmId  = RLAnimalInfoService.getCurrentFarmId()
     self.selectedAnimals = {}
+    self.movePending = false
+
+    -- Completion callback handed to the move service via the adapter. The closure
+    -- captures BOTH the trailer and the counterpart (pen) at open time - the
+    -- stale-callback guard: if the frame is closed, OR reopened on a different
+    -- trailer, OR reopened on the SAME trailer at a different pen before the server
+    -- responds, onTransferComplete drops the callback (no repaint of a reopened
+    -- session - the counterpart handle is what varies per session, like the Move
+    -- frame's selectedHusbandry identity).
+    local dispatchedTrailer = self.trailer
+    local dispatchedCounterpart = self.context.counterpartHandle
+    self.context.onComplete = function(errorCode)
+        self:onTransferComplete(errorCode, dispatchedTrailer, dispatchedCounterpart)
+    end
 
     local trailerName = RLTrailerEndpointService.getDisplayData(self.trailer).name
     Log:info("RLMenuTransferFrame:onFrameOpen: counterpart=%s trailer='%s'",
@@ -187,14 +206,17 @@ end
 -- Source picker (two fixed entries: counterpart, trailer)
 -- =============================================================================
 
---- Rebuild the two-entry sidebar selector + dots and seed the initial side.
---- Entry 1 = counterpart (adapter), entry 2 = trailer (endpoint service). Each
---- label is `name (used/total)`.
-function RLMenuTransferFrame:refreshSources()
-    -- Counterpart entry. The adapter's display NAME is an i18n KEY for NULL (the
-    -- frame resolves it) and an engine string for a concrete adapter (used
-    -- verbatim); the NULL identity is the discriminator so the seam stays pure.
-    local cpData = self.adapter:getDisplayData()
+--- Recompute the two sidebar entry labels (counterpart + trailer) as
+--- `name (used/total)` and push them to the selector WITHOUT re-seeding the side.
+--- Keeps the NULL discrimination: a concrete adapter's display NAME is an engine
+--- string used verbatim, while the NULL adapter returns an i18n KEY the frame must
+--- resolve. Called on open (via refreshSources) and after a transfer completes
+--- (counts refresh in place; the active side is preserved - no heuristic re-seed).
+--- @return string cpLabel, string trLabel  the composed labels (for logging)
+function RLMenuTransferFrame:updateSourceLabels()
+    -- Counterpart entry. context-aware getDisplayData so a concrete adapter knows
+    -- its pen; NULL accepts and ignores the context.
+    local cpData = self.adapter:getDisplayData(self.context)
     local cpName = cpData.name
     if self.adapter == RLTransferAdapter.NULL then
         cpName = g_i18n:getText(cpData.name)
@@ -205,6 +227,19 @@ function RLMenuTransferFrame:refreshSources()
     local trData = RLTrailerEndpointService.getDisplayData(self.trailer)
     local trLabel = RLTransferAdapter.formatCapacityLabel(trData.name, trData.used, trData.total)
 
+    if self.subCategorySelector ~= nil then
+        self.subCategorySelector:setTexts({ cpLabel, trLabel })
+    end
+    Log:trace("RLMenuTransferFrame:updateSourceLabels: counterpart='%s' trailer='%s'", cpLabel, trLabel)
+    return cpLabel, trLabel
+end
+
+
+--- Rebuild the two-entry sidebar selector + dots and seed the initial side.
+--- Entry 1 = counterpart (adapter), entry 2 = trailer (endpoint service). Each
+--- label is `name (used/total)`. Label compute + setTexts live in updateSourceLabels.
+function RLMenuTransferFrame:refreshSources()
+    local cpLabel, trLabel = self:updateSourceLabels()
     local labels = { cpLabel, trLabel }
 
     -- Clear existing dot clones, then clone one dot per entry.
@@ -390,11 +425,16 @@ function RLMenuTransferFrame:seedDetailForFirstRow()
 end
 
 
---- The husbandry to pass to the detail-pane animal renderer. Shell: nil on both
---- sides (the trailer side has no husbandry; the NULL counterpart supplies none
---- until a concrete pen adapter lands). getAnimalDisplay tolerates nil.
+--- The husbandry to pass to the detail-pane animal renderer. Side-aware: the
+--- counterpart (pen) side returns context.counterpartHandle so the pen detail
+--- column populates; the trailer side returns nil (the trailer has no husbandry,
+--- so the pen column stays hidden - the invariant). getAnimalDisplay /
+--- updatePenDisplay both tolerate nil.
 --- @return table|nil
 function RLMenuTransferFrame:detailHusbandry()
+    if self.currentSide == RLTransferAdapter.SIDE_COUNTERPART then
+        return self.context ~= nil and self.context.counterpartHandle or nil
+    end
     return nil
 end
 
@@ -585,9 +625,18 @@ end
 
 
 --- Footer action handler. Routes the checked animals to the adapter's dispatch
---- for the current side's direction. The shell NULL adapter logs + returns
---- false, so the frame leaves all state unchanged (no event, no list change).
+--- for the current side's direction. A concrete adapter routes to the move service
+--- (async in MP); completion (onTransferComplete) owns the refresh + lock release.
+--- The shell NULL adapter logs + returns false, so the frame leaves all state
+--- unchanged (no event, no list change).
 function RLMenuTransferFrame:onClickAction()
+    -- Duplicate-submit guard: the action button is selection-gated, not
+    -- request-gated, so block a second dispatch while a move is in flight.
+    if self.movePending then
+        Log:debug("RLMenuTransferFrame:onClickAction: a transfer is already in flight, ignoring")
+        return
+    end
+
     local animals = self:collectSelectedAnimals()
     local direction = RLTransferAdapter.directionForSide(self.currentSide)
     Log:debug("RLMenuTransferFrame:onClickAction: side=%s direction=%s selected=%d",
@@ -598,15 +647,60 @@ function RLMenuTransferFrame:onClickAction()
         return
     end
 
+    -- Set the in-flight lock BEFORE dispatch: in SP the move service fires
+    -- onTransferComplete SYNCHRONOUSLY inside dispatch (clearing the lock), so
+    -- setting it afterwards would strand it true. A `false` return (NULL/world
+    -- shell, or a fail-closed guard) means NO completion callback will fire, so
+    -- release the lock here.
+    self.movePending = true
     local handled = self.adapter:dispatch(direction, animals, self.context)
     if not handled then
+        self.movePending = false
         Log:debug("RLMenuTransferFrame:onClickAction: dispatch returned false, state unchanged (shell no-op)")
         return
     end
 
-    -- A concrete adapter performed the transfer: clear selection + refresh.
+    -- Routed to the move service: completion (onTransferComplete) owns the refresh
+    -- + lock release. Do NOT reload synchronously - the move is a server round-trip
+    -- in MP and a synchronous reload would show stale contents / miss server errors.
+    Log:debug("RLMenuTransferFrame:onClickAction: dispatched, awaiting completion")
+end
+
+
+--- Completion callback for an async transfer (mirrors RLMenuMoveFrame:onMoveComplete).
+--- The move is a server round-trip in MP, so error surfacing + the refresh MUST
+--- happen here, not synchronously after dispatch. Guarded against a stale callback
+--- on the FULL dispatch context: ignored when the frame is closed, the trailer
+--- changed, OR the same trailer reopened on a different pen (the counterpart handle
+--- is the per-session identity, like the Move frame's selectedHusbandry) - a delayed
+--- callback from session A must not repaint a reopened session B. On error shows an
+--- InfoDialog; either way it clears the selection + the in-flight lock, refreshes the
+--- (used/total) labels in place (active side preserved - no heuristic re-seed), and
+--- reloads the list + pen column + buttons.
+--- @param errorCode number  AnimalMoveEvent.MOVE_SUCCESS or an error code
+--- @param dispatchedTrailer table  the trailer captured at dispatch time (stale guard)
+--- @param dispatchedCounterpart table|nil  the counterpart (pen) captured at dispatch (stale guard)
+function RLMenuTransferFrame:onTransferComplete(errorCode, dispatchedTrailer, dispatchedCounterpart)
+    if not self.isFrameOpen or self.trailer ~= dispatchedTrailer
+        or self.context == nil or self.context.counterpartHandle ~= dispatchedCounterpart then
+        Log:debug("RLMenuTransferFrame:onTransferComplete: stale callback (frameOpen=%s, sameTrailer=%s, sameCounterpart=%s), ignoring",
+            tostring(self.isFrameOpen), tostring(self.trailer == dispatchedTrailer),
+            tostring(self.context ~= nil and self.context.counterpartHandle == dispatchedCounterpart))
+        return
+    end
+
+    if errorCode ~= nil and errorCode ~= AnimalMoveEvent.MOVE_SUCCESS then
+        InfoDialog.show(RLAnimalMoveService.getErrorText(errorCode))
+        Log:debug("RLMenuTransferFrame:onTransferComplete: transfer failed, errorCode=%d", errorCode)
+    else
+        Log:info("RLMenuTransferFrame:onTransferComplete: transfer succeeded")
+    end
+
     self.selectedAnimals = {}
+    self.movePending = false
+    self:updateSourceLabels()
     self:reloadAnimalList()
+    self:updatePenDisplay()
     self:updateButtonVisibility()
 end
 
