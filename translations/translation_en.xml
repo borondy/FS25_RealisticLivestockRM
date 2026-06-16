@@ -769,6 +769,12 @@
 
 		<!-- Move tab -->
 		<text name="rl_menu_move_title" text="Move"/>
+		<!-- Transfer tab -->
+		<text name="rl_menu_transfer_title" text="Transfer"/>
+		<text name="rl_menu_transfer_load" text="Load"/>
+		<text name="rl_menu_transfer_unload" text="Unload"/>
+		<text name="rl_menu_transfer_empty_no_animals" text="No animals on this side"/>
+		<text name="rl_menu_transfer_counterpart" text="Destination"/>
 		<text name="rl_menu_move_summary" text="%d animals" tag="format"/>
 
 		<!-- Sell tab -->

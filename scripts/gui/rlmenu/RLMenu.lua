@@ -47,7 +47,7 @@ RLMenu.TRAILER_WORLD = RLMenuTabPolicy.WORLD
 -- openFromBridge's startPageId validation. If a tab is added/removed, bump
 -- this and renumber setupMenuPages in lockstep -- the spec ASKS to halt on
 -- such changes.
-RLMenu.PAGE_COUNT = 8
+RLMenu.PAGE_COUNT = 9
 
 -- Dev-only GUI hot-reload (Mechanism B). When true, open() re-runs the full
 -- setupGui() parse so on-disk XML/profile edits show up on reopen with no game
@@ -75,12 +75,15 @@ function RLMenu.new(target, custom_mt)
     -- Reset to MODE_FULL on every onClose so the next keyboard open is unaffected.
     self.openMode = RLMenu.MODE_FULL
 
-    -- Trailer context (MODE_TRAILER only): the livestock trailer passed at open
-    -- and its counterpart (TRAILER_PEN/DEALER/WORLD). Read only at open time for
-    -- the anchor; cleared on every onClose so the next open does not inherit a
-    -- stale trailer. nil in MODE_FULL / MODE_DEALER.
+    -- Trailer context (MODE_TRAILER only): the livestock trailer passed at open,
+    -- its counterpart (TRAILER_PEN/DEALER/WORLD), and the optional counterpart
+    -- engine handle a concrete adapter enumerates (a husbandry placeable / world
+    -- set; populated by the per-counterpart trigger-redirect slices, nil in the
+    -- shell). Read only at open time for the anchor; all cleared on every onClose
+    -- so the next open does not inherit a stale trailer. nil in MODE_FULL / MODE_DEALER.
     self.trailerVehicle = nil
     self.trailerCounterpart = nil
+    self.trailerCounterpartHandle = nil
 
     Log:trace("RLMenu.new: instance created (openMode=%s)", tostring(self.openMode))
     return self
@@ -107,6 +110,7 @@ function RLMenu.setupGui()
     RLMenuAIFrame.setupGui()
     RLMenuHerdsmanFrame.setupGui()
     RLMenuSettingsFrame.setupGui()
+    RLMenuTransferFrame.setupGui()
 
     -- 3. Create the menu instance and load its XML
     g_rlMenu = RLMenu.new()
@@ -223,8 +227,16 @@ function RLMenu:setupMenuPages()
         self.settingsFrame:initialize()
     end
 
+    -- Transfer tab (page 9; visible only in MODE_TRAILER pen/world). Reuses the
+    -- move_animal icon (Move and Transfer never appear together on screen).
+    self:registerPage(self.transferFrame, 9, traced("transfer", function() return visible("transfer") end))
+    self:addPageTab(self.transferFrame, nil, nil, "rlMenu.move_animal")
+    if self.transferFrame ~= nil and self.transferFrame.initialize ~= nil then
+        self.transferFrame:initialize()
+    end
+
     Log:debug(
-        "RLMenu:setupMenuPages: 8 pages registered (buy, sell, move, manage, ai, messages, herdsman, settings); visibility delegated to RLMenuTabPolicy per (openMode, counterpart)")
+        "RLMenu:setupMenuPages: 9 pages registered (buy, sell, move, manage, ai, messages, herdsman, settings, transfer); visibility delegated to RLMenuTabPolicy per (openMode, counterpart)")
 end
 
 --- Configure the bottom button bar.
@@ -314,10 +326,11 @@ function RLMenu:onClose()
     self.openMode = RLMenu.MODE_FULL
 
     -- Clear trailer context here too (nil already in non-trailer modes): a
-    -- trailer close must not leak the trailer/counterpart into the next open,
-    -- and frame-close hooks invoked by super should see no stale trailer.
+    -- trailer close must not leak the trailer/counterpart/handle into the next
+    -- open, and frame-close hooks invoked by super should see no stale trailer.
     self.trailerVehicle = nil
     self.trailerCounterpart = nil
+    self.trailerCounterpartHandle = nil
 
     -- Wrap super-onClose in pcall: base TabbedMenu:onClose touches
     -- currentPage:onFrameClose(), g_inputBinding, pageSelector:getState(),
@@ -376,6 +389,24 @@ function RLMenu.open()
         if not ok then
             Log:error("RLMenu.open: DEV reload failed (err=%s)", tostring(err))
         end
+    end
+
+    -- Keyboard-open stale-mode reset. A parked non-FULL openMode (e.g. a
+    -- MODE_TRAILER whose onClose never fired) would otherwise strand the full
+    -- menu on a collapsed tab set with no valid landing tab. Reset to MODE_FULL +
+    -- clear the trailer context + anchor Buy. Placed AFTER the DEV_RELOAD re-setup
+    -- (which reassigns g_rlMenu) so the reset is not wiped, and immediately before
+    -- showGui. An already-FULL open is left untouched (its restore state is the
+    -- intended one).
+    if g_rlMenu ~= nil and g_rlMenu.openMode ~= RLMenu.MODE_FULL then
+        Log:debug("RLMenu.open: stale openMode=%s on keyboard open, resetting to MODE_FULL",
+            tostring(g_rlMenu.openMode))
+        g_rlMenu.openMode = RLMenu.MODE_FULL
+        g_rlMenu.trailerVehicle = nil
+        g_rlMenu.trailerCounterpart = nil
+        g_rlMenu.trailerCounterpartHandle = nil
+        g_rlMenu.restorePageIndex = 1
+        g_rlMenu.restorePage = nil
     end
 
     Log:debug("RLMenu.open: showing menu")
@@ -459,17 +490,16 @@ function RLMenu.openFromBridge(startPageId, mode, context)
     end
 end
 
---- MODE_TRAILER entry: validate the trailer context, store it, and either open
---- the menu anchored per the trailer's emptiness (DEALER counterpart) or defer
---- the open to RLRM-427 (PEN / WORLD, whose only tab - Transfer - is not yet
---- registered, so opening now would yield zero visible pages).
+--- MODE_TRAILER entry: validate the trailer context, store it, and open the
+--- menu. The DEALER counterpart anchors Buy or Sell per the trailer's emptiness;
+--- the PEN / WORLD counterparts anchor the Transfer tab (their sole visible tab).
 ---
 --- Validation runs in order and warns-and-returns with ZERO state change on any
 --- failure (the caller falls through to legacy): (1) nil/invalid context, BEFORE
 --- any context.* deref; (2) trailer nil or not a livestock trailer; (3)
 --- counterpart not one of TRAILER_PEN/DEALER/WORLD; (4) a dialog is visible. The
---- dealer anchor reads emptiness via RLTrailerEndpointService.isEmpty (RLRM-424)
---- - mandatory, no fallback. Step (2) checks the livestock-trailer spec is
+--- dealer anchor reads emptiness via RLTrailerEndpointService.isEmpty - mandatory,
+--- no fallback. Step (2) checks the livestock-trailer spec is
 --- present (a real such trailer always exposes the count getter), so in practice
 --- "empty" means a real empty trailer; the service's safe default for an
 --- unreadable count (-> empty -> Buy) is the intended fallback, not a bug.
@@ -511,15 +541,39 @@ function RLMenu.openTrailerFromBridge(context)
     local trailerName = RLTrailerEndpointService.getDisplayData(trailer).name
 
     if counterpart ~= RLMenu.TRAILER_DEALER then
-        -- pen/world: the Transfer tab (their only tab) lands in RLRM-427, so the
-        -- resolved visible set is empty this slice. Store context (the M1
-        -- keystone 427 builds on) but do NOT showGui - a zero-visible-page open
-        -- would strand the menu. No rollback needed: no show was attempted.
+        -- pen/world: Transfer (their only tab) is registered, so the resolved
+        -- visible set is exactly {Transfer} = visible index 1. Open anchored there.
+        -- restorePageIndex AND restorePage must BOTH be set: TabbedMenu:onOpen reads
+        -- restorePage first, so a stale restorePage would mode-cross onto a wrong
+        -- collapsed index. The index-1 anchor rests on Transfer being the SOLE
+        -- pen/world tab (the policy hides all 8 others); a future pen/world tab
+        -- must revisit this. Snapshot for rollback if showGui throws (mirrors the
+        -- dealer branch below).
+        local priorOpenMode = g_rlMenu.openMode
+        local priorRestorePageIndex = g_rlMenu.restorePageIndex
+        local priorRestorePage = g_rlMenu.restorePage
+        local priorTrailerVehicle = g_rlMenu.trailerVehicle
+        local priorTrailerCounterpart = g_rlMenu.trailerCounterpart
+
         g_rlMenu.openMode = RLMenu.MODE_TRAILER
         g_rlMenu.trailerVehicle = trailer
         g_rlMenu.trailerCounterpart = counterpart
-        Log:info("openFromBridge[trailer]: counterpart=%s trailer='%s' surface lands in RLRM-427 (no open this slice)",
+        g_rlMenu.restorePageIndex = 1
+        g_rlMenu.restorePage = nil
+
+        Log:info("openFromBridge[trailer]: counterpart=%s trailer='%s' -> Transfer (page 1)",
             tostring(counterpart), tostring(trailerName))
+
+        local ok, err = pcall(function() g_gui:showGui("RLMenu") end)
+        if not ok then
+            Log:warning("openFromBridge[trailer]: showGui threw, rolling back state (err=%s)",
+                tostring(err))
+            g_rlMenu.openMode = priorOpenMode
+            g_rlMenu.restorePageIndex = priorRestorePageIndex
+            g_rlMenu.restorePage = priorRestorePage
+            g_rlMenu.trailerVehicle = priorTrailerVehicle
+            g_rlMenu.trailerCounterpart = priorTrailerCounterpart
+        end
         return
     end
 

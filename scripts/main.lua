@@ -216,6 +216,10 @@ source(modDirectory .. "scripts/gui/rlmenu/services/RLAIStockService.lua")
 -- nothing but the trailer passed in. Loaded now but invoked by no shipped path until
 -- the M2 transfer frame consumes it.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTrailerEndpointService.lua")
+-- Transfer-frame adapter seam (Phase 8 M2). Pure data-in/data-out (no g_*/getText);
+-- the headless dual-run boundary. Loaded with the services, before the Transfer
+-- frame and RLMenu consume it.
+source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferAdapter.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLFilterCycleHelper.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLFilterChipHelper.lua")
 -- Herdsman rule view-model (M-Frame F1). Pure presenter consumed by the Herdsman
@@ -234,6 +238,7 @@ source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuBuyFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuAIFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuSettingsFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuHerdsmanFrame.lua")
+source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuTransferFrame.lua")
 -- Pure tab-visibility + anchor policy (no g_*). Loaded before RLMenu so the
 -- RLMenu.MODE_TRAILER / TRAILER_* constants can re-export the policy's values.
 source(modDirectory .. "scripts/gui/rlmenu/RLMenuTabPolicy.lua")

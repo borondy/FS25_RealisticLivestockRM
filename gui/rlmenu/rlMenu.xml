@@ -24,6 +24,7 @@
         <FrameReference ref="RLMenuMessagesFrame" name="messagesFrame" id="messagesFrame"/>
         <FrameReference ref="RLMenuHerdsmanFrame" name="herdsmanFrame" id="herdsmanFrame"/>
         <FrameReference ref="RLMenuSettingsFrame" name="settingsFrame" id="settingsFrame"/>
+        <FrameReference ref="RLMenuTransferFrame" name="transferFrame" id="transferFrame"/>
     </Paging>
 
     <!-- Tab header bar -->
