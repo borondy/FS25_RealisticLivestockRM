@@ -211,6 +211,11 @@ source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalSellService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalBuyService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLDealerQuery.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAIStockService.lua")
+-- Trailer endpoint read service (Phase 8 transfer keystone). Stateless reader that
+-- wraps the base-game LivestockTrailer getters into transfer primitives; depends on
+-- nothing but the trailer passed in. Loaded now but invoked by no shipped path until
+-- the M2 transfer frame consumes it.
+source(modDirectory .. "scripts/gui/rlmenu/services/RLTrailerEndpointService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLFilterCycleHelper.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLFilterChipHelper.lua")
 -- Herdsman rule view-model (M-Frame F1). Pure presenter consumed by the Herdsman
