@@ -254,6 +254,10 @@ source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferPenAdapter.lua")
 -- (sourced above), and the adapter must follow the service it calls. Animal /
 -- AnimalItemStock / AnimalLoadEvent / AnimalUnloadEvent load earlier (base-game / Animal
 -- stack). No RLMenu dependency.
+-- Codec-only override of base-game AnimalUnloadEvent (string cluster id over the wire);
+-- sourced before the world service so the unload dispatch fires the patched event. Base-game
+-- AnimalUnloadEvent is already loaded by this point, which the override asserts at load.
+source(modDirectory .. "scripts/animals/shop/events/AnimalUnloadEvent.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTrailerWorldService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferWorldAdapter.lua")
 source(modDirectory .. "scripts/gui/rlmenu/RLMenu.lua")

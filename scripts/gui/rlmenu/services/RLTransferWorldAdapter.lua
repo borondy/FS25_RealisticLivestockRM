@@ -89,7 +89,10 @@ end
 --- selected cluster back to its rideable via context.clusterToVehicle - selection comes
 --- from the CURRENT enumerate build (which rebuilt the map), so a miss is an INVARIANT
 --- BREACH (logged at WARNING, that item dropped), not a normal condition. Unloading
---- (DIR_OUT_OF_TRAILER) maps each selected cluster to its cluster.id. Returns true only
+--- (DIR_OUT_OF_TRAILER) maps each selected cluster to its RESOLVED wire id via
+--- RLAnimalUtil.resolveClusterId (the 3-part identity toKey for an individual, not the
+--- never-updated "0-0" placeholder cluster.id), dropping any cluster whose id is
+--- unresolvable. Returns true only
 --- when the service is engaged - and a true return GUARANTEES the service fires
 --- context.onComplete EXACTLY ONCE. If the mapped list is empty after dropping
 --- unrecoverable items, returns false (no completion) so the frame releases movePending.
@@ -128,13 +131,16 @@ function RLTransferWorldAdapter:dispatch(direction, animals, context)
         return true
     end
 
-    -- DIR_OUT_OF_TRAILER: unload the selected trailer clusters by id.
+    -- DIR_OUT_OF_TRAILER: unload the selected trailer clusters by their RESOLVED wire id
+    -- (toKey for an individual - what getClusterById matches - not the "0-0" cluster.id).
     local clusterIds = {}
     for _, cluster in ipairs(animals) do
-        if cluster ~= nil and cluster.id ~= nil then
-            clusterIds[#clusterIds + 1] = cluster.id
+        local id = RLAnimalUtil.resolveClusterId(cluster)
+        if id ~= nil then
+            clusterIds[#clusterIds + 1] = id
         else
-            Log:warning("RLTransferWorldAdapter:dispatch: unload cluster has no id, dropping it")
+            Log:warning("RLTransferWorldAdapter:dispatch: unload cluster '%s' has no resolvable id, dropping it",
+                tostring(cluster ~= nil and cluster.uniqueId or cluster))
         end
     end
     if #clusterIds == 0 then
