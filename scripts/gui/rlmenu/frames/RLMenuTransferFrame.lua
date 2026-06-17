@@ -72,7 +72,8 @@ function RLMenuTransferFrame.new()
     self.hasCustomMenuButtons = true
 
     -- Footer buttons. Back is always present; Select / SelectAll show when the
-    -- side has rows; the single Action button (Load/Unload) is selection-gated.
+    -- side has rows. The action splits into two like Move/Buy/Sell: X (EXTRA_1)
+    -- transfers the highlighted single row, C (EXTRA_2) transfers the checked set.
     self.backButtonInfo = { inputAction = InputAction.MENU_BACK }
     self.selectButtonInfo = {
         inputAction = InputAction.RL_SELECT,
@@ -84,10 +85,20 @@ function RLMenuTransferFrame.new()
         text = g_i18n:getText("rl_ui_selectAll"),
         callback = function() self:onClickSelectAll() end,
     }
-    self.actionButtonInfo = {
+    -- Single action (X) on EXTRA_1 - the highlighted row - matching the slot the
+    -- sibling tabs reserve for the single action. Selected action (C) on EXTRA_2 -
+    -- the checked set. Both route through the same dispatchTransfer; the seed text
+    -- is the generic load key and updateButtonVisibility overwrites it with the
+    -- adapter's dynamic verb per direction.
+    self.actionSingleButtonInfo = {
         inputAction = InputAction.MENU_EXTRA_1,
         text = g_i18n:getText(RLTransferAdapter.LOAD_LABEL_KEY),
-        callback = function() self:onClickAction() end,
+        callback = function() self:onClickActionSingle() end,
+    }
+    self.actionSelectedButtonInfo = {
+        inputAction = InputAction.MENU_EXTRA_2,
+        text = g_i18n:getText(RLTransferAdapter.LOAD_LABEL_KEY),
+        callback = function() self:onClickActionSelected() end,
     }
     self.menuButtonInfo = { self.backButtonInfo }
 
@@ -761,9 +772,13 @@ end
 -- Footer action (Load / Unload)
 -- =============================================================================
 
---- Rebuild the footer button info. Back always; Select/SelectAll when the side
---- has rows; the single Action button (Load/Unload) only when at least one
---- animal is checked (selection-gated visibility).
+--- Rebuild the footer button info (Hybrid B visibility). Back always;
+--- Select/SelectAll when the side has rows. The two action buttons share the
+--- adapter's dynamic verb: the single (X / EXTRA_1) is shown whenever rows exist,
+--- disabled with no focused row; the selected (C / EXTRA_2) stays selection-gated -
+--- shown only when something is checked, labelled `verb (N)`. (Deliberate divergence
+--- from the always-shown-disabled Move/Buy/Sell siblings: the dynamic verb would
+--- render two identical buttons at 0 checked.)
 function RLMenuTransferFrame:updateButtonVisibility()
     self.menuButtonInfo = { self.backButtonInfo }
 
@@ -775,12 +790,24 @@ function RLMenuTransferFrame:updateButtonVisibility()
         self.selectAllButtonInfo.text = g_i18n:getText(
             selectedCount > 0 and "rl_ui_selectNone" or "rl_ui_selectAll")
         table.insert(self.menuButtonInfo, self.selectAllButtonInfo)
-    end
 
-    if selectedCount > 0 then
+        -- The action verb (Load/Unload, or a concrete adapter's move-to-trailer /
+        -- move-to-farm / move-to-spawn-place) shared by both buttons, per direction.
         local direction = RLTransferAdapter.directionForSide(self.currentSide)
-        self.actionButtonInfo.text = g_i18n:getText(self.adapter:actionLabel(direction))
-        table.insert(self.menuButtonInfo, self.actionButtonInfo)
+        local verb = g_i18n:getText(self.adapter:actionLabel(direction))
+
+        -- Selected (C / EXTRA_2): selection-gated, `verb (N)`. Inserted before the
+        -- single, matching the sibling order (selected then single).
+        if selectedCount > 0 then
+            self.actionSelectedButtonInfo.text = verb .. " (" .. selectedCount .. ")"
+            table.insert(self.menuButtonInfo, self.actionSelectedButtonInfo)
+        end
+
+        -- Single (X / EXTRA_1): always available when rows exist, disabled when no
+        -- row is focused (its handler is a safe no-op either way).
+        self.actionSingleButtonInfo.text = verb
+        self.actionSingleButtonInfo.disabled = self:getSelectedAnimal() == nil
+        table.insert(self.menuButtonInfo, self.actionSingleButtonInfo)
     end
 
     Log:debug("RLMenuTransferFrame:updateButtonVisibility: %d buttons, side=%s selectedCount=%d",
@@ -789,26 +816,57 @@ function RLMenuTransferFrame:updateButtonVisibility()
 end
 
 
---- Footer action handler. Routes the checked animals to the adapter's dispatch
---- for the current side's direction. A concrete adapter routes to the move service
---- (async in MP); completion (onTransferComplete) owns the refresh + lock release.
---- The shell NULL adapter logs + returns false, so the frame leaves all state
---- unchanged (no event, no list change).
-function RLMenuTransferFrame:onClickAction()
-    -- Duplicate-submit guard: the action button is selection-gated, not
+--- Transfer the highlighted single row (X / MENU_EXTRA_1). Mirrors
+--- RLMenuMoveFrame:onClickMove: act on the focused animal only, a no-op trace when
+--- nothing is focused. Routes through the shared dispatchTransfer.
+function RLMenuTransferFrame:onClickActionSingle()
+    local animal = self:getSelectedAnimal()
+    if animal == nil then
+        Log:trace("RLMenuTransferFrame:onClickActionSingle: no row focused, no-op")
+        return
+    end
+    Log:debug("RLMenuTransferFrame:onClickActionSingle: single transfer for farmId=%s uniqueId=%s",
+        tostring(animal.farmId), tostring(animal.uniqueId))
+    self:dispatchTransfer({ animal })
+end
+
+
+--- Transfer the checked set (C / MENU_EXTRA_2). Mirrors
+--- RLMenuMoveFrame:onClickMoveSelected: collect the checked animals, a no-op trace
+--- when none are checked. Routes through the shared dispatchTransfer.
+function RLMenuTransferFrame:onClickActionSelected()
+    local animals = self:collectSelectedAnimals()
+    if #animals == 0 then
+        Log:trace("RLMenuTransferFrame:onClickActionSelected: no animals checked, no-op")
+        return
+    end
+    Log:debug("RLMenuTransferFrame:onClickActionSelected: bulk transfer for %d animal(s)", #animals)
+    self:dispatchTransfer(animals)
+end
+
+
+--- Shared dispatch path for single + bulk (mirrors RLMenuMoveFrame:startMoveFlow).
+--- Owns the WHOLE mutation sequence so neither handler touches movePending directly:
+--- the in-flight guard, the empty-check, then movePending=true -> adapter:dispatch ->
+--- false-return release, in that order. A concrete adapter routes to the move service /
+--- load-unload events (async in MP); completion (onTransferComplete) owns the refresh +
+--- lock release. The shell NULL adapter logs + returns false, so the frame leaves all
+--- state unchanged (no event, no list change).
+--- @param animals table  the clusters to transfer (a 1-element array for the single case)
+function RLMenuTransferFrame:dispatchTransfer(animals)
+    -- Duplicate-submit guard: the action buttons are selection/focus-gated, not
     -- request-gated, so block a second dispatch while a move is in flight.
     if self.movePending then
-        Log:debug("RLMenuTransferFrame:onClickAction: a transfer is already in flight, ignoring")
+        Log:debug("RLMenuTransferFrame:dispatchTransfer: a transfer is already in flight, ignoring")
         return
     end
 
-    local animals = self:collectSelectedAnimals()
     local direction = RLTransferAdapter.directionForSide(self.currentSide)
-    Log:debug("RLMenuTransferFrame:onClickAction: side=%s direction=%s selected=%d",
+    Log:debug("RLMenuTransferFrame:dispatchTransfer: side=%s direction=%s count=%d",
         tostring(self.currentSide), direction, #animals)
 
     if #animals == 0 then
-        Log:trace("RLMenuTransferFrame:onClickAction: no animals selected, no-op")
+        Log:trace("RLMenuTransferFrame:dispatchTransfer: no animals, no-op")
         return
     end
 
@@ -821,14 +879,14 @@ function RLMenuTransferFrame:onClickAction()
     local handled = self.adapter:dispatch(direction, animals, self.context)
     if not handled then
         self.movePending = false
-        Log:debug("RLMenuTransferFrame:onClickAction: dispatch returned false, state unchanged (shell no-op)")
+        Log:debug("RLMenuTransferFrame:dispatchTransfer: dispatch returned false, state unchanged (shell no-op)")
         return
     end
 
     -- Routed to the move service: completion (onTransferComplete) owns the refresh
     -- + lock release. Do NOT reload synchronously - the move is a server round-trip
     -- in MP and a synchronous reload would show stale contents / miss server errors.
-    Log:debug("RLMenuTransferFrame:onClickAction: dispatched, awaiting completion")
+    Log:debug("RLMenuTransferFrame:dispatchTransfer: dispatched, awaiting completion")
 end
 
 
@@ -843,9 +901,11 @@ end
 --- adapter-agnostic: the pen adapter maps its AnimalMoveEvent result and the world
 --- service its load/unload result through the SAME contract (the frame references
 --- neither result space directly). On failure with text it shows an InfoDialog; either
---- way it clears the selection + the in-flight lock, refreshes the (used/total) labels
---- in place (active side preserved - no heuristic re-seed), and reloads the list + pen
---- column + buttons.
+--- way it releases the in-flight lock, refreshes the (used/total) labels in place (active
+--- side preserved - no heuristic re-seed), reloads the list + pen column + buttons, and
+--- prunes the selection to the rebuilt list - a successful transfer drops the moved rows
+--- while any un-transferred checked rows survive; a failure (list unchanged) leaves the
+--- selection intact for a retry.
 --- @param success boolean  whether the transfer succeeded
 --- @param errorText string|nil  localized error text on failure (nil on success)
 --- @param dispatchedTrailer table  the trailer captured at dispatch time (stale guard)
@@ -873,10 +933,15 @@ function RLMenuTransferFrame:onTransferComplete(success, errorText, dispatchedTr
         Log:info("RLMenuTransferFrame:onTransferComplete: transfer succeeded")
     end
 
-    self.selectedAnimals = {}
     self.movePending = false
     self:updateSourceLabels()
     self:reloadAnimalList()
+    -- Cardinality-aware selection clear (reuses pruneSelectionToList): the rebuilt list
+    -- drops the just-transferred animals, so pruning removes exactly those checked
+    -- identities and keeps any un-transferred checked rows (single keeps the rest;
+    -- bulk empties). On failure the list is unchanged, so prune is a no-op and the
+    -- selection survives for a retry.
+    self:pruneSelectionToList()
     self:updatePenDisplay()
     self:updateButtonVisibility()
 end
