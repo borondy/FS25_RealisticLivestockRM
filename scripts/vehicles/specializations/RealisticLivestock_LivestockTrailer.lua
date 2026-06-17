@@ -2,15 +2,27 @@ RealisticLivestock_LivestockTrailer = {}
 
 local Log = RmLogging.getLogger("RLRM")
 
+--- Bulk-add animals to the trailer through the single-cluster path, flushing the
+--- pending queue exactly once. The per-add flush in :addCluster is suppressed for
+--- the duration of the loop (rlAddBatchInProgress), so a buy / move batch commits
+--- with a single tail updateNow instead of one per animal. The flag is cleared
+--- unconditionally before the tail flush so a flush error can never strand it true
+--- (which would silently disable every later standalone load on this trailer).
+--- @param superFunc function Overwritten-function predecessor (unused; replaced wholesale)
+--- @param animals table Array of Animal entities to add
 function RealisticLivestock_LivestockTrailer:addAnimals(superFunc, animals)
 
-    local clusterSystem = self.spec_livestockTrailer.clusterSystem
+    local spec = self.spec_livestockTrailer
+    local clusterSystem = spec.clusterSystem
 
+    spec.rlAddBatchInProgress = true
     local ok, err = pcall(function()
         for _, animal in pairs(animals) do
             self:addCluster(animal)
         end
     end)
+    spec.rlAddBatchInProgress = false
+
     local ok2, err2 = pcall(function() clusterSystem:updateNow() end)
 
     if not (ok and ok2) then
@@ -26,9 +38,24 @@ end
 LivestockTrailer.addAnimals = Utils.overwrittenFunction(LivestockTrailer.addAnimals, RealisticLivestock_LivestockTrailer.addAnimals)
 
 
+--- Add one cluster to the trailer. An already-individual RLRM Animal passes straight
+--- through to the pending queue; a vanilla / multi cluster is expanded into individual
+--- Animals first. BOTH queueing branches fall through to a shared tail that flushes the
+--- pending queue when this is a standalone add (not inside an addAnimals batch).
+---
+--- The tail flush closes the world-load data-loss path: a world load reaches this
+--- override through AnimalLoadEvent (a single addCluster, not addAnimals) and the loose
+--- rideable is removed from the world right after addCluster returns. Without a flush here
+--- the loaded animal would sit unflushed in the pending queue - absent from getClusters(),
+--- uncounted by capacity, and dropped outright if a save lands - while the rideable is
+--- already gone. Flushing synchronously makes the animal present before the caller removes
+--- the rideable.
+--- @param superFunc function Overwritten-function predecessor (unused; replaced wholesale)
+--- @param cluster table RLRM Animal (pass-through) or vanilla cluster (expanded)
 function RealisticLivestock_LivestockTrailer:addCluster(superFunc, cluster)
 
-    local clusterSystem = self.spec_livestockTrailer.clusterSystem
+    local spec = self.spec_livestockTrailer
+    local clusterSystem = spec.clusterSystem
 
     Log:trace("Trailer addCluster: isIndividual=%s numAnimals=%s name=%s canBeSold=%s id=%s",
         tostring(cluster.isIndividual), tostring(cluster.numAnimals),
@@ -39,6 +66,7 @@ function RealisticLivestock_LivestockTrailer:addCluster(superFunc, cluster)
 
         -- Third-party mods may create rideables with vanilla clusters that have numAnimals=0 (props).
         -- Skip these to prevent phantom animals after conversion sets numAnimals=1.
+        -- Nothing is queued, so this branch keeps its early return (no flush).
         if cluster.numAnimals == nil or cluster.numAnimals < 1 then
             Log:warning("Trailer addCluster: skipping cluster with numAnimals=%s subTypeIndex=%s", tostring(cluster.numAnimals), tostring(cluster.subTypeIndex))
             return
@@ -70,15 +98,30 @@ function RealisticLivestock_LivestockTrailer:addCluster(superFunc, cluster)
             })
             clusterSystem:addPendingAddCluster(animal)
         end
-        -- Flush is the caller's responsibility (addAnimals tail); per-cluster updateNow
-        -- removed to keep trailer loads at one flush instead of N.
-        return
+
+    else
+
+        Log:trace("Trailer addCluster: pass-through RLRM animal (uniqueId=%s canBeSold=%s)",
+            tostring(cluster.uniqueId), tostring(cluster.canBeSold))
+        clusterSystem:addPendingAddCluster(cluster)
 
     end
 
-    Log:trace("Trailer addCluster: pass-through RLRM animal (uniqueId=%s canBeSold=%s)",
-        tostring(cluster.uniqueId), tostring(cluster.canBeSold))
-    clusterSystem:addPendingAddCluster(cluster)
+    -- Shared tail flush. A standalone add (the AnimalLoadEvent world load) commits the
+    -- pending queue here, so getClusters()/capacity reflect the animal before the caller
+    -- removes the world rideable. An addAnimals batch suppresses this (rlAddBatchInProgress)
+    -- and flushes once at its loop tail, keeping buy / move batches at one flush instead of
+    -- N. isServer-guarded: the pending queue is server-only and this path runs server-side;
+    -- updateNow is idempotent (gated on needsUpdate), so a redundant call is a safe no-op.
+    -- On flush error the animal stays queued and is recovered by the next flush.
+    if self.isServer and not spec.rlAddBatchInProgress then
+        local ok, err = pcall(function() clusterSystem:updateNow() end)
+        if not ok then
+            Log:error("Trailer addCluster: flush failed, animal stays queued (recoverable): %s", tostring(err))
+        else
+            Log:debug("Trailer addCluster: flushed pending queue, trailer now holds %d animal(s)", #clusterSystem:getClusters())
+        end
+    end
 end
 
 LivestockTrailer.addCluster = Utils.overwrittenFunction(LivestockTrailer.addCluster, RealisticLivestock_LivestockTrailer.addCluster)
