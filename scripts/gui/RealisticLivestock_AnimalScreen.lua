@@ -66,6 +66,29 @@ function RealisticLivestock_AnimalScreen.show(husbandry, vehicle, isDealer)
         Log:warning("AnimalScreen.show: pen-trailer-shape matched but g_rlMenu nil, falling through to legacy")
     end
 
+    -- Dealer-trailer redirect: a livestock trailer triggered AT an animal dealer
+    -- (no husbandry, isDealer). Routes to RLMenu's trailer dealer counterpart, which
+    -- fires the SAME AnimalBuyEvent (Buy tab, RLRM-428) / AnimalSellEvent (Sell tab,
+    -- RLRM-430) via the RL services (mutation parity), leaving the legacy
+    -- AnimalScreenDealerTrailer dormant for this flow. The spec_livestockTrailer gate
+    -- fails closed: a non-livestock vehicle reaches legacy instead of being swallowed
+    -- (matching the pen redirect above + openTrailerFromBridge's own acceptance gate).
+    -- The isDealer == true term excludes the non-dealer trailer walk-up (the RLRM-431
+    -- world flow: setController(nil, vehicle, false) -> AnimalScreenTrailer). Mutually
+    -- exclusive with the dealer-only branch (vehicle == nil) and the pen branch
+    -- (husbandry ~= nil), so it composes regardless of landing order. The empty->Buy /
+    -- loaded->Sell anchor is the shipped RLRM-425 heuristic in openTrailerFromBridge.
+    if husbandry == nil and vehicle ~= nil and vehicle.spec_livestockTrailer ~= nil
+        and isDealer == true then
+        if g_rlMenu ~= nil then
+            Log:info("AnimalScreen.show: dealer-trailer-shape -> RLMenu (mode=trailer counterpart=dealer)")
+            RLMenu.openFromBridge(nil, RLMenu.MODE_TRAILER,
+                { trailer = vehicle, counterpart = RLMenu.TRAILER_DEALER })
+            return
+        end
+        Log:warning("AnimalScreen.show: dealer-trailer-shape matched but g_rlMenu nil, falling through to legacy")
+    end
+
     g_animalScreen.isTrailerFarm = husbandry ~= nil and vehicle ~= nil
     g_animalScreen.filters = nil
     g_animalScreen.filteredItems = nil

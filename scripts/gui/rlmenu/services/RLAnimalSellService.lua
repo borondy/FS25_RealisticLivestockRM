@@ -196,6 +196,59 @@ function RLAnimalSellService.sellAnimals(husbandry, animals, totalPrice, totalFe
 end
 
 
+--- Partition a sell batch into the survivors that pass a per-animal verdict and
+--- the rejects, for the trailer-at-dealer Sell flow (RLRM-430).
+--- Contract: the survivor SHAPE of RLAnimalBuyService.filterBuyableAnimals
+--- (`{ valid, rejected, firstErrorCode }`), reproducing legacy
+--- AnimalScreenDealerTrailer:applyTargetBulk's per-item skip-invalid-sell-the-rest
+--- behaviour - but with NO running-count capacity ledger: selling fills no
+--- destination, and the server AnimalSellEvent:run gate is per-animal-independent
+--- (it blocks on the first non-sellable animal; there is no cumulative dimension
+--- to track). This is a per-animal survivor partition only.
+---
+--- Pure / dual-run: takes the source + the verdict function as parameters and
+--- does NO price math, NO g_*, NO capacity counter - it only partitions by the
+--- injected per-animal verdict. The in-game caller injects an adapter that gates
+--- on `animal:getCanBeSold()` (returning AnimalSellEvent.SELL_ERROR_CANNOT_BE_SOLD),
+--- which is exact parity with the authoritative server leg (AnimalSellEvent:run
+--- gates per-animal on getCanBeSold + permission only). A headless test injects a
+--- mock validate returning plain sentinel codes, so this loads no AnimalSellEvent.
+--- @param source table The sell SOURCE object (the held trailer); passed through to validate
+--- @param animals table|nil Array of Animal/cluster refs to sell (nil -> empty result)
+--- @param validate function (source, animal) -> errorCode|nil per-animal verdict
+--- @return table result { valid = {<animal>...}, rejected = {{animal, reason}...}, firstErrorCode = <code|nil> }
+function RLAnimalSellService.filterSellableAnimals(source, animals, validate)
+    local result = { valid = {}, rejected = {}, firstErrorCode = nil }
+
+    -- Net-new nil guard (mirror the Buy filter): a caller whose trailer context
+    -- resolved no animals gets the empty result, never a crash.
+    if animals == nil then
+        Log:debug("RLAnimalSellService.filterSellableAnimals: nil animals -> empty result")
+        return result
+    end
+
+    for _, animal in ipairs(animals) do
+        local label = (animal ~= nil and (animal.name or animal.uniqueId)) or "?"
+        local errorCode = validate(source, animal)
+
+        if errorCode ~= nil then
+            if result.firstErrorCode == nil then result.firstErrorCode = errorCode end
+            result.rejected[#result.rejected + 1] = { animal = animal, reason = errorCode }
+            Log:trace("RLAnimalSellService.filterSellableAnimals: '%s' rejected by validate (errorCode=%s)",
+                tostring(label), tostring(errorCode))
+        else
+            result.valid[#result.valid + 1] = animal
+            Log:trace("RLAnimalSellService.filterSellableAnimals: '%s' passed (queued=%d)",
+                tostring(label), #result.valid)
+        end
+    end
+
+    Log:debug("RLAnimalSellService.filterSellableAnimals: %d valid, %d rejected, firstErrorCode=%s",
+        #result.valid, #result.rejected, tostring(result.firstErrorCode))
+    return result
+end
+
+
 --- Map an AnimalSellEvent error code to a localized error string.
 --- @param errorCode number The error code from AnimalSellEvent
 --- @return string Localized error text, or a generic fallback for unknown codes
