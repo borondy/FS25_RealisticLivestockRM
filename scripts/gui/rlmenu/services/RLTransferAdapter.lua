@@ -64,8 +64,18 @@ RLTransferAdapter.UNLOAD_LABEL_KEY     = "rl_menu_transfer_unload"
 -- Shop action-label keys for the trailer move buttons. A concrete adapter
 -- overrides the generic load/unload keys above with these so it needs no new
 -- translation key (these keys ship in every locale).
-RLTransferAdapter.MOVE_TO_TRAILER_KEY = "shop_moveToTrailer"
-RLTransferAdapter.MOVE_TO_FARM_KEY    = "shop_moveToFarm"
+RLTransferAdapter.MOVE_TO_TRAILER_KEY     = "shop_moveToTrailer"
+RLTransferAdapter.MOVE_TO_FARM_KEY        = "shop_moveToFarm"
+-- The world counterpart unloads rideables back to their spawn place, so its
+-- unload label reads the base-game "move to spawn place" string instead of the
+-- pen's "move to farm" (base-game AnimalScreenTrailer.L10N_SYMBOL.MOVE_TO_SPAWN_PLACE;
+-- ships in every locale, so no new translation key).
+RLTransferAdapter.MOVE_TO_SPAWN_PLACE_KEY = "shop_moveToSpawnPlace"
+
+-- The world counterpart's sidebar display name (free rideables in the trigger
+-- zone). The world adapter is in-game tier, so it getTexts this key itself and
+-- returns an engine string; this constant just names the key in one place.
+RLTransferAdapter.WORLD_NAME_KEY = "rl_menu_transfer_world"
 
 -- =============================================================================
 -- Pure helpers (dual-run boundary)
@@ -160,6 +170,20 @@ end
 function RLTransferAdapter.penActionLabelKey(direction)
     if direction == RLTransferAdapter.DIR_OUT_OF_TRAILER then
         return RLTransferAdapter.MOVE_TO_FARM_KEY
+    end
+    return RLTransferAdapter.MOVE_TO_TRAILER_KEY
+end
+
+--- The legacy-parity i18n KEY for a WORLD transfer's footer action label. Loading
+--- the trailer reads "move to trailer"; unloading reads "move to spawn place" (the
+--- base-game rideable-unload label, distinct from the pen's "move to farm"). Returns
+--- the KEY (the frame resolves it); an unknown / nil direction defaults to the
+--- move-to-trailer key (mirrors actionLabelKey / penActionLabelKey). Pure: dual-run.
+--- @param direction string  DIR_INTO_TRAILER | DIR_OUT_OF_TRAILER
+--- @return string i18nKey
+function RLTransferAdapter.worldActionLabelKey(direction)
+    if direction == RLTransferAdapter.DIR_OUT_OF_TRAILER then
+        return RLTransferAdapter.MOVE_TO_SPAWN_PLACE_KEY
     end
     return RLTransferAdapter.MOVE_TO_TRAILER_KEY
 end

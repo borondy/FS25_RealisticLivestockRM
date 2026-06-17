@@ -247,6 +247,15 @@ source(modDirectory .. "scripts/gui/rlmenu/RLMenuTabPolicy.lua")
 -- RLMenuTabPolicy (PEN constant) and the services it calls (RLTransferAdapter,
 -- RLAnimalQuery, RLAnimalMoveService, all sourced above). No RLMenu dependency.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferPenAdapter.lua")
+-- WORLD counterpart service + adapter (Phase 8 M4). The service owns the vanilla-
+-- cluster -> Animal conversion + the base-game load/unload dispatch; the adapter
+-- routes the seam to it and registers into RLTransferAdapter._adapters[RLMenuTabPolicy
+-- .WORLD] at load, so both must follow RLMenuTabPolicy (WORLD constant) + RLTransferAdapter
+-- (sourced above), and the adapter must follow the service it calls. Animal /
+-- AnimalItemStock / AnimalLoadEvent / AnimalUnloadEvent load earlier (base-game / Animal
+-- stack). No RLMenu dependency.
+source(modDirectory .. "scripts/gui/rlmenu/services/RLTrailerWorldService.lua")
+source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferWorldAdapter.lua")
 source(modDirectory .. "scripts/gui/rlmenu/RLMenu.lua")
 
 -- SECTION 14: Migration System

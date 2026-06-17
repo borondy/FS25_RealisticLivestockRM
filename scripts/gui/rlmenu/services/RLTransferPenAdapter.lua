@@ -84,8 +84,10 @@ end
 --- resolveMovePlan, maps the sides onto the real objects (SIDE_COUNTERPART ->
 --- context.counterpartHandle, SIDE_TRAILER -> context.trailer), and dispatches.
 --- Returns true when routed to the move service (which owns the filter pipeline +
---- survivor dispatch + single broadcast, and fires context.onComplete with the
---- result - including the all-rejected firstErrorCode). Returns false WITHOUT
+--- survivor dispatch + single broadcast). The move-service errorCode result - incl.
+--- the all-rejected firstErrorCode - is wrapped here into the frame's uniform
+--- (success, errorText) completion contract, so the frame stays adapter-agnostic;
+--- mutation parity holds (still routes to moveAnimals). Returns false WITHOUT
 --- dispatching when the plan is nil or either endpoint is missing (fail-closed);
 --- the frame then leaves its state unchanged.
 --- @param direction string  DIR_INTO_TRAILER | DIR_OUT_OF_TRAILER
@@ -112,7 +114,18 @@ function RLTransferPenAdapter:dispatch(direction, animals, context)
         tostring(target and target.getName and target:getName()),
         animals ~= nil and #animals or 0)
 
-    RLAnimalMoveService.moveAnimals(source, target, animals, plan.moveType, context.onComplete)
+    -- Wrap the move-service errorCode callback into the frame's generalized
+    -- (success, errorText) completion contract (RLRM-431). Mutation parity is
+    -- preserved - this still routes to moveAnimals; only the result space is adapted.
+    -- moveAnimals fires the callback with MOVE_SUCCESS / an error code (incl. the
+    -- all-rejected firstErrorCode), never nil, so the nil success branch is defensive.
+    RLAnimalMoveService.moveAnimals(source, target, animals, plan.moveType, function(errorCode)
+        local success = (errorCode == nil or errorCode == AnimalMoveEvent.MOVE_SUCCESS)
+        local errorText = (not success) and RLAnimalMoveService.getErrorText(errorCode) or nil
+        if context.onComplete ~= nil then
+            context.onComplete(success, errorText)
+        end
+    end)
     return true
 end
 

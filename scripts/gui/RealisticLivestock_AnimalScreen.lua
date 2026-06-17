@@ -109,6 +109,37 @@ end
 AnimalScreen.show = RealisticLivestock_AnimalScreen.show
 
 
+-- World-trailer redirect: the standalone LivestockTrailerActivatable ("Open animal
+-- screen" prompt on a parked livestock/horse trailer) bypasses AnimalScreen.show
+-- entirely - its :run calls g_animalScreen:setController(nil, trailer, false) THEN
+-- g_gui:showGui("AnimalScreen") unconditionally, so a setController-level intercept
+-- cannot suppress the orphan showGui. Override run itself (a plain Class method, so
+-- Utils.overwrittenFunction injects superFunc normally - no spec double-wrap gotcha)
+-- and redirect to RLMenu's Transfer tab (world counterpart), which fires the SAME
+-- base-game AnimalLoadEvent / AnimalUnloadEvent via RLTransferWorldAdapter ->
+-- RLTrailerWorldService (mutation parity), leaving the legacy AnimalScreenTrailer
+-- dormant for this flow. Redirect ONLY when the bridge actually opens the menu;
+-- otherwise fall back to superFunc(self) so the activatable never dead-ends (g_rlMenu
+-- nil, or a refused open - a dialog is visible / the trailer context is stale).
+-- getIsActivatable already gates this to the standalone case (getLoadingTrigger() ==
+-- nil + rideables/animals present), so no extra shape check is needed here. Mirrors
+-- the 261/429 dealer/pen redirect INFO log.
+RL_LivestockTrailerActivatable = {}
+
+function RL_LivestockTrailerActivatable:run(superFunc)
+    if g_rlMenu ~= nil and self.livestockTrailer ~= nil
+        and RLMenu.openFromBridge(nil, RLMenu.MODE_TRAILER,
+            { trailer = self.livestockTrailer, counterpart = RLMenu.TRAILER_WORLD }) then
+        Log:info("LivestockTrailerActivatable:run: world-trailer -> RLMenu (mode=trailer counterpart=world)")
+        return
+    end
+    Log:debug("LivestockTrailerActivatable:run: g_rlMenu unavailable or bridge refused, falling back to legacy AnimalScreen")
+    superFunc(self)
+end
+
+LivestockTrailerActivatable.run = Utils.overwrittenFunction(LivestockTrailerActivatable.run, RL_LivestockTrailerActivatable.run)
+
+
 -- Actions needed in Gui.NAV_ACTIONS for AnimalScreen button profiles (M, I, D, A keys).
 -- Added dynamically in show(), removed in onClose() to avoid polluting other screens
 -- (RL_SELECT on KEY_a was stealing the A key from map scrolling in InGameMenuMapFrame).

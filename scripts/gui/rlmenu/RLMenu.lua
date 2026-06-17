@@ -429,20 +429,23 @@ end
 --- @param context table|nil MODE_TRAILER only: { trailer = <livestock-trailer vehicle>,
 ---   counterpart = RLMenu.TRAILER_PEN | TRAILER_DEALER | TRAILER_WORLD }. Ignored for
 ---   MODE_FULL / MODE_DEALER (no trailer state stored).
+--- @return boolean opened  true when the menu was shown; false on any refused open
+---   (g_rlMenu nil, bad args, a dialog visible, or a showGui rollback) so a caller
+---   that can fall back to legacy (e.g. the LivestockTrailerActivatable redirect) may
+---   branch on it. The MODE_TRAILER branch propagates openTrailerFromBridge's result.
 function RLMenu.openFromBridge(startPageId, mode, context)
     -- Mod load order regression: setupGui() not yet completed when bridge
     -- fires. Caller is expected to fall through to legacy if we early-out.
     if g_rlMenu == nil then
         Log:warning("openFromBridge: g_rlMenu nil, falling back to legacy")
-        return
+        return false
     end
 
     -- MODE_TRAILER takes a dedicated, context-driven path (ordered validation,
     -- heuristic anchor, no startPageId). Branch here so the existing FULL /
-    -- DEALER callers below stay byte-identical.
+    -- DEALER callers below stay byte-identical. Propagate its opened/refused result.
     if mode == RLMenu.MODE_TRAILER then
-        RLMenu.openTrailerFromBridge(context)
-        return
+        return RLMenu.openTrailerFromBridge(context)
     end
 
     local validMode = (mode == RLMenu.MODE_FULL or mode == RLMenu.MODE_DEALER)
@@ -452,7 +455,7 @@ function RLMenu.openFromBridge(startPageId, mode, context)
     if not validMode or not validPage then
         Log:warning("openFromBridge: bad args mode=%s page=%s",
             tostring(mode), tostring(startPageId))
-        return
+        return false
     end
 
     -- Dialog gate: replacing the underlying screen via showGui leaves any
@@ -461,7 +464,7 @@ function RLMenu.openFromBridge(startPageId, mode, context)
     -- fall through) rather than paint RLMenu under a stale dialog.
     if g_gui.getIsDialogVisible ~= nil and g_gui:getIsDialogVisible() then
         Log:warning("openFromBridge: a dialog is visible, skipping RLMenu redirect")
-        return
+        return false
     end
 
     -- Snapshot prior state so we can roll back if showGui throws. Without
@@ -487,7 +490,9 @@ function RLMenu.openFromBridge(startPageId, mode, context)
         g_rlMenu.openMode = priorOpenMode
         g_rlMenu.restorePageIndex = priorRestorePageIndex
         g_rlMenu.restorePage = priorRestorePage
+        return false
     end
+    return true
 end
 
 --- MODE_TRAILER entry: validate the trailer context, store it, and open the
@@ -504,11 +509,14 @@ end
 --- "empty" means a real empty trailer; the service's safe default for an
 --- unreadable count (-> empty -> Buy) is the intended fallback, not a bug.
 --- @param context table|nil { trailer = <livestock-trailer vehicle>, counterpart = TRAILER_* }
+--- @return boolean opened  true when the menu was shown; false on any refused open
+---   (invalid context / trailer / counterpart, a dialog visible, or a showGui
+---   rollback) with ZERO state change, so the caller falls back to legacy.
 function RLMenu.openTrailerFromBridge(context)
     -- (1) nil/invalid context guard - returns BEFORE any context.* index.
     if type(context) ~= "table" then
         Log:warning("openFromBridge[trailer]: nil/invalid context, falling back to legacy")
-        return
+        return false
     end
 
     -- (2) trailer must be a readable livestock trailer (the getter surface the
@@ -517,7 +525,7 @@ function RLMenu.openTrailerFromBridge(context)
     local trailer = context.trailer
     if trailer == nil or trailer.spec_livestockTrailer == nil then
         Log:warning("openFromBridge[trailer]: context.trailer nil or not a livestock trailer, falling back to legacy")
-        return
+        return false
     end
 
     -- (3) counterpart must be exactly one of the three constants (nil or any
@@ -528,14 +536,14 @@ function RLMenu.openTrailerFromBridge(context)
         and counterpart ~= RLMenu.TRAILER_WORLD then
         Log:warning("openFromBridge[trailer]: invalid counterpart=%s, falling back to legacy",
             tostring(counterpart))
-        return
+        return false
     end
 
     -- (4) Dialog gate: same rationale as the FULL/DEALER path - replacing the
     -- underlying screen would strand a floating dialog with no owner.
     if g_gui.getIsDialogVisible ~= nil and g_gui:getIsDialogVisible() then
         Log:warning("openFromBridge[trailer]: a dialog is visible, skipping RLMenu redirect")
-        return
+        return false
     end
 
     local trailerName = RLTrailerEndpointService.getDisplayData(trailer).name
@@ -580,8 +588,9 @@ function RLMenu.openTrailerFromBridge(context)
             g_rlMenu.trailerVehicle = priorTrailerVehicle
             g_rlMenu.trailerCounterpart = priorTrailerCounterpart
             g_rlMenu.trailerCounterpartHandle = priorTrailerCounterpartHandle
+            return false
         end
-        return
+        return true
     end
 
     -- DEALER counterpart: snapshot for rollback (incl. trailer-context fields),
@@ -622,7 +631,9 @@ function RLMenu.openTrailerFromBridge(context)
         g_rlMenu.trailerVehicle = priorTrailerVehicle
         g_rlMenu.trailerCounterpart = priorTrailerCounterpart
         g_rlMenu.trailerCounterpartHandle = priorTrailerCounterpartHandle
+        return false
     end
+    return true
 end
 
 --- Switch the menu to Settings -> Filters with a specific saved-filter id

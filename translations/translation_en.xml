@@ -775,6 +775,7 @@
 		<text name="rl_menu_transfer_unload" text="Unload"/>
 		<text name="rl_menu_transfer_empty_no_animals" text="No animals on this side"/>
 		<text name="rl_menu_transfer_counterpart" text="Destination"/>
+		<text name="rl_menu_transfer_world" text="Nearby Animals"/>
 		<text name="rl_menu_move_summary" text="%d animals" tag="format"/>
 
 		<!-- Sell tab -->

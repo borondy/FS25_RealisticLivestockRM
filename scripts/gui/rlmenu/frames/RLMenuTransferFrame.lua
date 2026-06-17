@@ -165,8 +165,8 @@ function RLMenuTransferFrame:onFrameOpen()
     -- frame's selectedHusbandry identity).
     local dispatchedTrailer = self.trailer
     local dispatchedCounterpart = self.context.counterpartHandle
-    self.context.onComplete = function(errorCode)
-        self:onTransferComplete(errorCode, dispatchedTrailer, dispatchedCounterpart)
+    self.context.onComplete = function(success, errorText)
+        self:onTransferComplete(success, errorText, dispatchedTrailer, dispatchedCounterpart)
     end
 
     local trailerName = RLTrailerEndpointService.getDisplayData(self.trailer).name
@@ -668,19 +668,24 @@ end
 
 
 --- Completion callback for an async transfer (mirrors RLMenuMoveFrame:onMoveComplete).
---- The move is a server round-trip in MP, so error surfacing + the refresh MUST
---- happen here, not synchronously after dispatch. Guarded against a stale callback
---- on the FULL dispatch context: ignored when the frame is closed, the trailer
---- changed, OR the same trailer reopened on a different pen (the counterpart handle
---- is the per-session identity, like the Move frame's selectedHusbandry) - a delayed
---- callback from session A must not repaint a reopened session B. On error shows an
---- InfoDialog; either way it clears the selection + the in-flight lock, refreshes the
---- (used/total) labels in place (active side preserved - no heuristic re-seed), and
---- reloads the list + pen column + buttons.
---- @param errorCode number  AnimalMoveEvent.MOVE_SUCCESS or an error code
+--- The transfer is a server round-trip in MP, so error surfacing + the refresh MUST
+--- happen here, not synchronously after dispatch. Guarded against a stale callback on
+--- the FULL dispatch context: ignored when the frame is closed, the trailer changed,
+--- OR the same trailer reopened on a different counterpart (the counterpart handle is
+--- the per-session identity, like the Move frame's selectedHusbandry) - a delayed
+--- callback from session A must not repaint a reopened session B. The active adapter
+--- resolves its result into a uniform (success, errorText) pair, so this frame is
+--- adapter-agnostic: the pen adapter maps its AnimalMoveEvent result and the world
+--- service its load/unload result through the SAME contract (the frame references
+--- neither result space directly). On failure with text it shows an InfoDialog; either
+--- way it clears the selection + the in-flight lock, refreshes the (used/total) labels
+--- in place (active side preserved - no heuristic re-seed), and reloads the list + pen
+--- column + buttons.
+--- @param success boolean  whether the transfer succeeded
+--- @param errorText string|nil  localized error text on failure (nil on success)
 --- @param dispatchedTrailer table  the trailer captured at dispatch time (stale guard)
---- @param dispatchedCounterpart table|nil  the counterpart (pen) captured at dispatch (stale guard)
-function RLMenuTransferFrame:onTransferComplete(errorCode, dispatchedTrailer, dispatchedCounterpart)
+--- @param dispatchedCounterpart table|nil  the counterpart captured at dispatch (stale guard)
+function RLMenuTransferFrame:onTransferComplete(success, errorText, dispatchedTrailer, dispatchedCounterpart)
     if not self.isFrameOpen or self.trailer ~= dispatchedTrailer
         or self.context == nil or self.context.counterpartHandle ~= dispatchedCounterpart then
         Log:debug("RLMenuTransferFrame:onTransferComplete: stale callback (frameOpen=%s, sameTrailer=%s, sameCounterpart=%s), ignoring",
@@ -689,9 +694,16 @@ function RLMenuTransferFrame:onTransferComplete(errorCode, dispatchedTrailer, di
         return
     end
 
-    if errorCode ~= nil and errorCode ~= AnimalMoveEvent.MOVE_SUCCESS then
-        InfoDialog.show(RLAnimalMoveService.getErrorText(errorCode))
-        Log:debug("RLMenuTransferFrame:onTransferComplete: transfer failed, errorCode=%d", errorCode)
+    if not success then
+        -- Branch on success FIRST so a failure with NO mapped error text (an unmapped
+        -- load/unload code - getErrorText returns nil for those) is still logged as a
+        -- failure rather than misclassified as success. The dialog only shows when text
+        -- exists (the spec's surface contract); a text-less failure stays silent to the
+        -- player but is recorded in the log.
+        if errorText ~= nil then
+            InfoDialog.show(errorText)
+        end
+        Log:debug("RLMenuTransferFrame:onTransferComplete: transfer failed (errorText=%s)", tostring(errorText))
     else
         Log:info("RLMenuTransferFrame:onTransferComplete: transfer succeeded")
     end
