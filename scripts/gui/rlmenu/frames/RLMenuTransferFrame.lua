@@ -59,6 +59,15 @@ function RLMenuTransferFrame.new()
     -- onTransferComplete to block a duplicate submit. Re-initialized on every open.
     self.movePending       = false
 
+    -- World-counterpart refresh hook (Bug A). The world redirect skips the legacy
+    -- controller set, so the trailer's animalScreenController slot is nil and nothing
+    -- refreshes the world list when its trigger contents change. On open we claim that
+    -- slot (world only) so the trailer drives onAnimalsChanged on this frame after a
+    -- load; on close we restore the prior owner. Capture-once + restore-if-self keep it
+    -- ownership-safe.
+    self.worldRefreshHookInstalled  = false
+    self.priorAnimalScreenController = nil
+
     self.isFrameOpen = false
     self.hasCustomMenuButtons = true
 
@@ -137,6 +146,15 @@ function RLMenuTransferFrame:onFrameOpen()
     RLMenuTransferFrame:superClass().onFrameOpen(self)
     self.isFrameOpen = true
 
+    -- Per-session reset of the world-refresh hook state. The frame is a reused
+    -- singleton; if a prior session's onFrameClose was skipped (RLMenu:onClose wraps
+    -- super in pcall, and super is what fires onFrameClose - so a throw before it skips
+    -- our uninstall), a stale installed flag would make installWorldRefreshHook below a
+    -- no-op and strand the prior capture. Clear (do NOT restore): a leftover self in some
+    -- other trailer's slot is harmless - onAnimalsChanged is gated on obj == self.trailer.
+    self.worldRefreshHookInstalled  = false
+    self.priorAnimalScreenController = nil
+
     if g_rlMenu ~= nil then
         self.trailer     = g_rlMenu.trailerVehicle
         self.counterpart = g_rlMenu.trailerCounterpart
@@ -191,14 +209,157 @@ function RLMenuTransferFrame:onFrameOpen()
     if self.animalList ~= nil then
         FocusManager:setFocus(self.animalList)
     end
+
+    -- Claim the trailer's controller slot (world counterpart only) so the trailer
+    -- refreshes the loose-rideable list after a load. Runs after self.trailer/
+    -- self.counterpart are set; no-op otherwise.
+    self:installWorldRefreshHook()
 end
 
 
 --- Called by the Paging element when this tab is deactivated. Transfer has no
---- sibling tab in MODE_TRAILER, so there is no shared-selection export.
+--- sibling tab in MODE_TRAILER, so there is no shared-selection export. Releases
+--- the world-refresh controller hook (restore-if-self) before the frame goes idle.
 function RLMenuTransferFrame:onFrameClose()
     RLMenuTransferFrame:superClass().onFrameClose(self)
     self.isFrameOpen = false
+    self:uninstallWorldRefreshHook()
+end
+
+
+-- =============================================================================
+-- World-counterpart refresh hook (Bug A)
+-- =============================================================================
+
+--- Whether self.trailer is a live, controller-capable livestock trailer. Guards
+--- every trailer/spec deref in the world-refresh lifecycle (install, restore,
+--- onAnimalsChanged) so a sold/deleted trailer no-ops instead of dereferencing a
+--- torn-down spec. GUI-free (reads self.trailer fields only) so it is unit-testable.
+--- @return boolean live
+function RLMenuTransferFrame:isTrailerLive()
+    return self.trailer ~= nil
+        and self.trailer.spec_livestockTrailer ~= nil
+        and not self.trailer.isDeleted
+        and self.trailer.setAnimalScreenController ~= nil
+end
+
+
+--- Register this frame as the trailer's animalScreenController (via the public
+--- setAnimalScreenController setter) so the trailer drives onAnimalsChanged on this
+--- frame when its trigger contents change - the world refresh after a load. WORLD
+--- counterpart only: the world redirect skips the legacy controller set, so the slot is
+--- otherwise nil and the loose-rideable list never refreshes after a load. Ownership-
+--- safe: captures the prior controller EXACTLY ONCE (skipped if already installed, or if
+--- the slot already holds self) by reading the slot, then installs self through the
+--- public setter (never poke the slot to set). No-op for a non-world counterpart or a
+--- dead/stale trailer. GUI-free (operates on self.trailer + self.counterpart only) so it
+--- is unit-testable.
+function RLMenuTransferFrame:installWorldRefreshHook()
+    if self.counterpart ~= RLMenu.TRAILER_WORLD then return end
+    if not self:isTrailerLive() then
+        Log:debug("RLMenuTransferFrame:installWorldRefreshHook: trailer not live, skipping")
+        return
+    end
+
+    local spec = self.trailer.spec_livestockTrailer
+    -- Capture-once within a session: already installed -> nothing to do.
+    if self.worldRefreshHookInstalled then return end
+
+    if spec.animalScreenController == self then
+        -- The slot already holds self (e.g. a prior cycle left it and the open-time
+        -- reset cleared the flag). Adopt it WITHOUT capturing self as the prior - the
+        -- paired uninstall reclaims it - so the flag and the slot cannot desync.
+        -- (Spec: "skip re-capture if the current controller is already self".)
+        self.worldRefreshHookInstalled = true
+        self.priorAnimalScreenController = nil
+        Log:debug("RLMenuTransferFrame:installWorldRefreshHook: adopted existing self in controller slot")
+        return
+    end
+
+    self.priorAnimalScreenController = spec.animalScreenController
+    self.worldRefreshHookInstalled = true
+    self.trailer:setAnimalScreenController(self)
+    Log:debug("RLMenuTransferFrame:installWorldRefreshHook: installed (prior controller=%s)",
+        tostring(self.priorAnimalScreenController))
+end
+
+
+--- Release the controller slot this frame claimed on open. No-op unless installed.
+--- Reads the FRAME's captured self.trailer, NEVER g_rlMenu (RLMenu:onClose nils the
+--- g_rlMenu trailer fields before super onClose fires onFrameClose). Ownership-safe:
+--- restores the captured prior controller ONLY IF the trailer's current controller is
+--- still self (a newer owner that claimed the slot while the frame was open is left
+--- alone); always clears the frame's own installed flag + prior capture. GUI-free.
+function RLMenuTransferFrame:uninstallWorldRefreshHook()
+    if not self.worldRefreshHookInstalled then return end
+
+    if self:isTrailerLive() then
+        local spec = self.trailer.spec_livestockTrailer
+        if spec.animalScreenController == self then
+            self.trailer:setAnimalScreenController(self.priorAnimalScreenController)
+            Log:trace("RLMenuTransferFrame:uninstallWorldRefreshHook: restored prior controller=%s",
+                tostring(self.priorAnimalScreenController))
+        else
+            Log:trace("RLMenuTransferFrame:uninstallWorldRefreshHook: slot reclaimed by a newer owner, leaving it")
+        end
+    else
+        Log:trace("RLMenuTransferFrame:uninstallWorldRefreshHook: trailer not live, nothing to restore")
+    end
+
+    self.worldRefreshHookInstalled = false
+    self.priorAnimalScreenController = nil
+end
+
+
+--- Controller callback the trailer invokes (via setAnimalScreenController) when its
+--- trigger contents change: a loaded rideable leaving (the world LOAD case - the loaded
+--- animal is removed end-of-frame, then this fires), or a rideable entering/leaving the
+--- trigger. Re-enumerates the world source from now-fresh engine state so the list + both
+--- (n/n) headers self-correct with no manual flip; prunes any checked identity the
+--- mutation removed so the Action button stays honest. Guarded by isFrameOpen +
+--- obj == self.trailer + trailer-liveness (our frame outlives a single screen).
+--- @param obj table  the trailer firing the callback (must match self.trailer)
+--- @param clusters table|nil  deliberately unused: the callback re-enumerates from scratch (passed nil)
+function RLMenuTransferFrame:onAnimalsChanged(obj, clusters)
+    if not self.isFrameOpen or obj ~= self.trailer or not self:isTrailerLive() then
+        Log:trace("RLMenuTransferFrame:onAnimalsChanged: ignored (frameOpen=%s, sameTrailer=%s, live=%s)",
+            tostring(self.isFrameOpen), tostring(obj == self.trailer), tostring(self:isTrailerLive()))
+        return
+    end
+
+    self:reloadAnimalList()
+    self:pruneSelectionToList()
+    self:updateSourceLabels()
+    self:updatePenDisplay()
+    self:updateButtonVisibility()
+    Log:debug("RLMenuTransferFrame:onAnimalsChanged: refreshed world source (selected now %d)",
+        self:getSelectedCount())
+end
+
+
+--- Drop any checked identity no longer present in the freshly rebuilt list. A live
+--- trigger mutation (the loaded rideable's deferred delete, or an animal leaving the
+--- trigger) can remove a checked animal; pruning keeps updateButtonVisibility honest so
+--- the Action button hides when nothing valid remains. Collect-then-delete avoids
+--- mutating self.selectedAnimals mid-iteration.
+function RLMenuTransferFrame:pruneSelectionToList()
+    local live = {}
+    for _, item in ipairs(self.items) do
+        if item.cluster ~= nil then
+            local c = item.cluster
+            live[RLAnimalUtil.toKey(c.farmId, c.uniqueId, c.birthday and c.birthday.country or "")] = true
+        end
+    end
+    local stale = {}
+    for key, selected in pairs(self.selectedAnimals) do
+        if selected and not live[key] then
+            stale[#stale + 1] = key
+        end
+    end
+    for _, key in ipairs(stale) do
+        self.selectedAnimals[key] = nil
+        Log:trace("RLMenuTransferFrame:pruneSelectionToList: dropped stale selection key=%s", key)
+    end
 end
 
 
@@ -302,10 +463,14 @@ function RLMenuTransferFrame:onSourceChanged(state)
     -- it cannot leak across the switch.
     self.selectedAnimals = {}
 
-    Log:debug("RLMenuTransferFrame:onSourceChanged: state=%d side=%s (selection cleared)",
+    Log:debug("RLMenuTransferFrame:onSourceChanged: state=%d side=%s (selection cleared, labels refreshed)",
         state, self.currentSide)
 
     self:reloadAnimalList()
+    -- Recompute BOTH (n/n) sidebar headers on a side flip (Bug B). Label counts are
+    -- capacity-based and selection-independent, so order vs the selection clear is
+    -- cosmetic; it belongs with the refresh trio, not above the side assignment.
+    self:updateSourceLabels()
     self:updatePenDisplay()
     self:updateButtonVisibility()
 end
