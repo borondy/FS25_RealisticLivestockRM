@@ -363,7 +363,7 @@ function RLAnimalInfoService.getAnimalDisplay(animal, husbandry)
 
     local geneticsRows = {}
     if RLGeneticsFormatter ~= nil and RLGeneticsFormatter.format ~= nil then
-        geneticsRows = RLGeneticsFormatter.format(animal.genetics, animal.animalTypeIndex)
+        geneticsRows = RLGeneticsFormatter.format(animal.genetics, animal.animalTypeIndex, animal.subType)
     end
 
     local hasMonitor = animal.monitor ~= nil

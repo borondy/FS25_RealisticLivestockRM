@@ -892,7 +892,7 @@ function Animal:showGeneticsInfo(box)
         end
 
         if typeIndex == AnimalType.COW then box:addLine(g_i18n:getText("rl_ui_milk"), "rl_ui_genetics_" .. qualityText) end
-        if typeIndex == AnimalType.SHEEP then box:addLine(g_i18n:getText("rl_ui_wool"), "rl_ui_genetics_" .. qualityText) end
+        if typeIndex == AnimalType.SHEEP then box:addLine(g_i18n:getText((self.subType == "GOAT" or self.subType == "RAM_GOAT") and "rl_ui_milk" or "rl_ui_wool"), "rl_ui_genetics_" .. qualityText) end
         if typeIndex == AnimalType.CHICKEN then box:addLine(g_i18n:getText("rl_ui_eggs"),
                 "rl_ui_genetics_" .. qualityText) end
     end
@@ -1055,7 +1055,7 @@ function Animal:addGeneticsInfo()
 
         local productivityTitle = ""
         if self.animalTypeIndex == AnimalType.COW then productivityTitle = g_i18n:getText("rl_ui_milk") end
-        if self.animalTypeIndex == AnimalType.SHEEP then productivityTitle = g_i18n:getText("rl_ui_wool") end
+        if self.animalTypeIndex == AnimalType.SHEEP then productivityTitle = g_i18n:getText((self.subType == "GOAT" or self.subType == "RAM_GOAT") and "rl_ui_milk" or "rl_ui_wool") end
         if self.animalTypeIndex == AnimalType.CHICKEN then productivityTitle = g_i18n:getText("rl_ui_eggs") end
 
         text = {
