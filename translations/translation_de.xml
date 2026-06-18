@@ -153,7 +153,7 @@
 		<text name="rl_ui_moveSelected" text="Auswahl verschieben"/>
 		<text name="rl_ui_buyConfirmation" text="Bist Du sicher, dass Du %s Tiere für %s kaufen willst?" tag="format"/>
 		<text name="rl_ui_sellConfirmation" text="Bist Du sicher, dass Du %s Tiere für %s verkaufen willst?" tag="format"/>
-		<text name="rl_ui_moveConfirmation" text="Bist Du sicher, dass Du %s Tiere für %s verschieben willst?" tag="format"/>
+		<text name="rl_ui_moveConfirmation" text="Bist Du sicher, dass Du %s Tiere verschieben willst?" tag="format"/>
 		<text name="rl_ui_buyBulkResult" text="%s Tiere für %s gekauft" tag="format"/>
 		<text name="rl_ui_sellBulkResult" text="%s Tiere für %s verkauft" tag="format"/>
 		<text name="rl_ui_moveBulkResult" text="%s Tiere verschoben" tag="format"/>
