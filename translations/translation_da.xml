@@ -365,7 +365,7 @@
 		<text name="rl_ui_herdsmanTooltip_sell_gender_2" text="Dyrepasseren vil sælge hunner og hanner"/>
 		<text name="rl_ui_herdsmanTooltip_sell_gender_3" text="Dyrepasseren vil kun sælge hanner"/>
 
-		<text name="rl_ui_herdsmanTooltip_sell_age_equal" text="Dyrepasseren vil kun sælge gamle dyr."/>
+		<text name="rl_ui_herdsmanTooltip_sell_age_equal" text="Dyrepasseren vil kun sælge dyr, der er %s gamle."/>
 		<text name="rl_ui_herdsmanTooltip_sell_age_range" text="Dyrepasseren vil kun sælge dyr, der er mellem %s og %s gamle."/>
 
 		<text name="rl_ui_herdsmanTooltip_sell_quality_equal" text="Dyrepasseren vil kun sælge dyr med %s kvalitet."/>
