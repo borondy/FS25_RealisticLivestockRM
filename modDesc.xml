@@ -1,6 +1,6 @@
 <modDesc descVersion="107">
     <author>Ritter</author>
-    <version>1.2.6.0-dev.5</version>
+    <version>1.2.6.0</version>
     <title>
         <en>Realistic Livestock - Ritter version</en>
         <it>Allevamento Realistico - Versione Ritter</it>
@@ -24,62 +24,41 @@ Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivest
 
 Changelog
 
-1.2.6.0-dev.5:
+1.2.6.0:
 
 RL Menu (preview - work in progress):
-- Loading and unloading livestock trailers now happens in the RL Menu instead of the legacy animal screen.
+- Livestock trailers now load and unload in the RL Menu instead of the legacy animal screen.
 - At a pen: walk up to a parked livestock trailer to move animals between the pen and the trailer.
 - At the dealer: with a trailer present, the Buy tab buys animals straight into the trailer and the Sell tab sells straight from it.
 - Out in the world: walk up to a standalone parked trailer to load loose horses into it and unload them back out.
 - Multiplayer: trailer transfers run server-side through the same events the legacy screen used, so they sync to all players, including on dedicated servers.
 
 Herdsman automation tasks (preview):
-- Task editor: rows now show per-row help tooltips, and labels are clearer - the action selector reads "Task" (was "Operation"), the Mark toggle is now "Action: Perform / Mark only", and the buy budget option reads "Farm Money %" (was "Herd Value %").
+- New Herdsman tab in the RL Menu: create, duplicate, and delete named automation tasks. Each task runs one action - sell, buy, castrate, naming, AI insemination, or move - on the animals matched by one of your saved filters, across the pens you choose.
+- Task editor: set a name, enable or disable the task, configure its options (animals per day, budget, naming convention, AI semen choice), and choose whether the task marks matching animals for review or performs the action outright. Per-row help tooltips explain each option.
+- Pick the filter and target pens from inside the editor: the filter list is scoped to the task's action (buy draws from the dealer pool; sell, castrate, and AI from your own herd) and the pen list to the filter's animal type. A task needs a filter and at least one pen to be enabled, so incomplete drafts can be saved disabled.
+- Tasks run automatically on each day-change, server-side, in order (sell -> buy -> castrate -> naming -> AI -> move), respecting each task's animal cap, budget, and the destination pen's free space. A herdsman wage is deducted per farm.
+- Day-change notifications: the herdsman posts the same per-pen messages the legacy herdsman did (sold, bought, castrated, named, inseminated, moved, or "marked for ..."), folded into daily counts when message summary mode is on.
+- The menu-based tasks run alongside the legacy per-pen herdsman, not instead of it. An orange banner warns when a pen still has the legacy herdsman enabled - avoid running both for the same pen, or actions and wages get applied twice.
+- Multiplayer: task create / edit / delete sync to all players and an open menu refreshes live; the day-change actions replicate to clients, including on dedicated servers.
 
 Fixed:
 - Goats now show milk (not wool) production in the animal genetics overview, across the RL Menu, the legacy info dialog, and the on-foot look-at panel.
 - Pregnancies now track each animal's configured gestation period much more closely, especially at higher days-per-period settings where they previously ran too long (contributed by borondy).
 - Young animals now grow to full size over their proper age range instead of maturing far too fast at higher days-per-period settings (contributed by borondy).
-
-Translations:
-- Danish: the herdsman sell tooltip now shows the specific sell age again instead of a vaguer phrasing that dropped it.
-- French: translated the new herdsman task editor, filter editor, and daily-summary strings that were still showing in English (contributed by squall39).
-- German: the animal-move confirmation no longer shows a leftover price that the other languages never displayed.
-- Italian: native-speaker refresh across the menu, settings, and help text, plus the herdsman move strings that were still showing in English (contributed by FirenzeIT).
-
-
-1.2.6.0-dev.4:
-
-Fixed:
-- Hardened against a possible crash when a mod or game code path looked up a missing (nil) text label - the lookup now falls back safely instead of stopping the game, and logs a warning.
-
-Translations:
-- French: filled in the mod-compatibility warning and saved-filter UI strings (settings tabs, filter editor, filter chips, cycle filter) that were still showing in English (contributed by squall39).
-- All languages: the new filter condition-editor labels now fall back to English instead of showing raw text codes in languages that have not translated them yet.
-
-Herdsman automation tasks (preview):
-- New "move" action: a herdsman task can now relocate the animals matched by a saved filter from your chosen source pens to a single destination pen.
-
-
-1.2.6.0-dev.3:
-
-Fixed:
 - Multiplayer: settings changed in the RL Menu (Settings -> General) now sync to the server, persist across save/reload, and update live for other players - previously these changes were silently lost on dedicated servers.
+- Hardened against a possible crash when a mod or game code path looked up a missing (nil) text label - the lookup now falls back safely instead of stopping the game, and logs a warning.
 
 Compatibility:
 - FS25_AnimalFoodCalculator is now a blocking conflict instead of a dismissible warning - it breaks RLRM's animal feeding and milk/egg/wool output, so the game stops and prompts a restart to disable it.
 
 Translations:
+- Danish: the herdsman sell tooltip now shows the specific sell age again instead of a vaguer phrasing that dropped it.
+- French: translated the new herdsman task editor, filter editor, daily-summary, mod-compatibility, and saved-filter strings that were still showing in English (contributed by squall39).
+- German: the animal-move confirmation no longer shows a leftover price that the other languages never displayed.
+- Italian: native-speaker refresh across the menu, settings, and help text, plus the herdsman move strings that were still showing in English (contributed by FirenzeIT).
 - Turkish: filled in the many menu, herdsman, settings, and message strings that were still showing in English (contributed by Cyber-Syntax).
-
-Herdsman automation tasks (preview - now editable in-game and running on day-change):
-- New Herdsman tab in the RL Menu: create, duplicate, and delete named automation tasks. Each task runs one action - sell, buy, castrate, naming, or AI insemination - on the animals matched by one of your saved filters, across the pens you choose.
-- Task editor: set a name, enable or disable the task, and configure its options (animals per day, budget, naming convention, AI semen choice). Each task can either "mark for review" (flag matching animals) or perform the action outright.
-- Pick the filter and target pens from inside the editor: the filter list is scoped to the task's action (buy draws from the dealer pool; sell, castrate, and AI from your own herd), and the pen list is limited to the filter's animal type (castrate hides chicken pens). A task needs a filter and at least one pen only to be enabled, so incomplete drafts can be saved disabled.
-- Tasks now run automatically: on each day-change the enabled tasks execute server-side, in order (sell -> buy -> castrate -> naming -> AI), respecting each task's animal cap, budget, and the destination pen's free space. A herdsman wage is deducted per farm.
-- Day-change notifications: the herdsman posts the same per-pen messages the legacy herdsman did (sold, bought, castrated, named, inseminated, or "marked for ..."), and folds them into daily counts when message summary mode is on.
-- The new menu-based herdsman tasks run alongside the legacy per-pen herdsman, not instead of it. An orange banner in the editor warns when a pen still has the legacy herdsman enabled - avoid running both for the same pen, or actions and wages get applied twice.
-- Multiplayer: task create / edit / delete sync to all players and an open menu refreshes live; the day-change actions (sell, buy, castrate, naming, AI, and animal marks) replicate to clients, including on dedicated servers.
+- All languages: new filter and herdsman labels now fall back to English instead of showing raw text codes in languages that have not translated them yet.
 
 
 1.2.5.0:

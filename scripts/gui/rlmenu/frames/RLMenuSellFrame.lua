@@ -258,7 +258,7 @@ end
 --- Repopulate the husbandry selector + dot indicators for the player's farm.
 function RLMenuSellFrame:refreshHusbandries()
     -- Trailer-dealer context: the single source is the held trailer, labelled with
-    -- the RLRM-424 capacity suffix. Collapse the sidebar to one entry, hide the dot
+    -- the capacity suffix. Collapse the sidebar to one entry, hide the dot
     -- box, and let onHusbandryChanged(1) assign selectedHusbandry = trailer. Do NOT
     -- consult g_rlMenu.sharedSelection (it keys husbandries by placeable; the trailer
     -- is not in it).
@@ -1064,7 +1064,7 @@ end
 
 
 -- =============================================================================
--- Trailer-dealer source (RLRM-430)
+-- Trailer-dealer source
 -- =============================================================================
 -- When the Sell tab is open in MODE_TRAILER + dealer counterpart, the held
 -- livestock trailer becomes the single sell SOURCE (overloaded into
@@ -1441,7 +1441,7 @@ end
 --- menu-close mid-dispatch) OR if the husbandry context was cleared.
 --- Trailer guard: a delayed callback after the dispatched trailer was torn down
 --- or swapped during the MP round-trip is ignored (no repaint of a stale /
---- husbandry context) - mirrors RLRM-429's onTransferComplete identity guard.
+--- husbandry context) - mirrors the onTransferComplete identity guard.
 --- @param errorCode number
 function RLMenuSellFrame:onSellComplete(errorCode)
     if not self.isFrameOpen or self.selectedHusbandry == nil then
@@ -1475,7 +1475,7 @@ function RLMenuSellFrame:onSellComplete(errorCode)
     -- Refresh list + cart + money. In trailer context the list shrinks (empty-state
     -- shows no-ANIMALS since the trailer source stays present), the pen header stays
     -- hidden, and the single sidebar entry's (used/total) suffix updates in place.
-    -- The active tab is preserved (no anchor re-eval), mirroring RLRM-429.
+    -- The active tab is preserved (no anchor re-eval).
     self:reloadAnimalList()
     if wasTrailer then
         self:updateTrailerSourceLabel()

@@ -249,7 +249,7 @@ RLHerdsmanDayTick._buildExecutorCtx           = buildExecutorCtx
 -- =============================================================================
 
 --- Run the new herdsman day-tick over every farm in `env`. Per farm (SPECTATOR skipped): filter
---- to enabled rules, and on a no-enabled-rules farm log a graceful no-op exit (AC4
+--- to enabled rules, and on a no-enabled-rules farm log a graceful no-op exit (a
 --- diagnostic, distinguishing "tick ran, nothing matched" from "tick never ran"). Otherwise clear
 --- stale op marks, shape the planner + executor ctx, run planActions -> executeActions, and LOG
 --- the executor's per-farm wage at DEBUG (surface only - T3 already deducted it; T4 NEVER calls
@@ -260,7 +260,7 @@ function RLHerdsmanDayTick.run(env)
     local readout = { farmsProcessed = 0, byFarm = {} }
     local farms = env.farms or {}
 
-    -- AC4: a server-side entry line (dedi included) proves the tick fired at all. Count
+    -- A server-side entry line (dedi included) proves the tick fired at all. Count
     -- only the farms that will actually run (SPECTATOR is skipped below), so the diagnostic count
     -- is honest rather than overstating by the spectator slot.
     local farmCount = 0
@@ -277,14 +277,14 @@ function RLHerdsmanDayTick.run(env)
             Log:trace("%s farm=%s is SPECTATOR - skipped", LOG_PREFIX, tostring(farmId))
         else
             -- listForFarm does NOT filter enabled; the enabled filter lives here (drives both the
-            -- AC4 no-op gate and what clearStaleMarks + planActions act on).
+            -- no-op gate and what clearStaleMarks + planActions act on).
             local enabledRules = {}
             for _, rule in ipairs(env.rulesForFarm(farmId) or {}) do
                 if rule.enabled then enabledRules[#enabledRules + 1] = rule end
             end
 
             if #enabledRules == 0 then
-                -- AC4: graceful no-op exit - no plan, no execute, no money.
+                -- Graceful no-op exit - no plan, no execute, no money.
                 Log:debug("%s farm=%s: 0 enabled rules - no-op", LOG_PREFIX, tostring(farmId))
             else
                 local husbandriesById = indexHusbandriesByUniqueId(env.husbandriesForFarm(farmId) or {})
@@ -295,7 +295,7 @@ function RLHerdsmanDayTick.run(env)
 
                 local plan = RLHerdsmanPlanner.planActions(enabledRules, buildPlannerCtx(farm, husbandriesById, env))
 
-                -- AC4: an empty plan is the OTHER graceful no-op exit (enabled rules, but
+                -- An empty plan is the OTHER graceful no-op exit (enabled rules, but
                 -- nothing matched this tick) - log it distinctly so a dedi reviewer reads "tick ran,
                 -- nothing to do" rather than inferring it from a planned=0 metrics line.
                 if #plan == 0 then

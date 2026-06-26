@@ -224,7 +224,7 @@ function RLHerdsmanRulePresenter.getParamVisibility(operation)
 end
 
 -- =============================================================================
--- Detail-pane tooltip descriptors (RLRM-402)
+-- Detail-pane tooltip descriptors
 -- =============================================================================
 
 --- A binary editor row's selector is either state 1 or state 2; any other value means the

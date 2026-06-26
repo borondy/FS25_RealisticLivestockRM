@@ -1,5 +1,41 @@
 # Changelog
 
+## v1.2.6.0
+
+### RL Menu (preview - work in progress)
+- Livestock trailers now load and unload in the RL Menu instead of the legacy animal screen.
+- At a pen: walk up to a parked livestock trailer to move animals between the pen and the trailer.
+- At the dealer: with a trailer present, the Buy tab buys animals straight into the trailer and the Sell tab sells straight from it.
+- Out in the world: walk up to a standalone parked trailer to load loose horses into it and unload them back out.
+- Multiplayer: trailer transfers run server-side through the same events the legacy screen used, so they sync to all players, including on dedicated servers.
+
+### Herdsman automation tasks (preview)
+- New Herdsman tab in the RL Menu: create, duplicate, and delete named automation tasks. Each task runs one action - sell, buy, castrate, naming, AI insemination, or move - on the animals matched by one of your saved filters, across the pens you choose.
+- Task editor: set a name, enable or disable the task, configure its options (animals per day, budget, naming convention, AI semen choice), and choose whether the task marks matching animals for review or performs the action outright. Per-row help tooltips explain each option.
+- Pick the filter and target pens from inside the editor: the filter list is scoped to the task's action (buy draws from the dealer pool; sell, castrate, and AI from your own herd) and the pen list to the filter's animal type. A task needs a filter and at least one pen to be enabled, so incomplete drafts can be saved disabled.
+- Tasks run automatically on each day-change, server-side, in order (sell -> buy -> castrate -> naming -> AI -> move), respecting each task's animal cap, budget, and the destination pen's free space. A herdsman wage is deducted per farm.
+- Day-change notifications: the herdsman posts the same per-pen messages the legacy herdsman did (sold, bought, castrated, named, inseminated, moved, or "marked for ..."), folded into daily counts when message summary mode is on.
+- The menu-based tasks run alongside the legacy per-pen herdsman, not instead of it. An orange banner warns when a pen still has the legacy herdsman enabled - avoid running both for the same pen, or actions and wages get applied twice.
+- Multiplayer: task create / edit / delete sync to all players and an open menu refreshes live; the day-change actions replicate to clients, including on dedicated servers.
+
+### Fixed
+- Goats now show milk (not wool) production in the animal genetics overview, across the RL Menu, the legacy info dialog, and the on-foot look-at panel.
+- Pregnancies now track each animal's configured gestation period much more closely, especially at higher days-per-period settings where they previously ran too long (contributed by borondy).
+- Young animals now grow to full size over their proper age range instead of maturing far too fast at higher days-per-period settings (contributed by borondy).
+- Multiplayer: settings changed in the RL Menu (Settings -> General) now sync to the server, persist across save/reload, and update live for other players - previously these changes were silently lost on dedicated servers.
+- Hardened against a possible crash when a mod or game code path looked up a missing (nil) text label - the lookup now falls back safely instead of stopping the game, and logs a warning.
+
+### Compatibility
+- FS25_AnimalFoodCalculator is now a blocking conflict instead of a dismissible warning - it breaks RLRM's animal feeding and milk/egg/wool output, so the game stops and prompts a restart to disable it.
+
+### Translations
+- Danish: the herdsman sell tooltip now shows the specific sell age again instead of a vaguer phrasing that dropped it.
+- French: translated the new herdsman task editor, filter editor, daily-summary, mod-compatibility, and saved-filter strings that were still showing in English (contributed by squall39).
+- German: the animal-move confirmation no longer shows a leftover price that the other languages never displayed.
+- Italian: native-speaker refresh across the menu, settings, and help text, plus the herdsman move strings that were still showing in English (contributed by FirenzeIT).
+- Turkish: filled in the many menu, herdsman, settings, and message strings that were still showing in English (contributed by Cyber-Syntax).
+- All languages: new filter and herdsman labels now fall back to English instead of showing raw text codes in languages that have not translated them yet.
+
 ## v1.2.5.0
 
 ### Added

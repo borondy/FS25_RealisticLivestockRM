@@ -112,7 +112,7 @@ function RL_BroadcastSettingsEvent:run(connection)
         if user ~= nil then userName = user.nickname or userName end
 
         if not g_currentMission.userManager:getIsConnectionMasterUser(connection) then
-            Log:warning("RL_BroadcastSettingsEvent:run: sender '%s' is not master/admin (branch=%s); dropping - no commit, no relay (RLRM-284)",
+            Log:warning("RL_BroadcastSettingsEvent:run: sender '%s' is not master/admin (branch=%s); dropping - no commit, no relay",
                 tostring(userName), branch)
             return
         end

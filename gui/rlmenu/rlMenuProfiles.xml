@@ -657,7 +657,7 @@
         <visible value="false"/>
     </Profile>
 
-    <!-- RLRM-402: per-row help line for the herdsman rule editor (RLMenuHerdsmanFrame). Lives as a
+    <!-- Per-row help line for the herdsman rule editor (RLMenuHerdsmanFrame). Lives as a
          child of each row's value WIDGET (the legacy rl_aiTooltip home in AnimalScreen.xml), NOT the
          row container (which clips to its bounds). Extends the base tooltip profile and overrides
          ONLY the position (into the right margin past the editor's value column) and a narrower width

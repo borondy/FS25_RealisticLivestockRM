@@ -33,7 +33,7 @@ RLMenu.MODE_DEALER = "dealer"
 -- before this file); the menu plumbing (validate, store, open, reset) lives
 -- here. M1 keystone: dev/test-reachable only, and only the dealer counterpart
 -- actually opens this slice (pen/world rendering lands with the Transfer frame
--- in RLRM-427).
+-- in a later slice).
 RLMenu.MODE_TRAILER = RLMenuTabPolicy.MODE_TRAILER
 
 -- Trailer counterparts (where the trailer is parked) re-exported from the pure
@@ -149,7 +149,7 @@ function RLMenu:setupMenuPages()
 
     -- A tab is visible when the engine guard holds AND the pure RLMenuTabPolicy
     -- says so for the current (openMode, counterpart). The policy owns the full
-    -- / dealer / trailer matrix (RLRM-261 dealer + full behavior is pinned by
+    -- / dealer / trailer matrix (dealer + full behavior is pinned by
     -- the regression suite); this closure is the thin wiring.
     local function visible(pageKey)
         return basePredicate()
@@ -568,7 +568,7 @@ function RLMenu.openTrailerFromBridge(context)
         g_rlMenu.trailerVehicle = trailer
         g_rlMenu.trailerCounterpart = counterpart
         -- The counterpart engine handle a concrete adapter enumerates (the pen
-        -- husbandry for the pen redirect; nil for world until RLRM-431). Moves in
+        -- husbandry for the pen redirect; nil for world). Moves in
         -- lockstep with the other two trailer fields - stored here, cleared in
         -- onClose + the keyboard reset, rolled back below on a showGui throw.
         g_rlMenu.trailerCounterpartHandle = context.counterpartHandle
