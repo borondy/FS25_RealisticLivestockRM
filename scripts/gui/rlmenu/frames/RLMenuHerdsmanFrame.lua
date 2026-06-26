@@ -261,7 +261,7 @@ function RLMenuHerdsmanFrame:onGuiSetupFinished()
         })
     end
     if self.ruleMarkToggle ~= nil then
-        -- The Mark row is the Action selector (RLRM-402, decision 2b): state 1 Perform
+        -- The Mark row is the Action selector (decision 2b): state 1 Perform
         -- (mark=false), state 2 Mark only (mark=true). The manual per-animal Mark/Unmark button
         -- keeps reading the untouched rl_ui_mark / rl_ui_dontMark strings.
         self.ruleMarkToggle:setTexts({
@@ -295,7 +295,7 @@ function RLMenuHerdsmanFrame:onGuiSetupFinished()
         Log:trace("RLMenuHerdsmanFrame:onGuiSetupFinished: rulesList bound")
     end
 
-    -- Per-row tooltip help lines (RLRM-402). The tooltip Text lives INSIDE each row's value widget
+    -- Per-row tooltip help lines. The tooltip Text lives INSIDE each row's value widget
     -- (the legacy rl_aiTooltip home - the row container clips to its bounds, so a right-margin tooltip
     -- must hang off the non-clipping widget); getDescendantByName is recursive, so grabbing off the
     -- ROW still finds it wherever it sits in the row subtree (mirrors
@@ -803,7 +803,7 @@ function RLMenuHerdsmanFrame:refreshRuleDetail(stored)
         end
     end
 
-    -- Per-row help text (RLRM-402). Re-resolved every render (op-dynamic: an op-change swaps the
+    -- Per-row help text. Re-resolved every render (op-dynamic: an op-change swaps the
     -- strings); the always-visible rows set unconditionally, the conditional rows only when their
     -- row is shown (the SAME gating as the setVisible toggles above). Content + arg come from the
     -- pure RLHerdsmanRulePresenter.getTooltipDescriptor; the frame formats the live value per arg.
@@ -839,7 +839,7 @@ function RLMenuHerdsmanFrame:refreshRuleDetail(stored)
     if bvis.percentage then tip("budget|percentage", nil, nil, budget and budget.percentage) end
     Log:debug("RLMenuHerdsmanFrame:refreshRuleDetail: tooltips op=%s keys[%s]", tostring(op), table.concat(tipKeys, " "))
 
-    -- One-shot in-row geometry of the TextInput rows + their tooltip Text (RLRM-402 Ask-First:
+    -- One-shot in-row geometry of the TextInput rows + their tooltip Text (Ask-First:
     -- does fs25_multiTextOptionTooltip anchor cleanly inside a TextInput row?). Per-open guards.
     self:logTooltipRowGeometryOnce("ruleNameRow", self.ruleNameRow, self.tooltips["name"], "didMeasureNameRow")
     if vis.maxAnimals then
@@ -924,7 +924,7 @@ function RLMenuHerdsmanFrame:refreshValueRowTooltip(field, raw)
     self:applyRowTooltip(self.tooltips[field], field, merged.operation, nil, nil, raw)
 end
 
---- One-shot geometry of a TextInput editor row + its tooltip Text, so RLRM-402's Ask-First (does
+--- One-shot geometry of a TextInput editor row + its tooltip Text, so the Ask-First (does
 --- fs25_multiTextOptionTooltip anchor cleanly inside a TextInput row?) is provable from the log,
 --- not eyeballed. Mirrors the Filter/Husbandries/Destination row measurement (absPosition is the
 --- element's bottom-left edge, FS25 Y-up; reference screen 1920x1080). Per-open guard via
@@ -1015,7 +1015,7 @@ function RLMenuHerdsmanFrame:populateSemenSelector(merged)
     end
 
     self.semenValues = values
-    -- Parallel option-text array (RLRM-402): the tooltip's %s for a dewar semen value is that
+    -- Parallel option-text array: the tooltip's %s for a dewar semen value is that
     -- dewar's option label, looked up by the same index as semenValues.
     self.semenTexts = texts
     self.ruleSemenSelector:setTexts(texts)

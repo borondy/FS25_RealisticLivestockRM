@@ -54,7 +54,7 @@ RLMenuTabPolicy.ANCHOR_SELL = 2
 -- Per-mode visible-tab sets keyed by pageKey. A key absent from a table reads
 -- as hidden (the `== true` test below makes nil -> false). "transfer" never
 -- appears in a full / dealer set (it is a trailer pen/world tab, registered in
--- RLRM-427). MODE_TRAILER is counterpart-dependent, handled in trailerVisible.
+-- the trailer pen/world frame). MODE_TRAILER is counterpart-dependent, handled in trailerVisible.
 local FULL_VISIBLE = {
     buy = true, sell = true, move = true, info = true,
     ai = true, messages = true, herdsman = true, settings = true,
@@ -68,7 +68,7 @@ local DEALER_VISIBLE = {
 --- Trailer-mode visibility, split by counterpart.
 ---   dealer    -> {Buy, Sell} only (Decision 7a hides Info/AI; in-tab detail
 ---                panes carry Info parity for the dealer placement).
----   pen/world -> {Transfer} only (the Transfer tab arrives in RLRM-427).
+---   pen/world -> {Transfer} only (the Transfer tab).
 --- Any other (or nil) counterpart -> nothing visible (totality default).
 ---@param pageKey string
 ---@param counterpart string|nil

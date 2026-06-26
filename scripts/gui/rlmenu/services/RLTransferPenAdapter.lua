@@ -115,7 +115,7 @@ function RLTransferPenAdapter:dispatch(direction, animals, context)
         animals ~= nil and #animals or 0)
 
     -- Wrap the move-service errorCode callback into the frame's generalized
-    -- (success, errorText) completion contract (RLRM-431). Mutation parity is
+    -- (success, errorText) completion contract. Mutation parity is
     -- preserved - this still routes to moveAnimals; only the result space is adapted.
     -- moveAnimals fires the callback with MOVE_SUCCESS / an error code (incl. the
     -- all-rejected firstErrorCode), never nil, so the nil success branch is defensive.

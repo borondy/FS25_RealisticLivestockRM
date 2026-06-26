@@ -198,7 +198,7 @@ end
 --- `total` is `getMaxNumOfAnimals(getCurrentType())`, which is the engine truth
 --- of 0 for an empty / unlocked trailer (capacity is per-type and there is no
 --- single global slot count) - NOT a bug; how an empty trailer renders is the
---- frame's (RLRM-427) call.
+--- frame's call.
 --- @param trailer table|nil
 --- @return table display  { name = string, used = number, total = number }
 function RLTrailerEndpointService.getDisplayData(trailer)

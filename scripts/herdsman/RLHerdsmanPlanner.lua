@@ -624,7 +624,7 @@ function RLHerdsmanPlanner.planActions(rules, ctx)
             Log:warning("%s skip rule=%s: unknown operation '%s' (not in OPERATION_ORDER)",
                 LOG_PREFIX, tostring(rule.id), tostring(rule.operation))
         elseif rule.operation ~= "naming" and rule.filterId == nil then
-            Log:debug("%s skip rule=%s op=%s: nil filterId (RLRM-404 incomplete draft, never runs)",
+            Log:debug("%s skip rule=%s op=%s: nil filterId (incomplete draft, never runs)",
                 LOG_PREFIX, tostring(rule.id), tostring(rule.operation))
         else
             runnable[#runnable + 1] = rule

@@ -197,7 +197,7 @@ end
 
 
 --- Partition a sell batch into the survivors that pass a per-animal verdict and
---- the rejects, for the trailer-at-dealer Sell flow (RLRM-430).
+--- the rejects, for the trailer-at-dealer Sell flow.
 --- Contract: the survivor SHAPE of RLAnimalBuyService.filterBuyableAnimals
 --- (`{ valid, rejected, firstErrorCode }`), reproducing legacy
 --- AnimalScreenDealerTrailer:applyTargetBulk's per-item skip-invalid-sell-the-rest
