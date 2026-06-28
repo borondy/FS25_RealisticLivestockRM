@@ -72,7 +72,7 @@ end
 
 
 --- Permission gate for the Save filter button.
---- Mirrors RLMenuSettingsFrame:hasCreatePermission ([RLMenuSettingsFrame.lua:1087](rlmenu/frames/RLMenuSettingsFrame.lua)) - if [New filter] in
+--- Mirrors RLMenuSettingsFrame:hasCreatePermission - if [New filter] in
 --- Settings is hidden for this client, Save-from-QF must be too.
 --- Nil-guards g_currentMission + getHasPlayerPermission for early-init paths.
 --- @return boolean
@@ -671,17 +671,17 @@ function AnimalFilterDialog:onClickSaveFilter()
     -- before the server's event-side permission check (Pattern A caller-mutates-
     -- first), so without this gate a permission loss mid-dialog produces a
     -- phantom local filter the server then refuses to authorize. Mirrors the
-    -- Settings handler's gate at RLMenuSettingsFrame:onClickNewFilter (line 1196).
+    -- gate in RLMenuSettingsFrame:onClickNewFilter.
     if not hasCreatePermission() then
         Log:warning("[AnimalFilterDialog] onClickSaveFilter: aborting (reason=no_tradeAnimals_permission)")
         return
     end
 
     -- No-farm guard. RLMenuSettingsFrame:refreshData filters its row list to
-    -- farmId-matching records (line 831-846), so a filter created with farmId=0
-    -- would silently disappear from the destination tab and the "open Settings
-    -- on the new row" handshake could never resolve. Mirrors the Settings
-    -- handler's gate at RLMenuSettingsFrame:onClickNewFilter (line 1200).
+    -- farmId-matching records, so a filter created with farmId=0 would
+    -- silently disappear from the destination tab and the "open Settings on
+    -- the new row" handshake could never resolve. Mirrors the gate in
+    -- RLMenuSettingsFrame:onClickNewFilter.
     local farmId
     if g_currentMission ~= nil and g_currentMission.getFarmId ~= nil then
         farmId = g_currentMission:getFarmId()

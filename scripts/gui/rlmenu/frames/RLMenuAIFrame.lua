@@ -4,10 +4,11 @@
 
     Top-of-column species cycler with dot indicators (cow / pig / sheep & goats /
     horse / chicken), multi-section SmoothList of AI-stock bull cards with the
-    overall-quality label in the "price" slot (legacy parity at
-    AnimalScreen.lua:2200-2217 - NOT money), middle column `aiPurchasePanel`
-    with Average Success + Quantity + stepper + total price, and a right-hand
-    detail pane reusing RLDetailPaneHelper (bulls have no husbandry).
+    overall-quality label in the cell's "price" attribute slot (legacy parity:
+    the price slot carries a quality label here, NOT a money amount), middle
+    column `aiPurchasePanel` with Average Success + Quantity + stepper + total
+    price, and a right-hand detail pane reusing RLDetailPaneHelper (bulls have
+    no husbandry).
 
     Footer wiring:
       - quantity stepper state-change -> recompute total price
@@ -67,8 +68,8 @@ function RLMenuAIFrame.new()
     self.backButtonInfo = { inputAction = InputAction.MENU_BACK }
 
     -- Action bar button definitions. Buttons are enabled when a bull is
-    -- focused (mirrors legacy at AnimalScreen.lua:630-641 which gates
-    -- purely on selection state).
+    -- focused; the gating mirrors the legacy AI screen's selection-only check
+    -- (see RealisticLivestock_AnimalScreen:onAIListSelectionChanged).
     self.favouriteButtonInfo = {
         inputAction = InputAction.MENU_EXTRA_1,
         text = g_i18n:getText("rl_ui_favourite"),
@@ -115,8 +116,8 @@ end
 --- One-time per-clone setup. Unlinks the dot template from the element tree
 --- so it can be cloned at runtime, hides pen-info elements (inherited from
 --- buyFrame.xml for XML-parity but AI has no pen concept), populates the
---- quantity stepper labels (legacy pattern at AnimalScreen.lua:325-329), and
---- hides the aiPurchasePanel until a bull is selected.
+--- quantity stepper labels from AnimalScreen.DEWAR_QUANTITIES, and hides the
+--- aiPurchasePanel until a bull is selected.
 ---
 --- Called by RLMenu:setupMenuPages.
 function RLMenuAIFrame:initialize()
@@ -133,9 +134,9 @@ function RLMenuAIFrame:initialize()
     if self.penCountText        ~= nil then self.penCountText:setVisible(false) end
     if self.penIcon             ~= nil then self.penIcon:setVisible(false) end
 
-    -- Populate quantity stepper labels from DEWAR_QUANTITIES. Copy of legacy
-    -- at AnimalScreen.lua:325-329. State resets to 1 here so a fresh frame
-    -- open shows "1 Straw" regardless of the last value left in the element.
+    -- Populate quantity stepper labels from AnimalScreen.DEWAR_QUANTITIES.
+    -- State resets to 1 here so a fresh frame open shows "1 Straw" regardless
+    -- of the last value left in the element.
     if self.aiQuantitySelector ~= nil
         and AnimalScreen ~= nil
         and AnimalScreen.DEWAR_QUANTITIES ~= nil then
@@ -151,8 +152,8 @@ function RLMenuAIFrame:initialize()
         Log:warning("RLMenuAIFrame:initialize: aiQuantitySelector or DEWAR_QUANTITIES unavailable")
     end
 
-    -- Middle column hidden until a bull is selected (mirrors legacy
-    -- aiInfoContainer at AnimalScreen.lua:629).
+    -- Middle column hidden until a bull is selected (mirrors the legacy
+    -- aiInfoContainer hide-until-selection behaviour).
     if self.aiPurchasePanel ~= nil then
         self.aiPurchasePanel:setVisible(false)
     end
@@ -227,9 +228,9 @@ end
 --- zero stock render the empty-animals text).
 function RLMenuAIFrame:refreshSpecies()
     -- Cache the current farm id so RLDetailPaneHelper.updateMoneyDisplay
-    -- can resolve the balance via frame.farmId. Mirrors Buy frame's
-    -- pattern at RLMenuBuyFrame.lua:202-203 (refreshTypes). Without this,
-    -- the helper sees nil farmId -> nil balance -> hides the moneyBox entirely.
+    -- can resolve the balance via frame.farmId. Mirrors RLMenuBuyFrame's
+    -- refreshTypes farmId-cache pattern. Without this, the helper sees nil
+    -- farmId -> nil balance -> hides the moneyBox entirely.
     self.farmId = RLAnimalInfoService.getCurrentFarmId()
 
     self.sortedSpecies = RLAIStockService.listSpecies()
@@ -422,7 +423,7 @@ end
 ---
 --- Selection-identity dedupe cache prevents spurious stepper resets.
 --- onClickFavourite calls animalList:reloadData to refresh the orange tint
---- (legacy parity at AnimalScreen.lua:724). Bare reloadData usually preserves
+--- (legacy parity). Bare reloadData usually preserves
 --- the highlight without refiring the selection callback, but if it ever
 --- does, the cache check here early-returns before touching the stepper or
 --- the detail pane. Also covers the class of spurious re-fires.
@@ -462,7 +463,7 @@ function RLMenuAIFrame:onBullSelectionChanged()
     -- and stepper-click share a single render path.
     self:updateMiddleColumn(animal)
 
-    -- Favourite button label (legacy parity at AnimalScreen.lua:645).
+    -- Favourite button label (legacy parity).
     self:refreshFavouriteButtonLabel(animal)
 
     self:updateButtonVisibility()
@@ -481,7 +482,7 @@ end
 
 
 --- Populate the middle-column elements for the given bull. Resets the stepper
---- to position 1 (legacy parity at AnimalScreen.lua:688-689) and routes the
+--- to position 1 (legacy parity) and routes the
 --- price display through onQuantityStateChanged so bull change and stepper
 --- click share a single render path.
 --- @param animal table Raw Animal
@@ -496,13 +497,13 @@ function RLMenuAIFrame:updateMiddleColumn(animal)
     -- called without the second `forceEvent` arg silently updates state
     -- without firing the onClick callback, so we invoke onQuantityStateChanged
     -- explicitly below to recompute the price for the newly-selected bull.
-    -- Legacy parity at AnimalScreen.lua:688-689.
+    -- Matches the legacy stepper-reset-on-selection behaviour.
     if self.aiQuantitySelector ~= nil and self.aiQuantitySelector.setState ~= nil then
         self.aiQuantitySelector:setState(1)
     end
 
-    -- Average Success: legacy pattern at AnimalScreen.lua:649.
-    -- math.round (not %d) matches DewarData.lua:401 and AnimalAIDialog.lua:154.
+    -- Average Success: legacy pattern. math.round (not %d) matches the
+    -- rounding used in DewarData and AnimalAIDialog.
     if self.averageSuccessValue ~= nil then
         local successPct = math.round((animal.success or 0) * 100)
         self.averageSuccessValue:setText(string.format("%s%%", tostring(successPct)))
@@ -570,11 +571,10 @@ end
 --- present in the footer. Favourite disables on no-bull only. Buy disables
 --- on no-bull OR no tradeAnimals permission.
 ---
---- Legacy parity (AnimalScreen.lua:628-645) gates both buttons SOLELY on
---- selection. Intentional UX divergence: Phase 2 adds a client-side
---- tradeAnimals gate for Buy so MP clients never see an active Buy button
---- they cannot actually use. Legacy's click-time check at
---- AnimalScreen.lua:553-554 stays in place as defense in depth.
+--- Legacy parity gates both buttons SOLELY on selection. Intentional UX
+--- divergence: Phase 2 adds a client-side tradeAnimals gate for Buy so MP
+--- clients never see an active Buy button they cannot actually use. Legacy's
+--- click-time permission check stays in place as defense in depth.
 function RLMenuAIFrame:updateButtonVisibility()
     self.menuButtonInfo = { self.backButtonInfo }
 
@@ -603,9 +603,9 @@ end
 -- Quantity stepper: recompute displayed total price for current state
 -- =============================================================================
 
---- MultiTextOption onClick callback for aiQuantitySelector. Legacy parity at
---- AnimalScreen.lua:694-705 (onClickChangeAIQuantity): read quantity for the
---- new state, compute total price, format as money, update aiQuantityPrice.
+--- MultiTextOption onClick callback for aiQuantitySelector. Mirrors the legacy
+--- onClickChangeAIQuantity handler: read quantity for the new state, compute
+--- total price, format as money, update aiQuantityPrice.
 --- Also invoked from updateMiddleColumn(animal) on bull-selection change with
 --- state=1 so the canonical price render path is shared.
 --- @param state number 1-based DEWAR_QUANTITIES index
@@ -648,9 +648,9 @@ end
 --- (local-only; no network event; MP persistence gap tracked separately)
 --- and refreshes the row tint + button label on success.
 ---
---- Legacy parity at AnimalScreen.lua:708-726. Binds the post-toggle button
---- label from the fresh return value, NOT from the latent-bug `uniqueUserId`
---- global at legacy line 722 (always nil, so legacy's button always read
+--- Mirrors the legacy onClickFavouriteAnimal handler. Binds the post-toggle
+--- button label from the fresh return value, NOT from the latent-bug
+--- `uniqueUserId` global (always nil in legacy, so legacy's button always read
 --- "Favourite" regardless of state).
 function RLMenuAIFrame:onClickFavourite()
     local animal = self:getSelectedAnimal()
@@ -667,8 +667,8 @@ function RLMenuAIFrame:onClickFavourite()
         return
     end
 
-    -- Refresh the row tint via reloadData. Legacy parity at
-    -- AnimalScreen.lua:724. Bare reloadData usually preserves the selection
+    -- Refresh the row tint via reloadData (legacy parity). Bare reloadData
+    -- usually preserves the selection
     -- highlight without re-firing the SmoothList selection callback; if it
     -- ever does re-fire, the lastSelectedBullIdentity dedupe in
     -- onBullSelectionChanged catches it.
@@ -689,14 +689,14 @@ function RLMenuAIFrame:onClickFavourite()
 end
 
 
---- Buy footer action. Mirrors legacy onClickBuyAI at
---- AnimalScreen.lua:526-564 line-by-line. Step ordering preserved INCLUDING
---- the known pre-existing bug at line 542 (markPlaceUsed BEFORE the
---- permission/money checks leaks the store slot on failed pre-flight;
---- tracked separately and out of scope per MUTATION PARITY rule).
+--- Buy footer action. Mirrors the legacy onClickBuyAI handler step-by-step.
+--- Step ordering preserved INCLUDING the known pre-existing bug where
+--- markPlaceUsed runs BEFORE the permission/money checks (leaks the store
+--- slot on failed pre-flight; tracked separately and out of scope per
+--- MUTATION PARITY rule).
 ---
---- No-spawn-slot UX extension: legacy silently returns on `x == nil` at
---- line 538-540; this handler shows a warning dialog with `shop_messageNoSpace`
+--- No-spawn-slot UX extension: legacy silently returns when no spawn slot is
+--- free; this handler shows a warning dialog with `shop_messageNoSpace`
 --- to close the "why didn't anything happen?" gap. No event is dispatched.
 function RLMenuAIFrame:onClickBuy()
     -- Reentrancy guard: InfoDialog is async, so a second Enter press between
@@ -714,8 +714,8 @@ function RLMenuAIFrame:onClickBuy()
     end
 
     -- farmId sanity. Guard BEFORE markPlaceUsed so a spectator / no-farm click
-    -- does not leak a store spawn slot. Legacy at AnimalScreen.lua:544 reads
-    -- g_localPlayer.farmId unconditionally (crashes on nil); Phase 2 declines
+    -- does not leak a store spawn slot. Legacy reads g_localPlayer.farmId
+    -- unconditionally (crashes on nil); Phase 2 declines
     -- gracefully with a WARNING.
     if g_localPlayer == nil
         or g_localPlayer.farmId == nil
@@ -725,7 +725,7 @@ function RLMenuAIFrame:onClickBuy()
         return
     end
 
-    -- Step 1: spawn-slot lookup. Legacy line 534-536.
+    -- Step 1: spawn-slot lookup.
     local spawnPlaces = g_currentMission and g_currentMission.storeSpawnPlaces
     local usedPlaces  = g_currentMission and g_currentMission.usedStorePlaces
     if spawnPlaces == nil or usedPlaces == nil then
@@ -750,7 +750,7 @@ function RLMenuAIFrame:onClickBuy()
         return
     end
 
-    -- Step 2: mark the slot as used. Legacy line 542.
+    -- Step 2: mark the slot as used.
     -- NOTE: This runs BEFORE the permission/money checks so a failed
     -- pre-flight leaks the slot. Legacy bug mirrored per MUTATION PARITY;
     -- tracked separately.
@@ -759,7 +759,7 @@ function RLMenuAIFrame:onClickBuy()
     -- Commit to opening a result dialog. Flag blocks reentrant Enter clicks.
     self.buyInFlight = true
 
-    -- Step 3: compute quantity + price. Legacy line 544-549.
+    -- Step 3: compute quantity + price.
     local farmId = g_localPlayer.farmId
     local state = (self.aiQuantitySelector ~= nil and self.aiQuantitySelector:getState()) or 1
     local quantity = (AnimalScreen ~= nil and AnimalScreen.DEWAR_QUANTITIES ~= nil
@@ -769,7 +769,7 @@ function RLMenuAIFrame:onClickBuy()
     Log:debug("RLMenuAIFrame:onClickBuy: pre-flight farmId=%d state=%d quantity=%d price=%.2f spawn=(%.2f,%.2f,%.2f)",
         farmId, state, quantity, price, x, y, z)
 
-    -- Step 4 + 5: permission + money. Legacy lines 551-560.
+    -- Step 4 + 5: permission + money.
     local errorCode
     if not g_currentMission:getHasPlayerPermission("tradeAnimals") then
         errorCode = AnimalBuyEvent.BUY_ERROR_NO_PERMISSION
@@ -779,7 +779,7 @@ function RLMenuAIFrame:onClickBuy()
         Log:warning("RLMenuAIFrame:onClickBuy: money-check triggered (balance-price<0) price=%.2f",
             price)
     else
-        -- Step 6: dispatch. Legacy line 559.
+        -- Step 6: dispatch.
         errorCode = AnimalBuyEvent.BUY_SUCCESS
         g_client:getServerConnection():sendEvent(
             SemenBuyEvent.new(animal, quantity, -price, farmId, { x, y, z }, { 0, 0, 0 }),
@@ -788,13 +788,13 @@ function RLMenuAIFrame:onClickBuy()
             farmId, tostring(animal.uniqueId), quantity, price)
     end
 
-    -- Step 7: always render the result dialog. Legacy line 562.
+    -- Step 7: always render the result dialog.
     self:onBuyComplete(errorCode)
 end
 
 
---- Client-side pre-flight completion handler. Mirrors legacy onSemenBought
---- at AnimalScreen.lua:567-585 - maps the pre-flight errorCode to a text +
+--- Client-side pre-flight completion handler. Mirrors the legacy onSemenBought
+--- handler - maps the pre-flight errorCode to a text +
 --- dialog type and opens an InfoDialog.
 ---
 --- NAME NOTE: "onBuyComplete" refers to client-side pre-flight branching
@@ -820,8 +820,8 @@ function RLMenuAIFrame:onBuyComplete(errorCode)
     Log:debug("RLMenuAIFrame:onBuyComplete: errorCode=%s text=%s",
         tostring(errorCode), text)
 
-    -- Full positional InfoDialog.show signature mirrored from legacy at
-    -- AnimalScreen.lua:583. The trailing `true` is a legacy positional
+    -- Full positional InfoDialog.show signature mirrored from the legacy
+    -- onSemenBought handler. The trailing `true` is a legacy positional
     -- artifact - the callback functions declare no params and ignore it.
     -- Kept verbatim per MUTATION PARITY rule.
     InfoDialog.show(g_i18n:getText(text), self.onPostSemenBuy, self,
@@ -829,8 +829,8 @@ function RLMenuAIFrame:onBuyComplete(errorCode)
 end
 
 
---- InfoDialog dismissal callback. Legacy parity at AnimalScreen.lua:588-592
---- (postSemenBought) which calls `self.aiList:reloadData()`. Phase 2 reloads
+--- InfoDialog dismissal callback. Mirrors the legacy postSemenBought handler
+--- which calls `self.aiList:reloadData()`. Phase 2 reloads
 --- the whole bull list so stock changes reflect immediately.
 ---
 --- Stale-frame guard mirrors Buy/Sell/Info's pattern: the
@@ -893,10 +893,10 @@ function RLMenuAIFrame:getNumberOfItemsInSection(list, section)
 end
 
 --- Populate one data cell. Differs from Buy/Sell's populate in two ways:
----   1. The "price" cell text is the overall-quality label (legacy parity
----      at AnimalScreen.lua:2200-2217), NOT a money amount.
+---   1. The "price" cell text is the overall-quality label (legacy parity),
+---      NOT a money amount.
 ---   2. Favourited bulls tint the cell background orange (1, 0.2, 0);
----      mirrors legacy at AnimalScreen.lua:2224-2238.
+---      mirrors the legacy populateCellForItemInSection tint.
 --- No checkbox column (single-bull selection only in the AI tab).
 --- @param list table
 --- @param section number

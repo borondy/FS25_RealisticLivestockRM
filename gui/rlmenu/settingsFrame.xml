@@ -224,12 +224,11 @@
                       id="filterEditorEmpty"
                       text="$l10n_rl_menu_filters_empty_editor"/>
 
-                <!-- Robust layout (2026-05-17): cap the metadata
-                     ScrollingLayout to 280px so it occupies just enough room
-                     for the 4 rows. The remaining vertical space below is
-                     used by the conditions list (stretches) + footer row
-                     (bottom-anchored). Each region adapts to the parent's
-                     aspect-driven height. -->
+                <!-- Cap the metadata ScrollingLayout to 280px so it
+                     occupies just enough room for the 4 rows. The remaining
+                     vertical space below is used by the conditions list
+                     (stretches) + footer row (bottom-anchored). Each region
+                     adapts to the parent's aspect-driven height. -->
                 <ScrollingLayout profile="fs25_settingsLayout" id="filterEditorLayout"
                                  size="100% 280px"
                                  position="0px 0px">
@@ -285,14 +284,11 @@
 
                 </ScrollingLayout>
 
-                <!-- Layout fix (2026-05-17 in-game playtest): the docked
-                     slider for filterEditorLayout (fs25_sliderDockedBg) was
-                     present but useless - only 4 fixed metadata rows, never
-                     scrolls. Its full-height dark right-edge bar was visible
-                     in the in-game playtest as a misplaced "scroller" and
-                     consumed layout width that the conditions list needed.
-                     Removed entirely. The ScrollingLayout still works without
-                     a visible scroll thumb. -->
+                <!-- No docked slider here: the metadata ScrollingLayout has
+                     4 fixed rows and never scrolls. A docked slider would
+                     consume layout width that the conditions list needs and
+                     render a misplaced "scroller" bar; the ScrollingLayout
+                     works without a visible thumb. -->
 
                 <!-- Preserved-node banner. Shows "%d condition(s)
                      hidden - editable in a later phase. Saved on close." when
@@ -310,7 +306,7 @@
 
                 <!-- Conditions list container. SmoothList of condition
                      rows + paired Slider; mirrors the structure of the left-
-                     pane `filtersList` (lines 192-212 above). Row template
+                     pane `filtersList` above. Row template
                      carries a field picker, cmp picker, two value widgets
                      (number TextInput + bool MultiTextOption, toggled via
                      setVisible from Lua), and a delete button. -->
@@ -326,14 +322,13 @@
                                 id="filterConditionsList"
                                 startClipperElementName="filterConditionsStartClipper"
                                 endClipperElementName="filterConditionsEndClipper">
-                        <!-- V2 modal editor (2026-05-17): row template is
-                             a single read-only Text widget showing the
-                             formatted condition ("age >= 30"). Edits go
-                             through RLFilterConditionDialog (Tier 3 action
-                             bar's Edit button on MENU_ACCEPT), so the row
-                             carries no inline pickers / inputs / delete
-                             button. Phase 2 indent applies via the Text's
-                             position offset (depth * 20px), computed in
+                        <!-- Row template is a single read-only Text widget
+                             showing the formatted condition ("age >= 30").
+                             Edits go through RLFilterConditionDialog (the
+                             action bar's Edit button on MENU_ACCEPT), so the
+                             row carries no inline pickers / inputs / delete
+                             button. Indent applies via the Text's position
+                             offset (depth * 20px), computed in
                              populateCellForItemInSection. Without inline
                              widgets the row template stays stable across
                              field-type swaps and Phase 2 group rows. -->
@@ -358,13 +353,12 @@
                     </ThreePartBitmap>
                 </GuiElement>
 
-                <!-- (2026-05-17): in-pane [+ condition] footer
-                     removed. The action lives on the action bar via
-                     RLMenuSettingsFrame.addConditionButtonInfo
-                     (MENU_ACCEPT) appended in updateButtonVisibility
-                     when a filter is selected. The conditions list
-                     stretches to fill the remaining vertical space below
-                     the metadata layout. -->
+                <!-- No in-pane [+ condition] footer: the action lives on the
+                     action bar via RLMenuSettingsFrame.addConditionButtonInfo
+                     (MENU_ACCEPT), appended in updateButtonVisibility when a
+                     filter is selected. The conditions list stretches to
+                     fill the remaining vertical space below the metadata
+                     layout. -->
 
 
             </GuiElement>

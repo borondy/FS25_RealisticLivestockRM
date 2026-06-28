@@ -224,11 +224,14 @@ function RealisticLivestock_AnimalSystem:loadAnimals(_, xmlFile, directory)
 
 			animalType = self.nameToType[name]
 
-			-- Skip base game/DLC reloads - RLRM's Phase 1 config is the superset
-			-- (e.g. COW bundles 21 models including DLC Highland, base game only has 18).
-			-- Only clear+reload for map mod overrides (non-dataS configs).
-			-- ASSUMES: RLRM bundles configs for ALL base game + DLC animal types.
-			-- If a new DLC adds animals, RLRM must update its bundled configs to include them.
+			-- Skip dataS-prefixed config reloads: RLRM ships its own bundled
+			-- animal configs (the superset of every base-game + DLC animal type),
+			-- and reloading the shipped dataS config over the top would drop
+			-- RLRM's additional models. Only clear+reload for map-mod overrides
+			-- (non-dataS configs).
+			-- ASSUMES: RLRM bundles configs for every base-game + DLC animal type.
+			-- If a new DLC adds an animal type, RLRM must update its bundled
+			-- configs to include it.
 			if string.startsWith(configFilename, "dataS") then
 				Log:trace("loadAnimals: skipping base game config reload for existing type '%s' (keeping %d models)",
 					name, #animalType.animals)

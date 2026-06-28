@@ -29,6 +29,15 @@ local MOD_ROUTED_KEYS = {
 -- `Utils.overwrittenFunction` superFunc-arg-drop gotcha does not apply here.
 function RL_I18N:getText(superFunc, text, modEnv)
 
+    -- Defensive: a nil key can reach this global override when a caller looks up a missing
+    -- localization key; delegate it to the base implementation rather than crash in
+    -- string.contains below, which requires a string. WARNING so a real nil-key bug stays
+    -- visible (revisit the level if other mods make this noisy).
+    if text == nil then
+        Log:warning("I18N: nil key passed to getText override; delegating to base implementation")
+        return superFunc(self, text, modEnv)
+    end
+
     if modEnv == nil and MOD_ROUTED_KEYS[text] then
         Log:trace("I18N: routing modless lookup '%s' through mod env", text)
         return superFunc(self, text, modName)

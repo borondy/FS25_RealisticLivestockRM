@@ -1,6 +1,6 @@
 # Creating Animal Packs
 
-Technical reference for modders who want to create animal packs for Realistic Livestock RM. An animal pack is a standard FS25 mod that RLRM discovers and loads automatically — no registration or code changes needed.
+Technical reference for modders who want to create animal packs for Realistic Livestock RM. An animal pack is a standard FS25 mod that RLRM discovers and loads automatically -- no registration or code changes needed.
 
 > **Note:** This documentation was generated with AI assistance and may contain inaccuracies. If you spot an error, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues).
 
@@ -12,8 +12,8 @@ An animal pack is any FS25 mod that contains an `rlrm_pack.xml` file in its root
 
 Packs can do two things:
 
-1. **Override properties** on existing breeds — change prices, food consumption, production rates, reproduction parameters, weights, and more
-2. **Add new breeds** — define entirely new subtypes with custom visuals, fill types, and translations
+1. **Override properties** on existing breeds -- change prices, food consumption, production rates, reproduction parameters, weights, and more
+2. **Add new breeds** -- define entirely new subtypes with custom visuals, fill types, and translations
 
 You can do either or both in a single pack.
 
@@ -23,7 +23,7 @@ You can do either or both in a single pack.
 
 ### Balance Pack (property overrides only)
 
-The simplest kind of pack. It changes values on existing breeds without adding any new ones. No models, no textures, no fill types — just an XML file with the properties you want to change.
+The simplest kind of pack. It changes values on existing breeds without adding any new ones. No models, no textures, no fill types -- just an XML file with the properties you want to change.
 
 ```
 FS25_RLRM_MyBalance/
@@ -75,7 +75,7 @@ Every pack must have an `rlrm_pack.xml` in its mod root. This file tells RLRM wh
 </rlrmPack>
 ```
 
-All paths are relative to the mod's root directory. Omit any element you don't need — a balance pack typically only needs `<animals>`.
+All paths are relative to the mod's root directory. Omit any element you don't need -- a balance pack typically only needs `<animals>`.
 
 ### Descriptor attributes
 
@@ -89,9 +89,9 @@ All paths are relative to the mod's root directory. Omit any element you don't n
 
 | Element | Required | Description |
 |---------|----------|-------------|
-| `<animals path="..."/>` | No | Animal definitions file — property overrides and/or new subtypes |
-| `<fillTypes path="..."/>` | No | Fill type definitions — needed when adding new breeds |
-| `<translations prefix="..."/>` | No | Translation file prefix — for localized breed names and fill type titles |
+| `<animals path="..."/>` | No | Animal definitions file -- property overrides and/or new subtypes |
+| `<fillTypes path="..."/>` | No | Fill type definitions -- needed when adding new breeds |
+| `<translations prefix="..."/>` | No | Translation file prefix -- for localized breed names and fill type titles |
 
 ---
 
@@ -107,7 +107,7 @@ The `animals.xml` file is where the main work happens. It can contain:
 
 ### Property Overrides
 
-Override specific properties on existing breeds. Only the properties you specify are changed — everything else keeps RLRM's default values.
+Override specific properties on existing breeds. Only the properties you specify are changed -- everything else keeps RLRM's default values.
 
 ```xml
 <animals>
@@ -154,7 +154,7 @@ Override specific properties on existing breeds. Only the properties you specify
 | Target weight | `subType#targetWeight` | kg (float) |
 | Maximum weight | `subType#maxWeight` | kg (float) |
 | Reproduction | `<reproduction>` | `supported`, `minAgeMonth`, `durationMonth`, `minHealthFactor` |
-| Health rates | `<health>` | `increasePerHour`, `decreasePerHour` (0–100) |
+| Health rates | `<health>` | `increasePerHour`, `decreasePerHour` (0-100) |
 | Buy price curve | `<buyPrice>` | AnimCurve: `<key ageMonth="X" value="Y"/>` |
 | Sell price curve | `<sellPrice>` | AnimCurve |
 | Transport price curve | `<transportPrice>` | AnimCurve |
@@ -265,7 +265,7 @@ To add a new breed, define a full subtype within the appropriate animal type. Ne
 </animals>
 ```
 
-New subtypes are loaded through the game engine's own `loadSubTypes` function — the same one the base game uses. This means subtypes added by packs behave identically to built-in breeds.
+New subtypes are loaded through the game engine's own `loadSubTypes` function -- the same one the base game uses. This means subtypes added by packs behave identically to built-in breeds.
 
 ### Visual Overrides
 
@@ -323,9 +323,9 @@ When a config override is applied, RLRM:
 3. Re-links all existing subtypes' visual references to the new model objects
 4. Re-applies any texture filtering (`textureIndexes`) on existing subtypes
 
-> **Important:** Config overrides are a **total replacement** — not additive. If two packs both override the model config for the same animal type (e.g., both replace the COW config), the second one completely overwrites the first. The first pack's visual references will point to models that no longer exist, causing broken or missing visuals.
+> **Important:** Config overrides are a **total replacement** -- not additive. If two packs both override the model config for the same animal type (e.g., both replace the COW config), the second one completely overwrites the first. The first pack's visual references will point to models that no longer exist, causing broken or missing visuals.
 >
-> **Only one pack should provide a config override per animal type.** If you're creating a balance-only pack, don't include config overrides — you don't need them and they'll prevent breed packs from working alongside yours.
+> **Only one pack should provide a config override per animal type.** If you're creating a balance-only pack, don't include config overrides -- you don't need them and they'll prevent breed packs from working alongside yours.
 
 Config overrides are processed **before** subtypes are loaded, so your new subtypes can reference `visualAnimalIndex` values from your custom model config.
 
@@ -349,7 +349,7 @@ When adding new breeds, register their display names and marker colours so the G
 |-----------|-------------|
 | `name` | Breed identifier (uppercase, matches the `breed` attribute on subtypes) |
 | `displayName` | Localized name for the GUI. Use `$l10n_` prefix to reference translations. |
-| `markerColour` | RGB colour for the breed's map marker, as three space-separated floats (0.0–1.0) |
+| `markerColour` | RGB colour for the breed's map marker, as three space-separated floats (0.0-1.0) |
 
 The `$l10n_` references are resolved from the global translation table, which includes your pack's translations (loaded before breed metadata).
 
@@ -377,7 +377,7 @@ Define breeding restrictions for your breeds. Animals in a breeding group can on
 
 ## Translations
 
-Translation files provide localized text for breed names, fill type titles, and store descriptions. English is the required base language — always provide an English translation file. Additional languages are optional.
+Translation files provide localized text for breed names, fill type titles, and store descriptions. English is the required base language -- always provide an English translation file. Additional languages are optional.
 
 ### File naming
 
@@ -385,9 +385,9 @@ Files use the prefix from `rlrm_pack.xml` plus `_{lang}.xml`:
 
 ```
 translations/
-├── translation_en.xml    (required — English base)
-├── translation_de.xml    (optional — German)
-├── translation_fr.xml    (optional — French)
+├── translation_en.xml    (required -- English base)
+├── translation_de.xml    (optional -- German)
+├── translation_fr.xml    (optional -- French)
 └── ...
 ```
 
@@ -454,20 +454,20 @@ If two packs override the same property on the same subtype, the alphabetically 
 
 The load sequence within each pack is:
 
-1. **Translations** — loaded first so `$l10n_` keys resolve in later steps
-2. **Fill types** — registered so new subtypes can reference them
-3. **Config overrides** — model configs replaced before subtypes load
-4. **Model reload** — Lua-side model data refreshed from new configs
-5. **Breed metadata** — display names and marker colours registered
-6. **New subtypes** — loaded through the engine's `loadSubTypes`
-7. **Property overrides** — applied last, patching both existing and newly added subtypes
-8. **Breeding groups** — registered after all subtypes exist
+1. **Translations** -- loaded first so `$l10n_` keys resolve in later steps
+2. **Fill types** -- registered so new subtypes can reference them
+3. **Config overrides** -- model configs replaced before subtypes load
+4. **Model reload** -- Lua-side model data refreshed from new configs
+5. **Breed metadata** -- display names and marker colours registered
+6. **New subtypes** -- loaded through the engine's `loadSubTypes`
+7. **Property overrides** -- applied last, patching both existing and newly added subtypes
+8. **Breeding groups** -- registered after all subtypes exist
 
 ---
 
 ## The modDesc.xml
 
-A pack's `modDesc.xml` is a standard FS25 mod descriptor. It doesn't need any special entries — the `rlrm_pack.xml` file is what RLRM looks for.
+A pack's `modDesc.xml` is a standard FS25 mod descriptor. It doesn't need any special entries -- the `rlrm_pack.xml` file is what RLRM looks for.
 
 ```xml
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
@@ -495,7 +495,7 @@ Mention the RLRM dependency in the description so players know the pack requires
 
 - **Start with a balance pack** to learn the format. Override a few prices, test it, then build up from there.
 - **Test in singleplayer first.** Use the console command `rmSetLoglevel * DEBUG` for detailed loading output in the game log.
-- **Check the game log** for messages starting with `MapBridge: Animal pack` — these show exactly what was detected, loaded, and any warnings.
+- **Check the game log** for messages starting with `MapBridge: Animal pack` -- these show exactly what was detected, loaded, and any warnings.
 - **Name your mod consistently.** Use the `FS25_RLRM_` prefix so players can identify it as an RLRM pack and so load order is predictable relative to other packs.
 - **Don't use config overrides unless you need them.** If you're only changing values (prices, food, reproduction), skip config overrides entirely. This keeps your pack compatible with breed packs that do need them.
 - **Use RLRM's own `xml/animals.xml` as reference** for the full subtype definition format, property names, and AnimCurve structures.
@@ -508,4 +508,4 @@ Mention the RLRM dependency in the description so players know the pack requires
 - **Cannot add new animal types.** Packs can only add subtypes within existing types (COW, PIG, SHEEP, HORSE, CHICKEN, and any types added by the map). Creating an entirely new animal type requires map-level support.
 - **Cannot modify diseases.** The disease system is not exposed to packs.
 - **One config override per animal type.** If two packs both override the model config for the same animal type, only the last one loaded takes effect and the other pack's visuals will break. See [Config Overrides](#config-overrides).
-- **No explicit priority system.** Load order is strictly alphabetical by mod name. There's no way to declare "load after pack X" — use naming conventions to manage order.
+- **No explicit priority system.** Load order is strictly alphabetical by mod name. There's no way to declare "load after pack X" -- use naming conventions to manage order.

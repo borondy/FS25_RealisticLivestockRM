@@ -58,7 +58,7 @@ Most males can breed with any female of their species, with two important except
 
 ## Offspring Breed
 
-When two different breeds produce offspring, each baby independently has a **50/50 chance** of inheriting either parent's breed. There is no visual blending — the offspring will look exactly like one parent's breed or the other.
+When two different breeds produce offspring, each baby independently has a **50/50 chance** of inheriting either parent's breed. There is no visual blending -- the offspring will look exactly like one parent's breed or the other.
 
 | Breeding Pair | Possible Offspring |
 |---------------|-------------------|
@@ -71,9 +71,9 @@ When two different breeds produce offspring, each baby independently has a **50/
 
 ### Litters and Twins
 
-Each offspring rolls its breed independently. A Berkshire sow bred by a Landrace boar could produce a mixed litter — some piglets are Landrace, others are Berkshire. The same applies to sheep twins or cattle twins: each baby gets its own 50/50 roll.
+Each offspring rolls its breed independently. A Berkshire sow bred by a Landrace boar could produce a mixed litter -- some piglets are Landrace, others are Berkshire. The same applies to sheep twins or cattle twins: each baby gets its own 50/50 roll.
 
-**Example:** A Berkshire sow produces a litter of 12 piglets sired by a Landrace boar. On average, about 6 will be Berkshire and 6 will be Landrace — but any specific litter might skew 8/4 or even 10/2 by chance, just like flipping a coin 12 times won't always give exactly 6 heads.
+**Example:** A Berkshire sow produces a litter of 12 piglets sired by a Landrace boar. On average, about 6 will be Berkshire and 6 will be Landrace -- but any specific litter might skew 8/4 or even 10/2 by chance, just like flipping a coin 12 times won't always give exactly 6 heads.
 
 ### Artificial Insemination
 
@@ -83,21 +83,21 @@ If breed consistency matters to you, AI is a reliable way to ensure it.
 
 ### Breed vs Genetics
 
-Don't confuse breed inheritance with genetic trait inheritance — they work differently:
+Don't confuse breed inheritance with genetic trait inheritance -- they work differently:
 
 | Aspect | How It Works |
 |--------|-------------|
-| **Breed** (appearance) | 50/50 coin flip — one parent's breed or the other, no blending |
+| **Breed** (appearance) | 50/50 coin flip -- one parent's breed or the other, no blending |
 | **Genetics** (traits) | Always blended from both parents, regardless of breed outcome |
 
 A Holstein calf from an Angus bull × Holstein cow cross inherits its Holstein appearance, but its productivity, health, fertility, and other genetic traits are still a blend of both the Angus father and the Holstein mother. The same applies in reverse for an Angus calf from the same pairing.
 
-*In other words: cross-breeding doesn't affect genetic inheritance. Your offspring's traits are always influenced by both parents — only the visual breed is one-or-the-other.*
+*In other words: cross-breeding doesn't affect genetic inheritance. Your offspring's traits are always influenced by both parents -- only the visual breed is one-or-the-other.*
 
 ### Practical Tips
 
 1. **Want breed-pure offspring?** Use same-breed parents, or use artificial insemination.
-2. **Cross-breeding for genetics?** If the best bull in your pen is a different breed, the offspring will still inherit his genetic traits — they'll just look like one breed or the other.
+2. **Cross-breeding for genetics?** If the best bull in your pen is a different breed, the offspring will still inherit his genetic traits -- they'll just look like one breed or the other.
 3. **Selling cross-bred litters?** Breed affects sell price (e.g., Berkshire pigs sell for more than Black Pied). In a mixed litter, each piglet's value depends on which breed it inherited.
 
 ---
@@ -110,24 +110,24 @@ Cattle usually produce single calves. Twins and triplets are rare.
 
 | Cow Age | No Birth | 1 Calf | Twins | Triplets |
 |---------|----------|--------|-------|----------|
-| 12–28 mo | Moderate | Most likely | Rare | Very rare |
-| 29–48 mo (prime) | Low | Most likely | Rare | Very rare |
-| 49–84 mo | Increasing | Most likely | Rare | Very rare |
-| 85–132 mo (old) | Very common | Less likely | Very rare | Extremely rare |
+| 12-28 mo | Moderate | Most likely | Rare | Very rare |
+| 29-48 mo (prime) | Low | Most likely | Rare | Very rare |
+| 49-84 mo | Increasing | Most likely | Rare | Very rare |
+| 85-132 mo (old) | Very common | Less likely | Very rare | Extremely rare |
 
 ### Pigs
 
 Pigs produce the largest litters. Healthy sows at prime age almost always deliver.
 
-| Sow Age | Chance of No Birth | Small (1–6) | Medium (7–10) | Typical (11–13) | Large (14–16) |
+| Sow Age | Chance of No Birth | Small (1-6) | Medium (7-10) | Typical (11-13) | Large (14-16) |
 |---------|-------------------|-------------|---------------|-----------------|---------------|
-| 6–12 mo (young) | Low | Rare | Uncommon | Most likely | Possible |
-| 13–36 mo (prime) | Very low | Rare | Uncommon | Most likely | Possible |
-| 37–60 mo | Low–moderate | Rare | Uncommon | Most likely | Possible |
-| 61–80 mo | Moderate | Uncommon | Possible | Most likely | Less likely |
-| 81–96 mo (old) | High | Possible | Possible | Less likely | Rare |
+| 6-12 mo (young) | Low | Rare | Uncommon | Most likely | Possible |
+| 13-36 mo (prime) | Very low | Rare | Uncommon | Most likely | Possible |
+| 37-60 mo | Low-moderate | Rare | Uncommon | Most likely | Possible |
+| 61-80 mo | Moderate | Uncommon | Possible | Most likely | Less likely |
+| 81-96 mo (old) | High | Possible | Possible | Less likely | Rare |
 
-*Most pig litters are 11–13 piglets. Older sows may produce smaller litters of 1–10 piglets. Low health significantly reduces litter size.*
+*Most pig litters are 11-13 piglets. Older sows may produce smaller litters of 1-10 piglets. Low health significantly reduces litter size.*
 
 ### Sheep & Goats
 
@@ -136,9 +136,9 @@ Sheep and goats have high twin rates at prime age. First-time mothers usually ha
 | Ewe/Doe Age | Singles | Twins | Triplets |
 |-------------|---------|-------|----------|
 | First-time mother | Most likely | Uncommon | Rare |
-| 18–36 mo | Common | Common | Rare |
-| 36–72 mo (prime) | Less common | **Most likely** | Uncommon |
-| 72–120 mo (old) | Uncommon | Most common | Rare |
+| 18-36 mo | Common | Common | Rare |
+| 36-72 mo (prime) | Less common | **Most likely** | Uncommon |
+| 72-120 mo (old) | Uncommon | Most common | Rare |
 
 *At prime age, twins are more common than singles! Goats follow the same pattern but start breeding later (16 months vs 8 months for sheep).*
 
@@ -158,13 +158,13 @@ Horses almost always produce a single foal.
 
 Chickens have large but unreliable hatches. The chance of no offspring is always significant.
 
-| Hen Age | No Hatch | Small Brood (1–5) | Medium Brood (5–7) | Large Brood (7–12) |
+| Hen Age | No Hatch | Small Brood (1-5) | Medium Brood (5-7) | Large Brood (7-12) |
 |---------|----------|-------------------|--------------------|---------------------|
-| 6–12 mo | Common | Uncommon | Most likely | Possible |
-| 12–24 mo | Common | Rare | Most likely | Possible |
-| 24–48 mo | Frequent | - | Most likely | Possible |
-| 48–84 mo | Very common | - | Uncommon | Rare |
-| 84–120 mo | Almost always | - | Very rare | Very rare |
+| 6-12 mo | Common | Uncommon | Most likely | Possible |
+| 12-24 mo | Common | Rare | Most likely | Possible |
+| 24-48 mo | Frequent | - | Most likely | Possible |
+| 48-84 mo | Very common | - | Uncommon | Rare |
+| 84-120 mo | Almost always | - | Very rare | Very rare |
 
 *Unlike other animals, hens never die during hatching.*
 
@@ -188,12 +188,12 @@ Milk output varies within the lactation period:
 
 | Months Since Birth | Milk Output |
 |-------------------|-------------|
-| 0–1 | Ramping up (below full potential) |
-| 2–3 | **Peak production** |
-| 4–9 | Gradually declining |
+| 0-1 | Ramping up (below full potential) |
+| 2-3 | **Peak production** |
+| 4-9 | Gradually declining |
 | 10+ | Lactation ends (zero milk) |
 
-*Peak milk production occurs around month 2–3 after birth. See the cattle and sheep factsheets for specific breed output ranges.*
+*Peak milk production occurs around month 2-3 after birth. See the cattle and sheep factsheets for specific breed output ranges.*
 
 ```mermaid
 %%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#1565c0"}}}}%%
@@ -215,8 +215,8 @@ Breeding is not without risk. Low health significantly increases complications:
 | Parent Health | Risk Level |
 |--------------|------------|
 | 90%+ | Very low risk of complications |
-| 75–90% | Low risk |
-| 60–75% | Moderate risk, fewer offspring |
+| 75-90% | Low risk |
+| 60-75% | Moderate risk, fewer offspring |
 | Below 60% | High risk, mother may die during birth |
 
 *If the mother dies during birth, offspring may still survive. Low health also reduces the chance of multiple offspring.*
@@ -233,7 +233,7 @@ When a cow gives birth to twins where one is male and one is female, the female 
 
 If a pen is at maximum capacity when offspring are born, **excess newborns are automatically sold**. Make sure your pens have room for new arrivals, especially:
 
-- Pig pens (litters of 11–16)
+- Pig pens (litters of 11-16)
 - Sheep pens at prime age (frequent twins)
 - Any pen during peak breeding season
 
@@ -264,7 +264,7 @@ Plan your breeding based on gestation periods:
 | Horses | Month 0 | Month 11 | ~Month 12 |
 | Chickens | Month 0 | Month 2 | ~Month 3 |
 
-*Cows have the longest cycle - roughly one calf per year at best. Pigs can produce 2–3 litters per year, making them the fastest-reproducing large animal.*
+*Cows have the longest cycle - roughly one calf per year at best. Pigs can produce 2-3 litters per year, making them the fastest-reproducing large animal.*
 
 ---
 

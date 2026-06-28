@@ -1,8 +1,7 @@
 -- RLAnimalUtil.lua
--- Purpose: Centralized animal identity comparison, lookup, key formatting,
---          ID generation, state hashing, and stream identity helpers.
---          Replaces 62 inline identity patterns across 22+ files.
--- Author: Ritter
+-- Centralized animal identity comparison, lookup, key formatting, ID
+-- generation, state hashing, and stream identity helpers. Replaces the
+-- previously-inline identity patterns scattered across the mod.
 
 RLAnimalUtil = {}
 
@@ -129,6 +128,41 @@ function RLAnimalUtil.toKeyFromIdentifiers(ids)
     end
 
     return RLAnimalUtil.toKey(ids.farmId, ids.uniqueId, country)
+end
+
+
+--- Resolve the cluster id that the AnimalLoad/UnloadEvent wire + getClusterById lookup
+--- expect for a cluster. An RLRM individual (isIndividual ~= nil) resolves to its 3-part
+--- identity toKey - NOT animal.id, which is the never-updated placeholder "0-0" on every
+--- animal, so a raw id would resolve the FIRST match for a multi-animal unload. A vanilla
+--- AnimalCluster (isIndividual == nil) keeps its numeric cluster.id (parity with the legacy
+--- getClusterId expression; unreachable in the world-trailer flow, where every rideable is
+--- converted to an individual before listing). The RAW birthday.country deref keeps the
+--- produced key byte-identical to what getClusterById's own toKey scan matches; a nil
+--- birthday on an individual is fail-closed (nil + warning) so a malformed animal drops
+--- rather than crashing on birthday.country.
+---@param cluster table|nil Animal (individual) or vanilla AnimalCluster
+---@return string|number|nil id toKey for an individual, cluster.id for a vanilla cluster, nil when unresolvable
+function RLAnimalUtil.resolveClusterId(cluster)
+    if cluster == nil then
+        Log:warning("RLAnimalUtil.resolveClusterId: nil cluster -> nil")
+        return nil
+    end
+
+    if cluster.isIndividual == nil then
+        Log:trace("RLAnimalUtil.resolveClusterId: vanilla cluster -> id=%s", tostring(cluster.id))
+        return cluster.id
+    end
+
+    if cluster.birthday == nil or cluster.farmId == nil or cluster.uniqueId == nil then
+        Log:warning("RLAnimalUtil.resolveClusterId: individual missing an identity field (farmId=%s, uniqueId=%s, birthday=%s) -> nil",
+            tostring(cluster.farmId), tostring(cluster.uniqueId), tostring(cluster.birthday))
+        return nil
+    end
+
+    local id = RLAnimalUtil.toKey(cluster.farmId, cluster.uniqueId, cluster.birthday.country)
+    Log:trace("RLAnimalUtil.resolveClusterId: individual -> toKey=%s", tostring(id))
+    return id
 end
 
 

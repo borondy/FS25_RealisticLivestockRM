@@ -307,7 +307,7 @@ AnimalClusterSystem.getClusterById = Utils.overwrittenFunction(AnimalClusterSyst
 
 --- Add an animal to self.animals (local-only). External callers MUST go
 --- through addPendingAddCluster + updateNow; the only callers of this method are now
---- updateClusters' queue-processing (lines 423/476/486/537) and readStream (line 222).
+--- updateClusters' queue-processing and readStream.
 --- Includes the invalid-uniqueId early-return guard before the table insert.
 --- @param superFunc function Overwritten-function predecessor (unused; replaced wholesale)
 --- @param animal table Animal entity to add (must have valid uniqueId)
@@ -330,7 +330,7 @@ AnimalClusterSystem.addCluster = Utils.overwrittenFunction(AnimalClusterSystem.a
 --- visualAnimalCount, removeHusbandryAnimal callback) still run per-animal and are
 --- order-independent (per-animal increments). External callers MUST go through
 --- addPendingRemoveCluster + updateNow; the only callers of this method are now
---- updateClusters' queue-processing (line 585) and readStream (line 233).
+--- updateClusters' queue-processing and readStream.
 --- Numeric out-of-range is a silent no-op. Non-numeric keys
 --- log Log:warning with stack trace for telemetry and no-op - the legacy string-key
 --- linear-scan branch was deleted (no remaining callers).
@@ -397,10 +397,10 @@ AnimalClusterSystem.removeCluster = Utils.overwrittenFunction(AnimalClusterSyste
 
 --- Process pending add/remove queues, rebuild idToIndex, and fire one
 --- AnimalClusterUpdateEvent broadcast + g_messageCenter publish per call gated on the
---- local isDirty accumulator. isDirty starts false at line 416 and is set to true when
---- work happens (queue processing at 424/477/487/538, per-animal animal.isDirty
---- consumption at 548-549, removal pass at 558); publish/broadcast tail runs after the
---- existing trailing self:updateIdMapping() at line 567 only when isDirty is true.
+--- local isDirty accumulator. isDirty starts false and is set to true when work
+--- happens (queue processing, per-animal animal.isDirty consumption, the removal
+--- pass); the publish/broadcast tail runs after the trailing
+--- self:updateIdMapping() call, only when isDirty is true.
 --- @param superFunc function Overwritten-function predecessor (unused; replaced wholesale)
 function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
 
@@ -580,7 +580,7 @@ function RealisticLivestock_AnimalClusterSystem:updateClusters(superFunc)
     local tIdMapMs = phaseDoneMs()
 
     -- Publish + broadcast tail. Gated on the local isDirty accumulator
-    -- (line 416) which captures per-animal animal.isDirty work plus add/remove
+    -- which captures per-animal animal.isDirty work plus add/remove
     -- activity. The direct self.owner:updatedClusters(...) call previously inside
     -- updateIdMapping is removed; the publish below triggers the existing
     -- AnimalClusterUpdateEvent subscriber installed by the husbandry placeable, so

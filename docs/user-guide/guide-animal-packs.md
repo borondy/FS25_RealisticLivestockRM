@@ -10,11 +10,11 @@ Animal packs are third-party mods that extend Realistic Livestock RM with new br
 
 There are two kinds of animal packs:
 
-**Balance packs** adjust numbers on existing breeds — prices, food consumption, production rates, reproduction timing. They don't add new breeds or change how animals look. A balance pack is a lightweight way to tweak the simulation to your preference.
+**Balance packs** adjust numbers on existing breeds -- prices, food consumption, production rates, reproduction timing. They don't add new breeds or change how animals look. A balance pack is a lightweight way to tweak the simulation to your preference.
 
 **Breed packs** add entirely new breeds with custom 3D models, textures, and store images. They can also include custom fill types and translations. A breed pack is a more substantial addition that introduces new animals to the game.
 
-Both types can be combined — a single pack might add new breeds and also adjust properties on existing ones.
+Both types can be combined -- a single pack might add new breeds and also adjust properties on existing ones.
 
 ---
 
@@ -51,7 +51,7 @@ How well packs work together depends on what kind of changes they make:
 
 ### Don't stack blindly
 
-Each pack adds complexity to the simulation. More packs does not automatically mean better gameplay — it means more moving parts that can interact in unexpected ways. Start with one pack, verify it works with your map and mod setup, then add more if needed.
+Each pack adds complexity to the simulation. More packs does not automatically mean better gameplay -- it means more moving parts that can interact in unexpected ways. Start with one pack, verify it works with your map and mod setup, then add more if needed.
 
 ### Test before committing
 
@@ -72,10 +72,10 @@ Try new packs in a test save first, especially breed packs. If something goes wr
 
 Check the game log for messages like:
 
-- `Animal pack 'Pack Name' DETECTED` — the pack was found
-- `Animal pack 'Pack Name' activated` — the pack loaded successfully
+- `Animal pack 'Pack Name' DETECTED` -- the pack was found
+- `Animal pack 'Pack Name' activated` -- the pack loaded successfully
 
-If the pack adds new breeds, they should appear in the animal dealer. Balance changes (prices, food consumption, etc.) take effect immediately with no visual indication — check the animal details screen to verify values match what you expect.
+If the pack adds new breeds, they should appear in the animal dealer. Balance changes (prices, food consumption, etc.) take effect immediately with no visual indication -- check the animal details screen to verify values match what you expect.
 
 ---
 
@@ -83,7 +83,7 @@ If the pack adds new breeds, they should appear in the animal dealer. Balance ch
 
 1. **Disable packs one at a time** to isolate which one causes the problem
 2. **Check the game log** for warnings or errors mentioning "MapBridge" or "Animal pack"
-3. **Report issues to the pack author**, not to RLRM — unless the problem persists with all packs disabled
+3. **Report issues to the pack author**, not to RLRM -- unless the problem persists with all packs disabled
 
 ---
 

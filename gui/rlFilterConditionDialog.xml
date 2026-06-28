@@ -177,10 +177,10 @@
     </GuiElement>
 
     <!--
-        Local dialog profiles. Element-level `with=` is silently ignored
-        by the GUI loader (see project memory reference_fs25_gui_gotchas)
-        - only profile-level `with=` traits are honored, so we have to
-        declare these here rather than override on the elements above.
+        Local dialog profiles. Element-level `with=` is silently ignored by
+        the GUI loader - only profile-level `with=` traits are honored, so
+        these have to be declared here rather than overridden on the
+        elements above.
     -->
     <GUIProfiles>
         <Profile name="rl_filterDialog_picker" extends="fs25_multiTextOption" with="anchorTopCenter">

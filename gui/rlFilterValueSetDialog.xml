@@ -105,8 +105,7 @@
 
     <!--
         Local profiles. Element-level `with=` is silently ignored by the GUI
-        loader (per reference_fs25_gui_gotchas memory); declare here so the
-        traits actually apply.
+        loader; declare here so the traits actually apply.
     -->
     <GUIProfiles>
         <!--

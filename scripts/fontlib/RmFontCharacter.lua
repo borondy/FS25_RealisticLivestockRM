@@ -1,6 +1,5 @@
 -- RmFontCharacter.lua
--- Stripped from FS25_FontLibrary by Arrow
--- Modified for RealisticLivestockRM - 3D text only
+-- Adapted from FS25_FontLibrary - 3D text subset only.
 
 RmFontCharacter = {}
 

@@ -30,7 +30,7 @@
 --     bypass dispatch so `run()` never re-fires another event.
 --   * `RLFilterService._send{Create,Update,Delete}Event` are swappable hooks
 --     so tests can capture payloads without a real network (mirrors
---     RLMessageService._sendDeleteEvent at [RLMessageService.lua:218]).
+--     RLMessageService._sendDeleteEvent).
 --
 -- Ownership contract:
 --   * Every boundary into/out of the registry performs a defensive deep
@@ -173,9 +173,9 @@ function RLFilterService:create(filter)
     filter.id = Utils.getUniqueId(filter, self.filtersById, RLFilterService.UNIQUE_ID_PREFIX)
     filter.version = filter.version or 1
 
-    -- Usage axis default: nil -> silent ANY (Locked Decision #3); non-nil ->
-    -- coerce-and-validate via RLFilterUsage.coerce (loud WARN on unknown
-    -- per #14 inbound-boundary policy).
+    -- Usage axis default: nil -> silent ANY on create; non-nil ->
+    -- coerce-and-validate via RLFilterUsage.coerce (loud WARN on unknown,
+    -- per the inbound-boundary policy documented in RLFilterUsage).
     if filter.usage == nil then
         filter.usage = RLFilterUsage.ANY
     else
@@ -213,9 +213,9 @@ end
 --- on success.
 ---
 --- Whole-object replacement contract: missing `payload.name`, `payload.expression`,
---- or `payload.usage` is rejected (per Locked Decision #14 renegotiated
---- 2026-05-17). Non-nil `payload.usage` with an unknown value is coerced
---- to `RLFilterUsage.ANY` with a WARNING (inbound-boundary semantics).
+--- or `payload.usage` is rejected. Non-nil `payload.usage` with an unknown
+--- value is coerced to `RLFilterUsage.ANY` with a WARNING (inbound-boundary
+--- semantics; see RLFilterUsage for the full boundary policy).
 ---
 --- After successful local mutation, dispatches `RLFilterUpdateEvent`
 --- via the `_sendUpdateEvent` hook.
@@ -268,7 +268,7 @@ function RLFilterService:update(id, payload)
         return nil
     end
     if payload.usage == nil then
-        Log:warning("RLFilterService:update: payload.usage is nil for id=%s; rejecting (whole-object replacement requires usage per Locked Decision #14 - silent widening on a scoping axis is data loss)",
+        Log:warning("RLFilterService:update: payload.usage is nil for id=%s; rejecting (whole-object replacement requires usage - silent widening on a scoping axis would be data loss)",
             tostring(id))
         return nil
     end
@@ -560,8 +560,7 @@ end
 --
 -- Production paths fire the corresponding RLFilter{Create,Update,Delete}Event
 -- via .sendEvent(). Tests can reassign these fields to capture payloads
--- without requiring a real network. Mirrors RLMessageService._sendDeleteEvent
--- at [RLMessageService.lua:218].
+-- without requiring a real network. Mirrors RLMessageService._sendDeleteEvent.
 --
 -- Nil-guards on the event class so service source-time ordering (service
 -- loaded before events in main.lua SECTION 11g) does not crash if a

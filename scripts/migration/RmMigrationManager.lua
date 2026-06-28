@@ -42,7 +42,7 @@ RmMigrationManager.KNOWN_INCOMPATIBLE_MODS = {
     { name = "FS25_MoreVisualAnimals",      severity = "block", reasonKey = nil },
     { name = "FS25_EnhancedLivestock",      severity = "block", reasonKey = nil },
     { name = "FS25_EnhancedAnimalSystem",   severity = "block", reasonKey = nil },
-    { name = "FS25_AnimalFoodCalculator",   severity = "warn",  reasonKey = "rl_mod_warn_FS25_AnimalFoodCalculator" },
+    { name = "FS25_AnimalFoodCalculator",   severity = "block", reasonKey = nil },
 }
 
 -- Global instance

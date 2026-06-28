@@ -6,8 +6,7 @@
       * group into SmoothList sections (per-subtype; no "Diseased" section -
         AI stock bulls are never sick in normal play)
       * overall-quality label computation for the row (carries forward legacy
-        behavior at AnimalScreen.lua:2200-2217 - overall-quality label in
-        the "price" slot of each row)
+        behavior - the overall-quality label in the "price" slot of each row)
       * per-quantity semen price computation for the middle-column display
         (Phase 1 uses quantity = 1; Phase 2 wires the quantity stepper)
 
@@ -37,7 +36,7 @@ end
 --- Return every registered animal species (cow / pig / sheep & goats / horse /
 --- chicken), sorted ascending by typeIndex for deterministic ordering.
 ---
---- Legacy AI screen at AnimalScreen.lua:508-518 uses a `pairs()` loop which
+--- The legacy AI screen uses a `pairs()` loop which
 --- does NOT guarantee order across Lua versions - Lua 5.1's pairs happens to
 --- iterate integer-keyed tables in insertion order for this specific table
 --- shape, so legacy's output happens to match typeIndex-ascending in practice.
@@ -94,8 +93,8 @@ function RLAIStockService._wrapBull(animal)
 end
 
 --- Return AI-stock items for the given species, sorted by subTypeIndex
---- ascending then age descending (mirrors legacy comparator at
---- AnimalScreen.lua:511). Empty for unknown / empty species.
+--- ascending then age descending (mirrors the legacy comparator). Empty for
+--- unknown / empty species.
 --- @param typeIndex number
 --- @return table items
 function RLAIStockService.listBullsForSpecies(typeIndex)
@@ -126,7 +125,7 @@ function RLAIStockService.listBullsForSpecies(typeIndex)
         end
     end
 
-    -- Legacy comparator at AnimalScreen.lua:511:
+    -- Legacy comparator:
     --   (a.subTypeIndex == b.subTypeIndex) and (a.age > b.age) or (a.subTypeIndex < b.subTypeIndex)
     -- Same subtype -> older first; different subtype -> lower subtype first.
     table.sort(items, function(a, b)
@@ -214,9 +213,9 @@ end
 -- =============================================================================
 
 --- Compute the overall-quality i18n key for a bull based on its average
---- genetics. Thresholds and label strings mirror legacy exactly at
---- AnimalScreen.lua:2200-2215 - the same computation legacy writes into the
---- row's "price" cell via `cell:getAttribute("price"):setText(...)`.
+--- genetics. Thresholds and label strings mirror legacy exactly - the same
+--- computation legacy writes into the row's "price" cell via
+--- `cell:getAttribute("price"):setText(...)`.
 ---
 ---   avgGenetics >= 1.65 -> extremelyGood
 ---   avgGenetics >= 1.35 -> veryGood
@@ -271,7 +270,7 @@ end
 
 --- Compute the total semen purchase price for the given bull and straw
 --- quantity. Returns the FINAL price including PRICE_PER_STRAW - not an
---- intermediate. Matches `AnimalScreen.lua:547` ordering verbatim:
+--- intermediate. Matches the legacy price-formula ordering verbatim:
 ---
 ---   price = getFarmSemenPrice(country, farmId)
 ---         * quantity
@@ -280,8 +279,8 @@ end
 ---         * 2.25
 ---         * product(animal.genetics)
 ---
---- Legacy has a second display-side computation at `AnimalScreen.lua:699 + 703`
---- that splits PRICE_PER_STRAW into the `setText` call; math is equivalent,
+--- Legacy has a second display-side computation that splits PRICE_PER_STRAW
+--- into the `setText` call; math is equivalent,
 --- but this service returns the complete price for clarity. Phase 1 callers
 --- pass quantity = 1; Phase 2 wires the stepper to call with any DEWAR_QUANTITIES
 --- value.
@@ -328,12 +327,12 @@ function RLAIStockService.getPriceForQuantity(animal, quantity)
 end
 
 -- =============================================================================
--- Favourite toggle (local-only; mirrors legacy AnimalScreen.lua:708-726)
+-- Favourite toggle (local-only; mirrors the legacy favourite handler)
 -- =============================================================================
 
 --- Toggle the local player's favourite mark on an AI-stock bull.
 ---
---- Legacy parity (AnimalScreen.lua:708-726): the favourite bit is stored on
+--- Legacy parity: the favourite bit is stored on
 --- animal.favouritedBy[uid] and never network-synced, so a rejoining client
 --- loses its favourites. MP persistence gap tracked separately; it is OUT
 --- OF SCOPE for this release.
@@ -367,8 +366,8 @@ function RLAIStockService.toggleFavourite(animal)
         animal.favouritedBy = {}
     end
 
-    -- Collapse legacy's three-branch nil/true/false logic (AnimalScreen.lua:716-720)
-    -- into one write. Both nil -> true and false -> true land on true; true -> false.
+    -- Collapse legacy's three-branch nil/true/false logic into one write.
+    -- Both nil -> true and false -> true land on true; true -> false.
     local newState = not (animal.favouritedBy[uniqueId] == true)
     animal.favouritedBy[uniqueId] = newState
 
@@ -381,9 +380,9 @@ end
 
 --- Resolve the Favourite button's i18n key for the given favourite state.
 --- Shared by selection-change (read) and toggle (post-write) call sites so
---- both fall through the same mapping. Mirrors the label choice in legacy
---- AnimalScreen.lua:645 (the only site legacy gets right; the toggle site
---- at line 722 is a latent bug we deliberately do not replicate).
+--- both fall through the same mapping. Mirrors the label choice in the legacy
+--- selection handler (the only site legacy gets right; the legacy toggle site
+--- has a latent bug we deliberately do not replicate).
 --- @param isFavourite boolean|nil
 --- @return string i18nKey  Pass to g_i18n:getText
 function RLAIStockService.getFavouriteButtonText(isFavourite)

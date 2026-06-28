@@ -22,6 +22,13 @@ function RLConsoleCommandManager.new()
         addConsoleCommand("rlFilterCreate", "Create a sample saveable filter (age>=48 AND isPregnant==false, COW/farm 1)", "createFilter", self, "[name]")
         addConsoleCommand("rlFilterList", "List all saveable filters currently in memory", "listFilters", self, "")
         addConsoleCommand("rlFilterClear", "Clear all saveable filters (SP diagnostic only)", "clearFilters", self, "")
+        -- Herdsman rules -- dev seed/inspect for the new menu (M-Frame) until the
+        -- F7 action bar provides a create UI. The frame reads the real
+        -- g_rlHerdsmanRuleService, so seeded rules drive F3 list / F4 detail / F7
+        -- actions and persist + sync like real rules.
+        addConsoleCommand("rlHerdsmanRuleCreate", "Seed a few disabled herdsman rules (sell/buy/ai x2, farm 1) for menu dev", "createHerdsmanRules", self, "")
+        addConsoleCommand("rlHerdsmanRuleList", "List all herdsman rules currently in memory", "listHerdsmanRules", self, "")
+        addConsoleCommand("rlHerdsmanRuleClear", "Clear all herdsman rules (SP diagnostic only)", "clearHerdsmanRules", self, "")
         -- Engine cap probe: requires writing to engine husbandries, server-side only.
         addConsoleCommand("rlTestAnimalConfigCap", "Probe engine per-type config slot cap by calling addHusbandryAnimal idx 0..127 on each active husbandry", "testAnimalConfigCap", self, "[maxIdx]")
         addConsoleCommand("rlTestAnimalConfigCapFresh", "Probe whether a fresh createAnimalHusbandry call (different XML / different typeName) gets its own 32-window. Requires AnimalCapProbe pack with heritage config.", "testAnimalConfigCapFresh", self, "[maxIdx]")
@@ -49,9 +56,6 @@ end
 --- idx = 0..maxIdx on one active husbandry per animal type. Spawned visual
 --- animals are removed before the handler returns; cluster bookkeeping is
 --- never mutated.
----
---- Calls the same engine primitive as basegame AnimalClusterHusbandry:191
---- and RLRM RealisticLivestock_AnimalClusterHusbandry:201/241/248.
 ---
 --- Pair with the FS25_AnimalCapProbe RLRM pack to push every per-type config
 --- past 32 slots so the cap can be observed.
@@ -166,8 +170,8 @@ end
 ---
 --- Both legs:
 ---   - borrow navNode, raycastDistance, collisionMask from an active COW placeable's clusterHusbandry
----   - call createAnimalHusbandry directly (same engine primitive as
----     RealisticLivestock_AnimalClusterHusbandry:create:26)
+---   - call createAnimalHusbandry directly (same engine primitive
+---     RealisticLivestock_AnimalClusterHusbandry:create uses)
 ---   - probe addHusbandryAnimal idx 0..maxIdx on the new husbandry
 ---   - cleanup: removeHusbandryAnimal each spawned + delete(husbandryId)
 ---
@@ -563,5 +567,111 @@ function RLConsoleCommandManager:clearFilters()
 	g_rlFilterService:clear()
 	Log:info("rlFilterClear: cleared %d filters from in-memory registry", before)
 	return string.format("rlFilterClear: cleared %d filters", before)
+
+end
+
+
+-- =============================================================================
+-- Herdsman rules -- dev seed/inspect for menu development (mirror the filter
+-- commands). The Herdsman frame (M-Frame) reads g_rlHerdsmanRuleService, but no
+-- create UI exists until F7, so these seed/inspect the registry. Superseded when
+-- F7 ships the action bar. SP-only via the outer registration guard.
+-- =============================================================================
+
+
+--- Seed a few disabled herdsman rules (sell/buy/ai x2, farm 1) so the Herdsman
+--- menu has data to render before the F7 create UI exists. Two AI rules prove the
+--- within-section alpha sort ("AI backup" sorts before "Breed top tier"). All
+--- enabled=false so the (future) day-tick stays inert. Routes through the real
+--- g_rlHerdsmanRuleService:create -> CRUD event -> persist + MP sync.
+---@return string user-facing result
+function RLConsoleCommandManager:createHerdsmanRules()
+
+	if g_rlHerdsmanRuleService == nil then
+		return "rlHerdsmanRuleCreate: g_rlHerdsmanRuleService is nil (mod load order regression?)"
+	end
+
+	local Log = RmLogging.getLogger("RLRM")
+	-- Placeholder filterId: the floor accepts a nil filterId for non-naming operations
+	-- (an unfiltered draft), but the dev seeds carry a concrete placeholder so the rules
+	-- render with a filter summary. It need not resolve to a real saved filter for the
+	-- list to render; F4's filter summary will read "missing" until pointed at one.
+	local filterId = "rlHerdsmanDev_filter"
+	-- Per-operation params mirror the legacy AIAnimalManager defaults
+	-- (AIAnimalManager.new) so the rules pass RLHerdsmanRuleSerialization's
+	-- PARAMS_CODECS completeness gate and actually persist - the service validity
+	-- floor accepts empty params, but saveToXMLFile skips incomplete ones.
+	-- enabled=false keeps them inert regardless.
+	local seeds = {
+		{ name = "Cull old cows",   operation = "sell", params = { maxAnimals = 5, mark = false } },
+		{ name = "Restock heifers", operation = "buy",  params = { maxAnimals = 5, budget = { type = "fixed", fixed = 5000, percentage = 1 } } },
+		{ name = "Breed top tier",  operation = "ai",   params = { maxAnimals = 5, mark = false, semen = "any" } },
+		{ name = "AI backup",       operation = "ai",   params = { maxAnimals = 5, mark = false, semen = "any" } },
+	}
+
+	local created = 0
+	for _, s in ipairs(seeds) do
+		local rule = g_rlHerdsmanRuleService:create({
+			name              = s.name,
+			operation         = s.operation,
+			farmId            = 1,
+			enabled           = false,
+			params            = s.params,
+			targetHusbandries = {},
+			filterId          = filterId,
+		})
+		if rule ~= nil then created = created + 1 end
+	end
+
+	Log:info("rlHerdsmanRuleCreate: created %d rule(s) (total=%d)", created, #g_rlHerdsmanRuleService:list())
+	return string.format("rlHerdsmanRuleCreate: ok, %d rule(s) created", created)
+
+end
+
+
+--- Dump every herdsman rule currently held by the service. One line per rule,
+--- plus a total at the end. Readable in the dev console and the log.
+---@return string user-facing result
+function RLConsoleCommandManager:listHerdsmanRules()
+
+	if g_rlHerdsmanRuleService == nil then
+		return "rlHerdsmanRuleList: g_rlHerdsmanRuleService is nil (mod load order regression?)"
+	end
+
+	local Log = RmLogging.getLogger("RLRM")
+	local rules = g_rlHerdsmanRuleService:list()
+
+	if #rules == 0 then
+		Log:info("rlHerdsmanRuleList: no rules in memory")
+		return "rlHerdsmanRuleList: 0 rules"
+	end
+
+	for _, r in ipairs(rules) do
+		local line = string.format("|--- id=%s name=%s operation=%s farmId=%s enabled=%s filterId=%s",
+			tostring(r.id), tostring(r.name), tostring(r.operation), tostring(r.farmId),
+			tostring(r.enabled), tostring(r.filterId))
+		print(line)
+		Log:info("rlHerdsmanRuleList: %s", line)
+	end
+
+	return string.format("rlHerdsmanRuleList: %d rules", #rules)
+
+end
+
+
+--- Wipe the in-memory herdsman rule registry. Does NOT touch the save file; the
+--- next save cycle persists the cleared state. SP-only via the outer guard.
+---@return string user-facing result
+function RLConsoleCommandManager:clearHerdsmanRules()
+
+	if g_rlHerdsmanRuleService == nil then
+		return "rlHerdsmanRuleClear: g_rlHerdsmanRuleService is nil (mod load order regression?)"
+	end
+
+	local Log = RmLogging.getLogger("RLRM")
+	local before = #g_rlHerdsmanRuleService:list()
+	g_rlHerdsmanRuleService:clear()
+	Log:info("rlHerdsmanRuleClear: cleared %d rules from in-memory registry", before)
+	return string.format("rlHerdsmanRuleClear: cleared %d rules", before)
 
 end

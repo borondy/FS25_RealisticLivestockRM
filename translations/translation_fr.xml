@@ -275,7 +275,7 @@
 <text name="rl_ui_favourite" text="Favori"/>
 <text name="rl_ui_unFavourite" text="Retirer des favoris"/>
 <text name="rl_ui_quantity" text="Quantité"/>
-<text name="rl_ui_dewar" text="Dewar"/>
+<text name="rl_ui_dewar" text="Réservoir Dewar"/>
 <text name="rl_ui_semenPurchase_successful" text="Semence achetée avec succès. Vous pouvez la récupérer au magasin"/>
 <text name="rl_ui_semenPurchase_successful_github" text="Semence achetée avec succès. Vous pouvez la récupérer au magasin"/>
 <text name="rl_ui_semenPurchase_unsuccessful" text="La semence n'a pas pu être achetée"/>
@@ -319,6 +319,7 @@
 <text name="rl_mark_aiManager_castrate" text="Marqué pour castration par l'éleveur"/>
 <text name="rl_mark_aiManager_disease" text="Marqué pour traitement par l'éleveur"/>
 <text name="rl_mark_aiManager_ai" text="Marqué pour insémination artificielle par l'éleveur"/>
+<text name="rl_mark_aiManager_move" text="Herdsman marked for moving"/>
 <text name="rl_mark_player" text="Marqué par le joueur"/>
 
 
@@ -677,6 +678,10 @@
 <text name="rl_message_aiManager_mark_ai_multiple" text="L'éleveur a marqué %s animaux pour insémination"/>
 <text name="rl_message_aiManager_ai_single" text="L'éleveur a inséminé 1 animal"/>
 <text name="rl_message_aiManager_ai_multiple" text="L'éleveur a inséminé %s animaux"/>
+<text name="rl_message_aiManager_movedAnimals_single" text="Le responsable d'élevage a déplacé 1 animal"/>
+<text name="rl_message_aiManager_movedAnimals_multiple" text="Le responsable d'élevage a déplacé %s animaux"/>
+<text name="rl_message_aiManager_mark_move_single" text="Le responsable d'élevage a marqué 1 animal pour déplacement"/>
+<text name="rl_message_aiManager_mark_move_multiple" text="Le responsable d'élevage a marqué %s animaux pour déplacement"/>
 
 		<!-- Messages de résumé quotidien -->
 <text name="rl_message_dailyBirthsSummary" text="%s animaux sont nés à %s"/>
@@ -684,6 +689,14 @@
 <text name="rl_message_dailySalesSummary" text="%s animaux vendus à %s pour %s"/>
 <text name="rl_message_dailyOvercrowdingSummary" text="Surpopulation : %s nouveau-nés vendus à %s pour %s"/>
 <text name="rl_message_dailyPurchasesSummary" text="%s animaux achetés à %s pour %s"/>
+<text name="rl_message_dailyCastrationsSummary" text="%s animaux castrés à %s"/>
+<text name="rl_message_dailyNamingsSummary" text="%s animaux nommés à %s"/>
+<text name="rl_message_dailyInseminationsSummary" text="%s animaux inséminés à %s"/>
+<text name="rl_message_dailyMarkSellSummary" text="%s animaux marqués pour la vente à %s"/>
+<text name="rl_message_dailyMarkCastrateSummary" text="%s animaux marqués pour la castration à %s"/>
+<text name="rl_message_dailyMarkInseminateSummary" text="%s animaux marqués pour l'insémination à %s"/>
+<text name="rl_message_dailyMovesSummary" text="%s animaux déplacés depuis %s"/>
+<text name="rl_message_dailyMarkMoveSummary" text="%s animaux marqués pour déplacement depuis %s"/>
 
 
 
@@ -712,9 +725,9 @@
 
 <text name="rl_bridge_version_unknown" text="Realistic Livestock : la version %s de %s n'a pas été testée avec la version %s de Realistic Livestock. Utilisation de la configuration '%s'. Si vous rencontrez des problèmes avec les animaux exotiques, veuillez les signaler à %s."/>
 <!-- TODO: localise -->
-<text name="rl_bridge_configoverride_conflict_header" text="Realistic Livestock: Conflict detected. Two or more bridges/packs replaced configuration for the same animal type. Last-loaded mod wins. If you continue you will have visual glitches and ghost animals."/>
+<text name="rl_bridge_configoverride_conflict_header" text="Realistic Livestock : Conflit détecté. Deux bridges/packs ou plus ont remplacé la configuration du même type d’animal. Le dernier mod chargé sera utilisé. Si vous continuez, vous aurez des bugs visuels et des animaux fantômes."/>
 <!-- TODO: localise -->
-<text name="rl_bridge_configoverride_conflict_line" text="%s: applied by %s"/>
+<text name="rl_bridge_configoverride_conflict_line" text="%s : appliqué par %s"/>
 
 		<!-- Menu à onglets RL -->
 <text name="input_RL_MENU" text="Ouvrir le menu RL (nouveau)"/>
@@ -753,6 +766,13 @@
 
 <!-- Onglet Déplacement -->
 <text name="rl_menu_move_title" text="Déplacer"/>
+<!-- Transfer tab -->
+<text name="rl_menu_transfer_title" text="Transfer"/>
+<text name="rl_menu_transfer_load" text="Load"/>
+<text name="rl_menu_transfer_unload" text="Unload"/>
+<text name="rl_menu_transfer_empty_no_animals" text="No animals on this side"/>
+<text name="rl_menu_transfer_counterpart" text="Destination"/>
+<text name="rl_menu_transfer_world" text="Nearby Animals"/>
 <text name="rl_menu_move_summary" text="%d animaux"/>
 
 <!-- Onglet Vente -->
@@ -774,58 +794,151 @@
 <text name="rl_menu_ai_price" text="Prix"/>
 <text name="rl_menu_ai_empty_no_stock" text="Aucun taureau disponible chez le marchand pour cette espèce"/>
 <text name="rl_menu_ai_empty_no_species" text="Aucune espèce animale enregistrée"/>
+<text name="rl_menu_herdsman_title" text="Responsable d'élevage"/>
+<text name="rl_menu_herdsman_detail_action" text="Action"/>
+<text name="rl_menu_herdsman_action_perform" text="Perform"/>
+<text name="rl_menu_herdsman_action_markOnly" text="Mark only"/>
+<text name="rl_menu_herdsman_action_perform_tooltip" text="The herdsman performs this task on matching animals."/>
+<text name="rl_menu_herdsman_action_markOnly_tooltip" text="The herdsman only flags matching animals - the task is not performed, at reduced wage."/>
+<text name="rl_menu_herdsman_operation_tooltip" text="The task the herdsman performs on matching animals."/>
+<text name="rl_menu_herdsman_name_tooltip" text="A name to identify this task."/>
+<text name="rl_menu_herdsman_filter_tooltip" text="The saved filter that decides which animals this task matches."/>
+<text name="rl_menu_herdsman_husbandries_tooltip" text="The husbandries this task runs in. Budget and limits apply to each one separately."/>
+<text name="rl_menu_herdsman_maxAnimals_sell_tooltip" text="The herdsman sells up to %s matching animals per day, in each selected husbandry."/>
+<text name="rl_menu_herdsman_maxAnimals_buy_tooltip" text="The herdsman buys up to %s matching animals per day, in each selected husbandry."/>
+<text name="rl_menu_herdsman_maxAnimals_ai_tooltip" text="The herdsman inseminates up to %s matching animals per day, in each selected husbandry."/>
+<text name="rl_menu_herdsman_maxAnimals_move_tooltip" text="The herdsman moves up to %s matching animals per day, in each selected husbandry."/>
+<text name="rl_menu_herdsman_budgetFixed_tooltip" text="The herdsman spends up to %s per day, in each selected husbandry."/>
+<text name="rl_menu_herdsman_budgetPercentage_tooltip" text="The herdsman spends up to %s of your farm's money per day, in each selected husbandry."/>
+<text name="rl_menu_herdsman_destination_tooltip" text="The husbandry the herdsman moves matching animals into."/>
+<text name="rl_menu_herdsman_enabled_move_tooltip" text="Whether the herdsman runs this move task each day."/>
+<text name="rl_menu_herdsman_empty" text="Aucune règle de responsable d'élevage pour le moment"/>
+<text name="rl_menu_herdsman_empty_editor" text="Sélectionnez une règle à modifier"/>
+<text name="rl_menu_herdsman_section_sell" text="Vente"/>
+<text name="rl_menu_herdsman_section_buy" text="Achat"/>
+<text name="rl_menu_herdsman_section_castrate" text="Castration"/>
+<text name="rl_menu_herdsman_section_naming" text="Nommage"/>
+<text name="rl_menu_herdsman_section_ai" text="Insémination artificielle"/>
+<text name="rl_menu_herdsman_detail_operation" text="Opération"/>
+<text name="rl_menu_herdsman_detail_enabled" text="Activé"/>
+<text name="rl_menu_herdsman_detail_convention" text="Convention de nommage"/>
+<text name="rl_menu_herdsman_detail_budgetfixed" text="Montant fixe"/>
+<text name="rl_menu_herdsman_detail_budgetpercentage" text="% de la valeur du troupeau"/>
+<text name="rl_menu_herdsman_detail_semen" text="Semence"/>
+<text name="rl_menu_herdsman_detail_husbandries" text="Élevages"/>
+<text name="rl_menu_herdsman_detail_none" text="(aucun)"/>
+<text name="rl_menu_herdsman_detail_missing" text="(manquant)"/>
+<text name="rl_menu_herdsman_filter_select" text="Sélectionner un filtre"/>
+<text name="rl_menu_herdsman_filter_picker_title" text="Sélectionner un filtre"/>
+<text name="rl_menu_herdsman_filter_picker_empty" text="Aucun filtre disponible pour cette opération."/>
+<text name="rl_menu_herdsman_husbandry_select" text="Sélectionner des élevages"/>
+<text name="rl_menu_herdsman_husbandry_count" text="%d sélectionné(s)"/>
+<text name="rl_menu_herdsman_husbandry_picker_title" text="Sélectionner des élevages"/>
+<text name="rl_menu_herdsman_husbandry_picker_empty" text="Aucun élevage disponible pour cette règle."/>
+<text name="rl_menu_herdsman_husbandry_emptyRejected" text="Sélectionnez au moins un élevage."/>
+<text name="rl_menu_herdsman_filter_picker_currentUnavailable" text="Le filtre actuel n'est pas disponible pour cette opération."/>
+			<text name="rl_menu_herdsman_section_move" text="Déplacement"/>
+			<text name="rl_menu_herdsman_detail_destination" text="Destination"/>
+			<text name="rl_menu_herdsman_destination_select" text="Sélectionner une destination"/>
+			<text name="rl_menu_herdsman_destination_picker_title" text="Sélectionner une destination"/>
+			<text name="rl_menu_herdsman_destination_picker_empty" text="Aucun élevage de destination disponible pour cette règle."/>
+			<text name="rl_menu_herdsman_destination_picker_currentUnavailable" text="La destination actuelle n'est pas disponible pour cette règle."/>
 
 <!-- Clés manquantes (retour anglais) -->
 <text name="input_RL_RENAME" text="Renommer"/>
-<text name="input_RL_CYCLE_FILTER" text="Cycle Saved Filter"/>
-<text name="rl_mod_warn_title" text="Mod Compatibility Warning"/>
-<text name="rl_mod_warn_message" text="The following mod(s) loaded with Realistic Livestock RM may cause issues:%s&#10;&#10;See %s for details. The game will continue."/>
+<text name="input_RL_CYCLE_FILTER" text="Changer le filtre sauvegardé"/>
+<text name="rl_mod_warn_title" text="Avertissement de compatibilité des mods"/>
+<text name="rl_mod_warn_message" text="Les mods suivants chargés avec Realistic Livestock RM peuvent provoquer des problèmes :%s&#10;&#10;Voir %s pour plus de détails. Le jeu continuera."/>
 <text name="rl_mod_compat_url" text="https://rittermod.github.io/FS25_RealisticLivestockRM/user-guide/reference-mod-compatibility"/>
-<text name="rl_mod_warn_FS25_AnimalFoodCalculator" text="FS25_AnimalFoodCalculator: significant performance impact that grows with herd size."/>
+<text name="rl_mod_warn_FS25_AnimalFoodCalculator" text="FS25_AnimalFoodCalculator : impact significatif sur les performances qui augmente avec la taille du troupeau."/>
 
 <!-- Settings tab shell (English fallback) -->
-<text name="rl_menu_settings_title" text="Settings"/>
-<text name="rl_menu_settings_tab_general" text="General"/>
-<text name="rl_menu_settings_tab_filters" text="Filters"/>
+<text name="rl_menu_settings_title" text="Paramètres"/>
+<text name="rl_menu_settings_tab_general" text="Général"/>
+<text name="rl_menu_settings_tab_filters" text="Filtres"/>
 
 <!-- Filters tab list -->
-<text name="rl_menu_filters_quick_filter_title" text="Quick filter"/>
-<text name="rl_ui_qf_saveFilter" text="Save filter"/>
-<text name="rl_ui_qf_saveDropsValue" text="Saved filters don't support Value; this condition will not be carried over."/>
-<text name="rl_menu_filters_empty" text="No saved filters yet"/>
-<text name="rl_menu_filters_empty_no_farm" text="You need a farm to save filters"/>
-<text name="rl_menu_filters_new_button" text="New filter"/>
-<text name="rl_menu_filters_default_name" text="New filter"/>
-<text name="rl_menu_filters_detail_placeholder" text="To be implemented"/>
+<text name="rl_menu_filters_quick_filter_title" text="Filtre rapide"/>
+<text name="rl_ui_qf_saveFilter" text="Enregistrer le filtre"/>
+<text name="rl_ui_qf_saveDropsValue" text="Les filtres enregistrés ne prennent pas en charge la valeur ; cette condition ne sera pas conservée."/>
+<text name="rl_menu_filters_empty" text="Aucun filtre sauvegardé pour le moment"/>
+<text name="rl_menu_filters_empty_no_farm" text="Vous devez posséder une ferme pour sauvegarder des filtres"/>
+<text name="rl_menu_filters_new_button" text="Nouveau filtre"/>
+<text name="rl_menu_filters_default_name" text="Nouveau filtre"/>
+<text name="rl_menu_filters_detail_placeholder" text="À implémenter"/>
 		<!-- Editor + Duplicate/Delete (English fallback) -->
-		<text name="rl_menu_filters_empty_editor" text="Select a filter to edit"/>
-		<text name="rl_menu_filters_editor_title_name" text="Name"/>
-		<text name="rl_menu_filters_editor_title_animal_type" text="Animal type"/>
+		<text name="rl_menu_filters_empty_editor" text="Sélectionnez un filtre à modifier"/>
+		<text name="rl_menu_filters_editor_title_name" text="Nom"/>
+		<text name="rl_menu_filters_editor_title_animal_type" text="Type d’animal"/>
 		<text name="rl_menu_filters_editor_title_op" text="Conditions"/>
-		<text name="rl_menu_filters_animal_type_any" text="Any"/>
-		<text name="rl_menu_filters_op_and" text="Match ALL"/>
-		<text name="rl_menu_filters_op_or" text="Match ANY"/>
-		<text name="rl_menu_filters_add_group_not_implemented" text="Add group is not yet implemented in this version."/>
-		<text name="rl_menu_filters_duplicate_button" text="Duplicate"/>
-		<text name="rl_menu_filters_delete_button" text="Delete"/>
-		<text name="rl_menu_filters_duplicate_suffix" text=" (copy)"/>
-		<text name="rl_menu_filters_duplicate_suffix_n" text=" (copy %d)"/>
-		<text name="rl_menu_filters_delete_confirm_text" text="Delete filter &quot;%s&quot;? This cannot be undone."/>
+		<text name="rl_menu_filters_animal_type_any" text="Tous"/>
+		<text name="rl_menu_filters_op_and" text="Correspond à TOUS"/>
+		<text name="rl_menu_filters_op_or" text="Correspond à AU MOINS UN"/>
+		<text name="rl_menu_filters_add_group_not_implemented" text="L’ajout de groupe n’est pas encore implémenté dans cette version."/>
+		<text name="rl_menu_filters_duplicate_button" text="Dupliquer"/>
+		<text name="rl_menu_filters_delete_button" text="Supprimer"/>
+		<text name="rl_menu_filters_duplicate_suffix" text=" (copie)"/>
+		<text name="rl_menu_filters_duplicate_suffix_n" text=" (copie %d)"/>
+		<text name="rl_menu_filters_delete_confirm_text" text="Supprimer le filtre &quot;%s&quot; ? Cette action est irréversible."/>
 		<!-- Usage scope axis -->
-		<text name="rl_menu_filters_editor_title_usage" text="Show on"/>
-		<text name="rl_menu_filters_usage_any" text="All screens"/>
-		<text name="rl_menu_filters_usage_owned" text="Owned-herd screens"/>
-		<text name="rl_menu_filters_usage_dealer" text="Dealer screens"/>
-		<text name="rl_menu_filters_valueOutOfRange_both" text="Value must be between %d and %d"/>
-		<text name="rl_menu_filters_valueOutOfRange_min" text="Value must be at least %d"/>
-		<text name="rl_menu_filters_valueOutOfRange_max" text="Value must be at most %d"/>
+		<text name="rl_menu_filters_editor_title_usage" text="Afficher sur"/>
+		<text name="rl_menu_filters_usage_any" text="Tous les écrans"/>
+		<text name="rl_menu_filters_usage_owned" text="Écrans du troupeau possédé"/>
+		<text name="rl_menu_filters_usage_dealer" text="Écrans du concessionnaire"/>
+		<text name="rl_menu_filters_valueOutOfRange_both" text="La valeur doit être comprise entre %d et %d"/>
+		<text name="rl_menu_filters_valueOutOfRange_min" text="La valeur doit être au moins de %d"/>
+		<text name="rl_menu_filters_valueOutOfRange_max" text="La valeur doit être au maximum de %d"/>
 
 <!-- Filter cycle + chip MVP -->
-<text name="rl_menu_filter_chip_none" text="No filter"/>
-<text name="rl_menu_filter_chip_active" text="Filter: %s"/>
-<text name="rl_menu_filter_chip_quick" text="Filter: QF"/>
-<text name="rl_menu_filter_chip_quick_plus_saved" text="Filter: QF + %s"/>
-<text name="rl_menu_cycle_filter_button" text="Cycle filter"/>
-<text name="rl_menu_filter_chip_unnamed" text="(unnamed)"/>
+<text name="rl_menu_filter_chip_none" text="Aucun filtre"/>
+<text name="rl_menu_filter_chip_active" text="Filtre : %s"/>
+<text name="rl_menu_filter_chip_quick" text="Filtre : QF"/>
+<text name="rl_menu_filter_chip_quick_plus_saved" text="Filtre : QF + %s"/>
+<text name="rl_menu_cycle_filter_button" text="Changer de filtre"/>
+<text name="rl_menu_filter_chip_unnamed" text="(sans nom)"/>
+		<!-- Herdsman rule lifecycle -->
+		<text name="rl_menu_herdsman_new_button" text="Nouvelle règle"/>
+		<text name="rl_menu_herdsman_duplicate_button" text="Dupliquer"/>
+		<text name="rl_menu_herdsman_delete_button" text="Supprimer"/>
+		<text name="rl_menu_herdsman_delete_confirm_text" text="Supprimer la règle &quot;%s&quot; ? Cette action est irréversible."/>
+		<text name="rl_menu_herdsman_default_name" text="Nouvelle règle"/>
+		<text name="rl_menu_herdsman_duplicate_suffix" text=" (copie)"/>
+		<text name="rl_menu_herdsman_duplicate_suffix_n" text=" (copie %d)"/>
+		<text name="rl_menu_herdsman_legacy_banner" text="Les tâches héritées du berger sont toujours actives. Désactivez-les sur l'écran des animaux pour éviter une exécution en double."/>
+		<!-- Filter condition editor (English fallback) -->
+		<text name="rl_menu_filters_add_condition" text="Ajouter une condition"/>
+		<text name="rl_menu_filters_add_group_button" text="Ajouter un groupe"/>
+		<text name="rl_menu_filters_edit_condition" text="Modifier la condition"/>
+		<text name="rl_menu_filters_delete_condition" text="Supprimer la condition"/>
+		<text name="rl_menu_filters_dialog_title" text="Modifier la condition"/>
+		<text name="rl_menu_filters_field_label" text="Champ"/>
+		<text name="rl_menu_filters_cmp_label" text="Comparer"/>
+		<text name="rl_menu_filters_value_label" text="Valeur"/>
+		<text name="rl_menu_filters_value_invalid_number" text="Nombre invalide"/>
+		<text name="rl_menu_filters_preserved_banner" text="%d condition(s) masquée(s) - modifiable(s) dans une phase ultérieure. Enregistré à la fermeture."/>
+		<text name="rl_menu_filters_field_age" text="Âge"/>
+		<text name="rl_menu_filters_field_isCastrated" text="Castré"/>
+		<text name="rl_menu_filters_field_isPregnant" text="Gestante"/>
+		<text name="rl_menu_filters_field_isLactating" text="En lactation"/>
+		<text name="rl_menu_filters_field_hasName" text="Possède un nom"/>
+		<text name="rl_menu_filters_field_hasAnyDisease" text="Possède une maladie"/>
+		<text name="rl_menu_filters_field_hasAnyMark" text="Possède un marquage"/>
+		<text name="rl_menu_filters_field_weight" text="Poids"/>
+		<text name="rl_menu_filters_field_health" text="Santé"/>
+		<text name="rl_menu_filters_field_genetics_metabolism" text="Génétique : métabolisme"/>
+		<text name="rl_menu_filters_field_genetics_health" text="Génétique : santé"/>
+		<text name="rl_menu_filters_field_genetics_fertility" text="Génétique : fertilité"/>
+		<text name="rl_menu_filters_field_genetics_quality" text="Génétique : qualité"/>
+		<text name="rl_menu_filters_field_genetics_productivity" text="Génétique : productivité"/>
+		<text name="rl_menu_filters_field_genetics_overall" text="Génétique : globale"/>
+		<text name="rl_menu_filters_gender_male" text="Mâle"/>
+		<text name="rl_menu_filters_gender_female" text="Femelle"/>
+		<text name="rl_menu_filters_emptyValueRejected" text="La valeur ne peut pas être vide"/>
+		<text name="rl_menu_filters_subtypeRequiresAnimalType" text="Définissez d'abord le type d'animal du filtre pour modifier cette condition"/>
+		<text name="rl_menu_filters_invalidNumber" text="Entrez un nombre valide"/>
+		<text name="rl_menu_filters_enumValueDrifted" text="La valeur enregistrée n'est plus valide - choisissez-en une autre"/>
+		<text name="rl_menu_filters_valueSet_title" text="Sélectionner des valeurs"/>
+		<text name="rl_menu_filters_valueSet_summary" text="%d sélectionné(s)"/>
+		<text name="rl_menu_filters_valueSet_button" text="Modifier les valeurs..."/>
 	</texts>
 </l10n>

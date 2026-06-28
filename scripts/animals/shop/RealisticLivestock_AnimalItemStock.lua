@@ -2,7 +2,7 @@ RealisticLivestock_AnimalItemStock = {}
 local mt = Class(AnimalItemStock)
 
 function RealisticLivestock_AnimalItemStock:getClusterId(_)
-    return self.cluster.isIndividual == nil and self.cluster.id or RLAnimalUtil.toKey(self.cluster.farmId, self.cluster.uniqueId, self.cluster.birthday.country)
+    return RLAnimalUtil.resolveClusterId(self.cluster)
 end
 
 AnimalItemStock.getClusterId = Utils.overwrittenFunction(AnimalItemStock.getClusterId, RealisticLivestock_AnimalItemStock.getClusterId)

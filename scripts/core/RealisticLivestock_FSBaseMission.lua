@@ -257,6 +257,9 @@ function RealisticLivestock_FSBaseMission:onStartMission()
     AnimalMoveDestinationDialog.register()
     RLFilterConditionDialog.register()
     RLFilterValueSetDialog.register()
+    RLHerdsmanFilterPickerDialog.register()
+    RLHerdsmanHusbandryPickerDialog.register()
+    RLHerdsmanDestinationPickerDialog.register()
     RmMigrationDialog.register()
 
     -- Mod-compatibility detection runs on every peer (g_modIsLoaded is authoritative
@@ -279,6 +282,7 @@ function RealisticLivestock_FSBaseMission:onStartMission()
     RLSettings.applyDefaultSettings()
     RLDebugUtils.dumpSettingsOnce()
     RLMessageAggregator.initialize()
+    RLHerdsmanDayTick.subscribe()
 
     local temp = self.environment.weather.temperatureUpdater.currentMin or 20
 	local isServer = self:getIsServer()
@@ -334,6 +338,8 @@ function RealisticLivestock_FSBaseMission:sendInitialClientState(connection, _, 
 	for _, setting in pairs(RLSettings.SETTINGS) do
 		if not setting.ignore then setting.state = setting.state or setting.default end
 	end
+
+    Log:debug("RealisticLivestock_FSBaseMission:sendInitialClientState: pushing full settings set to joining client (this is the server -> client re-push that defines what the client sees on join)")
 
     connection:sendEvent(RL_BroadcastSettingsEvent.new())
     connection:sendEvent(AnimalSystemStateEvent.new(animalSystem.countries, animalSystem.animals, animalSystem.aiAnimals))

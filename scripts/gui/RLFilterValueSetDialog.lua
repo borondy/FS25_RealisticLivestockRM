@@ -12,8 +12,6 @@
 -- focused row, MENU_ACTIVATE (Space) toggles-all. Action-bar buttons declare
 -- the input bindings via profile so the visible button text doubles as the
 -- input-help-bar prompt.
---
--- Author: Ritter
 
 local Log = RmLogging.getLogger("RLRM")
 
@@ -146,7 +144,7 @@ function RLFilterValueSetDialog:onOpen()
 
     -- Resolve display labels in lockstep with the domain so populateCell can
     -- index by row position. For the cross-species subType union, prepend
-    -- the animal-type i18n for cross-type disambiguation (per spec line 29).
+    -- the animal-type i18n for cross-type disambiguation.
     self.labels = {}
     for i, key in ipairs(self.domain) do
         self.labels[i] = self:_resolveLabel(key)
@@ -201,7 +199,7 @@ function RLFilterValueSetDialog:onOpen()
 end
 
 --- onClose: unregister any action events registered with self as target.
---- Mirrors EarTagColourPickerDialog.lua:113 cleanup pattern. Without this,
+--- Mirrors the EarTagColourPickerDialog cleanup pattern. Without this,
 --- the RL_SELECT binding leaks across dialog opens.
 function RLFilterValueSetDialog:onClose()
     RLFilterValueSetDialog:superClass().onClose(self)
@@ -271,7 +269,7 @@ function RLFilterValueSetDialog:getTitleForSectionHeader(_list, _section)
     return ""
 end
 
---- Populate one row. Mirrors RLMenuSellFrame.lua:927-944 verbatim for the
+--- Populate one row. Mirrors RLMenuSellFrame's row-populate verbatim for the
 --- checkbox wiring: check:setVisible reflects current state, and
 --- checkbox.onClickCallback toggles + re-renders without restoreSelection
 --- (SmoothList preserves focus across reloadData).
@@ -332,7 +330,7 @@ function RLFilterValueSetDialog:onClickSelect()
     self:_refreshSelectAllLabel()
     -- Reload to re-render checkmarks. Do NOT restoreSelection / setSelectedItem
     -- - SmoothList preserves focus across reloadData; calling restoreSelection
-    -- would reset focus to (1,1) (see RLMenuSellFrame.lua:717-719).
+    -- would reset focus to (1,1) (same reason RLMenuSellFrame avoids it).
     self.valueList:reloadData()
     Log:debug("RLFilterValueSetDialog:onClickSelect: key=%s -> %s",
         tostring(key), tostring(self.selected[key]))
@@ -349,8 +347,8 @@ function RLFilterValueSetDialog:_getSelectedCount()
 end
 
 --- Update the SELECT ALL / SELECT NONE button label to reflect the current
---- selection state. Mirrors RLMenuSellFrame's selectAllButtonInfo pattern
---- (sellFrame.lua:572-573): selected>0 -> "Select none", else "Select all".
+--- selection state. Mirrors RLMenuSellFrame's selectAllButtonInfo pattern:
+--- selected>0 -> "Select none", else "Select all".
 --- Translation keys both already shipped (sell-frame uses them).
 function RLFilterValueSetDialog:_refreshSelectAllLabel()
     if self.selectAllButton == nil or g_i18n == nil then return end
@@ -359,8 +357,8 @@ function RLFilterValueSetDialog:_refreshSelectAllLabel()
 end
 
 --- Toggle every row. If any row is currently selected, deselect all;
---- otherwise (zero selected) select all. Mirrors RLMenuSellFrame:onClickSelectAll
---- (sellFrame.lua:729-751): mixed states deselect first (one Space press
+--- otherwise (zero selected) select all. Mirrors RLMenuSellFrame:onClickSelectAll:
+--- mixed states deselect first (one Space press
 --- clears the list rather than committing to "all on" which a player
 --- mid-curation would not want). Triggered by MENU_ACTIVATE (Space) via the
 --- rlButtonMenuActivate profile, or by clicking the Select all button.

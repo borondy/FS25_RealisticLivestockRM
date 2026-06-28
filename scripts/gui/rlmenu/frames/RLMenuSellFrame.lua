@@ -200,13 +200,23 @@ function RLMenuSellFrame:onFrameClose()
     -- Export selection to shared state for sibling frames
     self:captureCurrentSelection()
     if g_rlMenu ~= nil then
+        -- In trailer-dealer context the trailer is overloaded into selectedHusbandry;
+        -- never export it into sharedSelection.husbandry (a sibling Buy/Info/Move frame
+        -- would resolve it as a husbandry via getAnimalTypeIndex / spec_*). Export ONLY a
+        -- real husbandry: a trailer lacks spec_husbandryAnimals, so this fails CLOSED even
+        -- when getTrailerDealerContext no longer resolves (trailer swapped/deleted before
+        -- close) - a live-context probe alone would leak a stale trailer.
+        local sharedHusbandry = self.selectedHusbandry
+        if sharedHusbandry ~= nil and sharedHusbandry.spec_husbandryAnimals == nil then
+            sharedHusbandry = nil
+        end
         g_rlMenu.sharedSelection = {
-            husbandry      = self.selectedHusbandry,
+            husbandry      = sharedHusbandry,
             animalIdentity = self.selectedIdentity,
             activeFilterId = self.activeFilterId,
         }
         Log:debug("RLMenuSellFrame:onFrameClose: exported shared selection (husbandry=%s animal=%s/%s filter=%s)",
-            tostring(self.selectedHusbandry ~= nil and self.selectedHusbandry:getName() or "nil"),
+            tostring(sharedHusbandry ~= nil and sharedHusbandry:getName() or "nil"),
             tostring(self.selectedIdentity and self.selectedIdentity.farmId),
             tostring(self.selectedIdentity and self.selectedIdentity.uniqueId),
             tostring(self.activeFilterId))
@@ -247,6 +257,39 @@ end
 
 --- Repopulate the husbandry selector + dot indicators for the player's farm.
 function RLMenuSellFrame:refreshHusbandries()
+    -- Trailer-dealer context: the single source is the held trailer, labelled with
+    -- the capacity suffix. Collapse the sidebar to one entry, hide the dot
+    -- box, and let onHusbandryChanged(1) assign selectedHusbandry = trailer. Do NOT
+    -- consult g_rlMenu.sharedSelection (it keys husbandries by placeable; the trailer
+    -- is not in it).
+    local trailer = self:getTrailerDealerContext()
+    if trailer ~= nil then
+        self.farmId = RLAnimalInfoService.getCurrentFarmId()
+        self.sortedHusbandries = { trailer }
+
+        if self.subCategoryDotBox ~= nil then
+            for i, dot in pairs(self.subCategoryDotBox.elements) do
+                dot:delete()
+                self.subCategoryDotBox.elements[i] = nil
+            end
+            self.subCategoryDotBox:setVisible(false)
+        end
+        if self.noHusbandriesText ~= nil then self.noHusbandriesText:setVisible(false) end
+
+        local d = RLTrailerEndpointService.getDisplayData(trailer)
+        local label = RLTransferAdapter.formatCapacityLabel(d.name, d.used, d.total)
+        Log:debug("RLMenuSellFrame:refreshHusbandries: trailer-dealer source '%s' (%d/%d)",
+            d.name, d.used, d.total)
+
+        if self.subCategorySelector ~= nil then
+            self.subCategorySelector:setTexts({ label })
+            self.subCategorySelector:setState(1, true)
+        else
+            self:onHusbandryChanged(1)
+        end
+        return
+    end
+
     local farmId = RLAnimalInfoService.getCurrentFarmId()
     self.farmId = farmId
 
@@ -270,8 +313,8 @@ function RLMenuSellFrame:refreshHusbandries()
         self.items = {}
         self.selectedAnimals = {}
         -- Clear section state BEFORE reloadData so SmoothList's section-count
-        -- callback does not read stale keys from a prior populated husbandry.
-        -- Mirrors the fix applied to RLMenuBuyFrame:refreshTypes on 2026-04-18.
+        -- callback does not read stale keys from a prior populated husbandry
+        -- (mirrors the equivalent reset in RLMenuBuyFrame:refreshTypes).
         self.sectionOrder    = {}
         self.itemsBySection  = {}
         self.titlesBySection = {}
@@ -392,7 +435,11 @@ function RLMenuSellFrame:onListSelectionChanged(list, section, index)
         return
     end
 
-    RLDetailPaneHelper.updateAnimalDisplay(self, item.cluster, self.selectedHusbandry)
+    -- Trailer-dealer context: the animal detail needs no husbandry; pass nil so a
+    -- trailer is never resolved as a husbandry (the helper tolerates nil).
+    local detailHusbandry = self.selectedHusbandry
+    if self:getTrailerDealerContext() ~= nil then detailHusbandry = nil end
+    RLDetailPaneHelper.updateAnimalDisplay(self, item.cluster, detailHusbandry)
     self:updateButtonVisibility()
 end
 
@@ -411,8 +458,14 @@ end
 ---@return table sellable base after dropping cluster:getCanBeSold()==false
 ---@return table narrowed sellable after saved-filter layer
 function RLMenuSellFrame:buildDialogSourceList()
-    if self.selectedHusbandry == nil then return {}, {}, {} end
-    local base = RLAnimalQuery.listAnimalsForHusbandry(self.selectedHusbandry, nil)
+    local base
+    if self:getTrailerDealerContext() ~= nil then
+        base = self:buildTrailerSellItems()
+    elseif self.selectedHusbandry == nil then
+        return {}, {}, {}
+    else
+        base = RLAnimalQuery.listAnimalsForHusbandry(self.selectedHusbandry, nil)
+    end
     local sellable = {}
     for _, item in ipairs(base) do
         if item.cluster ~= nil and item.cluster:getCanBeSold() then
@@ -430,7 +483,20 @@ function RLMenuSellFrame:reloadAnimalList()
     Log:trace("RLMenuSellFrame:reloadAnimalList: begin")
     self:captureCurrentSelection()
 
-    if self.selectedHusbandry == nil then
+    if self:getTrailerDealerContext() ~= nil then
+        -- Trailer source: wrap the trailer's live contents, then reproduce the
+        -- sort + Quick (ad-hoc) filter the husbandry path applies INSIDE
+        -- listAnimalsForHusbandry (RLAnimalQuery.lua), so the Quick filter still
+        -- narrows the trailer list and section grouping order matches.
+        self.items = self:buildTrailerSellItems()
+        if RL_AnimalScreenBase ~= nil and RL_AnimalScreenBase.sortAnimals ~= nil then
+            table.sort(self.items, RL_AnimalScreenBase.sortAnimals)
+        end
+        if next(self.filters) ~= nil
+            and AnimalFilterDialog ~= nil and AnimalFilterDialog.applyFilters ~= nil then
+            self.items = AnimalFilterDialog.applyFilters(self.items, self.filters, false)
+        end
+    elseif self.selectedHusbandry == nil then
         self.items = {}
     else
         self.items = RLAnimalQuery.listAnimalsForHusbandry(self.selectedHusbandry, self.filters)
@@ -527,7 +593,10 @@ function RLMenuSellFrame:restoreSelection()
     if items == nil then return end
     local item = items[index]
     if item ~= nil and item.cluster ~= nil then
-        RLDetailPaneHelper.updateAnimalDisplay(self, item.cluster, self.selectedHusbandry)
+        -- Trailer-dealer context passes nil husbandry (same as onListSelectionChanged).
+        local detailHusbandry = self.selectedHusbandry
+        if self:getTrailerDealerContext() ~= nil then detailHusbandry = nil end
+        RLDetailPaneHelper.updateAnimalDisplay(self, item.cluster, detailHusbandry)
     end
 end
 
@@ -639,6 +708,15 @@ end
 --- the conditions/food XML was replaced with cart elements.
 function RLMenuSellFrame:updatePenHeader()
     if self.penBox == nil then return end
+
+    -- Trailer-dealer context: the sidebar already carries the trailer name +
+    -- capacity, and getHusbandryDisplay is husbandry-typed (a trailer must never
+    -- reach it). Hide the pen header without calling getHusbandryDisplay at all.
+    if self:getTrailerDealerContext() ~= nil then
+        self.penBox:setVisible(false)
+        Log:trace("RLMenuSellFrame:updatePenHeader: trailer-dealer context, pen header hidden (getHusbandryDisplay not called)")
+        return
+    end
 
     local display
     if self.selectedHusbandry ~= nil then
@@ -808,10 +886,9 @@ function RLMenuSellFrame:onClickFilter()
         return
     end
 
-    local animalTypeIndex
-    if self.selectedHusbandry.getAnimalTypeIndex ~= nil then
-        animalTypeIndex = self.selectedHusbandry:getAnimalTypeIndex()
-    end
+    -- Trailer-dealer context derives the filter-scope type from the trailer's
+    -- current-load lock; husbandry context from getAnimalTypeIndex.
+    local animalTypeIndex = self:resolveFilterTypeIndex()
 
     local base, sellable, narrowed = self:buildDialogSourceList()
     Log:debug("RLMenuSellFrame:onClickFilter: opening dialog (savedFilterId=%s, base=%d, sellable=%d, narrowed=%d, animalTypeIndex=%s)",
@@ -987,6 +1064,224 @@ end
 
 
 -- =============================================================================
+-- Trailer-dealer source
+-- =============================================================================
+-- When the Sell tab is open in MODE_TRAILER + dealer counterpart, the held
+-- livestock trailer becomes the single sell SOURCE (overloaded into
+-- self.selectedHusbandry so the existing dispatch path is reused unchanged).
+-- Every trailer-specific branch resolves through getTrailerDealerContext() so a
+-- torn-down / non-livestock ref falls back to the husbandry path.
+
+--- Resolve the held livestock trailer when the Sell tab is open in MODE_TRAILER
+--- + dealer counterpart, else nil. Fail-closed: returns the trailer ONLY when
+--- g_rlMenu is live, the open mode is MODE_TRAILER, the counterpart is
+--- TRAILER_DEALER, and trailerVehicle is a live livestock trailer (the same
+--- liveness gate RLMenu.openTrailerFromBridge uses). Mirrors
+--- RLMenuBuyFrame:getTrailerDealerContext.
+--- @return table|nil trailer The held livestock trailer in trailer-dealer context, or nil
+function RLMenuSellFrame:getTrailerDealerContext()
+    if g_rlMenu == nil
+        or g_rlMenu.openMode ~= RLMenu.MODE_TRAILER
+        or g_rlMenu.trailerCounterpart ~= RLMenu.TRAILER_DEALER then
+        Log:trace("RLMenuSellFrame:getTrailerDealerContext: not trailer-dealer context -> nil")
+        return nil
+    end
+
+    local trailer = g_rlMenu.trailerVehicle
+    if trailer == nil or trailer.spec_livestockTrailer == nil then
+        Log:trace("RLMenuSellFrame:getTrailerDealerContext: trailerVehicle nil or not a livestock trailer -> nil")
+        return nil
+    end
+
+    Log:trace("RLMenuSellFrame:getTrailerDealerContext: trailer-dealer context resolved")
+    return trailer
+end
+
+
+--- Whether a trailer cluster is a loadable animal (legacy initSourceItems
+--- parity). Rejects numAnimals < 1 and an unresolvable subTypeIndex. Reproduced
+--- as a Sell-frame method because the equivalent gate lives on RLMenuTransferFrame,
+--- not a shared module.
+--- @param ref table|nil a live cluster from RLTrailerEndpointService.getContents
+--- @return boolean loadable
+function RLMenuSellFrame:isLoadableTrailerCluster(ref)
+    if ref == nil then return false end
+
+    if ref.numAnimals ~= nil and ref.numAnimals < 1 then
+        Log:trace("RLMenuSellFrame:isLoadableTrailerCluster: skip numAnimals=%s", tostring(ref.numAnimals))
+        return false
+    end
+
+    local subTypeIndex = (ref.getSubTypeIndex ~= nil and ref:getSubTypeIndex()) or ref.subTypeIndex
+    if subTypeIndex == nil then
+        Log:trace("RLMenuSellFrame:isLoadableTrailerCluster: skip nil subTypeIndex")
+        return false
+    end
+
+    if g_currentMission ~= nil and g_currentMission.animalSystem ~= nil
+        and g_currentMission.animalSystem.getSubTypeByIndex ~= nil then
+        if g_currentMission.animalSystem:getSubTypeByIndex(subTypeIndex) == nil then
+            Log:trace("RLMenuSellFrame:isLoadableTrailerCluster: skip unresolvable subTypeIndex=%s",
+                tostring(subTypeIndex))
+            return false
+        end
+    end
+
+    return true
+end
+
+
+--- Wrap the held trailer's live contents into AnimalItemStock items for the Sell
+--- list, skipping non-loadable clusters. Mirrors RLMenuTransferFrame:buildTrailerItems
+--- (the loadability gate reproduced above). The existing getCanBeSold strip in
+--- reloadAnimalList runs AFTER this, so unsellable animals never list.
+--- @return table items
+function RLMenuSellFrame:buildTrailerSellItems()
+    local trailer = self:getTrailerDealerContext()
+    if trailer == nil then
+        Log:trace("RLMenuSellFrame:buildTrailerSellItems: no trailer context -> {}")
+        return {}
+    end
+
+    local refs = RLTrailerEndpointService.getContents(trailer)
+    local items = {}
+    local skipped = 0
+    for _, ref in ipairs(refs) do
+        if self:isLoadableTrailerCluster(ref) then
+            local wrapped = RLAnimalQuery._wrapCluster(ref)
+            if wrapped ~= nil then
+                items[#items + 1] = wrapped
+            else
+                skipped = skipped + 1
+            end
+        else
+            skipped = skipped + 1
+        end
+    end
+    Log:debug("RLMenuSellFrame:buildTrailerSellItems: %d item(s), %d skipped (invalid cluster)",
+        #items, skipped)
+    return items
+end
+
+
+--- Recompute the single trailer-source sidebar entry's `(used/total)` suffix in
+--- place after a sell, WITHOUT re-running refreshHusbandries (which would re-fire
+--- onHusbandryChanged(1) and clear selectedAnimals). No-op outside trailer context.
+function RLMenuSellFrame:updateTrailerSourceLabel()
+    local trailer = self:getTrailerDealerContext()
+    if trailer == nil or self.subCategorySelector == nil then return end
+
+    local d = RLTrailerEndpointService.getDisplayData(trailer)
+    local label = RLTransferAdapter.formatCapacityLabel(d.name, d.used, d.total)
+    self.subCategorySelector:setTexts({ label })
+    Log:debug("RLMenuSellFrame:updateTrailerSourceLabel: '%s' (%d/%d)", d.name, d.used, d.total)
+end
+
+
+--- Resolve the animal-type index for saved/Quick filter scope. In trailer-dealer
+--- context derive it from the trailer's current-load type lock (the trailer is
+--- type-locked when loaded); unlocked/empty -> nil (unscoped, no crash). Else the
+--- husbandry's getAnimalTypeIndex.
+--- @return number|nil animalTypeIndex
+function RLMenuSellFrame:resolveFilterTypeIndex()
+    local trailer = self:getTrailerDealerContext()
+    if trailer ~= nil then
+        local currentType = RLTrailerEndpointService.getCurrentType(trailer)
+        return currentType ~= nil and currentType.typeIndex or nil
+    end
+    if self.selectedHusbandry ~= nil and self.selectedHusbandry.getAnimalTypeIndex ~= nil then
+        return self.selectedHusbandry:getAnimalTypeIndex()
+    end
+    return nil
+end
+
+
+--- Clear all pending sell-flow state (cancel, error, or after dispatch). Preserves
+--- self.selectedAnimals (the bulk full-clear happens at confirm, not here).
+function RLMenuSellFrame:clearPendingSellState()
+    self.pendingSellAnimals = nil
+    self.pendingSellPrice = nil
+    self.pendingSellFee = nil
+    self.pendingSellIsTrailer = nil
+    self.pendingSellWasBulk = nil
+end
+
+
+--- Trailer-at-dealer sell flow: filter survivors and confirm the SURVIVOR
+--- count/price BEFORE the YesNoDialog, then dispatch through the unchanged
+--- sellAnimals path. Mirrors RLMenuBuyFrame:startTrailerBuyFlow. Single + bulk
+--- both route here. Forces the transport fee to 0 (a trailer-at-dealer sell has
+--- no transport leg, legacy AnimalScreenDealerTrailer parity).
+--- @param animals table Array of cluster refs the user selected (single = {animal})
+function RLMenuSellFrame:startTrailerSellFlow(animals)
+    local trailer = self:getTrailerDealerContext()
+    if trailer == nil then
+        Log:warning("RLMenuSellFrame:startTrailerSellFlow: trailer context resolved nil, clearing pending state")
+        self:clearPendingSellState()
+        return
+    end
+
+    local originalCount = (animals ~= nil) and #animals or 0
+
+    -- The validate adapter gates on getCanBeSold - exact parity with the
+    -- authoritative server leg (AnimalSellEvent:run gates per-animal on
+    -- getCanBeSold + permission only). The headless suite injects a mock instead.
+    local validate = function(_source, animal)
+        if animal ~= nil and animal.getCanBeSold ~= nil and not animal:getCanBeSold() then
+            return AnimalSellEvent.SELL_ERROR_CANNOT_BE_SOLD
+        end
+        return nil
+    end
+
+    local result = RLAnimalSellService.filterSellableAnimals(trailer, animals, validate)
+    local validCount    = #result.valid
+    local rejectedCount  = #result.rejected
+
+    Log:debug("RLMenuSellFrame:startTrailerSellFlow: trailer='%s' %d valid, %d rejected (of %d), firstErrorCode=%s",
+        tostring(trailer.getName and trailer:getName()),
+        validCount, rejectedCount, originalCount, tostring(result.firstErrorCode))
+
+    if validCount == 0 then
+        -- Specific error when a validate gate fired (legacy parity); generic otherwise.
+        if result.firstErrorCode ~= nil then
+            InfoDialog.show(RLAnimalSellService.getErrorText(result.firstErrorCode))
+        else
+            InfoDialog.show(g_i18n:getText("rl_ui_moveAllRejected"))
+        end
+        self:clearPendingSellState()
+        return
+    end
+
+    if rejectedCount > 0 then
+        Log:warning("RLMenuSellFrame:startTrailerSellFlow: %d of %d animals skipped (firstErrorCode=%s)",
+            rejectedCount, originalCount, tostring(result.firstErrorCode))
+    end
+
+    -- Gross survivor price; fee forced 0 (no transport leg). computeBulkTotal's
+    -- FIRST return is the sum of getSellPrice over the survivors.
+    local grossPrice = RLAnimalSellService.computeBulkTotal(result.valid)
+
+    self.pendingSellAnimals   = result.valid
+    self.pendingSellPrice     = grossPrice
+    self.pendingSellFee       = 0
+    self.pendingSellIsTrailer = true
+    self.pendingSellWasBulk   = originalCount > 1
+
+    -- Confirm the ACTUAL survivors the client will dispatch (the server remains
+    -- authoritative and re-validates at run time). Reuses the existing builders -
+    -- no new i18n key.
+    local confirmText
+    if validCount == 1 then
+        confirmText = RLAnimalSellService.buildSingleConfirmationText(result.valid[1], grossPrice, 0)
+    else
+        confirmText = RLAnimalSellService.buildBulkConfirmationText(validCount, grossPrice, 0)
+    end
+
+    YesNoDialog.show(self.onSellConfirmed, self, confirmText, g_i18n:getText("ui_attention"))
+end
+
+
+-- =============================================================================
 -- Sell operations
 -- =============================================================================
 
@@ -995,6 +1290,15 @@ function RLMenuSellFrame:onClickSell()
     local animal = self:getSelectedAnimal()
     if animal == nil then
         Log:trace("RLMenuSellFrame:onClickSell: no animal focused")
+        return
+    end
+
+    -- Trailer-dealer context: the held trailer is the sell SOURCE. Route single +
+    -- bulk through the same survivor-filtered flow (filter -> survivor confirm ->
+    -- dispatch), mirroring the Buy slice's startTrailerBuyFlow.
+    if self:getTrailerDealerContext() ~= nil then
+        Log:debug("RLMenuSellFrame:onClickSell: trailer-dealer context, routing single to startTrailerSellFlow")
+        self:startTrailerSellFlow({ animal })
         return
     end
 
@@ -1037,6 +1341,15 @@ function RLMenuSellFrame:onClickSellSelected()
         return
     end
 
+    -- Trailer-dealer context: route the checked set through startTrailerSellFlow
+    -- (filter survivors -> survivor confirm -> dispatch). See onClickSell.
+    if self:getTrailerDealerContext() ~= nil then
+        Log:debug("RLMenuSellFrame:onClickSellSelected: trailer-dealer context, routing bulk to startTrailerSellFlow (%d animals)",
+            #animals)
+        self:startTrailerSellFlow(animals)
+        return
+    end
+
     local totalPrice, totalFee, _, count = RLAnimalSellService.computeBulkTotal(animals)
     local confirmText = RLAnimalSellService.buildBulkConfirmationText(count, totalPrice, totalFee)
 
@@ -1058,23 +1371,46 @@ function RLMenuSellFrame:onSellConfirmed(clickYes)
     Log:debug("RLMenuSellFrame:onSellConfirmed: clickYes=%s", tostring(clickYes))
 
     if not clickYes then
-        self.pendingSellAnimals = nil
-        self.pendingSellPrice = nil
-        self.pendingSellFee = nil
+        -- Cancel preserves self.selectedAnimals so a rejected partial-confirm does
+        -- not force the user to rebuild the selection (Buy-slice parity).
+        self:clearPendingSellState()
         return
     end
 
     if self.pendingSellAnimals == nil or self.selectedHusbandry == nil then
         Log:debug("RLMenuSellFrame:onSellConfirmed: nil pending state")
+        self:clearPendingSellState()
         return
     end
 
-    local animals = self.pendingSellAnimals
-    local price = self.pendingSellPrice
-    local fee = self.pendingSellFee
+    local animals  = self.pendingSellAnimals
+    local price    = self.pendingSellPrice
+    local fee      = self.pendingSellFee
+    local isTrailer = self.pendingSellIsTrailer == true
+    local wasBulk   = self.pendingSellWasBulk == true
 
-    -- Clear selections BEFORE dispatching: bulk clears all, single removes only the sold animal
-    if #animals > 1 then
+    -- Resolve the dispatch SOURCE. In trailer-dealer context re-resolve the live
+    -- trailer immediately before dispatch (a trailer torn down during the dialog
+    -- must not dispatch a dead ref); capture it for the post-sell identity guard.
+    local source = self.selectedHusbandry
+    if isTrailer then
+        local trailer = self:getTrailerDealerContext()
+        if trailer == nil then
+            Log:warning("RLMenuSellFrame:onSellConfirmed: trailer context lost before dispatch, aborting")
+            self:clearPendingSellState()
+            return
+        end
+        source = trailer
+        self.dispatchedTrailer = trailer
+    else
+        self.dispatchedTrailer = nil
+    end
+
+    -- Clear selections at confirm: a bulk-origin sale clears all (so rejected,
+    -- still-checked animals do not linger and re-sell); a single removes only the
+    -- sold animal. Trailer keys off the ORIGINAL bulk flag (survivors may be 1).
+    local clearAll = isTrailer and wasBulk or (not isTrailer and #animals > 1)
+    if clearAll then
         self.selectedAnimals = {}
     else
         for _, animal in ipairs(animals) do
@@ -1083,12 +1419,19 @@ function RLMenuSellFrame:onSellConfirmed(clickYes)
             self.selectedAnimals[key] = nil
         end
     end
-    self.pendingSellAnimals = nil
-    self.pendingSellPrice = nil
-    self.pendingSellFee = nil
+
+    self:clearPendingSellState()
+
+    -- Trailer dispatch fires AnimalSellEvent.new(trailer, survivors, grossPrice, 0)
+    -- via the unchanged sellAnimals (-totalFee makes 0 round-trip) - mutation
+    -- parity with legacy AnimalScreenDealerTrailer:applyTarget/applyTargetBulk.
+    if isTrailer then
+        Log:info("RLMenuSellFrame:onSellConfirmed: trailer-sell dispatch '%s' (%d animals)",
+            tostring(source.getName and source:getName()), #animals)
+    end
 
     RLAnimalSellService.sellAnimals(
-        self.selectedHusbandry, animals, price, fee,
+        source, animals, price, fee,
         self.onSellComplete, self)
 end
 
@@ -1096,14 +1439,28 @@ end
 --- Callback from RLAnimalSellService after server responds.
 --- Stale-frame guard: skips refresh if the frame has closed (tab-switch /
 --- menu-close mid-dispatch) OR if the husbandry context was cleared.
---- `isFrameOpen` is cleared in onFrameClose; `selectedHusbandry` guards
---- against a husbandry-less state (e.g., farm has no husbandries).
+--- Trailer guard: a delayed callback after the dispatched trailer was torn down
+--- or swapped during the MP round-trip is ignored (no repaint of a stale /
+--- husbandry context) - mirrors the onTransferComplete identity guard.
 --- @param errorCode number
 function RLMenuSellFrame:onSellComplete(errorCode)
     if not self.isFrameOpen or self.selectedHusbandry == nil then
         Log:trace("RLMenuSellFrame:onSellComplete: stale frame (isFrameOpen=%s husbandry=%s), ignoring",
             tostring(self.isFrameOpen), tostring(self.selectedHusbandry ~= nil))
         return
+    end
+
+    -- Captured-trailer identity guard: the existing selectedHusbandry check passes
+    -- for any non-nil ref (incl. a dead trailer), so check the dispatched trailer
+    -- is STILL the live one before repainting a trailer context.
+    local wasTrailer = self.dispatchedTrailer ~= nil
+    if wasTrailer then
+        local liveTrailer = self:getTrailerDealerContext()
+        if liveTrailer == nil or liveTrailer ~= self.dispatchedTrailer then
+            Log:trace("RLMenuSellFrame:onSellComplete: trailer context flipped/torn down, ignoring stale callback")
+            self.dispatchedTrailer = nil
+            return
+        end
     end
 
     if errorCode ~= AnimalSellEvent.SELL_SUCCESS then
@@ -1113,8 +1470,16 @@ function RLMenuSellFrame:onSellComplete(errorCode)
         Log:info("RLMenuSellFrame:onSellComplete: sell succeeded")
     end
 
-    -- Refresh list + cart + pen header + money display (post-sell)
+    self.dispatchedTrailer = nil
+
+    -- Refresh list + cart + money. In trailer context the list shrinks (empty-state
+    -- shows no-ANIMALS since the trailer source stays present), the pen header stays
+    -- hidden, and the single sidebar entry's (used/total) suffix updates in place.
+    -- The active tab is preserved (no anchor re-eval).
     self:reloadAnimalList()
+    if wasTrailer then
+        self:updateTrailerSourceLabel()
+    end
     self:updatePenHeader()
     self:updateCartDisplay()
     RLDetailPaneHelper.updateMoneyDisplay(self)
@@ -1130,10 +1495,9 @@ function RLMenuSellFrame:onCycleFilter()
         return
     end
 
-    local animalTypeIndex = nil
-    if self.selectedHusbandry ~= nil and self.selectedHusbandry.getAnimalTypeIndex ~= nil then
-        animalTypeIndex = self.selectedHusbandry:getAnimalTypeIndex()
-    end
+    -- Trailer-dealer context derives the filter-scope type from the trailer's
+    -- current-load lock; husbandry context from getAnimalTypeIndex.
+    local animalTypeIndex = self:resolveFilterTypeIndex()
 
     local filters = RLFilterCycleHelper.getAvailableFilters(animalTypeIndex, self.farmId, RLFilterCycleHelper.USAGE.OWNED)
     if #filters == 0 then
@@ -1211,10 +1575,9 @@ function RLMenuSellFrame:revalidateActiveFilter()
         return
     end
 
-    local animalTypeIndex = nil
-    if self.selectedHusbandry ~= nil and self.selectedHusbandry.getAnimalTypeIndex ~= nil then
-        animalTypeIndex = self.selectedHusbandry:getAnimalTypeIndex()
-    end
+    -- Trailer-dealer context derives the filter-scope type from the trailer's
+    -- current-load lock; husbandry context from getAnimalTypeIndex.
+    local animalTypeIndex = self:resolveFilterTypeIndex()
 
     local available = RLFilterCycleHelper.getAvailableFilters(animalTypeIndex, self.farmId, RLFilterCycleHelper.USAGE.OWNED)
     local stillInScope = false

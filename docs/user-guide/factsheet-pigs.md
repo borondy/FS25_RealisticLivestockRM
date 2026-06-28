@@ -78,12 +78,12 @@ Genetics significantly affect how much each animal eats - some are naturally muc
 
 | Breed | | Newborn | 24 mo (adult) |
 |-------|---|---------|---------------|
-| **Berkshire** | Sow | 5 – 32 | 30 – 210 |
-| | Boar | 5 – 35 | 33 – 228 |
-| **Landrace** | Sow | 4 – 26 | 25 – 175 |
-| | Boar | 4 – 26 | 28 – 193 |
-| **Black Pied** | Sow | 3 – 21 | 23 – 161 |
-| | Boar | 4 – 26 | 24 – 168 |
+| **Berkshire** | Sow | 5-32 | 30-210 |
+| | Boar | 5-35 | 33-228 |
+| **Landrace** | Sow | 4-26 | 25-175 |
+| | Boar | 4-26 | 28-193 |
+| **Black Pied** | Sow | 3-21 | 23-161 |
+| | Boar | 4-26 | 24-168 |
 
 *Berkshire pigs eat the most. Black Pied are the most efficient to feed. Ranges show the span from the most efficient to the hungriest animals. Most animals eat near the middle of these ranges.*
 
@@ -133,15 +133,15 @@ Genetics significantly affect how much each animal eats - some are naturally muc
 
 Pig litters are the largest of any animal. Healthy sows at prime age almost always produce offspring:
 
-| Sow Age | Chance of No Birth | Small (1–6) | Medium (7–10) | Typical (11–13) | Large (14–16) |
+| Sow Age | Chance of No Birth | Small (1-6) | Medium (7-10) | Typical (11-13) | Large (14-16) |
 |---------|-------------------|-------------|---------------|-----------------|---------------|
-| 6–12 mo (young) | Low | Rare | Uncommon | Most likely | Possible |
-| 13–36 mo (prime) | Very low | Rare | Uncommon | Most likely | Possible |
-| 37–60 mo | Low–moderate | Rare | Uncommon | Most likely | Possible |
-| 61–80 mo | Moderate | Uncommon | Possible | Most likely | Less likely |
-| 81–96 mo (old) | High | Possible | Possible | Less likely | Rare |
+| 6-12 mo (young) | Low | Rare | Uncommon | Most likely | Possible |
+| 13-36 mo (prime) | Very low | Rare | Uncommon | Most likely | Possible |
+| 37-60 mo | Low-moderate | Rare | Uncommon | Most likely | Possible |
+| 61-80 mo | Moderate | Uncommon | Possible | Most likely | Less likely |
+| 81-96 mo (old) | High | Possible | Possible | Less likely | Rare |
 
-*Most litters are 11–13 piglets. Very large litters of 14–16 are possible but less common. Older sows may produce smaller litters of 1–10 piglets. Low health significantly reduces litter sizes and increases the risk of the sow dying during birth.*
+*Most litters are 11-13 piglets. Very large litters of 14-16 are possible but less common. Older sows may produce smaller litters of 1-10 piglets. Low health significantly reduces litter sizes and increases the risk of the sow dying during birth.*
 
 ---
 
@@ -171,7 +171,7 @@ Pig litters are the largest of any animal. Healthy sows at prime age almost alwa
 
 ## Tips
 
-1. **Breeding is the business model.** With litters of 11–16 piglets every 4 months, a healthy sow can produce many piglets per year. Sell the excess for profit.
+1. **Breeding is the business model.** With litters of 11-16 piglets every 4 months, a healthy sow can produce many piglets per year. Sell the excess for profit.
 
 2. **Replace boars early.** Boars stop breeding at just 4 years - half the sow's fertile period. Buy young boars regularly or use artificial insemination.
 
@@ -179,4 +179,4 @@ Pig litters are the largest of any animal. Healthy sows at prime age almost alwa
 
 4. **Watch for PED.** A single PED outbreak in a pen full of newborn piglets can kill most of them. Isolating young piglets or disabling diseases in settings can protect your investment.
 
-5. **Pen capacity matters.** If a pen is full when piglets are born, the excess are automatically sold. Make sure you have room for those 11–16 piglet litters.
+5. **Pen capacity matters.** If a pen is full when piglets are born, the excess are automatically sold. Make sure you have room for those 11-16 piglet litters.

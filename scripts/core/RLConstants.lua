@@ -1,7 +1,6 @@
 -- RLConstants.lua
--- Purpose: Shared constants used across the mod (area codes, days per month, marks, etc.)
---          Extracted from RealisticLivestock.lua to break reverse dependency.
--- Author: Ritter
+-- Shared constants used across the mod (area codes, days per month, marks,
+-- etc.). Extracted from RealisticLivestock.lua to break reverse dependency.
 
 RLConstants = {}
 
@@ -32,6 +31,12 @@ RLConstants.MARKS = {
         ["active"] = false,
         ["priority"] = 4,
         ["text"] = "aiManager_ai"
+    },
+    ["AI_MANAGER_MOVE"] = {
+        ["key"] = "AI_MANAGER_MOVE",
+        ["active"] = false,
+        ["priority"] = 6,
+        ["text"] = "aiManager_move"
     },
     ["PLAYER"] = {
         ["key"] = "PLAYER",

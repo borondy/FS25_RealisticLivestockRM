@@ -141,16 +141,16 @@ end
 ---     name              = string,              -- pen display name
 ---     countText         = string,              -- "current/max", or "current" if max unknown
 ---     penImageFilename  = string|nil,          -- nil -> frame hides icon
----     conditionInfos    = table (as per base-game husbandry:getConditionInfos),
----     foodInfos         = table (as per base-game husbandry:getFoodInfos),
+---     conditionInfos    = table (passed through from husbandry:getConditionInfos),
+---     foodInfos         = table (passed through from husbandry:getFoodInfos),
 ---     foodTotalValue    = number,              -- sum of food values (non-ignoreCapacity only)
 ---     foodTotalCapacity = number,
 ---     foodTotalRatio    = number,
 ---   }
 ---
---- Base-game husbandry methods feed this directly; RL does not override
---- getConditionInfos / getFoodInfos. Pure pass-through plus
---- name/count composition and food-total summation.
+--- conditionInfos / foodInfos are pure pass-throughs (RL does not override
+--- those husbandry methods); this builder adds the name/count composition and
+--- food-total summation.
 ---
 --- @param husbandry table|nil
 --- @param farmId number|nil
@@ -195,7 +195,9 @@ function RLAnimalInfoService.getHusbandryDisplay(husbandry, farmId)
         if ok and type(infos) == "table" then foodInfos = infos end
     end
 
-    -- Mirror base-game updateHusbandryDisplay total computation
+    -- Sum food values, skipping ignoreCapacity entries; capacity tracks the
+    -- largest of the per-entry capacities. foodTotalRatio drives the pen-fill
+    -- bar in the Info frame.
     local foodTotalValue = 0
     local foodTotalCapacity = 0
     for _, info in ipairs(foodInfos) do
@@ -251,8 +253,8 @@ end
 ---   }
 ---
 --- Calls g_currentMission.animalSystem for visual + subType lookup. Returns
---- nil animalImageFilename when the visual lookup is nil (mirrors base-game
---- displayCluster guard); other fields still render.
+--- nil animalImageFilename when the visual lookup is nil (frame hides the
+--- image); other fields still render.
 ---
 --- @param animal table|nil
 --- @param husbandry table|nil
@@ -311,7 +313,7 @@ function RLAnimalInfoService.getAnimalDisplay(animal, husbandry)
         if ok and customName ~= nil and customName ~= "" then typeName = customName end
     end
 
-    -- Per-animal stat rows from husbandry:getAnimalInfos. base-game shape:
+    -- Per-animal stat rows from husbandry:getAnimalInfos. Row shape:
     -- { {title, valueText, ratio, invertedBar, disabled}, ... }. Variable
     -- length depending on monitor state, gender, husbandry capability.
     -- Walks Animal:addInfos which RL extends with Health, Weight, Target
@@ -338,9 +340,9 @@ function RLAnimalInfoService.getAnimalDisplay(animal, husbandry)
         end
     end
 
-    -- Age is always first, ungated (mirrors legacy AnimalItemStock pattern).
-    -- Animal:addInfos never includes age; the base-game frame renders it as
-    -- a dedicated element. The new menu uses statRows, so inject it here.
+    -- Age is always first, ungated. Animal:addInfos does not emit an age row,
+    -- so inject it explicitly here for the new menu (which renders the whole
+    -- list uniformly from statRows rather than a dedicated age widget).
     table.insert(statRows, 1, {
         title     = g_i18n:getText("ui_age"),
         valueText = g_i18n:formatNumMonth(age),
@@ -354,15 +356,14 @@ function RLAnimalInfoService.getAnimalDisplay(animal, husbandry)
         local ok, result = pcall(function() return husbandry:getAnimalDescription(animal) end)
         if ok and result ~= nil then description = result end
     elseif visual ~= nil and visual.store ~= nil and visual.store.description ~= nil then
-        -- Nil-husbandry fallback for the Buy tab: use the breed lore text from
-        -- the visual config (mirrors base-game AnimalItemStock:getDescription
-        -- behavior).
+        -- Nil-husbandry fallback for the Buy tab: use the breed lore text
+        -- from the visual config (visual.store.description).
         description = visual.store.description
     end
 
     local geneticsRows = {}
     if RLGeneticsFormatter ~= nil and RLGeneticsFormatter.format ~= nil then
-        geneticsRows = RLGeneticsFormatter.format(animal.genetics, animal.animalTypeIndex)
+        geneticsRows = RLGeneticsFormatter.format(animal.genetics, animal.animalTypeIndex, animal.subType)
     end
 
     local hasMonitor = animal.monitor ~= nil

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<!--
+    rlHerdsmanHusbandryPickerDialog.xml
+ Multi-select husbandry picker for a herdsman rule (F6). The frame supplies
+    the already animalType-gated + sorted candidate descriptors; this dialog renders the
+    checkbox list, tracks per-uniqueId selection, and returns the chosen uniqueId array.
+
+    ADAPTS rlFilterValueSetDialog.xml (the checkbox SmoothList template + the Select /
+    Select all / OK / Back action bar + the empty-set reject hintText) and the
+    rlHerdsmanFilterPickerDialog empty-state text (shown when the rule has no targetable
+    husbandry). Profile-bound input actions: rlButtonSelect -> RL_SELECT (KEY_a),
+    rlButtonMenuActivate -> MENU_ACTIVATE (Space), buttonOK -> MENU_ACCEPT (Enter),
+    buttonBack -> MENU_CANCEL (Esc). The two empty surfaces are DISTINCT: emptyListText =
+    no candidate husbandry (OK disabled); hintText = a candidate list exists but nothing is
+    checked on OK (reject, dialog stays open). Geometry cloned from the value-set dialog;
+    final sizes confirmed by the dialog's onOpen measurement log, not eyeballed.
+-->
+<GUI onOpen="onOpen" onClose="onClose" onCreate="onCreate">
+    <GuiElement profile="newLayer"/>
+    <Bitmap profile="dialogFullscreenBg" id="dialogBg"/>
+    <GuiElement profile="fs25_dialogBg" id="dialogElement" size="750px 540px">
+        <ThreePartBitmap profile="fs25_dialogBgMiddle"/>
+        <ThreePartBitmap profile="fs25_dialogBgTop"/>
+        <ThreePartBitmap profile="fs25_dialogBgBottom"/>
+        <GuiElement profile="fs25_dialogContentContainer">
+
+            <Text profile="fs25_dialogTitle" id="dialogTitleElement"
+                  position="0px -30px"
+                  text="$l10n_rl_menu_herdsman_husbandry_picker_title"/>
+
+            <!-- Empty state: shown when the rule has no targetable husbandry (gate
+                 excludes all). Hidden by default; toggled with the list in onOpen. -->
+            <Text profile="fs25_dialogText" id="emptyListText"
+                  position="0px -200px" size="500px 40px" visible="false"
+                  text="$l10n_rl_menu_herdsman_husbandry_picker_empty"/>
+
+            <!-- Checkbox list. Row template adapts the value-set cell: full-row label +
+                 anchored top-right checkbox via the shipped rlMenu_checkbox* profiles. -->
+            <SmoothList profile="rl_husbandryPickerList" id="husbandryList"
+                        position="50px -80px"
+                        size="620px 350px"
+                        focusInit="onOpen"
+                        focusChangeTop="nil"
+                        focusChangeBottom="nil"
+                        onClick="onListClick">
+                <ListItem profile="rl_husbandryPickerListItem" size="605px 55px">
+                    <Text profile="rl_husbandryPickerLabel"
+                          position="10px 0px"
+                          size="500px 55px"
+                          name="label"/>
+                    <!-- Checkbox: outer button (mouse hit area) + box bg + tick icon.
+                         Element-level position override mirrors the value-set dialog's
+                         55px-row centering shift. -->
+                    <Button profile="rlMenu_checkboxButton" name="checkbox" position="-45px -15px">
+                        <ThreePartBitmap profile="rlMenu_checkboxBox"/>
+                        <Bitmap profile="rlMenu_checkbox" name="check"/>
+                    </Button>
+                </ListItem>
+            </SmoothList>
+
+            <ThreePartBitmap profile="fs25_listSliderBox" id="husbandrySliderBox"
+                             position="-30px -17px"
+                             size="12px 350px"
+                             with="anchorTopRight">
+                <Slider profile="fs25_listSlider" size="6px 342px" dataElementId="husbandryList"/>
+            </ThreePartBitmap>
+
+            <!-- Empty-selection reject hint. Hidden by default; populated via
+                 RLHerdsmanHusbandryPickerDialog:showHint(l10nKey). Sits between the list
+                 bottom and the action bar (value-set tuning). -->
+            <Text profile="fs25_dialogText" id="hintText"
+                  position="0px -436px"
+                  visible="false"
+                  text=""/>
+
+        </GuiElement>
+
+        <!-- Four-button action bar: Select / Select all / OK / Back. Each button's profile
+             carries its inputAction so the keyboard/gamepad binding AND the input-help-bar
+             prompt come from the same source as the visible button (mirror the value-set). -->
+        <BoxLayout profile="fs25_dialogButtonBox" id="buttonsPC">
+            <Button profile="rlButtonSelect" text="$l10n_button_select"
+                    onClick="onClickSelect" id="selectButton"/>
+            <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+            <Button profile="rlButtonMenuActivate" text="$l10n_rl_ui_selectAll"
+                    onClick="onClickSelectAll" id="selectAllButton"/>
+            <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+            <Button profile="buttonOK" text="$l10n_button_ok"
+                    onClick="onClickOk" id="okButton"/>
+            <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+            <Button profile="buttonBack" text="$l10n_button_back"
+                    onClick="onClickBack" id="backButton"/>
+        </BoxLayout>
+    </GuiElement>
+
+    <!--
+        Local profiles. Element-level `with=` is silently ignored by the GUI loader;
+        declare here so the traits actually apply. Sibling shapes to the value-set
+        dialog's rl_filterValueSet* profiles (per-XML profile scope).
+    -->
+    <GUIProfiles>
+        <Profile name="rl_husbandryPickerList" extends="emptyPanel" with="anchorStretchingYLeft pivotTopLeft">
+        </Profile>
+
+        <Profile name="rl_husbandryPickerListItem" extends="baseReference" with="anchorTopStretchingX alternating">
+            <height value="55px"/>
+            <imageColor value="$preset_fs25_colorGrey"/>
+            <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
+            <alternateBackgroundColor value="$preset_fs25_colorGreyDark_50"/>
+        </Profile>
+
+        <Profile name="rl_husbandryPickerLabel" extends="baseReference" with="anchorTopLeft">
+            <textBold value="false"/>
+            <textSize value="18px"/>
+            <textAlignment value="left"/>
+            <textColor value="$preset_fs25_colorMainLight"/>
+            <textSelectedColor value="$preset_fs25_colorMainDark"/>
+        </Profile>
+
+        <Profile name="rlButtonMenuActivate" extends="fs25_wideButton" with="touchButton">
+            <inputAction value="MENU_ACTIVATE"/>
+        </Profile>
+
+        <Profile name="rlButtonSelect" extends="fs25_wideButton" with="touchButton">
+            <inputAction value="RL_SELECT"/>
+        </Profile>
+    </GUIProfiles>
+</GUI>

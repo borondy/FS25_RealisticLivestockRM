@@ -88,16 +88,14 @@
     <!--
         Phase 2b1: pen icon profile for the Info tab.
 
-        The default `fs25_animalPenIcon` profile renders the icon above its
-        host container, which only works in a wide layout. The Info tab
-        uses a narrower column, so this override resizes and repositions
-        the icon to sit inside the column.
+        Override resizes and repositions the icon to sit inside the Info
+        tab's narrow column (the default `fs25_animalPenIcon` profile only
+        fits a wider host).
     -->
     <!--
-        Pen icon for the Info tab. Mirrors legacy fs25_animalHusbandryIcon
-        (AnimalScreen.xml line 286): square 280x280, anchored top-center,
-        positioned 160px below the column top so it sits below the pen
-        name + count text rows.
+        Pen icon for the Info tab. Mirrors the legacy fs25_animalHusbandryIcon
+        usage: square 280x280, anchored top-center, positioned 160px below
+        the column top so it sits below the pen name + count text rows.
     -->
     <Profile name="rlMenu_penIcon" extends="baseReference" with="anchorTopCenter">
         <size value="220px 220px"/>
@@ -106,8 +104,8 @@
     </Profile>
 
     <!--
-        "PEN INFORMATION" header. Mirrors legacy fs25_animalTextTransportTo
-        (AnimalScreen.xml line 270): fs25_textDefault (15px) + uppercase
+        "PEN INFORMATION" header. Mirrors the legacy fs25_animalTextTransportTo
+        usage: fs25_textDefault (15px) + uppercase
         + centered. The earlier rlMenu_penInfoHeader extended
         fs25_animalRequirementsHeaderLong (22px bold) which was too large
         and left-aligned for the narrow column.
@@ -164,20 +162,18 @@
 
     <!--
         AI tab quantity stepper. Extends the `fs25_animalAmountSelector`
-        profile (same profile our legacy AI screen at `AnimalScreen.xml:457`
-        uses with an inline `width="100%"` override to fill the parent
-        column). This profile encapsulates that override so the frame XML
-        stays clean.
+        profile (the same profile the legacy AI screen uses with an inline
+        `width="100%"` override to fill the parent column). This profile
+        encapsulates that override so the frame XML stays clean.
 
         Additional overrides:
           - `anchorTopStretchingX` (instead of inheriting `anchorBottomCenter`)
-            spans the parent's full horizontal width. The `anchorTopCenter`
-            trait is a FS25 gotcha: its anchor rect is `0.5 0.5 1 1` = right
-            HALF of parent, not "centered across parent". Using it with 100%
-            size puts the widget in the right half only.
+            spans the parent's full horizontal width. `anchorTopCenter` would
+            place the widget in the right half of the parent, not centered
+            across it, so it is not used here.
           - `position` reset to 0,0 (the inherited profile carries a Y offset
-            that is appropriate for its original bottom-anchored host; not
-            needed when this widget flows as a BoxLayout child).
+            appropriate for its original bottom-anchored host; not needed when
+            this widget flows as a BoxLayout child).
           - `absoluteSizeOffset` overridden to shrink the widget by 40px
             (see below).
     -->
@@ -243,12 +239,10 @@
     </Profile>
 
     <!--
-        Smaller animal image profile for the Info tab. The default
-        `fs25_animalIcon` profile renders the icon at a size suited to a
-        narrow column where it dominates the layout. The Info tab hosts
-        the icon in a wider column with more content underneath
-        (description + 2 columns + disease), so this override shrinks it
-        and lifts it to free vertical space.
+        Smaller animal image profile for the Info tab. The Info tab hosts the
+        icon in a wider column with more content underneath (description + 2
+        columns + disease), so this override shrinks the icon and lifts it to
+        free vertical space.
     -->
     <Profile name="rlMenu_animalImage" extends="fs25_animalIcon">
         <size value="200px 200px"/>
@@ -322,15 +316,12 @@
     </Profile>
 
     <!--
-        Visible debug backdrop for the animal scroll area. Semi-transparent
-        teal so we can see exactly where the scroll container lives without
-        any content inside. Step-by-step layout debugging - replace the
-        color with $preset_colorTransparent once positioning is confirmed.
-
-        Uses imageSliceId="gui.colorPreset" - a solid 1x1 color slice that
-        responds to imageColor. Without this, a Bitmap/GuiElement renders
-        nothing visible (or the entire texture atlas when imageSliceId is
-        the literal string "noSlice" without an imageFilename).
+        Transparent wrapper around the animal scroll area. Uses
+        imageSliceId="gui.colorPreset" + imageColor="$preset_colorTransparent"
+        so the Bitmap renders nothing visible while still serving as the
+        sized host for the ScrollingLayout inside. (Without an imageSliceId
+        the Bitmap would render the entire texture atlas; with imageSliceId
+        "noSlice" and no imageFilename it would still render an artifact.)
     -->
     <Profile name="rlMenu_animalScrollDebugBg" extends="baseReference" with="anchorStretchingYStretchingX pivotTopLeft">
         <size value="100% 100%"/>
@@ -487,15 +478,33 @@
 
         Mirrors the rlMenu_animalScrollLayout pattern in this file:
         anchorStretchingYStretchingX + size 100% 100% + pivotTopLeft to
-        fill the parent both axes. Then position="410px 0px" + negative
-        absoluteSizeOffset shifts the start right and trims the width by
-        the sidebar's 410px so the right edge aligns with the parent's
-        right edge.
+        fill the parent both axes. Then position="410px 0px" shifts the
+        start right past the sidebar; absoluteSizeOffset trims the width by
+        LESS than the 410px start offset (280px), so the editor's right edge
+        extends past the parent into the right margin - room for the in-row
+        help tooltip before the ScrollingLayout clip. Rows are left-anchored
+        fixed-width, so the extra width is unused right margin only; the
+        filter editor (which reuses this profile) is visually unchanged.
     -->
     <Profile name="rlMenu_filterEditorContainer" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
         <size value="100% 100%"/>
         <position value="410px 0px"/>
-        <absoluteSizeOffset value="410px 0px"/>
+        <absoluteSizeOffset value="280px 0px"/>
+    </Profile>
+
+    <!--
+        rlMenu_herdsmanContentContainer
+
+        Content wrapper for the Herdsman frame's master-detail. Extends the
+        base subcategory page container but trims its top reservation so the
+        master-detail floats up into the band the tab-bar chrome occupies in
+        the Settings frame - the Herdsman frame has no subcategory tab bar -
+        filling the area below the header with a small clearance. The trim was
+        set from the onFrameOpen measurement (content top lands just below the
+        header baseline), not guessed.
+    -->
+    <Profile name="rlMenu_herdsmanContentContainer" extends="fs25_subCategorySelectorTabbedContainer">
+        <absoluteSizeOffset value="0px 23px"/>
     </Profile>
 
 
@@ -527,12 +536,10 @@
         via runtime measurement on a 783-tall parent at 16:9.
     -->
     <!--
-        2026-05-17 update: [+ condition] footer row removed (moved to the
-        action bar). Conditions list now stretches all the way to the
-        parent's bottom edge. absoluteSizeOffset reduced from 380 to 290
-        (only the top metadata layout reservation remains, plus a small
-        visual gap). position dropped from 90 to 0 (element bottom flush
-        with parent bottom).
+        Conditions list container: stretches to the parent's bottom edge
+        with absoluteSizeOffset 290px reserving the metadata layout on top
+        (the [+ condition] action lives on the action bar, not in-pane, so
+        no extra footer reservation is needed).
     -->
     <Profile name="rlMenu_filterEditorMiddle" extends="emptyPanel" with="anchorStretchingYStretchingX pivotBottomCenter">
         <size value="100% 100%"/>
@@ -630,5 +637,44 @@
         <position value="50px -258px"/>
         <textAlignment value="left"/>
     </Profile>
+
+    <!--
+        Legacy-active coexistence banner: a fixed-text caution shown in the header, directly
+        below the Herdsman title, while legacy herdsman tasks are still enabled on a husbandry
+        (the migration-window double-execution hazard). Orange ($preset_colorOrange) reads as a
+        caution without the red "error" weight. Hidden by default; RLMenuHerdsmanFrame:refreshBanner
+        toggles it. x matches the title inset; y is a first guess tuned by the onFrameOpen
+        measurement log, not eyeballed.
+    -->
+    <Profile name="rl_herdsmanLegacyBanner" extends="fs25_textDefault" with="anchorTopLeft pivotTopLeft">
+        <size value="1400px 26px"/>
+        <position value="100px -58px"/>
+        <textSize value="19px"/>
+        <textBold value="true"/>
+        <textColor value="$preset_colorOrange"/>
+        <textAlignment value="left"/>
+        <textUpperCase value="false"/>
+        <visible value="false"/>
+    </Profile>
+
+    <!-- Per-row help line for the herdsman rule editor (RLMenuHerdsmanFrame). Lives as a
+         child of each row's value WIDGET (the legacy rl_aiTooltip home in AnimalScreen.xml), NOT the
+         row container (which clips to its bounds). Extends the base tooltip profile and overrides
+         ONLY the position (into the right margin past the editor's value column) and a narrower width
+         so the help wraps inside the editor's widened right margin instead of running off one line.
+         Tune position/width via the onFrameOpen geometry log + dev hot-reload, not by eye. -->
+    <Profile name="rlMenu_herdsmanRowTooltip" extends="fs25_multiTextOptionTooltip">
+        <position value="356px 0px"/>
+        <width value="330px"/>
+    </Profile>
+    <!-- TextInput-row variant: a TextInput's value widget is ~31px narrower than the button /
+         selector widgets (the pencil-icon box fills the gap), and the tooltip pins to the widget's
+         right edge, so a TextInput's tooltip would otherwise sit ~31px left of the other rows. Adding
+         that 31px back to the position lands every row's help line on one shared right edge. Used by
+         the name / maxAnimals / budgetFixed rows. -->
+    <Profile name="rlMenu_herdsmanRowTooltipInput" extends="rlMenu_herdsmanRowTooltip">
+        <position value="387px 0px"/>
+    </Profile>
+
 
 </GUIProfiles>

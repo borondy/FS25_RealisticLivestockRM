@@ -247,7 +247,7 @@ end
 --- @param animal table Animal instance
 --- @param delta number Amount to change reproduction by
 function AnimalReproduction.changeReproduction(animal, delta)
-    animal.reproduction = math.clamp(math.floor(animal.reproduction + math.max(delta, 1)), 0, 100)
+    animal.reproduction = math.clamp((math.floor((animal.reproduction + math.max(delta, 1)) * 100)/100), 0, 100)
 end
 
 --- Calculate the daily reproduction delta based on gestation duration.
@@ -266,7 +266,7 @@ function AnimalReproduction.getReproductionDelta(animal)
     end
 
     if duration > 0 then
-        return math.floor((100 / duration) / g_currentMission.environment.daysPerPeriod)
+        return math.floor(((100 / duration) / g_currentMission.environment.daysPerPeriod)*100)/100
     end
 
     return 0

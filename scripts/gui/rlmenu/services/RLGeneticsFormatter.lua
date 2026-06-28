@@ -152,12 +152,22 @@ end
 
 --- Return the productivity row label key for an animal type, or nil when
 --- the type has no productivity row.
+---
+--- The label names a species-level breeding trait, not the individual's
+--- current output: a COW returns rl_ui_milk for every subtype and gender, and
+--- a goat (SHEEP subtype GOAT or the male RAM_GOAT) likewise returns
+--- rl_ui_milk. Every other SHEEP subtype - including nil and "" - returns
+--- rl_ui_wool.
 --- @param animalTypeIndex number|nil
+--- @param subTypeName string|nil optional; distinguishes goats within SHEEP. A nil/absent value keeps the SHEEP -> wool default.
 --- @return string|nil labelKey
-function RLGeneticsFormatter.getProductivityLabelKey(animalTypeIndex)
+function RLGeneticsFormatter.getProductivityLabelKey(animalTypeIndex, subTypeName)
     if animalTypeIndex == nil or AnimalType == nil then return nil end
     if animalTypeIndex == AnimalType.COW then return "rl_ui_milk" end
-    if animalTypeIndex == AnimalType.SHEEP then return "rl_ui_wool" end
+    if animalTypeIndex == AnimalType.SHEEP then
+        if subTypeName == "GOAT" or subTypeName == "RAM_GOAT" then return "rl_ui_milk" end
+        return "rl_ui_wool"
+    end
     if animalTypeIndex == AnimalType.CHICKEN then return "rl_ui_eggs" end
     return nil
 end
@@ -188,8 +198,9 @@ end
 ---
 --- @param genetics table|nil
 --- @param animalTypeIndex number|nil
+--- @param subTypeName string|nil optional; distinguishes goats within SHEEP for the productivity-row label (see getProductivityLabelKey). A nil/absent value keeps the SHEEP -> wool default.
 --- @return table rows
-function RLGeneticsFormatter.format(genetics, animalTypeIndex)
+function RLGeneticsFormatter.format(genetics, animalTypeIndex, subTypeName)
     if genetics == nil then return {} end
 
     -- An empty / all-nil-stats genetics table is treated as no data.
@@ -290,7 +301,7 @@ function RLGeneticsFormatter.format(genetics, animalTypeIndex)
     })
 
     -- Row 6 (optional): Productivity - species-specific label
-    local productivityLabel = RLGeneticsFormatter.getProductivityLabelKey(animalTypeIndex)
+    local productivityLabel = RLGeneticsFormatter.getProductivityLabelKey(animalTypeIndex, subTypeName)
     if hasProductivity and productivityLabel ~= nil then
         local productivityKey = RLGeneticsFormatter.resolveTier(
             productivity,

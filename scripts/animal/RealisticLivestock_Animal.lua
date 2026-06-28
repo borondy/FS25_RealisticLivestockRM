@@ -892,7 +892,7 @@ function Animal:showGeneticsInfo(box)
         end
 
         if typeIndex == AnimalType.COW then box:addLine(g_i18n:getText("rl_ui_milk"), "rl_ui_genetics_" .. qualityText) end
-        if typeIndex == AnimalType.SHEEP then box:addLine(g_i18n:getText("rl_ui_wool"), "rl_ui_genetics_" .. qualityText) end
+        if typeIndex == AnimalType.SHEEP then box:addLine(g_i18n:getText((self.subType == "GOAT" or self.subType == "RAM_GOAT") and "rl_ui_milk" or "rl_ui_wool"), "rl_ui_genetics_" .. qualityText) end
         if typeIndex == AnimalType.CHICKEN then box:addLine(g_i18n:getText("rl_ui_eggs"),
                 "rl_ui_genetics_" .. qualityText) end
     end
@@ -1055,7 +1055,7 @@ function Animal:addGeneticsInfo()
 
         local productivityTitle = ""
         if self.animalTypeIndex == AnimalType.COW then productivityTitle = g_i18n:getText("rl_ui_milk") end
-        if self.animalTypeIndex == AnimalType.SHEEP then productivityTitle = g_i18n:getText("rl_ui_wool") end
+        if self.animalTypeIndex == AnimalType.SHEEP then productivityTitle = g_i18n:getText((self.subType == "GOAT" or self.subType == "RAM_GOAT") and "rl_ui_milk" or "rl_ui_wool") end
         if self.animalTypeIndex == AnimalType.CHICKEN then productivityTitle = g_i18n:getText("rl_ui_eggs") end
 
         text = {
@@ -1141,7 +1141,7 @@ function Animal:updateWeight(foodFactor)
     local metabolism = self.genetics.metabolism
     local adultMonth = subType.reproductionMinAgeMonth * 1.5
 
-    local baseIncrease = ((targetWeight - minWeight) / adultMonth) / 24
+    local baseIncrease = ((targetWeight - minWeight) / adultMonth) / (24 * g_currentMission.environment.daysPerPeriod)
     local increase = baseIncrease * (self.gender == "female" and 0.6 or 1.0) * (1 + ((adultMonth - self.age) / 75)) *
     math.min(foodFactor * 1.25, 1)
 

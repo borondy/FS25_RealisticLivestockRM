@@ -737,24 +737,11 @@
 						<Text profile="fs25_animalInfo" text="$l10n_shop_transportationFee"/>
 					</GuiElement>
 
-					<!--
-			
-					<GuiElement profile="fs25_animalParentTabListBox" id="parentBox">
-						<Bitmap profile="fs25_animalMoneyBg" position="0px 154px" onClick="onClickAnimalInfo"/>
-						<Text profile="fs25_animalMoneyTitle" position="10px 160px" text="$l10n_rl_ui_mother"/>
-						<Text profile="fs25_animalMoneyValue" id="parentBoxMother" position="-10px 160px" text="id"/>
-						<Text profile="fs25_animalMoneyTitle" position="10px 120px" text="$l10n_rl_ui_father"/>
-						<Text profile="fs25_animalMoneyValue" id="parentBoxFather" position="-10px 130px" text="id"/>
-					</GuiElement>
-			
-					<-->
 
 					<GuiElement profile="rl_geneticsBox" id="geneticsBox">
 						<Text profile="fs25_animalMoneyTitle" position="80px 190px" id="geneticsTitle[1]" text=""/>
-						<!--<Button profile="rl_infoPromptButton" position="65px 195px" onClick="onClickInfoPrompt" onHighlight="onHighlightInfoPrompt" onHighlightRemove="onHighlightRemoveInfoPrompt"/>-->
 						<Text profile="fs25_animalMoneyValue" position="-10px 190px" id="geneticsValue[1]" text=""/>
 						<Text profile="fs25_animalMoneyTitle" position="80px 160px" id="geneticsTitle[2]" text=""/>
-						<!--<Button profile="rl_infoPromptButton" position="65px 165px" onClick="onClickInfoPrompt" onHighlight="onHighlightInfoPrompt" onHighlightRemove="onHighlightRemoveInfoPrompt"/>-->
 						<Text profile="fs25_animalMoneyValue" position="-10px 160px" id="geneticsValue[2]" text=""/>
 						<Text profile="fs25_animalMoneyTitle" position="80px 130px" id="geneticsTitle[3]" text=""/>
 						<Text profile="fs25_animalMoneyValue" position="-10px 130px" id="geneticsValue[3]" text=""/>

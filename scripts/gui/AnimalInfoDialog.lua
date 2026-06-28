@@ -391,7 +391,6 @@ function AnimalInfoDialog:updateContent(farmId, uniqueId, useChildren)
 
                 if animal.farmId ~= farmId or animal.uniqueId ~= uniqueId then continue end
 
-                --parent = animal
                 table.insert(foundAnimals, animal)
                 if self.children == nil or #self.children <= 1 then break end
             end

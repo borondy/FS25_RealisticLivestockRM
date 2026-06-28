@@ -316,6 +316,8 @@ function RLSettings.loadFromXMLFile()
 
 		local key = rootKey
 
+		Log:debug("RLSettings.loadFromXMLFile: loading from '%s' (rootKey=%s)", path, rootKey)
+
 		for name, setting in pairs(RLSettings.SETTINGS) do
 
 			if setting.ignore then continue end
@@ -329,6 +331,10 @@ function RLSettings.loadFromXMLFile()
 		end
 
 		xmlFile:delete()
+
+	else
+
+		Log:debug("RLSettings.loadFromXMLFile: no rm_RlSettings.xml or rlSettings.xml found; settings stay at defaults")
 
 	end
 
@@ -404,7 +410,13 @@ end
 
 function RLSettings.saveToXMLFile(name, state)
 
-	if RLSettings.isSaving or g_currentMission.missionInfo == nil or g_currentMission.missionInfo.savegameDirectory == nil then return end
+	Log:debug("RLSettings.saveToXMLFile: called (name=%s state=%s g_server=%s isSaving=%s)",
+		tostring(name), tostring(state), tostring(g_server ~= nil), tostring(RLSettings.isSaving))
+
+	if RLSettings.isSaving or g_currentMission.missionInfo == nil or g_currentMission.missionInfo.savegameDirectory == nil then
+		Log:debug("RLSettings.saveToXMLFile: early return (isSaving, or no missionInfo/savegameDirectory)")
+		return
+	end
 
 	if g_server ~= nil then
 
@@ -687,24 +699,12 @@ function RLSettings.onSettingChanged(_, state, button)
 
 	RLSettings.applyChange(name, state)
 
-	if g_server ~= nil then
-
-		--RLSettings.saveToXMLFile(name, state)
-
-	else
-
-		--RL_BroadcastSettingsEvent.sendEvent(name)
-
-	end
-
 end
 
 
 function RLSettings.applyDefaultSettings()
 
 	if g_server == nil then
-
-		--RL_BroadcastSettingsEvent.sendEvent()
 
 	else
 

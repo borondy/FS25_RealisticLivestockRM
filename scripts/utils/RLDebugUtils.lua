@@ -76,7 +76,7 @@ function RLDebugUtils.dumpSettings()
     local role = resolveRole()
     Log:info("RLSettings: --- %s ---", role)
 
-    -- Iterate in stable index order, matching RLSettings.initialize lines 396-402.
+    -- Iterate in stable index order, matching RLSettings.initialize.
     local maxIndex = 0
     for _, setting in pairs(RLSettings.SETTINGS) do
         if setting.index ~= nil and setting.index > maxIndex then maxIndex = setting.index end

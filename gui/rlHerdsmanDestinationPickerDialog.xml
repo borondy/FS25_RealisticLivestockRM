@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<!--
+    rlHerdsmanDestinationPickerDialog.xml
+    SINGLE-select destination picker for a move rule. The husbandry-name row CONTENT of the
+    husbandry picker with the SINGLE-select SHAPE of the filter picker (fs25_dialogBg shell, one
+    SmoothList + slider, buttonsPC OK/Cancel, name-only ListItem). The frame supplies the already
+    type-gated, source-excluded, alpha-sorted candidate list; this dialog only renders it and
+    returns one uniqueId (or nil). Inline list-item profiles (rl_herdDest*) follow the filter-picker
+    precedent - the "no new rlMenu_* profile" boundary is scoped to the destination ROW in the
+    frame, not this dialog.
+-->
+<GUI onOpen="onOpen" onClose="onClose" onCreate="onCreate">
+	<GuiElement profile="newLayer"/>
+	<Bitmap profile="dialogFullscreenBg" id="dialogBg"/>
+	<GuiElement profile="fs25_dialogBg" id="dialogElement" size="600px 740px">
+		<ThreePartBitmap profile="fs25_dialogBgMiddle"/>
+		<ThreePartBitmap profile="fs25_dialogBgTop"/>
+		<ThreePartBitmap profile="fs25_dialogBgBottom"/>
+		<GuiElement profile="fs25_dialogContentContainer">
+			<Text profile="dialogTitle" text="$l10n_rl_menu_herdsman_destination_picker_title" id="dialogTitleElement" position="0px -30px"/>
+
+			<!-- Empty state: shown when the move rule has no eligible destination (no owner-farm pen of
+			     the filter type that is not already a source). -->
+			<Text profile="fs25_dialogText" text="$l10n_rl_menu_herdsman_destination_picker_empty" id="emptyListText" position="0px -200px" size="500px 40px" visible="false"/>
+
+			<!-- Single-select destination list (husbandry name only) -->
+			<SmoothList profile="rl_herdDestList" id="destinationList" position="50px -80px" size="470px 550px" focusInit="onOpen" focusChangeTop="nil" focusChangeBottom="nil" onClick="onListClick">
+				<ListItem profile="rl_herdDestListItem" size="455px 55px">
+					<Text profile="rl_herdDestName" position="10px 0px" size="435px 55px" name="destinationName"/>
+				</ListItem>
+			</SmoothList>
+
+			<!-- Scrollbar (hidden with the list on the empty state) -->
+			<ThreePartBitmap profile="fs25_listSliderBox" id="destinationSliderBox" position="-30px -17px" size="12px 550px" with="anchorTopRight">
+				<Slider profile="fs25_listSlider" size="6px 542px" dataElementId="destinationList"/>
+			</ThreePartBitmap>
+
+			<!-- "Current destination unavailable" hint: shown when the rule's stored dest is not in the
+			     type-gated list (e.g. its type left the filter scope), so the picker requires an explicit
+			     pick instead of silently preselecting row 1. Hidden by default; populated via showHint. -->
+			<Text profile="fs25_dialogText" id="hintText" position="0px -650px" size="500px 40px" visible="false" text=""/>
+		</GuiElement>
+
+		<BoxLayout profile="fs25_dialogButtonBox" id="buttonsPC">
+			<Button profile="buttonOK" text="$l10n_button_confirm" onClick="onClickConfirm" id="confirmButton"/>
+			<Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+			<Button profile="buttonBack" text="$l10n_button_back" onClick="onClickCancel"/>
+		</BoxLayout>
+	</GuiElement>
+
+	<GUIProfiles>
+		<Profile name="rl_herdDestList" extends="emptyPanel" with="anchorStretchingYLeft pivotTopLeft">
+		</Profile>
+		<Profile name="rl_herdDestListItem" extends="baseReference" with="anchorTopStretchingX alternating">
+			<height value="55px"/>
+			<imageColor value="$preset_fs25_colorGrey"/>
+			<imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
+			<alternateBackgroundColor value="$preset_fs25_colorGreyDark_50"/>
+		</Profile>
+		<Profile name="rl_herdDestName" extends="baseReference" with="anchorMiddleLeft">
+			<textBold value="false"/>
+			<textSize value="18px"/>
+			<textAlignment value="left"/>
+			<textColor value="$preset_fs25_colorMainLight"/>
+			<textSelectedColor value="$preset_fs25_colorMainDark"/>
+		</Profile>
+	</GUIProfiles>
+</GUI>

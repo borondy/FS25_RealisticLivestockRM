@@ -4,9 +4,6 @@
 
     Allows offspring genetics to exceed or fall below parent ranges through
     probabilistic inheritance based on normal distribution.
-
-    Based on RLAdjust implementation by Ritter.
-    Integrated into RealisticLivestockRM.
 ]]
 
 BreedingMath = {}

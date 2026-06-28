@@ -300,6 +300,7 @@
 		<text name="rl_mark_aiManager_castrate" text="Dyrepasser markeret til sterilisering"/>
 		<text name="rl_mark_aiManager_disease" text="Dyrepasser markeret til behandling"/>
 		<text name="rl_mark_aiManager_ai" text="Dyrepasser markeret til assisteret avl"/>
+		<text name="rl_mark_aiManager_move" text="Herdsman marked for moving"/>
 		<text name="rl_mark_player" text="Markeret af Spiller"/>
 
 
@@ -364,7 +365,7 @@
 		<text name="rl_ui_herdsmanTooltip_sell_gender_2" text="Dyrepasseren vil sælge hunner og hanner"/>
 		<text name="rl_ui_herdsmanTooltip_sell_gender_3" text="Dyrepasseren vil kun sælge hanner"/>
 
-		<text name="rl_ui_herdsmanTooltip_sell_age_equal" text="Dyrepasseren vil kun sælge gamle dyr."/>
+		<text name="rl_ui_herdsmanTooltip_sell_age_equal" text="Dyrepasseren vil kun sælge dyr, der er %s gamle."/>
 		<text name="rl_ui_herdsmanTooltip_sell_age_range" text="Dyrepasseren vil kun sælge dyr, der er mellem %s og %s gamle."/>
 
 		<text name="rl_ui_herdsmanTooltip_sell_quality_equal" text="Dyrepasseren vil kun sælge dyr med %s kvalitet."/>
@@ -623,6 +624,10 @@
 		<text name="rl_message_aiManager_mark_ai_multiple" text="Hyrden har mærket %s dyr til AI"/>
 		<text name="rl_message_aiManager_ai_single" text="Hyrden har med succes gjort et dyr drægtig"/>
 		<text name="rl_message_aiManager_ai_multiple" text="Hyrden har med succes gjort %s dyr drægtige"/>
+		<text name="rl_message_aiManager_movedAnimals_single" text="Herdsman moved 1 animal"/>
+		<text name="rl_message_aiManager_movedAnimals_multiple" text="Herdsman moved %s animals"/>
+		<text name="rl_message_aiManager_mark_move_single" text="Herdsman marked 1 animal for moving"/>
+		<text name="rl_message_aiManager_mark_move_multiple" text="Herdsman marked %s animals for moving"/>
 
 
 
@@ -653,6 +658,14 @@
         <text name="rl_message_dailyDeathsSummary" text="%s dyr døde på %s - %s"/>
         <text name="rl_message_dailyOvercrowdingSummary" text="Overbelægning: solgt %s nyfødte på %s for %s"/>
         <text name="rl_message_dailyPurchasesSummary" text="Købt %s dyr på %s for %s"/>
+        <text name="rl_message_dailyCastrationsSummary" text="Castrated %s animals at %s"/>
+        <text name="rl_message_dailyNamingsSummary" text="Named %s animals at %s"/>
+        <text name="rl_message_dailyInseminationsSummary" text="Inseminated %s animals at %s"/>
+        <text name="rl_message_dailyMarkSellSummary" text="Marked %s animals for sale at %s"/>
+        <text name="rl_message_dailyMarkCastrateSummary" text="Marked %s animals for castration at %s"/>
+        <text name="rl_message_dailyMarkInseminateSummary" text="Marked %s animals for insemination at %s"/>
+        <text name="rl_message_dailyMovesSummary" text="Moved %s animals from %s"/>
+        <text name="rl_message_dailyMarkMoveSummary" text="Marked %s animals for moving from %s"/>
         <text name="rl_message_dailySalesSummary" text="Solgt %s dyr på %s for %s"/>
         <text name="rl_settings_accidentsChance_tooltip_github" text="Ændre sandsynligheden for, at dyr dør på grund af tilfældige ulykker"/>
         <text name="rl_settings_deathEnabled_label_github" text="Dødsfald"/>
@@ -724,6 +737,13 @@
         <text name="rl_menu_messages_unknown" text="Unknown: %s"/>
         <text name="rl_menu_move_summary" text="%d animals" tag="format"/>
         <text name="rl_menu_move_title" text="Move"/>
+        <!-- Transfer tab -->
+        <text name="rl_menu_transfer_title" text="Transfer"/>
+        <text name="rl_menu_transfer_load" text="Load"/>
+        <text name="rl_menu_transfer_unload" text="Unload"/>
+        <text name="rl_menu_transfer_empty_no_animals" text="No animals on this side"/>
+        <text name="rl_menu_transfer_counterpart" text="Destination"/>
+        <text name="rl_menu_transfer_world" text="Nearby Animals"/>
         <text name="rl_menu_sell_title" text="Sell"/>
         <text name="rl_menu_sell_cart_header" text="Sale Summary"/>
         <text name="rl_menu_sell_cart_selected" text="Selected"/>
@@ -741,6 +761,55 @@
         <text name="rl_menu_ai_price" text="Price"/>
         <text name="rl_menu_ai_empty_no_stock" text="No bulls available at the dealer for this species"/>
         <text name="rl_menu_ai_empty_no_species" text="No animal species registered"/>
+        <text name="rl_menu_herdsman_title" text="Herdsman"/>
+        <text name="rl_menu_herdsman_detail_action" text="Action"/>
+        <text name="rl_menu_herdsman_action_perform" text="Perform"/>
+        <text name="rl_menu_herdsman_action_markOnly" text="Mark only"/>
+        <text name="rl_menu_herdsman_action_perform_tooltip" text="The herdsman performs this task on matching animals."/>
+        <text name="rl_menu_herdsman_action_markOnly_tooltip" text="The herdsman only flags matching animals - the task is not performed, at reduced wage."/>
+        <text name="rl_menu_herdsman_operation_tooltip" text="The task the herdsman performs on matching animals."/>
+        <text name="rl_menu_herdsman_name_tooltip" text="A name to identify this task."/>
+        <text name="rl_menu_herdsman_filter_tooltip" text="The saved filter that decides which animals this task matches."/>
+        <text name="rl_menu_herdsman_husbandries_tooltip" text="The husbandries this task runs in. Budget and limits apply to each one separately."/>
+        <text name="rl_menu_herdsman_maxAnimals_sell_tooltip" text="The herdsman sells up to %s matching animals per day, in each selected husbandry."/>
+        <text name="rl_menu_herdsman_maxAnimals_buy_tooltip" text="The herdsman buys up to %s matching animals per day, in each selected husbandry."/>
+        <text name="rl_menu_herdsman_maxAnimals_ai_tooltip" text="The herdsman inseminates up to %s matching animals per day, in each selected husbandry."/>
+        <text name="rl_menu_herdsman_maxAnimals_move_tooltip" text="The herdsman moves up to %s matching animals per day, in each selected husbandry."/>
+        <text name="rl_menu_herdsman_budgetFixed_tooltip" text="The herdsman spends up to %s per day, in each selected husbandry."/>
+        <text name="rl_menu_herdsman_budgetPercentage_tooltip" text="The herdsman spends up to %s of your farm's money per day, in each selected husbandry."/>
+        <text name="rl_menu_herdsman_destination_tooltip" text="The husbandry the herdsman moves matching animals into."/>
+        <text name="rl_menu_herdsman_enabled_move_tooltip" text="Whether the herdsman runs this move task each day."/>
+        <text name="rl_menu_herdsman_empty" text="No herdsman rules yet"/>
+        <text name="rl_menu_herdsman_empty_editor" text="Select a rule to edit"/>
+        <text name="rl_menu_herdsman_section_sell" text="Sell"/>
+        <text name="rl_menu_herdsman_section_buy" text="Buy"/>
+        <text name="rl_menu_herdsman_section_castrate" text="Castrate"/>
+        <text name="rl_menu_herdsman_section_naming" text="Naming"/>
+        <text name="rl_menu_herdsman_section_ai" text="Artificial Insemination"/>
+        <text name="rl_menu_herdsman_detail_operation" text="Operation"/>
+        <text name="rl_menu_herdsman_detail_enabled" text="Enabled"/>
+        <text name="rl_menu_herdsman_detail_convention" text="Naming Convention"/>
+        <text name="rl_menu_herdsman_detail_budgetfixed" text="Fixed Amount"/>
+        <text name="rl_menu_herdsman_detail_budgetpercentage" text="Herd Value %"/>
+        <text name="rl_menu_herdsman_detail_semen" text="Semen"/>
+        <text name="rl_menu_herdsman_detail_husbandries" text="Husbandries"/>
+        <text name="rl_menu_herdsman_detail_none" text="(none)"/>
+        <text name="rl_menu_herdsman_detail_missing" text="(missing)"/>
+        <text name="rl_menu_herdsman_filter_select" text="Select filter"/>
+        <text name="rl_menu_herdsman_filter_picker_title" text="Select Filter"/>
+        <text name="rl_menu_herdsman_filter_picker_empty" text="No filters available for this operation."/>
+        <text name="rl_menu_herdsman_husbandry_select" text="Select husbandries"/>
+        <text name="rl_menu_herdsman_husbandry_count" text="%d selected"/>
+        <text name="rl_menu_herdsman_husbandry_picker_title" text="Select Husbandries"/>
+        <text name="rl_menu_herdsman_husbandry_picker_empty" text="No husbandries available for this rule."/>
+        <text name="rl_menu_herdsman_husbandry_emptyRejected" text="Select at least one husbandry."/>
+        <text name="rl_menu_herdsman_filter_picker_currentUnavailable" text="Current filter unavailable for this operation."/>
+			<text name="rl_menu_herdsman_section_move" text="Move"/>
+			<text name="rl_menu_herdsman_detail_destination" text="Destination"/>
+			<text name="rl_menu_herdsman_destination_select" text="Select destination"/>
+			<text name="rl_menu_herdsman_destination_picker_title" text="Select Destination"/>
+			<text name="rl_menu_herdsman_destination_picker_empty" text="No destination husbandry available for this rule."/>
+			<text name="rl_menu_herdsman_destination_picker_currentUnavailable" text="Current destination unavailable for this rule."/>
         <!-- Settings tab shell (English fallback) -->
         <text name="rl_menu_settings_title" text="Settings"/>
         <text name="rl_menu_settings_tab_general" text="General"/>
@@ -800,5 +869,49 @@
         <text name="rl_ui_buyAllRejected" text="None of the selected animals can be purchased in this husbandry."/>
         <text name="rl_ui_buyPartialConfirmation" text="Buy %d of %d selected animals for %s?" tag="format"/>
         <text name="rl_ui_buySkippedNotSupported" text="%d animal(s) not supported by this husbandry" tag="format"/>
+		<!-- Herdsman rule lifecycle -->
+		<text name="rl_menu_herdsman_new_button" text="New rule"/>
+		<text name="rl_menu_herdsman_duplicate_button" text="Duplicate"/>
+		<text name="rl_menu_herdsman_delete_button" text="Delete"/>
+		<text name="rl_menu_herdsman_delete_confirm_text" text="Delete rule &quot;%s&quot;? This cannot be undone."/>
+		<text name="rl_menu_herdsman_default_name" text="New rule"/>
+		<text name="rl_menu_herdsman_duplicate_suffix" text=" (copy)"/>
+		<text name="rl_menu_herdsman_duplicate_suffix_n" text=" (copy %d)"/>
+		<text name="rl_menu_herdsman_legacy_banner" text="Legacy herdsman tasks are still active. Disable them on the animal screen to avoid double execution."/>
+		<!-- Filter condition editor (English fallback) -->
+		<text name="rl_menu_filters_add_condition" text="Add condition"/>
+		<text name="rl_menu_filters_add_group_button" text="Add group"/>
+		<text name="rl_menu_filters_edit_condition" text="Edit condition"/>
+		<text name="rl_menu_filters_delete_condition" text="Delete condition"/>
+		<text name="rl_menu_filters_dialog_title" text="Edit condition"/>
+		<text name="rl_menu_filters_field_label" text="Field"/>
+		<text name="rl_menu_filters_cmp_label" text="Compare"/>
+		<text name="rl_menu_filters_value_label" text="Value"/>
+		<text name="rl_menu_filters_value_invalid_number" text="Invalid number"/>
+		<text name="rl_menu_filters_preserved_banner" text="%d condition(s) hidden - editable in a later phase. Saved on close."/>
+		<text name="rl_menu_filters_field_age" text="Age"/>
+		<text name="rl_menu_filters_field_isCastrated" text="Castrated"/>
+		<text name="rl_menu_filters_field_isPregnant" text="Pregnant"/>
+		<text name="rl_menu_filters_field_isLactating" text="Lactating"/>
+		<text name="rl_menu_filters_field_hasName" text="Has name"/>
+		<text name="rl_menu_filters_field_hasAnyDisease" text="Has any disease"/>
+		<text name="rl_menu_filters_field_hasAnyMark" text="Has any mark"/>
+		<text name="rl_menu_filters_field_weight" text="Weight"/>
+		<text name="rl_menu_filters_field_health" text="Health"/>
+		<text name="rl_menu_filters_field_genetics_metabolism" text="Genetics: metabolism"/>
+		<text name="rl_menu_filters_field_genetics_health" text="Genetics: health"/>
+		<text name="rl_menu_filters_field_genetics_fertility" text="Genetics: fertility"/>
+		<text name="rl_menu_filters_field_genetics_quality" text="Genetics: quality"/>
+		<text name="rl_menu_filters_field_genetics_productivity" text="Genetics: productivity"/>
+		<text name="rl_menu_filters_field_genetics_overall" text="Genetics: overall"/>
+		<text name="rl_menu_filters_gender_male" text="Male"/>
+		<text name="rl_menu_filters_gender_female" text="Female"/>
+		<text name="rl_menu_filters_emptyValueRejected" text="Value cannot be empty"/>
+		<text name="rl_menu_filters_subtypeRequiresAnimalType" text="Set the filter's animal type first to edit this condition"/>
+		<text name="rl_menu_filters_invalidNumber" text="Enter a valid number"/>
+		<text name="rl_menu_filters_enumValueDrifted" text="Stored value no longer valid - pick a replacement"/>
+		<text name="rl_menu_filters_valueSet_title" text="Select values"/>
+		<text name="rl_menu_filters_valueSet_summary" text="%d selected"/>
+		<text name="rl_menu_filters_valueSet_button" text="Edit values..."/>
     </texts>
 </l10n>

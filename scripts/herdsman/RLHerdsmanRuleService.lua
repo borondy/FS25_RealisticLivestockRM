@@ -2,8 +2,8 @@
 -- Singleton CRUD service for the Herdsman rule registry (M-Service S1-S5).
 --
 -- Owns the in-memory rule registry `self.rulesById` and assigns stable ids on
--- create via `Utils.getUniqueId`. A rule binds one saved filter +
--- operation params to a set of target husbandry placeables. Structural sibling
+-- create via `Utils.getUniqueId`. A rule binds at most one saved filter (nil = an
+-- unfiltered draft) + operation params to a set of target husbandry placeables. Structural sibling
 -- of `RLFilterService`: same in-memory CRUD + immutability + defensive-clone
 -- discipline, PLUS XML persistence and MP create/update/delete/state sync.
 --
@@ -15,12 +15,13 @@
 --
 -- Validity floor (enforced on BOTH create and update):
 --   * `name`              non-empty string
---   * `operation`         one of sell|buy|castrate|naming|ai
+--   * `operation`         one of sell|move|buy|castrate|naming|ai
 --   * `farmId`            integer (the owning farm)
 --   * `enabled`           boolean
 --   * `params`            table (opaque here; the per-operation codec is S2)
 --   * `targetHusbandries` array (may be empty -> inert rule, no targets)
---   * `filterId`          non-empty (non-whitespace) string for buy/sell/castrate/ai; MUST be nil for naming
+--   * `filterId`          buy/sell/move/castrate/ai: nil (incomplete draft) OR a non-empty
+--                          (non-whitespace) string; naming: MUST be nil
 --
 -- Scope boundary (deliberately NOT here):
 --   * No per-operation `params` validation, no filterId resolution against
@@ -47,16 +48,41 @@ local RLHerdsmanRuleService_mt = { __index = RLHerdsmanRuleService }
 RLHerdsmanRuleService.UNIQUE_ID_PREFIX = "rlHerdRule_"
 
 --- Canonical operation set. A rule's `operation` MUST be one of these keys.
---- Kept as a set for O(1) validation; the value is informational only - run /
---- visual ordering is an M-Frame/M-Tick concern, not the service's, so it is
---- NOT used for sorting here.
+--- Kept as a set for O(1) validation. The canonical run / visual ORDER of these
+--- operations lives in `OPERATION_ORDER` below - the service owns it now (M-Tick T1)
+--- so the M-Frame presenter and the M-Tick planner share one source of truth.
 RLHerdsmanRuleService.OPERATIONS = {
     sell     = true,
+    move     = true,
     buy      = true,
     castrate = true,
     naming   = true,
     ai       = true,
 }
+
+--- Canonical run / visual order for the five operations (D3 "visual order = run
+--- order"): Sell frees herd space before Buy fills it, mirroring legacy
+--- `AIAnimalManager:onDayChanged`. The single source of truth for BOTH consumers -
+--- the M-Frame presenter (section placement) and the M-Tick planner (run order).
+--- Each consumer derives its own operation -> rank map from this list (no shared
+--- rank table, so a consumer's load order can never read a half-built map).
+RLHerdsmanRuleService.OPERATION_ORDER = { "sell", "move", "buy", "castrate", "naming", "ai" }
+
+--- Within-operation comparator: alphabetical by name (case-insensitive), with a
+--- nil-safe `tostring(id)` tie-break. Persisted records always carry an id, so the
+--- tie-break is deterministic (mirrors `saveToXMLFile`'s id sort). Hoisted here from
+--- the presenter (M-Tick T1) so the presenter's section sort and the planner's
+--- within-op run-order sort cannot drift. Generic over any `{ name, id }` record, so
+--- the presenter reuses it for filter lists too.
+---@param a table record with `name` + `id`
+---@param b table record with `name` + `id`
+---@return boolean
+function RLHerdsmanRuleService.compareRulesByName(a, b)
+    local an = string.lower(tostring(a.name or ""))
+    local bn = string.lower(tostring(b.name or ""))
+    if an ~= bn then return an < bn end
+    return tostring(a.id) < tostring(b.id)
+end
 
 --- Default `version` assigned on create when the caller omits one. Frozen after
 --- create; exists for the S3 wire / S5 state-convergence layers (UInt16 later),
@@ -137,15 +163,16 @@ local function isDenseArray(t)
     return count == #t
 end
 
---- Validate a candidate rule against the validity floor (the SS4 record rules).
+--- Validate a candidate rule against the validity floor (the record rules).
 --- Used by BOTH `create` and `update` so the same constraints gate every write.
 --- Returns `true` on success, or `false` plus a short reason string a caller can
 --- surface in a `:warning`. Does NOT mutate the rule.
 ---
 --- Enforces: non-empty string `name`; `operation` in the canonical set; integer
 --- `farmId`; boolean `enabled`; table `params`; array (table) `targetHusbandries`;
---- and the filterId-vs-operation rule (naming MUST have nil filterId, every other
---- operation MUST have a non-empty (non-whitespace) string filterId). Element typing of `targetHusbandries`
+--- and the filterId-vs-operation rule (naming MUST have nil filterId; every other
+--- operation may carry a nil filterId - an incomplete draft - or, when present, a
+--- non-empty (non-whitespace) string filterId). Element typing of `targetHusbandries`
 --- and per-operation `params` shape are intentionally NOT checked here (M-Tick /
 --- S2 concerns).
 ---@param r table|nil
@@ -159,7 +186,7 @@ local function validateRuleFields(r)
         return false, string.format("name must be a non-empty string (got %s)", tostring(r.name))
     end
     if type(r.operation) ~= "string" or not RLHerdsmanRuleService.OPERATIONS[r.operation] then
-        return false, string.format("operation must be one of sell|buy|castrate|naming|ai (got %s)", tostring(r.operation))
+        return false, string.format("operation must be one of sell|move|buy|castrate|naming|ai (got %s)", tostring(r.operation))
     end
     if type(r.farmId) ~= "number" or math.floor(r.farmId) ~= r.farmId then
         return false, string.format("farmId must be an integer (got %s)", tostring(r.farmId))
@@ -176,15 +203,18 @@ local function validateRuleFields(r)
     if not isDenseArray(r.targetHusbandries) then
         return false, "targetHusbandries must be a dense array (map-shaped or sparse keys rejected; no normalization here)"
     end
-    -- filterId-vs-operation (D6/SS10): naming carries no filter; everything else
-    -- references exactly one filter by id (resolution is deferred to M-Frame).
+    -- filterId-vs-operation (D6): naming carries no filter; a non-naming rule
+    -- binds at most one filter by id - nil is a legal incomplete draft (the rule is
+    -- inert until a filter is picked), and a present filterId must stay a non-empty
+    -- (non-whitespace) string. Resolution against RLFilterService is deferred to
+    -- M-Frame; "needs a filter to actually run" is enforced at the day-tick.
     if r.operation == "naming" then
         if r.filterId ~= nil then
             return false, string.format("naming rules must have nil filterId (got %s)", tostring(r.filterId))
         end
-    else
+    elseif r.filterId ~= nil then
         if type(r.filterId) ~= "string" or r.filterId:gsub("%s", "") == "" then
-            return false, string.format("operation '%s' requires a non-empty (non-whitespace) string filterId (got %s)", r.operation, tostring(r.filterId))
+            return false, string.format("operation '%s' filterId, when present, must be a non-empty (non-whitespace) string (got %s)", r.operation, tostring(r.filterId))
         end
     end
     return true
@@ -192,6 +222,104 @@ end
 
 --- Exposed for tests that want to assert the floor directly.
 RLHerdsmanRuleService._validateRuleFields = validateRuleFields
+
+-- =============================================================================
+-- Record equality (no-op-diff support)
+-- =============================================================================
+
+--- Shared empty-table sentinel for `deepEqual`'s nil-as-empty arm, so that path
+--- allocates nothing. Read-only: never mutated.
+local EMPTY = {}
+
+--- Order-insensitive multiset equality for two arrays of strings (the rule's
+--- `targetHusbandries`). nil is treated as the empty set, so an absent list and an
+--- empty `{}` compare equal. Compares element multiplicity, not order: a re-ordered
+--- but same-membership set is equal; an added / removed / duplicated element is not.
+---@param a string[]|nil
+---@param b string[]|nil
+---@return boolean equal
+local function multisetEqual(a, b)
+    local counts, na, nb = {}, 0, 0
+    if a ~= nil then
+        for _, v in ipairs(a) do counts[v] = (counts[v] or 0) + 1; na = na + 1 end
+    end
+    if b ~= nil then
+        for _, v in ipairs(b) do
+            local c = counts[v]
+            if c == nil or c == 0 then return false end
+            counts[v] = c - 1
+            nb = nb + 1
+        end
+    end
+    return na == nb
+end
+
+--- Deep value-equality with the registry's two conventions: nil and an empty table
+--- compare equal (an absent `params` key == an empty `params`, including a nested
+--- `budget`), and non-table leaves fall back to `==`. Recurses every key of both
+--- tables, treating an absent key as a nil value. NOT multiset-aware - the caller
+--- routes `targetHusbandries` through `multisetEqual`.
+---@param a any
+---@param b any
+---@return boolean equal
+local function deepEqual(a, b)
+    local ta, tb = type(a), type(b)
+    if ta ~= "table" and tb ~= "table" then
+        return a == b
+    end
+    -- One side is a table; treat a nil counterpart as an empty table. A non-nil,
+    -- non-table counterpart stays a `==` mismatch (-> false).
+    if ta ~= "table" then
+        if a ~= nil then return false end
+        a = EMPTY
+    elseif tb ~= "table" then
+        if b ~= nil then return false end
+        b = EMPTY
+    end
+    for k, av in pairs(a) do
+        if not deepEqual(av, b[k]) then return false end
+    end
+    for k, bv in pairs(b) do
+        if a[k] == nil and not deepEqual(nil, bv) then return false end
+    end
+    return true
+end
+
+--- Whole-record equality for two rule records - the no-op-diff predicate behind
+--- `update`'s "a byte-identical update never broadcasts" invariant. Pure: plain data
+--- in, boolean out. Deep over every key, so it needs NO hand-maintained field list
+--- that could drift from `validateRuleFields` / `cloneRule`; the immutable
+--- id / farmId / version are equal by construction at the no-op site, so the only
+--- differences it can surface are mutable. Two conventions: `targetHusbandries` is
+--- compared as an order-insensitive multiset, and every other key (scalars plus the
+--- nested `params` / `budget` tables) by deep value-equality with nil == empty-table.
+--- Non-table arguments fall back to `==`.
+---@param a table|any first rule record (or any value)
+---@param b table|any second rule record (or any value)
+---@return boolean equal
+function RLHerdsmanRuleService.equals(a, b)
+    if type(a) ~= "table" or type(b) ~= "table" then
+        return a == b
+    end
+    if not multisetEqual(a.targetHusbandries, b.targetHusbandries) then
+        Log:trace("RLHerdsmanRuleService.equals: targetHusbandries multiset differs")
+        return false
+    end
+    for k, av in pairs(a) do
+        if k ~= "targetHusbandries" and not deepEqual(av, b[k]) then
+            Log:trace("RLHerdsmanRuleService.equals: key '%s' differs", tostring(k))
+            return false
+        end
+    end
+    for k, bv in pairs(b) do
+        if k ~= "targetHusbandries" and a[k] == nil and not deepEqual(nil, bv) then
+            Log:trace("RLHerdsmanRuleService.equals: key '%s' present only on b", tostring(k))
+            return false
+        end
+    end
+    Log:trace("RLHerdsmanRuleService.equals: records equal")
+    return true
+end
 
 -- =============================================================================
 -- Construction
@@ -290,6 +418,11 @@ end
 --- Whole-object replacement: a partial payload that omits a mutable field would
 --- silently collapse the rule, so it is rejected rather than merged. Returns a
 --- cloned snapshot of the new stored record on success.
+---
+--- No-op skip: when the re-pinned payload equals the stored record (`equals`), the
+--- update is a no-op - it leaves state unchanged, skips the `RLHerdsmanRuleUpdateEvent`
+--- broadcast, and returns a clone of the existing record. This is still a success
+--- (NOT a rejection); the return type is unchanged.
 ---@param id string lookup id
 ---@param payload table whole-object replacement payload
 ---@return table|nil updated cloned snapshot of the stored record
@@ -338,6 +471,15 @@ function RLHerdsmanRuleService:update(id, payload)
     stored.id      = id
     stored.farmId  = existing.farmId
     stored.version = existing.version
+
+    -- No-op diff: a byte-identical update must not broadcast. Compare the re-pinned
+    -- `stored` against `existing` (not the raw payload) so the immutable re-pinning can
+    -- never fabricate a false diff. On a match, leave the registry untouched, skip the
+    -- broadcast, and return the existing snapshot - callers still see a normal success.
+    if RLHerdsmanRuleService.equals(stored, existing) then
+        Log:debug("RLHerdsmanRuleService:update: id=%s payload == stored; skipping RLHerdsmanRuleUpdateEvent (no-op)", tostring(id))
+        return cloneRule(existing)
+    end
 
     self.rulesById[id] = stored
 
@@ -390,7 +532,7 @@ function RLHerdsmanRuleService:list()
     return out
 end
 
---- Rules whose frozen `farmId` equals `farmId` (SS4: farmId is the owning farm),
+--- Rules whose frozen `farmId` equals `farmId` (farmId is the owning farm),
 --- as cloned snapshots. Order is undefined (see `list`).
 ---@param farmId integer owning farm id to match against
 ---@return table[] rules cloned snapshots
@@ -410,6 +552,40 @@ end
 function RLHerdsmanRuleService:clear()
     self.rulesById = {}
     Log:debug("RLHerdsmanRuleService:clear: state emptied")
+end
+
+-- =============================================================================
+-- Naming cursor (M-Tick T3) - server-only day-tick state
+-- =============================================================================
+
+--- Advance the stored alphabetical-naming cursor for a rule, in place on the LIVE record.
+--- Additive M-Tick write: `getById` / `list` / `listForFarm` all return defensive clones, so
+--- the day-tick executor cannot persist the advanced cursor through the plan it received -
+--- this `_rawGetById` write is the single in-place path. The cursor is server-authoritative
+--- day-tick state (clients never run the naming tick), so it persists via `saveToXMLFile` on
+--- the next save and broadcasts NO `RLHerdsmanRuleUpdateEvent`. Honest consequence: client
+--- replicas hold a stale `params.previous` until the next full state sync - intended and
+--- harmless. Fails closed: an unknown id (rule deleted mid-tick) or a missing `params` table
+--- warns + returns false, never raising.
+---@param id string rule id
+---@param previous string|nil advanced cursor value to store at `params.previous`
+---@return boolean written true iff the cursor was written to a live record
+function RLHerdsmanRuleService:setNamingCursor(id, previous)
+    local stored = self:_rawGetById(id)
+    if stored == nil then
+        Log:warning("RLHerdsmanRuleService:setNamingCursor: unknown id '%s' (rule deleted mid-tick?); no-op", tostring(id))
+        return false
+    end
+    if type(stored.params) ~= "table" then
+        Log:warning("RLHerdsmanRuleService:setNamingCursor: id=%s has no params table (params=%s); no-op",
+            tostring(id), tostring(stored.params))
+        return false
+    end
+
+    stored.params.previous = previous
+    Log:debug("RLHerdsmanRuleService:setNamingCursor: id=%s params.previous=%s (server-only, no broadcast)",
+        tostring(id), tostring(previous))
+    return true
 end
 
 -- =============================================================================

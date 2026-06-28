@@ -14,11 +14,11 @@
 -- (serialization, wire codec, service CRUD, GUI callbacks) reference these
 -- constants so the rule + WARNING message live in one place.
 --
--- Boundary policy (Locked Decision #14, renegotiated 2026-05-17):
+-- Boundary policy:
 --   * Untrusted inbound boundary (XML unknown attr, wire byte out of range,
 --     service:create payload with non-nil garbage, service:update payload
 --     with non-nil garbage) -> coerce to ANY + WARN.
---   * service:create(filter.usage = nil) -> silent default to ANY (per #3).
+--   * service:create(filter.usage = nil) -> silent default to ANY.
 --   * service:update(payload.usage = nil) -> REJECT with WARN + return nil
 --     (matches the existing name/expression completeness guard).
 --   * XML attr absent on read -> silent default to ANY (legacy-save expected).
@@ -48,8 +48,7 @@ RLFilterUsage.OWNED = "OWNED"
 RLFilterUsage.DEALER = "DEALER"
 
 --- Forward wire-byte map: canonical string -> UInt8.
---- Frozen mapping per Locked Decision #15:
----   0 = ANY, 1 = OWNED, 2 = DEALER. Values 3-255 are reserved.
+--- Frozen mapping: 0 = ANY, 1 = OWNED, 2 = DEALER. Values 3-255 are reserved.
 --- Ordering chosen so the default (ANY) sits at byte zero, matching common
 --- protocol convention (all-zeroes stream decodes to wildcard, not bucket).
 RLFilterUsage.BYTE = {

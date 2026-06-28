@@ -123,6 +123,14 @@ See the [Breeding Guide](guide-breeding.md#offspring-breed) for examples and pra
 
 ---
 
+## Does the mod work on my map?
+
+Almost certainly yes. RLRM works on virtually any map - it does not need to be on a supported list. The maps listed in the docs are only the ones that add their *own* custom animal types or breeds, which need built-in support so those extras also get genetics and breeding. On any other map, the standard FS25 animals work normally.
+
+(Rare exception: a map that heavily replaces the animal husbandry setup could clash - if something looks off, [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues).)
+
+---
+
 ## Can you add more breeds or animal types?
 
 **Short answer:** Yes - the mod supports **[Animal Packs](guide-animal-packs.md)**, third-party mods that can add new breeds or adjust animal balance. Modders can create packs that range from simple balance tweaks to full breed additions with custom visuals.

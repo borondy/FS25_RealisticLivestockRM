@@ -8,12 +8,11 @@
 
     Rationale: declaring rlDewar via modDesc <vehicleTypes> caused a benign
     but noisy "Can't load resource dataS/scripts/vehicles/Vehicle.lua" error
-    at mod load time, because FS25's XML type loader inherits the pallet
-    parent's filename and unconditionally prepends the mod directory
-    (Utils.getFilename path). Doing the registration in Lua lets us rely on
-    the mod env metatable fallback (modEnv.Vehicle -> _G.Vehicle via
-    __index = _G) for class resolution without triggering the broken path
-    prepend.
+    at mod load time (the XML registration path tries to resolve the parent
+    "pallet" type's script under the mod directory). Doing the registration
+    in Lua lets us rely on the mod env metatable fallback
+    (modEnv.Vehicle -> _G.Vehicle via __index = _G) for parent-class
+    resolution without going through the resource-load path.
 ]]
 
 local modDirectory = g_currentModDirectory

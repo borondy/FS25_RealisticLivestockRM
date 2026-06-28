@@ -4,9 +4,8 @@
 
     Wraps AnimalBuyEvent dispatch with the same subscription pattern as
     RLAnimalSellService / RLAnimalMoveService. All buys route through
-    AnimalBuyEvent (server-authoritative at
-    scripts/animals/shop/events/AnimalBuyEvent.lua:65-113): the server calls
-    animalSystem:removeSaleAnimal, self.object:addAnimals, and addMoney.
+    AnimalBuyEvent (server-authoritative in AnimalBuyEvent:run): the server
+    calls animalSystem:removeSaleAnimal, self.object:addAnimals, and addMoney.
     The client MUST NOT mutate dealer stock, husbandry contents, or farm
     money directly - MUTATION PARITY with legacy AnimalScreenDealer.
 
@@ -15,13 +14,13 @@
         g_currentMission:addMoney(buyPrice + transportPrice, ...)
     so both values MUST be dispatched as NEGATIVE numbers. addMoney adds
     the value to the balance; the MoneyType is a statistics label and does
-    not change the sign. Legacy `AnimalScreenDealer.lua:143-144` negates
-    both values before dispatch, and the server abs()-wraps them at
-    AnimalBuyEvent.lua:109 & 111 purely for display - confirming it expects
-    stored values to be negative. A positive dispatch credits the farm.
+    not change the sign. Legacy AnimalScreenDealer negates both values before
+    dispatch, and the server abs()-wraps them purely for display - confirming
+    it expects stored values to be negative. A positive dispatch credits the
+    farm.
 
     Price markup: dealer sell price = cluster:getSellPrice() * 1.075
-    (see AnimalItemNew.lua:158-160).
+    (see AnimalItemNew).
 
     Error mapping: delegates to AnimalScreenDealerFarm.BUY_ERROR_CODE_MAPPING
     (shape `[code] = { warning = bool, text = i18n_key }`). Do NOT define a
@@ -48,7 +47,7 @@ function RLAnimalBuyService.computeBuyPrice(animal)
         return 0
     end
 
-    -- 1.075 dealer markup: scripts/animals/shop/AnimalItemNew.lua:158-160
+    -- 1.075 dealer markup (matches AnimalItemNew)
     local price = (animal:getSellPrice() or 0) * 1.075
     Log:trace("RLAnimalBuyService.computeBuyPrice: price=%.0f", price)
     return price
@@ -150,10 +149,10 @@ end
 --- Mirrors RLAnimalSellService.sellAnimals subscription pattern.
 --- The callback fires once with (target, errorCode) when the server responds.
 ---
---- CRITICAL SIGN CONVENTION: AnimalBuyEvent.lua:103 server-side does
+--- CRITICAL SIGN CONVENTION: AnimalBuyEvent:run server-side does
 ---   g_currentMission:addMoney(buyPrice + transportPrice, ...)
 --- so BOTH values are dispatched as NEGATIVE numbers (matches legacy
---- AnimalScreenDealer.lua:143-144). A positive dispatch credits the farm.
+--- AnimalScreenDealer). A positive dispatch credits the farm.
 --- @param destination table The destination placeable (entry.placeable from getValidDestinations)
 --- @param animals table Array of Animal/cluster objects to buy
 --- @param totalPrice number Sum of buy prices (POSITIVE input; negated on dispatch)
@@ -187,13 +186,12 @@ function RLAnimalBuyService.buyAnimals(destination, animals, totalPrice, totalFe
             Log:info("RLAnimalBuyService.onBuyResponse: buy succeeded (%d animals)", #animals)
 
             -- MP client-side sale-list mirror. Server did the authoritative
-            -- removal at AnimalBuyEvent.lua:97 before firing this response,
+            -- removal (in AnimalBuyEvent:run) before firing this response,
             -- but in MP the client's local g_currentMission.animalSystem.animals
             -- list is never auto-synced - so the buying client would see the
             -- just-bought animals reappear on reloadAnimalList until some
             -- other sync. Legacy mirrors this exact loop in
-            -- RL_AnimalScreenDealerFarm:onAnimalBought at
-            -- AnimalScreenDealerFarm.lua:84-92.
+            -- RL_AnimalScreenDealerFarm:onAnimalBought.
             if g_currentMission ~= nil
                 and g_currentMission.animalSystem ~= nil
                 and g_currentMission.animalSystem.removeSaleAnimal ~= nil then
@@ -238,6 +236,129 @@ function RLAnimalBuyService.buyAnimals(destination, animals, totalPrice, totalFe
         AnimalBuyEvent.new(destination, animals, negPrice, negFee)
     )
     Log:trace("RLAnimalBuyService.buyAnimals: sendEvent returned")
+end
+
+
+--- Filter a dealer-buy batch to the survivors a trailer destination can accept.
+--- Contract: reproduces the legacy AnimalScreenDealerTrailer:applySourceBulk pre-filter
+--- (per-animal base-game validate, numAnimals = 1, fee 0) AND adds the running-count
+--- capacity ledger the legacy controller lacks (the over-queue gap the legacy bulk
+--- pre-filter has for the dealer-trailer leg). The client filter is advisory: the injected validate is the
+--- authoritative base-game gate and the server AnimalBuyEvent:run re-validates the whole
+--- batch, so this caps the survivors at the trailer's free slots before dispatch, it does
+--- not predict the server verdict.
+---
+--- For each animal, in order: skip a nil subTypeIndex (warn; counted in neither result);
+--- run validate(destination, subTypeIndex, age, 1, -computeBuyPrice, 0, ownerFarmId) and on a
+--- non-nil error record { animal, reason = errorCode } (capturing the FIRST code); then a
+--- running-count capacity check that rejects { animal, reason = "NO_CAPACITY" } when the
+--- destination's per-(sub)type free slots do NOT strictly exceed the survivors queued so far.
+--- A single #valid counter against the per-(sub)type free read is correct for the trailer's
+--- per-TYPE capacity (getNumOfFreeAnimalSlots is per-type total-used; a per-subtype
+--- counter would over-fill a shared per-type place).
+---
+--- Returns the { valid, rejected } shape of AnimalScreenMoveFarm.buildMoveValidationResult so
+--- the frame's shared partial-confirm + dispatch path binds unchanged, PLUS firstErrorCode for
+--- the all-rejected error surface (the LEDGER MECHANISM mirrors RLAnimalMoveService.filterMovableAnimals,
+--- which returns a tuple - a different shape, deliberately not copied here).
+---
+--- Pure / dual-run: takes the destination + validate as parameters; computeBuyPrice is pure
+--- (reads animal:getSellPrice). The only call onto the destination is getNumOfFreeAnimalSlots,
+--- so a headless test drives it with a mock destination and an injected validator.
+--- @param destination table Buy destination (the held trailer); capacity read via getNumOfFreeAnimalSlots
+--- @param animals table|nil Array of Animal/cluster refs to buy (nil -> empty result)
+--- @param ownerFarmId number Owning farm id passed to the validator (trailer:getOwnerFarmId())
+--- @param validate function (object, subTypeIndex, age, numAnimals, buyPrice, feePrice, farmId) -> errorCode|nil (AnimalBuyEvent.validate in production)
+--- @return table result { valid = {<animal>...}, rejected = {{animal, reason}...}, firstErrorCode = <code|nil> }
+function RLAnimalBuyService.filterBuyableAnimals(destination, animals, ownerFarmId, validate)
+    local result = { valid = {}, rejected = {}, firstErrorCode = nil }
+
+    -- NET-NEW nil guard (the mirrored filters do not guard nil): a caller whose
+    -- trailer context resolved no animals gets the empty result, never a crash.
+    if animals == nil then
+        Log:debug("RLAnimalBuyService.filterBuyableAnimals: nil animals -> empty result")
+        return result
+    end
+
+    for _, animal in ipairs(animals) do
+        local label = animal.name or animal.uniqueId or "?"
+
+        if animal.subTypeIndex == nil then
+            Log:warning("RLAnimalBuyService.filterBuyableAnimals: animal '%s' has nil subTypeIndex, skipping",
+                tostring(label))
+        else
+            -- Negated price + numAnimals = 1, exactly as legacy applySource/applySourceBulk.
+            local price = -RLAnimalBuyService.computeBuyPrice(animal)
+            local errorCode = validate(destination, animal.subTypeIndex, animal.age, 1, price, 0, ownerFarmId)
+
+            if errorCode ~= nil then
+                if result.firstErrorCode == nil then result.firstErrorCode = errorCode end
+                result.rejected[#result.rejected + 1] = { animal = animal, reason = errorCode }
+                Log:trace("RLAnimalBuyService.filterBuyableAnimals: '%s' rejected by validate (errorCode=%s)",
+                    tostring(label), tostring(errorCode))
+            else
+                local freeSlots = destination:getNumOfFreeAnimalSlots(animal.subTypeIndex)
+                if not RLTrailerEndpointService.hasRoom(freeSlots, #result.valid) then
+                    result.rejected[#result.rejected + 1] = { animal = animal, reason = "NO_CAPACITY" }
+                    Log:trace("RLAnimalBuyService.filterBuyableAnimals: '%s' rejected by capacity (free=%s, queued=%d)",
+                        tostring(label), tostring(freeSlots), #result.valid)
+                else
+                    result.valid[#result.valid + 1] = animal
+                    Log:trace("RLAnimalBuyService.filterBuyableAnimals: '%s' passed (queued=%d)",
+                        tostring(label), #result.valid)
+                end
+            end
+        end
+    end
+
+    Log:debug("RLAnimalBuyService.filterBuyableAnimals: %d valid, %d rejected, firstErrorCode=%s",
+        #result.valid, #result.rejected, tostring(result.firstErrorCode))
+    return result
+end
+
+
+--- Filter a stock-type list to the subset a trailer can hold for the Buy sidebar.
+--- Contract: mirrors legacy AnimalScreenDealerTrailer:getSourceAnimalTypes. When the trailer
+--- is LOCKED to a current type (non-empty), keep ONLY that type's entry, UNCONDITIONALLY - the
+--- current type is structurally aboard, so never re-test supportsType (a degenerate / mixed-type
+--- trailer could fail it and collapse the sidebar to empty). When UNLOCKED (empty), keep each
+--- entry the trailer structurally supports.
+---
+--- Pure / dual-run: takes the trailer as a parameter and routes both reads through the nil-safe
+--- RLTrailerEndpointService getters (getCurrentType / supportsType), which reach no g_*, so a
+--- headless test drives it with a mock trailer.
+--- @param types table|nil Array of type entries (each carries .typeIndex; from RLDealerQuery.listDealerTypes)
+--- @param trailer table The held livestock trailer
+--- @return table kept Subset of `types` the trailer can hold (the single locked type, or all supported)
+function RLAnimalBuyService.filterTrailerSupportedTypes(types, trailer)
+    local kept = {}
+
+    if types == nil then
+        Log:debug("RLAnimalBuyService.filterTrailerSupportedTypes: nil types -> {}")
+        return kept
+    end
+
+    local currentType = RLTrailerEndpointService.getCurrentType(trailer)
+    if currentType ~= nil then
+        -- Locked: keep only the current type's entry, unconditionally.
+        for _, entry in ipairs(types) do
+            if entry.typeIndex == currentType.typeIndex then
+                kept[#kept + 1] = entry
+            end
+        end
+        Log:debug("RLAnimalBuyService.filterTrailerSupportedTypes: locked to typeIndex=%s, %d of %d kept",
+            tostring(currentType.typeIndex), #kept, #types)
+        return kept
+    end
+
+    -- Unlocked: keep each structurally-supported type.
+    for _, entry in ipairs(types) do
+        if RLTrailerEndpointService.supportsType(trailer, entry.typeIndex) then
+            kept[#kept + 1] = entry
+        end
+    end
+    Log:debug("RLAnimalBuyService.filterTrailerSupportedTypes: unlocked, %d of %d supported", #kept, #types)
+    return kept
 end
 
 

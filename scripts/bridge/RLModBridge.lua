@@ -5,7 +5,7 @@
     Sibling to RLMapBridge but deliberately scoped down: no compat.xml schema,
     no version-spec gating, no console command, no third-party scanning. Used
     where RLRM needs to coexist with a single foreign mod that overlaps the
-    same hooks (initial user: Argsy Gaming's "Seasonal Wool Production").
+    same hooks (current target: FS25_SeasonalWoolProduction).
 
     Two-phase install:
     - Module-load phase  (runModuleLoadPhase): runs when this file is sourced

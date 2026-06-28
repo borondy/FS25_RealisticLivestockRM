@@ -23,8 +23,6 @@ function RealisticLivestock_AnimalCluster:loadFromXMLFile(superFunc, xmlFile, ke
     self.lactatingAnimals = xmlFile:getInt(key .. "#lactatingAnimals")
     self.gender = xmlFile:getString(key .. "#gender")
 
-    -- why is the age of animals clamped between 0 and 60 months?
-
     self.age = xmlFile:getInt(key .. "#age")
 
     if self.monthsSinceLastBirth == nil then
@@ -123,7 +121,8 @@ end
 AnimalCluster.addInfos = Utils.appendedFunction(AnimalCluster.addInfos, RealisticLivestock_AnimalCluster.addInfos)
 
 function RealisticLivestock_AnimalCluster:changeAge(superFunc, delta)
-    -- whats even the point of having an aging system if animals dont age past 5 years old? animals die in real life, i get that you want your "E - Everyone" rating, but its not like 3 year olds are playing this £50 game. realistically your main audience is adult men, even moreso at this expensive price.
+    -- Unbounded increment (base game clamps at 60 months); RL relies on
+    -- death + lifecycle handlers to retire animals rather than capping age.
     self.age = self.age + delta
 end
 

@@ -99,26 +99,22 @@
     <!--
         Right side: detail pane (Phase 2b1).
 
-        Structural layout mirrors base-game InGameMenuAnimalsFrame.xml:
-          fs25_animalInfoContainer (narrow, stretching-Y-left)
+        Two-column layout:
+          fs25_animalInfoContainer (narrow, stretching-Y-left)  = PEN info
           fs25_animalInfoSeparatorLeft (vertical separator)
-          fs25_animalPenInfoContainer (wide, stretching-Y-right)
+          fs25_animalPenInfoContainer (wide, stretching-Y-right) = ANIMAL info
 
-        RL flips the CONTENT: pen info lives in the narrow container,
-        animal info in the wide container (the mod treats each animal
-        as an individual, so animal gets the most space).
-
-        All row/label/value/statusbar elements mirror base-game
-        updateHusbandryDisplay / displayCluster patterns.
+        Animal info gets the wide column because RL treats each animal as an
+        individual and the per-animal payload (stats + genetics + pedigree +
+        disease) is larger than the per-pen payload.
     -->
     <GuiElement profile="fs25_menuContentContainer" id="detailsBox">
 
         <!--
             Header panel (icon + "Info" title + balance box).
-            Money box lives INSIDE the header panel, mirroring base-game
-            InGameMenuStatisticsFrame.xml lines 4-14 - the canonical
-            "frame chrome with balance" pattern. Putting it as a top-level
-            child of detailsBox left it floating without anchors.
+            Money box lives INSIDE the header panel so it inherits the panel's
+            anchors - as a top-level child of detailsBox it floated without
+            anchors.
         -->
         <GuiElement profile="fs25_menuHeaderPanel" position="0px 74px">
             <Bitmap profile="fs25_menuHeaderIconBg">
@@ -133,8 +129,8 @@
         </GuiElement>
 
         <!--
-            Narrow column = PEN info.
-            Uses base-game fs25_animalInfoContainer as-is.
+            Narrow column = PEN info. Uses the fs25_animalInfoContainer
+            profile without override.
         -->
         <GuiElement profile="fs25_animalInfoContainer" id="penBox">
             <Text profile="rlMenu_penInfoHeader" id="penInformationHeader" text="$l10n_rl_menu_info_pen_information" position="0px -10px"/>
@@ -252,20 +248,9 @@
 
         <ThreePartBitmap profile="fs25_animalInfoSeparatorLeft"/>
 
-        <!--
-            Wide column = ANIMAL info.
-            STEP-BY-STEP DEBUG MODE:
-            All previous content is commented out below. animalBox now uses
-            rlMenu_animalContainer (full-height wide container) and contains
-            ONE visible debug backdrop wrapping an empty ScrollingLayout.
-            Once we confirm the box renders in the right position with the
-            right size, content is added back incrementally.
-        -->
+        <!-- Wide column = ANIMAL info. -->
         <GuiElement profile="rlMenu_animalContainer" id="animalBox">
 
-            <!-- Debug backdrop: semi-transparent teal to see scroll container
-                 bounds. Replace imageColor with $preset_colorTransparent once
-                 content is verified in-game. -->
             <Bitmap profile="rlMenu_animalScrollDebugBg">
                 <ScrollingLayout profile="rlMenu_animalScrollLayout" id="animalScrollLayout">
 
