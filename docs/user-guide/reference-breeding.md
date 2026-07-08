@@ -51,11 +51,11 @@ Each breed has two rows - one for females, one for males. Gestation and litter s
 
 ¹ The male upper limit is scaled by individual fertility genetics. A high-fertility bull may breed past 132 months; a low-fertility one retires earlier. Roosters are the exception: their 72-month cap is absolute and not scaled by genetics. The female limit is the hard end of the fertility curve.
 
-² "Peak" is the typical litter size when a healthy mother conceives. "Max" is the upper bound seen with high-fertility mothers in good condition. Litter size also depends on age (very young and very old mothers have smaller litters).
+² "Peak" is the typical litter size when a mother conceives. "Max" is the upper bound seen with high-fertility mothers. Litter size is driven by the mother's fertility genetics, not her age - age only affects whether she conceives at all (her fertility curve tapers to zero at the "Breeds until" age).
 
 ³ Breed-locked: Water Buffalo only breed with Water Buffalo; Goats only breed with Ram Goats. All other breeds within a species can cross-breed (Angus bull x Holstein cow, Berkshire boar x Landrace sow, etc.). See the [Breeding Guide](guide-breeding.md#breed-restrictions).
 
-> **Health gate:** Every species requires the female to be at **75%+ health** for breeding. Below 75%, conception fails entirely; below 60%, the mother risks death during birth. See the [Breeding Guide](guide-breeding.md#pregnancy-complications) for full mechanics.
+> **Health gate:** Every species requires the female to be at **75%+ health** to conceive. Below 75%, conception fails entirely. A stillborn newborn can occasionally cost the mother her life too, more so with poor health genetics. See the [Breeding Guide](guide-breeding.md#pregnancy-complications) for full mechanics.
 
 ---
 

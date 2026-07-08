@@ -16,18 +16,20 @@ You don't need to do anything - the detection and configuration loading is fully
 
 | Map Version | Config | Status |
 |-------------|--------|--------|
-| 1.3.0.1 | v1.3 | Tested |
-| 1.4.0.0 Beta1 | v1.4 | Tested |
-| 1.4.0.0 Beta2 | v1.4 | Tested |
-| 1.4.0.0 | v1.4 | Tested |
+| 1.3.0.1 up to (not including) 1.4 | v1.3 | Tested |
+| Any 1.4.x (including Beta 1 and Beta 2) | v1.4 | Tested |
 
-If your version isn't listed and you see a warning dialog, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues) so support can be added.
+The mod accepts a whole range of versions for each configuration, not just the exact numbers above. Only a map version that falls **outside** these ranges triggers the warning dialog.
+
+If your version isn't covered and you see a warning dialog, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues) so support can be added.
 
 ---
 
 ## Exotic Animals
 
 Hof Bergmann adds several animal types beyond the base game. The mod gives most of these animals full RLRM treatment: individual tracking, genetics, breeding, lifecycle, aging, and diseases.
+
+Animals on Hof Bergmann carry a **DE (Germany) eartag prefix** to reflect the map's country setting.
 
 ### What the Bridge Adds
 
@@ -44,7 +46,7 @@ For each exotic animal type, the mod adds **male subtypes** so that natural bree
 
 All exotic animals can be bought, sold, bred, monitored, and managed through the livestock menu just like base game animals.
 
-> **Wild Ducks:** You may notice wild ducks in the livestock dealer. These are decorative pond animals with no husbandry building on the map. The [map developer notes](https://www.lsfarming-mods.com/filebase/entry/112-hof-bergmann/) that they appear in the dealer due to a technical fix, but are not playable animals. They cannot be placed or managed.
+> **Wild Ducks:** On v1.4 the bridge adds a buyable wild-duck drake and a wild-duck breeding group. However, the map has no duck husbandry building, so wild ducks stay dealer-only - you can see them at the livestock dealer, but they cannot be placed or managed on the map.
 
 ### Corrections Applied
 

@@ -8,7 +8,7 @@ Realistic Livestock RM rewrites the animal system from the ground up. That makes
 
 ## Blocking Conflicts
 
-These mods cannot run alongside Realistic Livestock RM. They either replace the same animal system entirely, or were originally derived from the original FS25_RealisticLivestock.
+These mods cannot run alongside Realistic Livestock RM. They either replace the same animal system entirely, were originally derived from the original FS25_RealisticLivestock, or break RLRM's core animal feeding loop.
 
 If any of these mods is enabled when you start the game, RLRM detects them, shows a **Mod Conflict Detected** dialog, and forces a restart. Disable the conflicting mod (or RLRM) and try again.
 
@@ -21,6 +21,17 @@ If any of these mods is enabled when you start the game, RLRM detects them, show
 | **FS25_AnimalFoodCalculator** | Breaks the core animal loop with RLRM: blocks food and water intake and halts milk, egg, and wool output, plus a significant performance impact that grows with herd size. A dismissible warning proved insufficient for a silent husbandry break. |
 
 If you previously played with **FS25_RealisticLivestock** (the original), RLRM migrates your savegame automatically the first time you load it - just disable the old mod and enable RLRM in its place.
+
+---
+
+## Known-Working Integrations
+
+These mods are confirmed to work alongside RLRM:
+
+| Mod | Notes |
+|-----|-------|
+| **Seasonal Wool Production** | Works with RLRM via a built-in compatibility shim. |
+| **Enhanced Production Points / EPP butchers** | Supported. EPP butchers accept RLRM animals. |
 
 ---
 

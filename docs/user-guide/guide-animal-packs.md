@@ -49,6 +49,8 @@ How well packs work together depends on what kind of changes they make:
 | Breed packs for the **same** animal type (e.g., two cow breed packs) | **Will likely conflict.** Breed packs that add new visuals need to replace the model configuration for that animal type. Only one pack can do this - the second one overwrites the first, which can break the first pack's breeds (wrong textures, missing visuals, or errors). |
 | Map with map-native cattle/pig/sheep models + breed pack for the **same** animal type | **Will conflict.** A map that ships its own animal models replaces the model configuration the same way a breed pack does. Only one can win. Known case: [Le Mechet](map-le-mechet.md) (map-native French cattle models) is not compatible with the [Cow Breeds Pack for RLRM](https://github.com/ConGan98/FS25_CowBreedsRLRM) - on Le Mechet maps, disable the Cow Breeds pack. |
 
+RLRM now detects when two packs override the same animal type's model configuration. When it does, it shows a warning dialog at game start and writes a matching warning to the log naming the conflicting packs in load order, so you can tell at a glance which packs collided and which one won.
+
 ### Don't stack blindly
 
 Each pack adds complexity to the simulation. More packs does not automatically mean better gameplay -- it means more moving parts that can interact in unexpected ways. Start with one pack, verify it works with your map and mod setup, then add more if needed.
@@ -72,7 +74,7 @@ Try new packs in a test save first, especially breed packs. If something goes wr
 
 Check the game log for messages like:
 
-- `Animal pack 'Pack Name' DETECTED` -- the pack was found
+- `MapBridge: Animal pack 'Pack Name' v1.0 by Author DETECTED (FS25_ModName)` -- a DETECTED line naming the pack, its version, and author
 - `Animal pack 'Pack Name' activated` -- the pack loaded successfully
 
 If the pack adds new breeds, they should appear in the animal dealer. Balance changes (prices, food consumption, etc.) take effect immediately with no visual indication -- check the animal details screen to verify values match what you expect.

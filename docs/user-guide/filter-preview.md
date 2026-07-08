@@ -1,14 +1,14 @@
 # Hand-Crafting Saveable Filters (Preview)
 
-This page is for power users who want to author saveable animal filters by hand
-while the in-game filter editor is still under development. It documents the
-on-disk XML format, every available field and comparator, the rules the
-evaluator follows, and a few real examples.
+This page is for power users who want to author saveable animal filters by hand.
+It documents the on-disk XML format, every available field and comparator, the
+rules the evaluator follows, and a few real examples.
 
-> **Status:** Preview. Filter persistence is shipping under the
-> 1.2.4.x dev cycle alongside the in-game editor work. The on-disk XML format
-> documented here is stable; the editor that will replace hand-editing is not
-> yet released. This page will be updated when the editor lands.
+> **Status:** The in-game filter editor shipped in v1.2.5.0 (Settings ->
+> Filters); the current version is 1.2.6.0. This page remains a reference for
+> the on-disk XML format and power-user hand-editing - most players should use
+> the in-game editor instead. It is intentionally kept out of the site
+> navigation.
 
 > **Note:** This documentation was generated with AI assistance and may
 > contain inaccuracies. If you spot an error, please
@@ -69,9 +69,10 @@ arbitrarily deep.
 | Attribute | Required | Type | Notes |
 |-----------|:--------:|------|-------|
 | `id` | yes | string | Stable unique identifier. Any string works; production filters created via the in-game flow use the prefix `rlFilter_`. Hand-authored ids can be any short slug, e.g. `cow_butcher`. Must be unique within the file. |
-| `name` | yes | string | Display name shown in the in-game cycle chip and lists. |
+| `name` | recommended | string | Display name shown in the in-game cycle chip and lists. Optional: the loader defaults a missing name to an empty string. Only `id` and the `.group` subtree are hard requirements. |
 | `animalType` | optional | string | Scope to a single animal type: `COW`, `SHEEP`, `PIG`, `CHICKEN`, `HORSE` and bridge-mod types (e.g. `RABBIT` on Witcombe). Omit the attribute for global scope (filter shows on every animal-type tab). |
 | `farmId` | optional | integer | Scope to a single farm by id (`1`, `2`, ...). Omit for global scope (visible to every farm). |
+| `usage` | optional | string | Controls which screens show the filter: `ANY` (default), `OWNED` (owned-herd screens), `DEALER` (buy screen). Unknown values load as `ANY` with a warning. |
 | `version` | optional | integer | Schema version for forward compatibility. Default `1`. Leave at `1` unless future docs say otherwise. |
 
 A filter with `animalType="COW" farmId="1"` only appears on Farm 1's cow tab.
@@ -157,7 +158,7 @@ comparator's expected shape.
 | `gender` | enum | `==` `!=` `in` `notin` | all | Values: `male`, `female` (lowercase, internal keys). |
 | `isCastrated` | bool | `==` | all | `true` / `false`. |
 | `isPregnant` | bool | `==` | all | `true` / `false`. |
-| `isLactating` | bool | `==` | **COW only** | Other species ignore this field. Goats are stored as a SHEEP subtype (`subType="GOAT"`) and do not currently carry a lactation flag, so `isLactating` filters never match goats. |
+| `isLactating` | bool | `==` | **COW only** | Other species ignore this field. Goats (a SHEEP subtype, `subType="GOAT"`) do track lactation internally, but this filter field is scoped to COW, so an `isLactating` condition always evaluates false for goats. |
 | `hasName` | bool | `==` | all | True if the animal has a non-empty player-set name. |
 | `hasAnyDisease` | bool | `==` | all | True if at least one disease is currently active. |
 | `hasAnyMark` | bool | `==` | all | True if any mark is active (player-set or AI-manager). |
@@ -184,8 +185,8 @@ comparator's expected shape.
   substring matches.
 
 `==` and `!=` enforce **type strictness**: a number-vs-string comparison
-returns false rather than fail-open, so a typo like `value="50"` on the
-`age` field will silently exclude every animal.
+returns false rather than fail-open, so a non-numeric typo like `value="abc"`
+on the `age` field yields nil and will silently exclude every animal.
 
 ---
 
@@ -254,7 +255,7 @@ watch the game log for warnings like:
 | `RLFilterSerialization.readCondition: cmp 'X' is not in whitelist for field 'Y' ...` | Comparator isn't valid for that field's type. | Pick a comparator from the field's row in the table. |
 | `RLFilterSerialization.readCondition: missing field/cmp at ...` | One of the required attributes is absent. | Add the missing attribute. |
 | `RLFilterSerialization.readFilter: missing id` | `<filter>` lacks an `id` attribute. | Add a unique `id`. |
-| `RLFilterSerialization.readFilter: missing .group subtree` | `<filter>` has no `<group>` child. | Wrap conditions in a `<group op="AND">...</group>`. |
+| `RLFilterSerialization.readFilter: filter id=... has no .group subtree; skipping (corrupt save?)` | `<filter>` has no `<group>` child. | Wrap conditions in a `<group op="AND">...</group>`. |
 
 A filter that loads cleanly but matches every animal usually means an
 empty `AND` group - see *Empty `AND` matches everything* above.
@@ -379,7 +380,7 @@ test, repeat.
 ```xml
 <rm_RlSettings>
     <filters>
-        <filter id="<unique>" name="<display>" animalType="<TYPE>" farmId="<N>" version="1">
+        <filter id="<unique>" name="<display>" animalType="<TYPE>" farmId="<N>" usage="ANY|OWNED|DEALER" version="1">
             <group op="AND|OR">
                 <condition field="<key>" cmp="<op>" value="<scalar>"/>
                 <condition field="<key>" cmp="in|notin">

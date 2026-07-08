@@ -44,7 +44,7 @@ Both ewes and rams produce wool - identical output per breed. **Wool is only pro
 | **Steinschaf** | 3 - 21 | **18 - 123** |
 | **Swiss Mountain** | 2 - 14 | **14 - 96** |
 
-*Genetics cause large variation between individual animals. Most sheep produce somewhere in the middle of these ranges. Mastitis stops all wool production.*
+*Genetics cause large variation between individual animals. Most sheep produce somewhere in the middle of these ranges. (Sheep never lactate, so they cannot catch mastitis - it only affects lactating goats.)*
 
 ---
 
@@ -56,11 +56,10 @@ Goats produce milk **only while lactating** (10 months after giving birth). Goat
 
 | Age | Range |
 |-----|-------|
-| 6 mo | 1 - 11 |
-| 12 mo | 3 - 34 |
+| Early lactation | ramping up toward peak |
 | 18+ mo (peak) | **5 - 57** |
 
-*Genetics and lactation phase cause large variation between individual animals. Non-lactating goats produce zero milk.*
+*Goats only lactate after their first kidding (from about 13 months), so there is no milk before then. Output ramps up over the first months of each lactation to the peak shown. Genetics and lactation phase cause large variation between individual animals; non-lactating goats produce zero milk.*
 
 ---
 
@@ -140,7 +139,7 @@ Genetics significantly affect how much each animal eats - some are naturally muc
 | **Swiss Mountain** | 5 -> 85 | 5 -> 89 |
 | **Goat** | 2 -> 20 | 2 -> 23 |
 
-*Goats drink very little water compared to sheep. Lactating females drink considerably more water than usual.*
+*Goats drink very little water compared to sheep. Lactating goats drink considerably more water than usual.*
 
 ---
 
@@ -167,7 +166,7 @@ Genetics significantly affect how much each animal eats - some are naturally muc
 
 | Parameter | Sheep | Goat |
 |-----------|-------|------|
-| Female breeding age | 8+ months | 16+ months |
+| Female breeding age | 8+ months | 8+ months |
 | Ram breeding age | 5+ months | 5+ months |
 | Ram max breeding age | 72 months (6 years) | 72 months (6 years) |
 | Female fertility ends | 120 months (10 years) | 120 months (10 years) |
@@ -178,31 +177,17 @@ Genetics significantly affect how much each animal eats - some are naturally muc
 
 > **Note:** Rams stop breeding at 72 months - earlier than the ewe's fertile period (120 months). Replace your rams regularly!
 
-### Offspring per Birth (Sheep)
+### Offspring per Birth
 
-Sheep have a high rate of twins, especially at prime age. First-time mothers usually have singles.
+Sheep and goats usually produce twins - at every age, including first-time mothers. Singles and triplets both occur, with triplets more likely from ewes and does with high fertility genetics.
 
-| Ewe Age | Singles | Twins | Triplets |
-|---------|---------|-------|----------|
-| 8-18 mo (first-time) | Most likely | Uncommon | Rare |
-| 18-36 mo | Common | Common | Rare |
-| 36-72 mo (prime) | Less common | **Most likely** | Uncommon |
-| 72-120 mo (old) | Uncommon | Most common | Rare |
+| Outcome | Likelihood |
+|---------|------------|
+| Twins | Most likely |
+| Single | Common |
+| Triplets | Uncommon |
 
-*At prime age (3-6 years), twins are the most likely outcome. Low health increases the chance of no birth.*
-
-### Offspring per Birth (Goat)
-
-Goats follow the same offspring pattern as sheep - twins become common at prime age.
-
-| Doe Age | Singles | Twins | Triplets |
-|---------|---------|-------|----------|
-| 16-18 mo (first-time) | Most likely | Uncommon | Rare |
-| 18-36 mo | Common | Common | Rare |
-| 36-72 mo (prime) | Less common | **Most likely** | Uncommon |
-| 72-120 mo (old) | Uncommon | Most common | Rare |
-
-*Goats start breeding later (16 months) but have the same twin/triplet rates as sheep at equivalent ages.*
+*Litter size does not depend on age. Goats breed from the same age as sheep (8 months) and follow the same twin-heavy pattern. What changes with age is the chance of conceiving at all, which tapers to zero by 120 months.*
 
 ---
 
@@ -223,10 +208,10 @@ Goats follow the same offspring pattern as sheep - twins become common at prime 
 
 | Disease | Spread | Fatal? | Treatment | Impact |
 |---------|--------|--------|-----------|--------|
-| **Mastitis** | Slowly | No | Quick, affordable | Stops all wool and milk production |
-| **Foot & Mouth** | Moderately | Yes | Slow, moderate cost | Major price loss |
+| **Mastitis** | Slowly | No | Quick, affordable | Stops goat milk (only lactating goats can catch it) |
+| **Foot & Mouth** | Moderately | Yes | Slow, moderate cost | Major price loss; slightly reduces wool/milk while sick |
 
-*Mastitis in sheep stops wool production entirely. See the [Disease Guide](guide-diseases.md) for detailed prevention and treatment.*
+*Sheep never lactate, so mastitis only affects lactating goats, stopping their milk. See the [Disease Guide](guide-diseases.md) for detailed prevention and treatment.*
 
 ---
 
@@ -234,7 +219,7 @@ Goats follow the same offspring pattern as sheep - twins become common at prime 
 
 1. **Wool vs price trade-off:** Black Welsh produce far more wool than Swiss Mountain, but Swiss Mountain sell for double. Choose based on whether you want wool income or sell income.
 
-2. **Twins are the norm.** At prime age, sheep produce twins more than half the time. Budget pen space for 2 lambs per ewe per cycle.
+2. **Twins are the norm.** Sheep and goats produce twins more often than singles, at any age. Budget pen space for 2 lambs per ewe per cycle.
 
 3. **Goats are niche.** Goat milk (GOATMILK) requires specific storage and processing. Make sure you have compatible facilities before investing.
 
