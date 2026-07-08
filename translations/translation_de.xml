@@ -490,6 +490,10 @@
 		<text name="rl_settings_maxDealerAnimals_label" text="Maximale Tiere beim Händler"/>
 		<text name="rl_settings_maxDealerAnimals_tooltip" text="Ändern Sie die maximale Anzahl der Tiere, die der Tierhändler pro Tierart auf Lager hat"/>
 
+		<text name="rl_settings_mapCountry_label" text="Herkunftsland der Tiere"/>
+		<text name="rl_settings_mapCountry_tooltip" text="Überschreibt das Land, in dem neue Tiere registriert werden (Ohrmarken, Kennungen). Gilt nur für neue Tiere; vorhandene Tiere behalten ihr Land."/>
+		<text name="rl_settings_mapCountry_texts_1" text="Kartenstandard"/>
+
 		<text name="rl_settings_tagColour_label" text="Ohrmarke-Farbe ändern"/>
 		<text name="rl_settings_tagColour_tooltip" text="Ändern Sie die Farbe der Ohrmarken."/>
 		<text name="rl_settings_tagColour_text" text="Ohrmarke-Farbe ändern"/>

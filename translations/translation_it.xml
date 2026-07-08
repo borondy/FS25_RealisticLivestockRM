@@ -487,6 +487,10 @@
         <text name="rl_settings_maxDealerAnimals_label" text="Numero massimo di animali del rivenditore"/>
         <text name="rl_settings_maxDealerAnimals_tooltip" text="Modifica il numero massimo di animali che il rivenditore di animali avrà in stock per ogni tipo di animale"/>
 
+        <text name="rl_settings_mapCountry_label" text="Paese di origine degli animali"/>
+        <text name="rl_settings_mapCountry_tooltip" text="Sostituisce il paese in cui vengono registrati i nuovi animali (marche auricolari, identificativi). Si applica solo ai nuovi animali; gli animali esistenti mantengono il loro paese."/>
+        <text name="rl_settings_mapCountry_texts_1" text="Predefinito della mappa"/>
+
         <text name="rl_settings_resetDealer_label" text="Reimposta rivenditore animali"/>
         <text name="rl_settings_resetDealer_tooltip" text="Rimuovi tutti gli animali del rivenditore e rifornisci lo stock con nuovi animali"/>
         <text name="rl_settings_resetDealer_text" text="Reimposta rivenditore animali"/>

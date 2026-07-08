@@ -1451,9 +1451,11 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
         if #attemptedCountryIndexes == #self.countries then return nil end
 
         local countryIndex
+        local wasMapPick = false
 
         if #attemptedCountryIndexes == 0 and math.random() >= 0.12 then
             countryIndex = RealisticLivestock.getMapCountryIndex()
+            wasMapPick = true
         else
             countryIndex = math.random(1, #self.countries)
             while table.find(attemptedCountryIndexes, countryIndex) ~= nil do
@@ -1474,7 +1476,12 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
 
         end
 
-        if #validFarms == 0 then continue end
+        if #validFarms == 0 then
+            if wasMapPick then
+                Log:debug("createNewSaleAnimal: map/override country %d has no valid farms for animalTypeIndex=%d; cycling random countries", countryIndex, animalTypeIndex)
+            end
+            continue
+        end
 
         local farmIndex = validFarms[math.random(1, #validFarms)]
         local farm = country.farms[farmIndex]
@@ -2110,6 +2117,11 @@ function AnimalSystem:getBreedsByAnimalTypeIndex(animalTypeIndex)
 end
 
 
+--- Build a new AI-stock sire of the given animal type.
+--- Male subtypes only; the source farm must carry the animal type and a farm
+--- quality of at least 1.35, so AI sires skew toward high-genetics origins.
+--- @param animalTypeIndex number Index into the animal-type registry
+--- @return table|nil animal Newly built AI animal, or nil if no male subtype or source farm resolves
 function AnimalSystem:createNewAIAnimal(animalTypeIndex)
 
      local animalType = self:getTypeByIndex(animalTypeIndex)
@@ -2142,9 +2154,11 @@ function AnimalSystem:createNewAIAnimal(animalTypeIndex)
         if #attemptedCountryIndexes == #self.countries then return nil end
 
         local countryIndex
+        local wasMapPick = false
 
         if #attemptedCountryIndexes == 0 and math.random() >= 0.12 then
             countryIndex = RealisticLivestock.getMapCountryIndex()
+            wasMapPick = true
         else
             countryIndex = math.random(1, #self.countries)
             while table.find(attemptedCountryIndexes, countryIndex) ~= nil do
@@ -2165,7 +2179,12 @@ function AnimalSystem:createNewAIAnimal(animalTypeIndex)
 
         end
 
-        if #validFarms == 0 then continue end
+        if #validFarms == 0 then
+            if wasMapPick then
+                Log:debug("createNewAIAnimal: map/override country %d has no valid farms for animalTypeIndex=%d; cycling random countries", countryIndex, animalTypeIndex)
+            end
+            continue
+        end
 
         local farmIndex = validFarms[math.random(1, #validFarms)]
         local farm = country.farms[farmIndex]

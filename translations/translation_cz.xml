@@ -511,6 +511,10 @@
         <text name="rl_settings_maxDealerAnimals_label" text="Maximální počet zvířat u obchodníka"/>
         <text name="rl_settings_maxDealerAnimals_tooltip" text="Změní maximální počet zvířat, která bude mít obchodník se zvířaty skladem pro každý druh"/>
 
+        <text name="rl_settings_mapCountry_label" text="Země původu zvířat"/>
+        <text name="rl_settings_mapCountry_tooltip" text="Přepíše zemi, ve které se registrují nová zvířata (ušní známky, identifikátory). Platí pouze pro nová zvířata; stávající zvířata si svou zemi ponechají."/>
+        <text name="rl_settings_mapCountry_texts_1" text="Výchozí dle mapy"/>
+
         <text name="rl_settings_resetDealer_label" text="Resetovat obchodníka se zvířaty"/>
         <text name="rl_settings_resetDealer_tooltip" text="Odstraní všechna zvířata u obchodníka a doplní sklad novými zvířaty"/>
         <text name="rl_settings_resetDealer_text" text="Resetovat obchodníka se zvířaty"/>

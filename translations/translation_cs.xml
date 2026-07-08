@@ -498,6 +498,10 @@
 		<text name="rl_settings_maxDealerAnimals_label" text="经销商最大动物数"/>
 		<text name="rl_settings_maxDealerAnimals_tooltip" text="调整动物经销商每种动物类型的最大库存数量"/>
 
+		<text name="rl_settings_mapCountry_label" text="动物原产国"/>
+		<text name="rl_settings_mapCountry_tooltip" text="覆盖新动物注册所在的国家（耳标、标识符）。仅对新动物生效；现有动物保留其原产国。"/>
+		<text name="rl_settings_mapCountry_texts_1" text="地图默认"/>
+
 		<text name="rl_settings_resetDealer_label" text="Reset Animal Dealer"/>
 		<text name="rl_settings_resetDealer_tooltip" text="移除所有经销商的动物并补充新动物的库存"/>
 		<text name="rl_settings_resetDealer_text" text="重置动物经销商"/>

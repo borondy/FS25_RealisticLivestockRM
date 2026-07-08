@@ -511,6 +511,10 @@
 		<text name="rl_settings_maxDealerAnimals_label" text="Max Dealer Animals"/>
 		<text name="rl_settings_maxDealerAnimals_tooltip" text="Change the maximum number of animals the animal dealer will have in stock per animal type"/>
 
+		<text name="rl_settings_mapCountry_label" text="Animal Country of Origin"/>
+		<text name="rl_settings_mapCountry_tooltip" text="Override the country new animals are registered in (ear tags, identifiers). Applies to new animals only; existing animals keep their country."/>
+		<text name="rl_settings_mapCountry_texts_1" text="Map default"/>
+
 		<text name="rl_settings_resetDealer_label" text="Reset Animal Dealer"/>
 		<text name="rl_settings_resetDealer_tooltip" text="Remove all the dealer's animals and replenish the stock with new animals"/>
 		<text name="rl_settings_resetDealer_text" text="Reset Animal Dealer"/>

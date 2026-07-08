@@ -488,6 +488,10 @@
 		<text name="rl_settings_maxDealerAnimals_label" text="Maximale veehandelaar dieren"/>
 		<text name="rl_settings_maxDealerAnimals_tooltip" text="Wijzig het maximale aantal dieren dat de veehandelaar op voorraad zal hebben per diertype"/>
 
+		<text name="rl_settings_mapCountry_label" text="Land van herkomst van dieren"/>
+		<text name="rl_settings_mapCountry_tooltip" text="Overschrijft het land waarin nieuwe dieren worden geregistreerd (oormerken, identificatie). Geldt alleen voor nieuwe dieren; bestaande dieren behouden hun land."/>
+		<text name="rl_settings_mapCountry_texts_1" text="Standaard van de kaart"/>
+
 		<text name="rl_settings_resetDealer_label" text="Reset Veehandelaar"/>
 		<text name="rl_settings_resetDealer_tooltip" text="Verwijder alle dieren van de veehandelaar en vul de voorraad aan met nieuwe dieren"/>
 		<text name="rl_settings_resetDealer_text" text="Reset Veehandelaar"/>

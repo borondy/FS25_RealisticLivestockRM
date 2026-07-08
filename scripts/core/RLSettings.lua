@@ -109,10 +109,10 @@ end
 
 
 -- Render order is set by setting.index; the RL Tabbed Menu Settings ->
--- General subtab walks this table in index order. Sections (1..17):
--- Mortality (1-2), Health & Disease (3-4), Husbandry & Economy (5-6),
--- Custom Animals (7-8), Message Log (9-10), Display Preferences (11-14),
--- Tools & Admin (15-17).
+-- General subtab walks this table in index order. Sections (1..18):
+-- Mortality (1-2), Health & Disease (3-4), Husbandry & Economy (5-7),
+-- Custom Animals (8-9), Message Log (10-11), Display Preferences (12-15),
+-- Tools & Admin (16-18).
 RLSettings.SETTINGS = {
 
 	["deathEnabled"] = {
@@ -185,8 +185,30 @@ RLSettings.SETTINGS = {
 		["callback"] = AnimalSystem.onSettingChanged
 	},
 
-	["useCustomAnimals"] = {
+	-- Persisted as the RL area-code VALUE string (state 1 -> "default"), never
+	-- the index; values is the ONE table shared with RLMapCountry so the codec
+	-- and the resolver cannot drift. Option texts are runtime-built (getTexts):
+	-- only "Map default" is localized, country names render in English.
+	["mapCountry"] = {
 		["index"] = 7,
+		["adminOnly"] = true,
+		["type"] = "MultiTextOption",
+		["default"] = 1,
+		["valueType"] = "string",
+		["values"] = RLMapCountry.VALUES,
+		["getTexts"] = function()
+			local texts = { g_i18n:getText("rl_settings_mapCountry_texts_1") }
+
+			for _, entry in ipairs(RLConstants.AREA_CODES) do
+				texts[#texts + 1] = string.format("%s (%s)", entry.country, entry.code)
+			end
+
+			return texts
+		end
+	},
+
+	["useCustomAnimals"] = {
+		["index"] = 8,
 		["adminOnly"] = true,
 		["type"] = "BinaryOption",
 		["dynamicTooltip"] = true,
@@ -196,7 +218,7 @@ RLSettings.SETTINGS = {
 	},
 
 	["animalsXML"] = {
-		["index"] = 8,
+		["index"] = 9,
 		["adminOnly"] = true,
 		["type"] = "Button",
 		["ignore"] = true,
@@ -208,7 +230,7 @@ RLSettings.SETTINGS = {
 	},
 
 	["messageSummary"] = {
-		["index"] = 9,
+		["index"] = 10,
 		["adminOnly"] = true,
 		["type"] = "BinaryOption",
 		["dynamicTooltip"] = true,
@@ -219,7 +241,7 @@ RLSettings.SETTINGS = {
 	},
 
 	["maxNumMessages"] = {
-		["index"] = 10,
+		["index"] = 11,
 		["adminOnly"] = true,
 		["type"] = "MultiTextOption",
 		["default"] = 5,
@@ -229,7 +251,7 @@ RLSettings.SETTINGS = {
 	},
 
 	["geneticsDisplay"] = {
-		["index"] = 11,
+		["index"] = 12,
 		["adminOnly"] = true,
 		["type"] = "MultiTextOption",
 		["default"] = 1,
@@ -237,7 +259,7 @@ RLSettings.SETTINGS = {
 	},
 
 	["geneticsPosition"] = {
-		["index"] = 12,
+		["index"] = 13,
 		["adminOnly"] = true,
 		["type"] = "BinaryOption",
 		["default"] = 1,
@@ -245,7 +267,7 @@ RLSettings.SETTINGS = {
 	},
 
 	["sortByGenetics"] = {
-		["index"] = 13,
+		["index"] = 14,
 		["adminOnly"] = true,
 		["type"] = "BinaryOption",
 		["dynamicTooltip"] = true,
@@ -255,7 +277,7 @@ RLSettings.SETTINGS = {
 	},
 
 	["tagColour"] = {
-		["index"] = 14,
+		["index"] = 15,
 		["adminOnly"] = true,
 		["type"] = "Button",
 		["ignore"] = true,
@@ -263,7 +285,7 @@ RLSettings.SETTINGS = {
 	},
 
 	["exportCSV"] = {
-		["index"] = 15,
+		["index"] = 16,
 		["adminOnly"] = true,
 		["type"] = "Button",
 		["ignore"] = true,
@@ -271,7 +293,7 @@ RLSettings.SETTINGS = {
 	},
 
 	["resetDealer"] = {
-		["index"] = 16,
+		["index"] = 17,
 		["type"] = "Button",
 		["ignore"] = true,
 		["adminOnly"] = true,
@@ -279,7 +301,7 @@ RLSettings.SETTINGS = {
 	},
 
 	["resetAIAnimals"] = {
-		["index"] = 17,
+		["index"] = 18,
 		["type"] = "Button",
 		["ignore"] = true,
 		["adminOnly"] = true,
@@ -289,6 +311,70 @@ RLSettings.SETTINGS = {
 }
 
 
+--- Read persisted setting states from an already-open settings XML document
+--- into RLSettings.SETTINGS. The codec seam behind the disk wrapper
+--- (loadFromXMLFile): takes the document as a dependency so the branches are
+--- testable with an in-memory XMLFile (in-game disk IO is engine-gated).
+--- Int-coded settings read the state index (range-clamped); string-coded
+--- settings (valueType == "string") match the persisted VALUE string against
+--- setting.values - an absent element keeps the default silently (every
+--- pre-feature save lacks it), an unmatched value keeps the default with one
+--- warning.
+--- @param xmlFile table Open XMLFile document carrying the settings
+--- @param key string Root element key ("rm_RlSettings", or "settings" for the legacy file)
+function RLSettings.readSettingStates(xmlFile, key)
+
+	for name, setting in pairs(RLSettings.SETTINGS) do
+
+		if setting.ignore then continue end
+
+		if setting.valueType == "string" then
+
+			local value = xmlFile:getString(key .. "." .. name .. "#value")
+
+			setting.state = setting.default
+
+			if value ~= nil then
+
+				local matched = nil
+
+				for i = 1, #setting.values do
+					if setting.values[i] == value then
+						matched = i
+						break
+					end
+				end
+
+				if matched ~= nil then
+					setting.state = matched
+				else
+					Log:warning("RLSettings.readSettingStates: '%s' has unknown persisted value '%s'; keeping default", name, tostring(value))
+				end
+
+			end
+
+			if setting.state ~= setting.default then
+				Log:info("RLSettings.readSettingStates: '%s' loaded non-default value '%s'", name, tostring(setting.values[setting.state]))
+			end
+
+		else
+
+			setting.state = xmlFile:getInt(key .. "." .. name .. "#value", setting.default)
+
+			if setting.state > #setting.values then setting.state = #setting.values end
+
+		end
+
+		if name == "useCustomAnimals" and setting.state == 2 then RLSettings.animalsXMLPath = xmlFile:getString(key .. ".useCustomAnimals#path") end
+
+	end
+
+end
+
+
+--- Load persisted setting states from the savegame (rm_RlSettings.xml, with
+--- legacy rlSettings.xml fallback). Disk wrapper: resolves the file, then
+--- delegates the per-setting codec to readSettingStates.
 function RLSettings.loadFromXMLFile()
 
 	if g_currentMission.missionInfo == nil or g_currentMission.missionInfo.savegameDirectory == nil then return end
@@ -309,21 +395,9 @@ function RLSettings.loadFromXMLFile()
 
 	if xmlFile ~= nil then
 
-		local key = rootKey
-
 		Log:debug("RLSettings.loadFromXMLFile: loading from '%s' (rootKey=%s)", path, rootKey)
 
-		for name, setting in pairs(RLSettings.SETTINGS) do
-
-			if setting.ignore then continue end
-
-			setting.state = xmlFile:getInt(key .. "." .. name .. "#value", setting.default)
-
-			if setting.state > #setting.values then setting.state = #setting.values end
-
-			if name == "useCustomAnimals" and setting.state == 2 then RLSettings.animalsXMLPath = xmlFile:getString(key .. ".useCustomAnimals#path") end
-
-		end
+		RLSettings.readSettingStates(xmlFile, rootKey)
 
 		xmlFile:delete()
 
@@ -403,6 +477,48 @@ function RLSettings.loadRulesFromXMLFile()
 end
 
 
+--- Write every setting state as rm_RlSettings child elements on an
+--- already-open XML document. The codec seam behind the disk wrapper
+--- (saveToXMLFile): takes the document as a dependency so the branches are
+--- testable with an in-memory XMLFile. Int-coded settings write the state
+--- index; string-coded settings (valueType == "string") write the VALUE
+--- string (state 1 writes "default") so an AREA_CODES reorder can never
+--- re-map saves.
+--- @param xmlFile table Open XMLFile document to write into
+function RLSettings.writeSettingStates(xmlFile)
+
+	for settingName, setting in pairs(RLSettings.SETTINGS) do
+
+		if setting.ignore then continue end
+
+		if setting.valueType == "string" then
+			local value = setting.values[setting.state or setting.default]
+
+			-- A state outside values (bad wire commit, corrupt caller) must
+			-- never feed nil into setString; persist the default value instead.
+			if value == nil then
+				Log:warning("RLSettings.writeSettingStates: '%s' state %s has no value entry; persisting the default", settingName, tostring(setting.state))
+				value = setting.values[setting.default]
+			end
+
+			xmlFile:setString("rm_RlSettings." .. settingName .. "#value", value)
+		else
+			xmlFile:setInt("rm_RlSettings." .. settingName .. "#value", setting.state or setting.default)
+		end
+
+		if settingName == "useCustomAnimals" and setting.state == 2 and RLSettings.animalsXMLPath ~= nil then xmlFile:setString("rm_RlSettings.useCustomAnimals#path", RLSettings.animalsXMLPath) end
+
+	end
+
+end
+
+
+--- Persist every setting state plus the filter and herdsman-rule subtrees to
+--- the savegame's rm_RlSettings.xml (server only). Disk wrapper: creates the
+--- file, delegates the per-setting codec to writeSettingStates, then appends
+--- the service subtrees and saves.
+--- @param name string|nil Changed-setting name (log context only)
+--- @param state number|nil Changed-setting state (log context only)
 function RLSettings.saveToXMLFile(name, state)
 
 	Log:debug("RLSettings.saveToXMLFile: called (name=%s state=%s g_server=%s isSaving=%s)",
@@ -426,14 +542,7 @@ function RLSettings.saveToXMLFile(name, state)
 			-- Add version attribute for future migrations
 			xmlFile:setInt("rm_RlSettings#version", 1)
 
-			for settingName, setting in pairs(RLSettings.SETTINGS) do
-
-				if setting.ignore then continue end
-				xmlFile:setInt("rm_RlSettings." .. settingName .. "#value", setting.state or setting.default)
-
-				if settingName == "useCustomAnimals" and setting.state == 2 and RLSettings.animalsXMLPath ~= nil then xmlFile:setString("rm_RlSettings.useCustomAnimals#path", RLSettings.animalsXMLPath) end
-
-			end
+			RLSettings.writeSettingStates(xmlFile)
 
 			-- Saveable filters share rm_RlSettings.xml as their on-disk
 			-- home. Server-only by virtue of the surrounding g_server
@@ -621,6 +730,14 @@ function RLSettings.applyChange(name, newState)
 	if setting.callback then setting.callback(name, setting.values[newState]) end
 
 	setting.state = newState
+
+	if name == "mapCountry" then
+		if newState == 1 then
+			Log:info("RLSettings.applyChange: map country override cleared to map default")
+		else
+			Log:info("RLSettings.applyChange: map country override set to %s", tostring(setting.values[newState]))
+		end
+	end
 
 	-- Cascade to children whose dependancy parent is this setting.
 	-- Operates on setting.element refs (nil for every setting now that the

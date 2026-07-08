@@ -511,6 +511,10 @@
 		<text name="rl_settings_maxDealerAnimals_label" text="Kereskedő max. készlete"/>
 		<text name="rl_settings_maxDealerAnimals_tooltip" text="Az állatkereskedőnél típusonként elérhető állatok maximális számának módosítása"/>
 
+		<text name="rl_settings_mapCountry_label" text="Állatok származási országa"/>
+		<text name="rl_settings_mapCountry_tooltip" text="Felülírja az országot, amelyben az új állatok nyilvántartásba kerülnek (fülcímkék, azonosítók). Csak az új állatokra vonatkozik; a meglévő állatok megtartják országukat."/>
+		<text name="rl_settings_mapCountry_texts_1" text="Térkép alapértelmezése"/>
+
 		<text name="rl_settings_resetDealer_label" text="Állatkereskedő frissítése"/>
 		<text name="rl_settings_resetDealer_tooltip" text="A kereskedő összes állatának eltávolítása és a készlet feltöltése új állatokkal"/>
 		<text name="rl_settings_resetDealer_text" text="Állatkereskedő frissítése"/>

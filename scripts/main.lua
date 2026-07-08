@@ -28,6 +28,10 @@ source(modDirectory .. "scripts/utils/RLScaleHelper.lua")
 -- SECTION 2c: Constants
 source(modDirectory .. "scripts/core/RLConstants.lua")
 
+-- SECTION 2d: Map country resolution (needs RLConstants; consumed by
+-- RealisticLivestock.lua and RLSettings.lua much later in the order)
+source(modDirectory .. "scripts/core/RLMapCountry.lua")
+
 -- SECTION 3: Animal Husbandry - Cluster System
 source(modDirectory .. "scripts/animals/husbandry/cluster/RealisticLivestock_AnimalCluster.lua")
 source(modDirectory .. "scripts/animals/husbandry/cluster/RealisticLivestock_AnimalClusterHusbandry.lua")

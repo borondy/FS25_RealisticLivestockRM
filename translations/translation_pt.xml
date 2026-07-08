@@ -490,6 +490,10 @@
 		<text name="rl_settings_maxDealerAnimals_label" text="Max Dealer Animals"/>
 		<text name="rl_settings_maxDealerAnimals_tooltip" text="Change the maximum number of animals the animal dealer will have in stock per animal type"/>
 
+		<text name="rl_settings_mapCountry_label" text="País de Origem dos Animais"/>
+		<text name="rl_settings_mapCountry_tooltip" text="Substitui o país em que os novos animais são registados (brincos, identificadores). Aplica-se apenas a novos animais; os animais existentes mantêm o seu país."/>
+		<text name="rl_settings_mapCountry_texts_1" text="Predefinição do mapa"/>
+
 		<text name="rl_settings_resetDealer_label" text="Reiniciar o Comerciante de Animais"/>Add commentMore actions
 		<text name="rl_settings_resetDealer_tooltip" text="Remove todos os animais do comerciante e reabastecem com novos animais"/>
 		<text name="rl_settings_resetDealer_text" text="Reiniciar o Comerciante de Animais"/>

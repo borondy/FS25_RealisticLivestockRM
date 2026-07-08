@@ -147,16 +147,18 @@ end
 addModEventListener(RealisticLivestock)
 
 
+--- Two-letter RL area code new animals are registered with. Thin delegate:
+--- RLMapCountry evaluates the per-savegame mapCountry override on every call.
+--- @return string code RL area code (RL-internal space: "CH" is China, "SW" Sweden); "UK" fallback
 function RealisticLivestock.getMapCountryCode()
-    local areaCode = RLConstants.AREA_CODES[RealisticLivestock.mapAreaCode]
-
-    if areaCode ~= nil then return areaCode.code end
-
-    return "UK"
+    return RLMapCountry.resolveCode(RealisticLivestock.mapAreaCode)
 end
 
+--- AREA_CODES index new animals are registered with. Thin delegate:
+--- RLMapCountry evaluates the per-savegame mapCountry override on every call.
+--- @return number index Index into RLConstants.AREA_CODES; 1 fallback
 function RealisticLivestock.getMapCountryIndex()
-    return RealisticLivestock.mapAreaCode or 1
+    return RLMapCountry.resolveIndex(RealisticLivestock.mapAreaCode)
 end
 
 function RealisticLivestock.formatAge(age)

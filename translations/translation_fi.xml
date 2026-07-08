@@ -498,6 +498,10 @@
 		<text name="rl_settings_maxDealerAnimals_label" text="Eläinten enimmäismäärä eläinkauppiaalla"/>
 		<text name="rl_settings_maxDealerAnimals_tooltip" text="Muuta eläinkauppiaalta ostettavien eläinten enimmäismäärää eläinlajia kohden"/>
 
+		<text name="rl_settings_mapCountry_label" text="Eläinten alkuperämaa"/>
+		<text name="rl_settings_mapCountry_tooltip" text="Ohittaa maan, johon uudet eläimet rekisteröidään (korvamerkit, tunnisteet). Koskee vain uusia eläimiä; olemassa olevat eläimet säilyttävät maansa."/>
+		<text name="rl_settings_mapCountry_texts_1" text="Kartan oletus"/>
+
 		<text name="rl_settings_resetDealer_label" text="Nollaa eläinkauppias"/>
 		<text name="rl_settings_resetDealer_tooltip" text="Poista kaikki eläinkauppiaan eläimet ja täydennä varastot uusilla eläimillä"/>
 		<text name="rl_settings_resetDealer_text" text="Nollaa eläinkauppias"/>

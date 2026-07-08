@@ -482,6 +482,10 @@
 		<text name="rl_settings_maxDealerAnimals_label" text="Maksimalt antal forhandlerdyr"/>
 		<text name="rl_settings_maxDealerAnimals_tooltip" text="Ændr det maksimale antal dyr, som dyreforhandleren vil have på lager pr. dyretype"/>
 
+		<text name="rl_settings_mapCountry_label" text="Dyrenes oprindelsesland"/>
+		<text name="rl_settings_mapCountry_tooltip" text="Tilsidesæt det land, nye dyr registreres i (øremærker, identifikatorer). Gælder kun nye dyr; eksisterende dyr beholder deres land."/>
+		<text name="rl_settings_mapCountry_texts_1" text="Kortets standard"/>
+
 		<text name="rl_settings_tagColour_label" text="Skift Øremærkes farve"/>
 		<text name="rl_settings_tagColour_tooltip" text="Skift øremærkets farve"/>
 		<text name="rl_settings_tagColour_text" text="Skift øremærkets farve"/>

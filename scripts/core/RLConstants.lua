@@ -141,6 +141,15 @@ RLConstants.AREA_CODES = {
 }
 
 
+-- Reverse lookup: RL area-code string ("DE") -> AREA_CODES index. Built once
+-- from AREA_CODES so the two tables can never drift.
+RLConstants.AREA_CODES_BY_CODE = {}
+
+for index, entry in ipairs(RLConstants.AREA_CODES) do
+    RLConstants.AREA_CODES_BY_CODE[entry.code] = index
+end
+
+
 RLConstants.DAYS_PER_MONTH = {
     [1] = 31,
     [2] = 28,

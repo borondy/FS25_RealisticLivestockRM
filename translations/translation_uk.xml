@@ -470,6 +470,10 @@
 		<text name="rl_settings_maxDealerAnimals_label" text="Максимальна кількість тварин у продавця"/>
 		<text name="rl_settings_maxDealerAnimals_tooltip" text="Змінити максимальну кількість тварин, яку продавець тварин може мати в наявності для кожного типу тварин"/>
 
+		<text name="rl_settings_mapCountry_label" text="Країна походження тварин"/>
+		<text name="rl_settings_mapCountry_tooltip" text="Перевизначає країну, в якій реєструються нові тварини (вушні бирки, ідентифікатори). Застосовується лише до нових тварин; наявні тварини зберігають свою країну."/>
+		<text name="rl_settings_mapCountry_texts_1" text="За замовчуванням карти"/>
+
 		<text name="rl_settings_tagColour_label" text="Змінити колір тегу"/>
 		<text name="rl_settings_tagColour_tooltip" text="Змінити колір вушних бірок"/>
 		<text name="rl_settings_tagColour_text" text="Змінити колір тегу"/>

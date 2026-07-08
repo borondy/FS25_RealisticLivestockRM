@@ -511,6 +511,10 @@
 		<text name="rl_settings_maxDealerAnimals_label" text="Maksimum Bayi Hayvanları"/>
 		<text name="rl_settings_maxDealerAnimals_tooltip" text="Hayvan satıcısının hayvan türü başına stokta bulunduracağı maksimum hayvan sayısını değiştirin"/>
 
+		<text name="rl_settings_mapCountry_label" text="Hayvanların Menşe Ülkesi"/>
+		<text name="rl_settings_mapCountry_tooltip" text="Yeni hayvanların kaydedildiği ülkeyi geçersiz kılar (kulak küpeleri, kimlikler). Yalnızca yeni hayvanlar için geçerlidir; mevcut hayvanlar ülkelerini korur."/>
+		<text name="rl_settings_mapCountry_texts_1" text="Harita varsayılanı"/>
+
 		<text name="rl_settings_resetDealer_label" text="Hayvan bayisini sıfırla"/>
 		<text name="rl_settings_resetDealer_tooltip" text="Satıcının tüm hayvanlarını çıkarın ve stoğu yeni hayvanlarla doldurun"/>
 		<text name="rl_settings_resetDealer_text" text="Hayvan Bayisini Sıfırla"/>

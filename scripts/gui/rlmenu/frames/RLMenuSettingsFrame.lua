@@ -3208,6 +3208,7 @@ end
 -- =============================================================================
 
 --- Build the per-row option-text arrays a state-row widget needs:
+---   setting.getTexts -> the registry entry's own builder (runtime-composed texts)
 ---   binaryType=offOn -> {"Off", "On"} (localized)
 ---   valueType=int    -> { "20", "30", "40", ... }
 ---   valueType=float  -> { "0%", "10%", "20%", ... }
@@ -3217,6 +3218,10 @@ end
 --- @param setting table The setting entry
 --- @return table The texts array indexed by state
 local function buildSettingTexts(name, setting)
+    if setting.getTexts ~= nil then
+        return setting.getTexts()
+    end
+
     local texts = {}
     local prefix = "rl_settings_" .. name .. "_"
 

@@ -490,6 +490,10 @@
 		<text name="rl_settings_maxDealerAnimals_label" text="Max Dealer Animals"/>
 		<text name="rl_settings_maxDealerAnimals_tooltip" text="Change the maximum number of animals the animal dealer will have in stock per animal type"/>
 
+		<text name="rl_settings_mapCountry_label" text="Kraj pochodzenia zwierząt"/>
+		<text name="rl_settings_mapCountry_tooltip" text="Zastępuje kraj, w którym rejestrowane są nowe zwierzęta (kolczyki, identyfikatory). Dotyczy tylko nowych zwierząt; istniejące zwierzęta zachowują swój kraj."/>
+		<text name="rl_settings_mapCountry_texts_1" text="Domyślny dla mapy"/>
+
 		<text name="rl_settings_tagColour_label" text="Change Tag Colour"/>
 		<text name="rl_settings_tagColour_tooltip" text="Change the colour of ear tags"/>
 		<text name="rl_settings_tagColour_text" text="Change Tag Colour"/>

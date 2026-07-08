@@ -511,6 +511,10 @@
 <text name="rl_settings_maxDealerAnimals_label" text="Animaux max chez le marchand"/>
 <text name="rl_settings_maxDealerAnimals_tooltip" text="Modifier le nombre maximum d'animaux disponibles par type chez le marchand"/>
 
+<text name="rl_settings_mapCountry_label" text="Pays d'origine des animaux"/>
+<text name="rl_settings_mapCountry_tooltip" text="Remplace le pays dans lequel les nouveaux animaux sont enregistrés (boucles auriculaires, identifiants). S'applique uniquement aux nouveaux animaux ; les animaux existants conservent leur pays."/>
+<text name="rl_settings_mapCountry_texts_1" text="Défaut de la carte"/>
+
 <text name="rl_settings_resetDealer_label" text="Réinitialiser le marchand d'animaux"/>
 <text name="rl_settings_resetDealer_tooltip" text="Supprimer tous les animaux du marchand et régénérer un nouveau stock"/>
 <text name="rl_settings_resetDealer_text" text="Réinitialiser le marchand d'animaux"/>
