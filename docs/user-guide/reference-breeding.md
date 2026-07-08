@@ -42,14 +42,14 @@ Each breed has two rows - one for females, one for males. Gestation and litter s
 |            |             | Male   | 5 mo  | 72 mo (6 yr)   | -     | -          |
 | **Sheep**  | Swiss Mountain | Female | 8 mo | 120 mo (10 yr) | 5 mo | 2 (max 3) |
 |            |             | Male   | 5 mo  | 72 mo (6 yr)   | -     | -          |
-| **Goats**  | Goat³       | Female (Doe)   | 16 mo | 120 mo (10 yr) | 5 mo  | 2 (max 3) |
+| **Goats**  | Goat³       | Female (Doe)   | 8 mo  | 120 mo (10 yr) | 5 mo  | 2 (max 3) |
 |            |             | Male (Ram Goat) | 5 mo  | 72 mo (6 yr)   | -     | -          |
 | **Horses** | All 8 colour variants | Female (Mare)    | 22 mo | 264 mo (22 yr) | 11 mo | 1 (max 3) |
-|            |             | Male (Stallion)  | 36 mo | 300 mo (25 yr) | -     | -          |
-| **Chickens** | Chicken   | Female (Hen)     | 6 mo  | 120 mo (10 yr) | 2 mo  | 5 (max 12) |
-|              |           | Male (Rooster)   | 6 mo  | No limit       | -     | -          |
+|            |             | Male (Stallion)  | 24 mo | 300 mo (25 yr) | -     | -          |
+| **Chickens** | Chicken   | Female (Hen)     | 6 mo  | 60 mo (5 yr)   | 2 mo  | 5 (max 12) |
+|              |           | Male (Rooster)   | 6 mo  | 72 mo (6 yr)   | -     | -          |
 
-¹ The male upper limit is scaled by individual fertility genetics. A high-fertility bull may breed past 132 months; a low-fertility one retires earlier. Roosters are the only male with no upper limit - they breed for life. The female limit is the hard end of the fertility curve.
+¹ The male upper limit is scaled by individual fertility genetics. A high-fertility bull may breed past 132 months; a low-fertility one retires earlier. Roosters are the exception: their 72-month cap is absolute and not scaled by genetics. The female limit is the hard end of the fertility curve.
 
 ² "Peak" is the typical litter size when a healthy mother conceives. "Max" is the upper bound seen with high-fertility mothers in good condition. Litter size also depends on age (very young and very old mothers have smaller litters).
 
@@ -65,10 +65,10 @@ A few patterns worth highlighting:
 
 - **Pigs have the shortest male window.** Boars retire at 4 years while sows breed until 8 - replace breeding boars early.
 - **Sheep and goats also asymmetric.** Rams retire at 6 years, ewes/does breed until 10.
-- **Goats start late.** 16-month minimum vs 8 months for sheep - the longest juvenile period of any female.
+- **Does and ewes now match.** Goats breed from 8 months, the same as sheep - goats are no longer the late starter.
 - **Horses are the slowest cycle.** 11-month gestation and single foals make horse breeding a long-term investment.
 - **Pigs are the fastest.** 4-month gestation plus 12-piglet litters means a healthy sow produces 30+ piglets per year at prime age.
-- **Roosters never retire.** Unlike every other male, a rooster keeps breeding for the rest of its life.
+- **Roosters retire at 6 years.** A rooster sires until 72 months, then stops - unlike other males, the cap is fixed, not genetics-scaled.
 
 ---
 

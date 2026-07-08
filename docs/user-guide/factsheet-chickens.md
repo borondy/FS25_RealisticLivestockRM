@@ -102,8 +102,8 @@ Chicken prices are low and identical for hens and roosters:
 |-----------|-------|
 | Hen breeding age | 6+ months |
 | Rooster breeding age | 6+ months |
-| Rooster max breeding age | No limit (breeds for life) |
-| Hen fertility | Declines sharply with age |
+| Rooster max breeding age | 72 months (6 years) |
+| Hen fertility | Declines with age; ends by ~60 months (5 years) |
 | Gestation (hatching) | 2 months |
 | Min health to breed | 75% |
 
@@ -120,10 +120,10 @@ Chickens can produce large broods, but the chance of no offspring is always sign
 | 6-12 mo | Common | Uncommon | Most likely | Possible |
 | 12-24 mo | Common | Rare | Most likely | Possible |
 | 24-48 mo | Frequent | - | Most likely | Possible |
-| 48-84 mo | Very common | - | Uncommon | Rare |
-| 84-120 mo | Almost always | - | Very rare | Very rare |
+| 48-60 mo | Very common | - | Uncommon | Rare |
+| 60+ mo | Always | - | - | - |
 
-*Unlike other animals, hens never die during hatching. The most common successful brood is 5-7 chicks. At older ages, small broods become impossible - hens that do hatch tend to produce medium or larger broods.*
+*Unlike other animals, hens never die during hatching. The most common successful brood is 5-7 chicks. At older ages, small broods become impossible - hens that do hatch tend to produce medium or larger broods. Hens stop hatching chicks entirely by about 60 months (5 years).*
 
 ---
 

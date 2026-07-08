@@ -1324,7 +1324,7 @@ function Animal:getNumberOfImpregnatableFemalesForMale()
     local subType = self:getSubType()
     local animalType = self.animalTypeIndex
 
-    if (subType.reproductionMinAgeMonth ~= nil and subType.reproductionMinAgeMonth > self.age) or ((animalType == AnimalType.COW and self.age >= 132) or (animalType == AnimalType.SHEEP and self.age >= 72) or (animalType == AnimalType.HORSE and self.age >= 300) or (animalType == AnimalType.PIG and self.age >= 48)) then return 0 end
+    if (subType.reproductionMinAgeMonth ~= nil and subType.reproductionMinAgeMonth > self.age) or ((animalType == AnimalType.COW and self.age >= 132) or (animalType == AnimalType.SHEEP and self.age >= 72) or (animalType == AnimalType.HORSE and self.age >= 300) or (animalType == AnimalType.CHICKEN and self.age >= 72) or (animalType == AnimalType.PIG and self.age >= 48)) then return 0 end
 
     local i = 0
     local id = self:getIdentifiers()
