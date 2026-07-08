@@ -39,6 +39,16 @@ Settings are saved per-savegame and synced in multiplayer. In multiplayer, setti
 
 ---
 
+## Animal Origin
+
+| Setting | Default | Options | Description |
+|---------|---------|---------|-------------|
+| **Animal Country of Origin** | Map default | Map default / 16 countries | Sets the country new animals are registered in - the country code on their ear tags and identifiers. Takes effect immediately for newborn animals, dealer stock, and AI animals. Existing animals keep the country they were registered in. |
+
+*"Map default" uses the country built into the map you're playing; maps the mod doesn't recognise fall back to the United Kingdom - this setting is the fix if that doesn't suit your farm. Available countries: United Kingdom, United States, China, France, Poland, Germany, Canada, Estonia, Italy, Czech Republic, Russia, Sweden, Norway, Finland, Japan, and Spain. A small share of animals are deliberately imported from abroad - roughly 1 in 8 dealer and AI animals and 1 in 100 newborns - so an occasional foreign tag while an override is active is normal, not a bug. Tip: after changing the country, press **Reset Animal Dealer** to restock the dealer with animals from the new origin right away.*
+
+---
+
 ## Customisation
 
 | Setting | Default | Options | Description |
