@@ -91,7 +91,7 @@ Almost everything can be tuned to your preference:
 - Export animal data to CSV
 - Choose between individual event messages or daily summaries
 
-See the [Settings Reference](reference-settings.md) for all options.
+All of these live in the RL Menu's Settings tab - the in-game menu's Game Settings page has an **Open Settings** button (under "Realistic Livestock") that takes you straight there. See the [Settings Reference](reference-settings.md) for all options.
 
 ### Livestock Menu
 

@@ -1,6 +1,8 @@
 # Settings Reference
 
-All Realistic Livestock RM settings are accessible from the mod settings menu in-game. Settings are saved per-savegame and synced in multiplayer. In multiplayer, all settings can only be changed by the server admin.
+All Realistic Livestock RM settings live in the RL Menu's **Settings** tab (it opens on the **General** sub-tab, where all of the options below are). The quickest way there: open the in-game menu (ESC), go to **Game Settings**, scroll to the **Realistic Livestock** section at the bottom, and press **Open Settings**. You can also open the RL Menu directly with its hotkey - unbound by default; look for "Open RL Menu (new)" in the game's input bindings. *(Older versions listed every setting directly on the Game Settings page; those rows have moved here.)*
+
+Settings are saved per-savegame and synced in multiplayer. In multiplayer, settings can only be changed by an admin - everyone else sees them read-only.
 
 > **Note:** This documentation was generated with AI assistance and may contain inaccuracies. If you spot an error, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues).
 
