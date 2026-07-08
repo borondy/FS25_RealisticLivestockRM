@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.3.0.0-dev.1
+
+### Added
+- "Animal Country of Origin" setting (RL Menu -> Settings -> General): choose the country new animals are registered in (ear tags, identifiers) or keep the map default. New animals only - existing animals keep their country. Admin-only in multiplayer, saved per savegame.
+
+### New RL Menu
+- All mod settings now live in the RL Menu's Settings tab; the in-game menu's Settings page shows a single "Realistic Livestock Settings" button that opens it (the 17 duplicated rows are gone).
+
+### Improvements
+- Breeding ages now better match real livestock: goats breed from 8 months (was 16), horse stallions from 24 months (was 36).
+- Hens now stop hatching chicks by about 5 years (previously ~10); roosters now retire at 6 years (previously bred for life).
+
 ## v1.2.6.0
 
 ### RL Menu (preview - work in progress)
