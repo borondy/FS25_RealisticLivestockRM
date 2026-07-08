@@ -488,6 +488,8 @@
 
 
 		<text name="rl_settings" text="Realistic Livestock"/>
+		<text name="rl_settings_openMenu_button" text="Open Settings"/>
+		<text name="rl_settings_openMenu_label" text="Open Realistic Livestock settings"/>
 
 		<text name="rl_settings_off" text="Off"/>
 		<text name="rl_settings_on" text="On"/>

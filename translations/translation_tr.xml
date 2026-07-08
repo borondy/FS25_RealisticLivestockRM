@@ -488,6 +488,8 @@
 
 
 		<text name="rl_settings" text="Gerçekçi Hayvancılık"/>
+		<text name="rl_settings_openMenu_button" text="Ayarları Aç"/>
+		<text name="rl_settings_openMenu_label" text="Gerçekçi Hayvancılık Ayarlarını Aç"/>
 
         <text name="rl_settings_off" text="Kapalı"/>
         <text name="rl_settings_on" text="Açık"/>

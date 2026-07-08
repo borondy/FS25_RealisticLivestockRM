@@ -469,6 +469,8 @@
 
 
 		<text name="rl_settings" text="Pecuária Realista"/>
+		<text name="rl_settings_openMenu_button" text="Abrir configurações"/>
+		<text name="rl_settings_openMenu_label" text="Abrir configurações de Pecuária Realista"/>
 
 		<text name="rl_settings_off" text="Desligado"/>
 		<text name="rl_settings_on" text="Ligado"/>

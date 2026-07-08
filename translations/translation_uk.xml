@@ -454,6 +454,8 @@
 
 		<!-- НАЛАШТУВАННЯ -->
 		<text name="rl_settings" text="Реалістичне тваринництво"/>
+		<text name="rl_settings_openMenu_button" text="Відкрити налаштування"/>
+		<text name="rl_settings_openMenu_label" text="Відкрити налаштування реалістичного тваринництва"/>
 		<text name="rl_settings_off" text="Вимкнено"/>
 		<text name="rl_settings_on" text="Увімкнено"/>
 		<text name="rl_settings_deathEnabled_label" text="Видалення тварин"/>

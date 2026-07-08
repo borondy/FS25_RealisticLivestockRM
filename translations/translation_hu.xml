@@ -488,6 +488,8 @@
 
 
 		<text name="rl_settings" text="Realistic Livestock"/>
+		<text name="rl_settings_openMenu_button" text="Beállítások megnyitása"/>
+		<text name="rl_settings_openMenu_label" text="Realistic Livestock beállítások megnyitása"/>
 
 		<text name="rl_settings_off" text="Ki"/>
 		<text name="rl_settings_on" text="Be"/>

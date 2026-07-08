@@ -488,6 +488,8 @@
 
 
         <text name="rl_settings" text="Realistický chov zvířat"/>
+        <text name="rl_settings_openMenu_button" text="Otevřít nastavení"/>
+        <text name="rl_settings_openMenu_label" text="Otevřít nastavení Realistického chovu zvířat"/>
 
         <text name="rl_settings_off" text="Vypnuto"/>
         <text name="rl_settings_on" text="Zapnuto"/>

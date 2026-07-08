@@ -108,11 +108,11 @@ function RLSettings.onFileExplorerCallback(path)
 end
 
 
--- Render order is set by setting.index; both the legacy in-game settings
--- page and the RL Tabbed Menu Settings -> General subtab walk this table
--- in index order. Sections (1..17): Mortality (1-2), Health & Disease (3-4),
--- Husbandry & Economy (5-6), Custom Animals (7-8), Message Log (9-10),
--- Display Preferences (11-14), Tools & Admin (15-17).
+-- Render order is set by setting.index; the RL Tabbed Menu Settings ->
+-- General subtab walks this table in index order. Sections (1..17):
+-- Mortality (1-2), Health & Disease (3-4), Husbandry & Economy (5-6),
+-- Custom Animals (7-8), Message Log (9-10), Display Preferences (11-14),
+-- Tools & Admin (15-17).
 RLSettings.SETTINGS = {
 
 	["deathEnabled"] = {
@@ -192,8 +192,7 @@ RLSettings.SETTINGS = {
 		["dynamicTooltip"] = true,
 		["default"] = 1,
 		["binaryType"] = "offOn",
-		["values"] = { false, true },
-		["callback"] = RLSettings.onSettingChanged
+		["values"] = { false, true }
 	},
 
 	["animalsXML"] = {
@@ -288,10 +287,6 @@ RLSettings.SETTINGS = {
 	}
 
 }
-
-RLSettings.BinaryOption = nil
-RLSettings.MultiTextOption = nil
-RLSettings.Button = nil
 
 
 function RLSettings.loadFromXMLFile()
@@ -471,158 +466,141 @@ function RLSettings.saveToXMLFile(name, state)
 end
 
 
+--- Build the RLRM launcher row on the base-game pause-menu Settings page.
+--- The server-side settings load runs first and unconditionally, followed
+--- by an unconditional defaulting pass for states the savegame did not
+--- provide; the GUI part clones the section header plus a single button
+--- row whose click opens the RL Menu Settings tab - the sole RLRM
+--- settings editor. The GUI build is skipped (load and defaulting already
+--- done) when the menu tree chain is absent.
 function RLSettings.initialize()
 
 	if g_server ~= nil then RLSettings.loadFromXMLFile() end
 
-	local settingsPage = g_inGameMenu.pageSettings
-	local scrollPanel = settingsPage.gameSettingsLayout
+	-- Default any state the savegame did not provide (fresh save / newly
+	-- added setting). Runs BEFORE the GUI guard so no-GUI contexts get
+	-- defaulted states too; applyDefaultSettings and the RL Menu builder
+	-- read setting.state directly.
+	local defaulted = 0
 
-	local sectionHeader, binaryOptionElement, multiOptionElement, buttonElement
+	for _, setting in pairs(RLSettings.SETTINGS) do
+		if not setting.ignore and setting.state == nil then
+			setting.state = setting.default
+			defaulted = defaulted + 1
+		end
+	end
+
+	if defaulted > 0 then Log:debug("RLSettings.initialize: defaulted %d setting state(s) missing from the savegame", defaulted) end
+
+	if g_inGameMenu == nil or g_inGameMenu.pageSettings == nil or g_inGameMenu.pageSettings.gameSettingsLayout == nil then
+		Log:info("RLSettings.initialize: no pause-menu settings layout (g_inGameMenu chain nil); skipping launcher button build")
+		return
+	end
+
+	local scrollPanel = g_inGameMenu.pageSettings.gameSettingsLayout
+
+	-- Template scan only; cloning happens after the loop so the elements
+	-- array is not mutated while pairs() walks it.
+	local sectionHeaderTemplate, buttonRowTemplate
 
 	for _, element in pairs(scrollPanel.elements) do
 
-		if element.name == "sectionHeader" and sectionHeader == nil then sectionHeader = element:clone(scrollPanel) end
+		if element.name == "sectionHeader" and sectionHeaderTemplate == nil then sectionHeaderTemplate = element end
 
-		if element.typeName == "Bitmap" then
+		if element.typeName == "Bitmap" and element.elements[1] ~= nil and element.elements[1].typeName == "Button" and buttonRowTemplate == nil then buttonRowTemplate = element end
 
-			if element.elements[1].typeName == "BinaryOption" and binaryOptionElement == nil then binaryOptionElement = element end
-
-			if element.elements[1].typeName == "MultiTextOption" and multiOptionElement == nil then multiOptionElement = element end
-
-			if element.elements[1].typeName == "Button" and buttonElement == nil then buttonElement = element end
-
-		end
-
-		if multiOptionElement and binaryOptionElement and sectionHeader and buttonElement then break end	
+		if sectionHeaderTemplate ~= nil and buttonRowTemplate ~= nil then break end
 
 	end
 
-	if multiOptionElement == nil or binaryOptionElement == nil or sectionHeader == nil or buttonElement == nil then return end
+	if sectionHeaderTemplate == nil or buttonRowTemplate == nil then
+		Log:warning("RLSettings.initialize: base-game templates missing (sectionHeader=%s buttonRow=%s); skipping launcher button build",
+			tostring(sectionHeaderTemplate ~= nil), tostring(buttonRowTemplate ~= nil))
+		return
+	end
 
-	RLSettings.BinaryOption = binaryOptionElement
-	RLSettings.MultiTextOption  = multiOptionElement
-	RLSettings.Button = buttonElement
-
-	local prefix = "rl_settings_"
-
+	local sectionHeader = sectionHeaderTemplate:clone(scrollPanel)
 	sectionHeader:setText(g_i18n:getText("rl_settings"))
+	sectionHeader.id = nil
 
-	local maxIndex = 0
+	local buttonRow = buttonRowTemplate:clone(scrollPanel)
+	buttonRow.id = nil
 
-	for _, setting in pairs(RLSettings.SETTINGS) do maxIndex = maxIndex < setting.index and setting.index or maxIndex end
+	local buttonsWired = 0
 
-	for i = 1, maxIndex do
+	for _, element in pairs(buttonRow.elements) do
 
-		for name, setting in pairs(RLSettings.SETTINGS) do
-
-			if setting.index ~= i then continue end
-	
-			setting.state = setting.state or setting.default
-			local template = RLSettings[setting.type]:clone(scrollPanel)
-			local settingsPrefix = "rl_settings_" .. name .. "_"
-			template.id = nil
-		
-			for _, element in pairs(template.elements) do
-
-				if element.typeName == "Text" then
-					element:setText(g_i18n:getText(settingsPrefix .. "label"))
-					element.id = nil
-				end
-
-				if element.typeName == setting.type then
-
-					if setting.type == "Button" then
-						element:setText(g_i18n:getText(settingsPrefix .. "text"))
-						element:applyProfile("rl_settingsButton")
-						element.isAlwaysFocusedOnOpen = false
-						element.focused = false
-					else
-
-						local texts = {}
-
-						if setting.binaryType == "offOn" then
-							texts[1] = g_i18n:getText("rl_settings_off")
-							texts[2] = g_i18n:getText("rl_settings_on")
-						else
-
-							for i, value in pairs(setting.values) do
-
-								if setting.valueType == "int" then
-									texts[i] = tostring(value)
-								elseif setting.valueType == "float" then
-									texts[i] = string.format("%.0f%%", value * 100)
-								else
-									texts[i] = g_i18n:getText(settingsPrefix .. "texts_" .. i)
-								end
-							end
-
-						end
-
-						element:setTexts(texts)
-						element:setState(setting.state)
-
-						if setting.dynamicTooltip then
-							element.elements[1]:setText(g_i18n:getText(settingsPrefix .. "tooltip_" .. setting.state))
-						else
-							element.elements[1]:setText(g_i18n:getText(settingsPrefix .. "tooltip"))
-						end
-
-					end
-
-					element.id = "rls_" .. name
-					element.onClickCallback = RLSettings.onSettingChanged
-
-					setting.element = element
-
-					if setting.dependancy then
-						local dependancy = RLSettings.SETTINGS[setting.dependancy.name]
-						if dependancy ~= nil and dependancy.element ~= nil then element:setDisabled(dependancy.state ~= setting.dependancy.state) end
-					end
-
-				end
-			
-			end
-
+		if element.typeName == "Text" then
+			element:setText(g_i18n:getText("rl_settings_openMenu_label"))
+			element.id = nil
 		end
 
+		if element.typeName == "Button" then
+			element:setText(g_i18n:getText("rl_settings_openMenu_button"))
+			element:applyProfile("rl_settingsButton")
+			element.isAlwaysFocusedOnOpen = false
+			element.focused = false
+			element.id = nil
+			element.onClickCallback = RLSettings.onClickOpenMenu
+			buttonsWired = buttonsWired + 1
+		end
+
+	end
+
+	if buttonsWired ~= 1 then
+		-- Fail closed: leave the base-game page untouched rather than ship
+		-- a broken or duplicated launcher row.
+		buttonRow:delete()
+		sectionHeader:delete()
+		Log:warning("RLSettings.initialize: self-check FAILED - expected 1 launcher button, wired %d (base-game button-row template shape changed?); removed the cloned header/row", buttonsWired)
+		return
+	end
+
+	Log:debug("RLSettings.initialize: self-check - 1 launcher button wired, 0 setting rows added")
+
+end
+
+
+--- Open the RL Menu on the Settings tab (General subtab) from the
+--- pause-menu launcher button. On a refused open (menu not ready or a
+--- dialog visible) the pause menu stays; the refusal is log-only by design.
+function RLSettings.onClickOpenMenu()
+
+	Log:info("RLSettings.onClickOpenMenu: opening RL Menu Settings tab (page 8, MODE_FULL)")
+
+	if RLMenu.openFromBridge(8, RLMenu.MODE_FULL) == false then
+		Log:warning("RLSettings.onClickOpenMenu: openFromBridge refused; staying on the pause menu")
 	end
 
 end
 
 
 --- Apply a state change to a stateful setting.
---- Single write path shared by the legacy in-game settings page (via
---- onSettingChanged) and the RL Tabbed Menu Settings -> General subtab
---- (via RLMenuSettingsFrame's row click handlers). The order is:
----   (1) run the per-setting callback with the NEW value (callback sees
----       newState before setting.state has been written - this preserves
----       legacy onSettingChanged behaviour, where callbacks read the new
----       value via the second arg, not via setting.state)
+--- Single write path for stateful settings, driven by the RL Tabbed Menu
+--- Settings -> General subtab (RLMenuSettingsFrame's row click handlers).
+--- The order is:
+---   (1) run the per-setting callback with the NEW value (the callback
+---       sees newState before setting.state has been written; callbacks
+---       read the new value via the second arg, not via setting.state)
 ---   (2) write setting.state = newState
----   (3) cascade-disable children of this setting on legacy element refs
----   (4) refresh the legacy element's dynamic tooltip if applicable
+---   (3) cascade-disable children of this setting on setting.element refs
+---   (4) refresh the element's dynamic tooltip if applicable
 ---
---- The new RL menu page maintains its OWN element registry and runs ITS
---- OWN cascade after this call returns; this function does not know
---- about the new frame's elements (and must not - setting.element is
---- legacy-only by design until the systemic single-element coupling is
---- refactored in a follow-up).
+--- Steps (3)-(4) and the trailing widget push operate on setting.element,
+--- which stays nil now that the pause menu builds no setting rows; every
+--- consumer nil-guards, so they are dormant no-ops. The RL menu page
+--- maintains its OWN element registry and runs ITS OWN cascade after this
+--- call returns; this function does not know about the frame's elements.
 ---
 --- Action rows (setting.ignore == true) skip this path; their callers
 --- invoke setting.callback directly.
----
---- Pre-existing dormant MP broadcast + per-setting save lines (kept
---- commented in onSettingChanged) are NOT activated here. Mid-session
---- single-setting MP sync remains a follow-up.
 --- @param name string The key of the setting in RLSettings.SETTINGS
 --- @param newState number 1-based state index into setting.values
 --- @return boolean true on successful state write; false if the setting is
 ---                 unknown (caller passed a bad name) OR if it is an action
 ---                 row (setting.ignore == true) - both failure modes are
----                 conflated under the same false return because callers
----                 (legacy onSettingChanged + new onClickGeneralSetting)
----                 never need to distinguish them.
+---                 conflated under the same false return because the caller
+---                 (onClickGeneralSetting) never needs to distinguish them.
 function RLSettings.applyChange(name, newState)
 
 	local setting = RLSettings.SETTINGS[name]
@@ -645,8 +623,9 @@ function RLSettings.applyChange(name, newState)
 	setting.state = newState
 
 	-- Cascade to children whose dependancy parent is this setting.
-	-- Operates on legacy element refs (setting.element); the new RL menu
-	-- page runs an equivalent cascade on its own controls registry.
+	-- Operates on setting.element refs (nil for every setting now that the
+	-- pause menu builds no rows - dormant no-op); the RL menu page runs an
+	-- equivalent cascade on its own controls registry.
 	for childName, s in pairs(RLSettings.SETTINGS) do
 		if s.dependancy and s.dependancy.name == name and s.element ~= nil then
 			local shouldDisable = (s.dependancy.state ~= newState)
@@ -661,43 +640,16 @@ function RLSettings.applyChange(name, newState)
 		setting.element.elements[1]:setText(g_i18n:getText("rl_settings_" .. name .. "_tooltip_" .. newState))
 	end
 
-	-- Push new state to legacy widget so the in-game settings page reflects
-	-- changes made from the RL Tabbed Menu's General subtab. forceEvent=false
-	-- avoids re-entering RLSettings.onSettingChanged. Harmless redundancy
-	-- when applyChange was called from the legacy click path (the widget
-	-- already advanced itself to newState before its onClickCallback fired);
-	-- necessary when called from RLMenuSettingsFrame:onClickGeneralSetting
-	-- where the legacy widget would otherwise stay at its previous state
-	-- and show stale data on next open of the in-game pause menu Settings tab.
+	-- Push new state to a bound widget ref if one exists. setting.element
+	-- stays nil now that the pause menu builds no setting rows, so this is
+	-- a dormant no-op; forceEvent=false keeps a re-bound widget from
+	-- re-raising its click callback.
 	if setting.element ~= nil then
 		Log:trace("RLSettings.applyChange: pushing newState=%d to legacy element for '%s'", newState, name)
 		setting.element:setState(newState, false)
 	end
 
 	return true
-
-end
-
-
-function RLSettings.onSettingChanged(_, state, button)
-
-	if button == nil then button = state end
-
-	if button == nil or button.id == nil then return end
-
-	if not string.contains(button.id, "rls_") then return end
-
-	local name = string.sub(button.id, 5)
-	local setting = RLSettings.SETTINGS[name]
-
-	if setting == nil then return end
-
-	if setting.ignore then
-		if setting.callback then setting.callback() end
-		return
-	end
-
-	RLSettings.applyChange(name, state)
 
 end
 

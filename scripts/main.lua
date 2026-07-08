@@ -11,7 +11,7 @@ local modDirectory = g_currentModDirectory
 -- SECTION 0: Logging
 source(modDirectory .. "scripts/rmlib/RmLogging.lua")
 Log = RmLogging.getLogger("RLRM")
-Log:setLevel(RmLogging.LOG_LEVEL.INFO)
+Log:setLevel(RmLogging.LOG_LEVEL.DEBUG)
 
 -- SECTION 1: Font Library
 source(modDirectory .. "scripts/fontlib/RmFontCharacter.lua")
@@ -192,7 +192,6 @@ source(modDirectory .. "scripts/gui/RLHerdsmanFilterPickerDialog.lua")
 source(modDirectory .. "scripts/gui/RLHerdsmanHusbandryPickerDialog.lua")
 source(modDirectory .. "scripts/gui/RLHerdsmanDestinationPickerDialog.lua")
 source(modDirectory .. "scripts/gui/FileExplorerDialog.lua")
-source(modDirectory .. "scripts/gui/InGameMenuSettingsFrame.lua")
 source(modDirectory .. "scripts/gui/ProfileDialog.lua")
 source(modDirectory .. "scripts/gui/RL_InfoDisplayKeyValueBox.lua")
 source(modDirectory .. "scripts/gui/RealisticLivestock_InGameMenuAnimalsFrame.lua")

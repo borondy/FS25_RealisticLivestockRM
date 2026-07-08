@@ -475,6 +475,8 @@
 
 
 		<text name="rl_settings" text="真实畜牧"/>
+		<text name="rl_settings_openMenu_button" text="打开设置"/>
+		<text name="rl_settings_openMenu_label" text="打开真实畜牧设置"/>
 
 		<text name="rl_settings_off" text="关闭"/>
 		<text name="rl_settings_on" text="开启"/>

@@ -486,6 +486,8 @@
 		<!-- PARAMÈTRES -->
 
 <text name="rl_settings" text="Realistic Livestock"/>
+<text name="rl_settings_openMenu_button" text="Ouvrir les paramètres"/>
+<text name="rl_settings_openMenu_label" text="Ouvrir les paramètres Realistic Livestock"/>
 
 <text name="rl_settings_off" text="Désactivé"/>
 <text name="rl_settings_on" text="Activé"/>

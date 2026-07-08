@@ -475,6 +475,8 @@
 
 
 		<text name="rl_settings" text="Realistinen Karja"/>
+		<text name="rl_settings_openMenu_button" text="Avaa asetukset"/>
+		<text name="rl_settings_openMenu_label" text="Avaa Realistinen Karja -asetukset"/>
 
 		<text name="rl_settings_off" text="Pois"/>
 		<text name="rl_settings_on" text="Päällä"/>

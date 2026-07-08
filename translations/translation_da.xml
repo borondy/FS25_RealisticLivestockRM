@@ -466,6 +466,8 @@
 		<!-- INDSTILLINGER -->
 
         <text name="rl_settings" text="Realistisk Dyrehold"/>
+        <text name="rl_settings_openMenu_button" text="Åbn indstillinger"/>
+        <text name="rl_settings_openMenu_label" text="Åbn indstillinger for Realistisk Dyrehold"/>
 
         <text name="rl_settings_off" text="Fra"/>
         <text name="rl_settings_on" text="Til"/>
