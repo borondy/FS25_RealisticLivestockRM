@@ -689,15 +689,17 @@ function RLMenuAIFrame:onClickFavourite()
 end
 
 
---- Buy footer action. Mirrors the legacy onClickBuyAI handler step-by-step.
---- Step ordering preserved INCLUDING the known pre-existing bug where
---- markPlaceUsed runs BEFORE the permission/money checks (leaks the store
---- slot on failed pre-flight; tracked separately and out of scope per
---- MUTATION PARITY rule).
+--- Buy footer action for the AI / semen dealer tab.
+--- Reserves a store spawn lane (markPlaceUsed) ONLY on the dispatch path -
+--- inside the BUY_SUCCESS branch, immediately before sendEvent - so a rejected
+--- pre-flight (no permission / no money) leaves the lane cursor untouched and
+--- a failed click never leaks lane space. getPlace only READS the lane usage -
+--- it does not advance the cursor - so looking the slot up before the checks
+--- is safe.
 ---
---- No-spawn-slot UX extension: legacy silently returns when no spawn slot is
---- free; this handler shows a warning dialog with `shop_messageNoSpace`
---- to close the "why didn't anything happen?" gap. No event is dispatched.
+--- No-spawn-slot UX: when no lane is free this shows a `shop_messageNoSpace`
+--- warning dialog and dispatches nothing, closing the "why did nothing
+--- happen?" gap.
 function RLMenuAIFrame:onClickBuy()
     -- Reentrancy guard: InfoDialog is async, so a second Enter press between
     -- dispatch and dialog-dismiss would double-fire SemenBuyEvent and
@@ -750,12 +752,6 @@ function RLMenuAIFrame:onClickBuy()
         return
     end
 
-    -- Step 2: mark the slot as used.
-    -- NOTE: This runs BEFORE the permission/money checks so a failed
-    -- pre-flight leaks the slot. Legacy bug mirrored per MUTATION PARITY;
-    -- tracked separately.
-    PlacementUtil.markPlaceUsed(usedPlaces, place, width)
-
     -- Commit to opening a result dialog. Flag blocks reentrant Enter clicks.
     self.buyInFlight = true
 
@@ -779,7 +775,13 @@ function RLMenuAIFrame:onClickBuy()
         Log:warning("RLMenuAIFrame:onClickBuy: money-check triggered (balance-price<0) price=%.2f",
             price)
     else
-        -- Step 6: dispatch.
+        -- Step 6: reserve the lane, then dispatch. The lane cursor advances
+        -- only on a real dispatch, so a rejected pre-flight never leaks lane
+        -- space; the {x,y,z} sent stays the position getPlace returned.
+        PlacementUtil.markPlaceUsed(usedPlaces, place, width)
+        Log:debug("RLMenuAIFrame:onClickBuy: lane cursor advanced place=%s width=%.2f",
+            tostring(place), width)
+
         errorCode = AnimalBuyEvent.BUY_SUCCESS
         g_client:getServerConnection():sendEvent(
             SemenBuyEvent.new(animal, quantity, -price, farmId, { x, y, z }, { 0, 0, 0 }),
