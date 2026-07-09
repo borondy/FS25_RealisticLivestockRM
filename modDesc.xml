@@ -201,7 +201,9 @@ Codice sorgente e tracciamento issue: https://github.com/rittermod/FS25_Realisti
         <actionBinding action="RL_CYCLE_FILTER">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_f" index="1"/>
         </actionBinding>
-        <actionBinding action="RL_MENU"/>
+        <actionBinding action="RL_MENU">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_rshift KEY_o" index="1"/>
+        </actionBinding>
     </inputBinding>
     <actions>
         <action name="VisualAnimalsDialog"/>

@@ -109,6 +109,7 @@ Press **R** in the animal menu to open the animal screen. It has seven tabs:
 
 | Key | Action | Where |
 |-----|--------|-------|
+| **Right Shift + O** | Open RL Menu | In-game |
 | **R** | Open Manage Animals | Animal menu |
 | **A** | Select / deselect | Buy and sell dialogs |
 | **Shift + T** | Change visual animals amount (how many are shown in 3D) | In-game |

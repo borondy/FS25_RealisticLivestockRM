@@ -740,7 +740,7 @@
 <text name="rl_bridge_configoverride_conflict_line" text="%s : appliqué par %s"/>
 
 		<!-- Menu à onglets RL -->
-<text name="input_RL_MENU" text="Ouvrir le menu RL (nouveau)"/>
+<text name="input_RL_MENU" text="Ouvrir le menu RL"/>
 
 <!-- Onglet Messages -->
 <text name="rl_menu_messages_title" text="Messages"/>

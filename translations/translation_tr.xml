@@ -734,7 +734,7 @@
         <text name="rl_bridge_configoverride_conflict_line" text="%s: %s tarafından uygulandı"/>
 
         <!-- RL Tabbed Menu -->
-        <text name="input_RL_MENU" text="RL Menüsünü Aç (yeni)"/>
+        <text name="input_RL_MENU" text="RL Menüsünü Aç"/>
         <!-- Phase 1: Messages tab -->
         <text name="rl_menu_messages_title" text="Mesajlar"/>
         <text name="rl_menu_messages_empty" text="Henüz mesaj yok"/>

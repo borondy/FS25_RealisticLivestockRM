@@ -713,7 +713,7 @@
         <text name="rl_mod_warn_FS25_AnimalFoodCalculator" text="FS25_AnimalFoodCalculator: significant performance impact that grows with herd size."/>
 
         <!-- Missing keys (English fallback) -->
-        <text name="input_RL_MENU" text="Open RL Menu (new)"/>
+        <text name="input_RL_MENU" text="Open RL Menu"/>
         <text name="input_RL_RENAME" text="Rename"/>
         <text name="input_RL_CYCLE_FILTER" text="Cycle Saved Filter"/>
         <text name="rl_bridge_version_unknown" text="Realistic Livestock: %s version %s has not been tested with version %s of Realistic Livestock. Using config '%s'. If you experience issues with exotic animals, please report them at %s."/>

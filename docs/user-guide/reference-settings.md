@@ -1,6 +1,6 @@
 # Settings Reference
 
-All Realistic Livestock RM settings live in the RL Menu's **Settings** tab (it opens on the **General** sub-tab, where all of the options below are). The quickest way there: open the in-game menu (ESC), go to **Game Settings**, scroll to the **Realistic Livestock** section at the bottom, and press **Open Settings**. You can also open the RL Menu directly with its hotkey - unbound by default; look for "Open RL Menu (new)" in the game's input bindings. *(Older versions listed every setting directly on the Game Settings page; those rows have moved here.)*
+All Realistic Livestock RM settings live in the RL Menu's **Settings** tab (it opens on the **General** sub-tab, where all of the options below are). The quickest way there: open the in-game menu (ESC), go to **Game Settings**, scroll to the **Realistic Livestock** section at the bottom, and press **Open Settings**. You can also open the RL Menu directly with its hotkey - it defaults to **Right Shift + O** (remappable in Settings -> Controls); look for "Open RL Menu" in the game's input bindings. If your installation was set up before this default was added, the key may not be assigned automatically - bind or reset it manually. *(Older versions listed every setting directly on the Game Settings page; those rows have moved here.)*
 
 Settings are saved per-savegame and synced in multiplayer. In multiplayer, settings can only be changed by an admin - everyone else sees them read-only.
 

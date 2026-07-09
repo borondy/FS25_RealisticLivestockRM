@@ -2,9 +2,9 @@
     RLMenu.lua
     Root controller for the RL Tabbed Menu (standalone TabbedMenu subclass).
 
-    Opened via the unbound RL_MENU input action (user assigns a key in
-    Settings -> Controls). ESC closes via the standard FS25 back-button
-    pattern; the menu does NOT implement toggle-to-close (Fresh's
+    Opened via the RL_MENU input action (default-bound Right Shift + O,
+    remappable in Settings -> Controls). ESC closes via the standard FS25
+    back-button pattern; the menu does NOT implement toggle-to-close (Fresh's
     quick-view pattern is unsuitable for a destination menu).
 
     Tabs (Buy, Sell, Move, Manage, AI, Messages, Settings) live under
@@ -17,7 +17,7 @@ local RLMenu_mt = Class(RLMenu, TabbedMenu)
 -- Store mod directory at source time (g_currentModDirectory is only valid during source())
 local modDirectory = g_currentModDirectory
 
--- Input action name for opening the menu. Declared in modDesc.xml, unbound by default.
+-- Input action name for opening the menu. Declared in modDesc.xml, default-bound Right Shift + O (remappable).
 RLMenu.ACTION_NAME = "RL_MENU"
 
 -- Open-mode constants. MODE_FULL is the default; MODE_DEALER hides Move/

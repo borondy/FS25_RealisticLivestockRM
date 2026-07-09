@@ -749,7 +749,7 @@
 
 
 		<!-- Missing keys (English fallback) -->
-		<text name="input_RL_MENU" text="Open RL Menu (new)"/>
+		<text name="input_RL_MENU" text="Open RL Menu"/>
 		<text name="input_RL_RENAME" text="Rename"/>
 		<text name="input_RL_CYCLE_FILTER" text="Cycle Saved Filter"/>
 		<text name="rl_menu_info_children" text="Children"/>

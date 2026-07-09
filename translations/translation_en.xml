@@ -746,7 +746,7 @@
 		<text name="rl_bridge_configoverride_conflict_line" text="%s: applied by %s"/>
 
 		<!-- RL Tabbed Menu -->
-		<text name="input_RL_MENU" text="Open RL Menu (new)"/>
+		<text name="input_RL_MENU" text="Open RL Menu"/>
 		<!-- Messages tab -->
 		<text name="rl_menu_messages_title" text="Messages"/>
 		<text name="rl_menu_messages_empty" text="No messages yet"/>

@@ -716,7 +716,7 @@
 
 
         <!-- Missing keys (English fallback) -->
-        <text name="input_RL_MENU" text="Apri menu RL (nuovo)"/>
+        <text name="input_RL_MENU" text="Apri menu RL"/>
         <text name="input_RL_RENAME" text="Rinomina"/>
         <text name="input_RL_CYCLE_FILTER" text="Cambia filtro salvato"/>
         <text name="rl_menu_info_children" text="Figli"/>
