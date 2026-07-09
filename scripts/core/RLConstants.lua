@@ -172,4 +172,34 @@ RLConstants.START_YEAR = {
 }
 
 
+-- AI insemination straw-purchase quantity ladder. A CONTIGUOUS 1..22 array:
+-- consumers both iterate it with pairs() (to build stepper labels) and index it
+-- positionally by stepper state ([state]), so the order and the gap-free 1..22
+-- keys are load-bearing - keep it a plain sequence, never a sparse map.
+RLConstants.DEWAR_QUANTITIES = {
+    1,
+    2,
+    3,
+    4,
+    5,
+    10,
+    15,
+    20,
+    25,
+    30,
+    40,
+    50,
+    75,
+    100,
+    150,
+    200,
+    250,
+    300,
+    400,
+    500,
+    750,
+    1000
+}
+
+
 Log:info("RLConstants loaded")

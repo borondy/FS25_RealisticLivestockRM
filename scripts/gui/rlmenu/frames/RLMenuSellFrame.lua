@@ -496,8 +496,8 @@ function RLMenuSellFrame:reloadAnimalList()
         -- listAnimalsForHusbandry (RLAnimalQuery.lua), so the Quick filter still
         -- narrows the trailer list and section grouping order matches.
         self.items = self:buildTrailerSellItems()
-        if RL_AnimalScreenBase ~= nil and RL_AnimalScreenBase.sortAnimals ~= nil then
-            table.sort(self.items, RL_AnimalScreenBase.sortAnimals)
+        if RLAnimalDisplayHelper ~= nil and RLAnimalDisplayHelper.sortAnimals ~= nil then
+            table.sort(self.items, RLAnimalDisplayHelper.sortAnimals)
         end
         if next(self.filters) ~= nil
             and AnimalFilterDialog ~= nil and AnimalFilterDialog.applyFilters ~= nil then

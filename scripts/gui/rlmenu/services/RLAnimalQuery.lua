@@ -202,7 +202,7 @@ function RLAnimalQuery._wrapCluster(cluster)
 end
 
 --- Return the sorted, filtered list of AnimalItemStock items for a husbandry.
---- Sorted via RL_AnimalScreenBase.sortAnimals (disease-first, then subType,
+--- Sorted via RLAnimalDisplayHelper.sortAnimals (disease-first, then subType,
 --- optional genetics, then age). Filtered via AnimalFilterDialog.applyFilters.
 --- @param husbandry table
 --- @param filters table|nil
@@ -228,12 +228,12 @@ function RLAnimalQuery.listAnimalsForHusbandry(husbandry, filters)
     end
 
     -- Fail-fast if the shared comparator is missing. Unreachable in practice;
-    -- main.lua load order puts AnimalScreenBase in SECTION 12 before rlmenu in 13b.
-    if RL_AnimalScreenBase == nil or RL_AnimalScreenBase.sortAnimals == nil then
-        Log:error("RLAnimalQuery.listAnimalsForHusbandry: RL_AnimalScreenBase.sortAnimals unavailable; returning empty")
+    -- main.lua load order puts RLAnimalDisplayHelper in SECTION 2b before rlmenu in 13b.
+    if RLAnimalDisplayHelper == nil or RLAnimalDisplayHelper.sortAnimals == nil then
+        Log:error("RLAnimalQuery.listAnimalsForHusbandry: RLAnimalDisplayHelper.sortAnimals unavailable; returning empty")
         return {}
     end
-    table.sort(items, RL_AnimalScreenBase.sortAnimals)
+    table.sort(items, RLAnimalDisplayHelper.sortAnimals)
 
     if filters ~= nil and next(filters) ~= nil
         and AnimalFilterDialog ~= nil and AnimalFilterDialog.applyFilters ~= nil then
@@ -320,9 +320,9 @@ function RLAnimalQuery.formatAnimalRow(item)
         row.identifier = cluster:getIdentifiers() or ""
     end
 
-    if RL_AnimalScreenBase ~= nil and RL_AnimalScreenBase.formatDisplayName ~= nil then
-        row.displayName       = RL_AnimalScreenBase.formatDisplayName(row.baseName, cluster)
-        row.displayIdentifier = RL_AnimalScreenBase.formatDisplayName(row.identifier, cluster)
+    if RLAnimalDisplayHelper ~= nil and RLAnimalDisplayHelper.formatDisplayName ~= nil then
+        row.displayName       = RLAnimalDisplayHelper.formatDisplayName(row.baseName, cluster)
+        row.displayIdentifier = RLAnimalDisplayHelper.formatDisplayName(row.identifier, cluster)
     else
         row.displayName       = row.baseName
         row.displayIdentifier = row.identifier

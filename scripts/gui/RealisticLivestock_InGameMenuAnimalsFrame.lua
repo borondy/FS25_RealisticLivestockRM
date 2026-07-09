@@ -175,7 +175,7 @@ function RealisticLivestock_InGameMenuAnimalsFrame:displayCluster(superFunc, ani
             local name = animal:getName()
             name = name ~= "" and (" (" .. name .. ")") or ""
 
-            local displayName = RL_AnimalScreenBase.formatDisplayName(animal.uniqueId .. name, animal)
+            local displayName = RLAnimalDisplayHelper.formatDisplayName(animal.uniqueId .. name, animal)
             self.animalDetailTypeNameText:setText(displayName)
             self.animalDetailTypeImage:setImageFilename(visual.store.imageFilename)
 
@@ -213,7 +213,7 @@ function RealisticLivestock_InGameMenuAnimalsFrame:populateCellForItemInSection(
 
     if g_currentMission.animalSystem:getVisualByAge(subType, animal:getAge()) ~= nil then
         local baseName = animal.uniqueId .. (animal:getName() == "" and "" or (" (" .. animal:getName() .. ")"))
-        cell:getAttribute("name"):setText(RL_AnimalScreenBase.formatDisplayName(baseName, animal))
+        cell:getAttribute("name"):setText(RLAnimalDisplayHelper.formatDisplayName(baseName, animal))
         cell:getAttribute("count"):setVisible(false)
     end
 end

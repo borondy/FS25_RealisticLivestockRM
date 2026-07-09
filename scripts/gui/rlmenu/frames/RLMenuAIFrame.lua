@@ -116,7 +116,7 @@ end
 --- One-time per-clone setup. Unlinks the dot template from the element tree
 --- so it can be cloned at runtime, hides pen-info elements (inherited from
 --- buyFrame.xml for XML-parity but AI has no pen concept), populates the
---- quantity stepper labels from AnimalScreen.DEWAR_QUANTITIES, and hides the
+--- quantity stepper labels from RLConstants.DEWAR_QUANTITIES, and hides the
 --- aiPurchasePanel until a bull is selected.
 ---
 --- Called by RLMenu:setupMenuPages.
@@ -134,14 +134,14 @@ function RLMenuAIFrame:initialize()
     if self.penCountText        ~= nil then self.penCountText:setVisible(false) end
     if self.penIcon             ~= nil then self.penIcon:setVisible(false) end
 
-    -- Populate quantity stepper labels from AnimalScreen.DEWAR_QUANTITIES.
+    -- Populate quantity stepper labels from RLConstants.DEWAR_QUANTITIES.
     -- State resets to 1 here so a fresh frame open shows "1 Straw" regardless
     -- of the last value left in the element.
     if self.aiQuantitySelector ~= nil
-        and AnimalScreen ~= nil
-        and AnimalScreen.DEWAR_QUANTITIES ~= nil then
+        and RLConstants ~= nil
+        and RLConstants.DEWAR_QUANTITIES ~= nil then
         local texts = {}
-        for _, quantity in pairs(AnimalScreen.DEWAR_QUANTITIES) do
+        for _, quantity in pairs(RLConstants.DEWAR_QUANTITIES) do
             table.insert(texts, string.format("%s %s",
                 quantity,
                 g_i18n:getText("rl_ui_straw" .. (quantity == 1 and "Single" or "Multiple"))))
@@ -614,11 +614,11 @@ function RLMenuAIFrame:onQuantityStateChanged(state)
         Log:warning("RLMenuAIFrame:onQuantityStateChanged: nil state")
         return
     end
-    if AnimalScreen == nil or AnimalScreen.DEWAR_QUANTITIES == nil then
+    if RLConstants == nil or RLConstants.DEWAR_QUANTITIES == nil then
         Log:warning("RLMenuAIFrame:onQuantityStateChanged: DEWAR_QUANTITIES unavailable")
         return
     end
-    local quantity = AnimalScreen.DEWAR_QUANTITIES[state]
+    local quantity = RLConstants.DEWAR_QUANTITIES[state]
     if quantity == nil then
         Log:warning("RLMenuAIFrame:onQuantityStateChanged: unknown state %s", tostring(state))
         return
@@ -758,8 +758,8 @@ function RLMenuAIFrame:onClickBuy()
     -- Step 3: compute quantity + price.
     local farmId = g_localPlayer.farmId
     local state = (self.aiQuantitySelector ~= nil and self.aiQuantitySelector:getState()) or 1
-    local quantity = (AnimalScreen ~= nil and AnimalScreen.DEWAR_QUANTITIES ~= nil
-        and AnimalScreen.DEWAR_QUANTITIES[state]) or 1
+    local quantity = (RLConstants ~= nil and RLConstants.DEWAR_QUANTITIES ~= nil
+        and RLConstants.DEWAR_QUANTITIES[state]) or 1
     local price = RLAIStockService.getPriceForQuantity(animal, quantity)
 
     Log:debug("RLMenuAIFrame:onClickBuy: pre-flight farmId=%d state=%d quantity=%d price=%.2f spawn=(%.2f,%.2f,%.2f)",

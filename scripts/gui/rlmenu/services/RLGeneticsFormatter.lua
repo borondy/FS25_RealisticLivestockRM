@@ -190,7 +190,7 @@ end
 --- Each row is `{ labelKey, valueKey, colorKey, numericValue }`:
 ---   - labelKey/valueKey are localization keys (frame resolves text)
 ---   - colorKey maps to an RGBA tuple (frame applies setTextColor)
----   - numericValue is an integer 0..99 (or nil if RL_AnimalScreenBase is
+---   - numericValue is an integer 0..99 (or nil if RLScaleHelper is
 ---     not loaded). Same scale as the in-game name tag.
 ---
 --- Pure function: no side effects, no GUI, no g_* access. Uses the

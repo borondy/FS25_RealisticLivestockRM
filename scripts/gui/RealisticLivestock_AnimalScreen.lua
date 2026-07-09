@@ -3,30 +3,10 @@ local Log = RmLogging.getLogger("RLRM")
 RealisticLivestock_AnimalScreen = {}
 
 
-AnimalScreen.DEWAR_QUANTITIES = {
-    1,
-    2,
-    3,
-    4,
-    5,
-    10,
-    15,
-    20,
-    25,
-    30,
-    40,
-    50,
-    75,
-    100,
-    150,
-    200,
-    250,
-    300,
-    400,
-    500,
-    750,
-    1000
-}
+-- Delegation alias: the quantity ladder now lives in RLConstants (loaded before
+-- this monolith). Kept so the legacy screen's own reads keep working until it
+-- retires.
+AnimalScreen.DEWAR_QUANTITIES = RLConstants.DEWAR_QUANTITIES
 
 
 function RealisticLivestock_AnimalScreen.show(husbandry, vehicle, isDealer)

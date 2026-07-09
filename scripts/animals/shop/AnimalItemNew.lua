@@ -143,7 +143,7 @@ end
 
 function AnimalItemNew:getDisplayName()
 
-	return RL_AnimalScreenBase.formatDisplayName(self:getName(), self.animal)
+	return RLAnimalDisplayHelper.formatDisplayName(self:getName(), self.animal)
 
 end
 
