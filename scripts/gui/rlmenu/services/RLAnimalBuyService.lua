@@ -110,7 +110,7 @@ end
 --- selected animal (capacity or EPP age rejection). The dialog text uses
 --- validCount + totalCount + total-price only (existing key
 --- `rl_ui_buyPartialConfirmation`). The `rejected` array (full {animal, reason}
---- tuples from AnimalScreenMoveFarm.buildMoveValidationResult) is accepted for
+--- tuples from RLMoveDestinationHelper.buildMoveValidationResult) is accepted for
 --- future UX enhancement; today it is iterated for grouped TRACE
 --- logging only.
 --- @param validCount number Number of animals that passed validation
@@ -263,7 +263,7 @@ end
 --- per-TYPE capacity (getNumOfFreeAnimalSlots is per-type total-used; a per-subtype
 --- counter would over-fill a shared per-type place).
 ---
---- Returns the { valid, rejected } shape of AnimalScreenMoveFarm.buildMoveValidationResult so
+--- Returns the { valid, rejected } shape of RLMoveDestinationHelper.buildMoveValidationResult so
 --- the frame's shared partial-confirm + dispatch path binds unchanged, PLUS firstErrorCode for
 --- the all-rejected error surface (the LEDGER MECHANISM mirrors RLAnimalMoveService.filterMovableAnimals,
 --- which returns a tuple - a different shape, deliberately not copied here).

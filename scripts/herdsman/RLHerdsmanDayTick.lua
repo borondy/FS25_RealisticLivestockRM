@@ -399,7 +399,7 @@ function RLHerdsmanDayTick.buildEnv()
         rulesForFarm       = function(farmId) return ruleService:listForFarm(farmId) end,
         husbandriesForFarm = function(farmId) return husbandrySystem:getPlaceablesByFarm(farmId) end,
         -- Owner-farm EPP (butcher) placeables for the move-dest fall-through (RLRM-489). Scans the
-        -- placeableSystem for spec_extendedProductionPoint, mirroring AnimalScreenMoveFarm's scan;
+        -- placeableSystem for spec_extendedProductionPoint, mirroring RLMoveDestinationHelper.getValidDestinations' scan;
         -- nil-guarded so an absent EPP mod (no such spec on any placeable) yields an empty list.
         eppsForFarm        = function(farmId)
             local out = {}

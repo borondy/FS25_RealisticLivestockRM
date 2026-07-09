@@ -127,7 +127,7 @@ end
 --- Project the farm's live MOVE DESTINATIONS into descriptors for the herdsman move-dest picker + the
 --- frame's dest-revalidation map. The husbandry half REUSES listHusbandryDescriptorsForFarm verbatim
 --- (scalar `animalType`, name-sorted, same stable target keys); the EPP half scans
---- placeableSystem.placeables for owner-farm butchers - mirroring AnimalScreenMoveFarm.getValidDestinations'
+--- placeableSystem.placeables for owner-farm butchers - mirroring RLMoveDestinationHelper.getValidDestinations'
 --- placeable scan, but enumerating the PLACEABLE (MP-stable key) rather than the production point, and
 --- reporting the SET of supported type indices (`animalTypes` = keys of pp.animalsTypeData) so a
 --- multi-type butcher is ONE picker row under an ANY-type filter. An EPP whose type set is EMPTY is

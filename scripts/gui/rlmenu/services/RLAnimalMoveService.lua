@@ -2,9 +2,9 @@
     RLAnimalMoveService.lua
     Stateless service for animal move operations in the RL Tabbed Menu.
 
-    Wraps existing AnimalScreenMoveFarm static methods and AnimalMoveEvent
-    dispatch. Provides the same code paths as the legacy AnimalScreen move
-    flow without coupling to the legacy controller's instance state.
+    Wraps the move-destination helpers (RLMoveDestinationHelper) and
+    AnimalMoveEvent dispatch. Provides the same move code paths the legacy
+    AnimalScreen move flow used without coupling to a controller's instance state.
 
     The service also moves animals to and from a livestock trailer (Phase 8 M2),
     mirroring the legacy AnimalScreenTrailerFarm bulk filter pipeline: per-animal
@@ -32,7 +32,7 @@ local Log = RmLogging.getLogger("RLRM")
 
 RLAnimalMoveService = {}
 
---- Error code to i18n key mapping, mirroring AnimalScreenMoveFarm.MOVE_ERROR_CODE_MAPPING.
+--- Error code to i18n key mapping for move operations (AnimalMoveEvent MOVE_ERROR_* -> text key).
 --- MOVE_ERROR_INVALID_CLUSTER is returnable by the server AnimalMoveEvent:run when a
 --- cluster transfer fails mid-batch; it maps to the generic "not supported" text since
 --- there is no dedicated string and it is not a user-correctable condition.
@@ -47,7 +47,7 @@ RLAnimalMoveService.ERROR_CODE_MAPPING = {
 
 
 --- Enumerate valid move destinations for a given source husbandry and animal subtype.
---- Delegates to AnimalScreenMoveFarm.getValidDestinations (static).
+--- Delegates to RLMoveDestinationHelper.getValidDestinations.
 ---
 --- Nil `sourceHusbandry` is a supported use case for dealer-buy flows: the
 --- delegate's `placeable ~= sourceHusbandry` exclusion check becomes a no-op,
@@ -66,12 +66,12 @@ function RLAnimalMoveService.getValidDestinations(sourceHusbandry, farmId, anima
     end
     Log:debug("RLAnimalMoveService.getValidDestinations: farmId=%d subTypeIndex=%d source=%s",
         farmId, animalSubTypeIndex, tostring(sourceHusbandry ~= nil))
-    return AnimalScreenMoveFarm.getValidDestinations(sourceHusbandry, farmId, animalSubTypeIndex)
+    return RLMoveDestinationHelper.getValidDestinations(sourceHusbandry, farmId, animalSubTypeIndex)
 end
 
 
 --- Validate animals against a destination, categorizing valid vs rejected.
---- Delegates to AnimalScreenMoveFarm.buildMoveValidationResult (static).
+--- Delegates to RLMoveDestinationHelper.buildMoveValidationResult.
 --- @param animals table Array of Animal/cluster objects to validate
 --- @param destination table Destination entry from getValidDestinations
 --- @param animalTypeIndex number The animal type index
@@ -86,12 +86,12 @@ function RLAnimalMoveService.buildMoveValidationResult(animals, destination, ani
         return { valid = {}, rejected = {}, destination = destination }
     end
     Log:debug("RLAnimalMoveService.buildMoveValidationResult: %d animals, dest='%s'", #animals, destination.name or "?")
-    return AnimalScreenMoveFarm.buildMoveValidationResult(animals, destination, animalTypeIndex)
+    return RLMoveDestinationHelper.buildMoveValidationResult(animals, destination, animalTypeIndex)
 end
 
 
 --- Client-side pre-validation for a single animal move.
---- Mirrors legacy AnimalScreenMoveFarm:applyMoveTarget, which calls
+--- Mirrors the legacy single-move pre-validation, which calls
 --- AnimalMoveEvent.validate() before sending the event.
 --- @param sourceHusbandry table The source husbandry placeable
 --- @param destination table The destination placeable (entry.placeable)
