@@ -347,7 +347,10 @@ function RLHerdsmanExecutor._executeOne(action, ctx, summary, wageFarmOrder)
     -- (their own membership-skip count) - both nil from the unguarded sell / buy / ai exec legs. They
     -- re-derive the row's count + skippedCount and scale the wage below.
     local op = action.operation
-    local chargeWage, dispatched, skipReason, actualCount, skippedCount
+    -- `extra` (6th return) is the SCALING-FREE row channel: only the move EPP leg returns it, a
+    -- { movedCount, skippedAge } table merged onto the row below WITHOUT touching actualCount (so the
+    -- wage stays planned). Every other leg leaves it nil.
+    local chargeWage, dispatched, skipReason, actualCount, skippedCount, extra
     if op == "sell" then
         chargeWage, dispatched, skipReason, actualCount, skippedCount = RLHerdsmanExecutor._doSell(action, ctx, placeable, farmId, count)
     elseif op == "buy" then
@@ -359,7 +362,7 @@ function RLHerdsmanExecutor._executeOne(action, ctx, summary, wageFarmOrder)
     elseif op == "ai" then
         chargeWage, dispatched, skipReason, actualCount, skippedCount = RLHerdsmanExecutor._doAi(action, ctx, placeable, farmId, count)
     elseif op == "move" then
-        chargeWage, dispatched, skipReason, actualCount, skippedCount = RLHerdsmanExecutor._doMove(action, ctx, placeable, farmId, count)
+        chargeWage, dispatched, skipReason, actualCount, skippedCount, extra = RLHerdsmanExecutor._doMove(action, ctx, placeable, farmId, count)
     else
         chargeWage, dispatched, skipReason = false, false, "bad-data"
         Log:warning("%s rule=%s husbandry=%s farm=%s: unknown operation '%s' - skipped (no wage)",
@@ -376,6 +379,16 @@ function RLHerdsmanExecutor._executeOne(action, ctx, summary, wageFarmOrder)
     if actualCount ~= nil then
         result.count = actualCount
         result.skippedCount = skippedCount or 0
+    end
+
+    -- EPP move counts ride the SCALING-FREE `extra` channel: the move EPP leg keeps actualCount
+    -- nil (so the wage stays planned above/below) and returns { movedCount, skippedAge } merged here.
+    -- movedCount = animals dispatched to the butcher (drives the moved message, falling back to count
+    -- for husbandry rows); skippedAge = animals filtered out for age (drives the skipped-age message).
+    -- Husbandry-move + non-move rows carry no extra (nil), so those rows are byte-identical.
+    if type(extra) == "table" then
+        result.movedCount = extra.movedCount
+        result.skippedAge = extra.skippedAge
     end
 
     if chargeWage then
@@ -724,15 +737,30 @@ function RLHerdsmanExecutor._doMove(action, ctx, placeable, farmId, count)
         return false, false, "bad-data"
     end
 
-    -- Dest resolves DI-purely from the SAME owner-farm uniqueId->placeable map the source came from:
-    -- an owner-farm dest is guaranteed a member (the picker only offers owner-farm husbandries), so no
-    -- g_* read / RLHusbandryTargetKey.resolve is needed, keeping the decision path dual-runnable. An
-    -- absent dest is a barn deleted / transferred since the rule was authored.
+    -- Dest resolves DI-purely from the owner-farm uniqueId->placeable maps the source came from:
+    -- husbandry first, then the EPP (butcher) map (RLRM-489). An owner-farm dest is guaranteed a
+    -- member (the picker only offers owner-farm dests), so no g_* read / RLHusbandryTargetKey.resolve
+    -- is needed, keeping the decision path dual-runnable. eppPlaceablesById is nil-tolerated (treated
+    -- as empty - the always-set-possibly-empty contract), so no-EPP-mod falls straight through to
+    -- the existing missing-dest / husbandry paths. An absent dest is a barn/butcher deleted or
+    -- transferred since the rule was authored.
     local dest = ctx.husbandryPlaceablesById[action.destinationHusbandry]
+    if dest == nil then
+        dest = (ctx.eppPlaceablesById or {})[action.destinationHusbandry]
+    end
     if dest == nil then
         Log:warning("%s rule=%s op=move husbandry=%s farm=%s: destination '%s' not in ctx - skipped (no dispatch, no wage)",
             LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(action.destinationHusbandry))
         return false, false, "missing-dest"
+    end
+
+    -- EPP (butcher) dest: unwrap the production point and run the delivery-time age filter +
+    -- all-or-nothing capacity gate in the pinned order (RLRM-489). A husbandry dest has no
+    -- spec_extendedProductionPoint, so this branch is skipped and the existing husbandry path runs
+    -- byte-identical (nil-guarded, zero change when the EPP mod is absent).
+    local eppSpec = dest.spec_extendedProductionPoint
+    if eppSpec ~= nil and eppSpec.productionPoint ~= nil then
+        return RLHerdsmanExecutor._doMoveToEPP(action, ctx, placeable, dest, eppSpec.productionPoint, farmId, count)
     end
 
     -- TYPE-level gate (one representative subtype: the source pen is single-type). A reject still
@@ -759,4 +787,99 @@ function RLHerdsmanExecutor._doMove(action, ctx, placeable, farmId, count)
     Log:debug("%s rule=%s op=move husbandry=%s farm=%s: broadcast AIAnimalMoveEvent dest=%s count=%d",
         LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(action.destinationHusbandry), count)
     return true, true, nil
+end
+
+--- Move to an EPP (butcher) destination (RLRM-489): player-move-FACING parity - the delivery-time age
+--- filter + the same delivery primitive - with two DELIBERATE divergences (placeable-keyed transport;
+--- ALL-OR-NOTHING capacity). PINNED order:
+---   1. typeData PRESENCE on the SOURCE pen's type index (placeable:getAnimalTypeIndex() - single-type
+---      pen, in-ctx, no g_*) BEFORE any age read; nil -> ANIMAL_NOT_SUPPORTED reject, wage charged.
+---   2. age filter over action.animals vs typeData.minimumAge/.maximumAge (player-path `or 0`/`or 999`
+---      defaults); out-of-window animals are skipped-for-age (counted, surfaced).
+---   3. eligible == 0 -> no dispatch, skipReason "all-age-ineligible", wage charged.
+---   4. space/subtype validate on the ELIGIBLE count (AIAnimalMoveEvent.validate unwraps the pp);
+---      ALL-OR-NOTHING - a reject skips the WHOLE dispatch (wage charged), skipped-age still surfaced.
+---   5. dispatch the eligible only via AIAnimalMoveEvent (targetObject = the EPP PLACEABLE; the event
+---      unwraps + delivers via the shipped player-path primitive).
+--- Counts ride the SCALING-FREE extra channel ({ movedCount, skippedAge }); actualCount stays nil so
+--- the wage is planned. @see RLHerdsmanExecutor._executeOne (the extra merge). Butcher free slots are
+--- logged at validate to make the same-tick slot-sync residual visible (Design Notes).
+---@param action table
+---@param ctx table
+---@param placeable table the resolved SOURCE husbandry placeable (single-type pen)
+---@param dest table the resolved EPP destination PLACEABLE (carries spec_extendedProductionPoint)
+---@param pp table the unwrapped production point (dest.spec_extendedProductionPoint.productionPoint)
+---@param farmId number
+---@param count number planned animal count
+---@return boolean chargeWage
+---@return boolean dispatched
+---@return string|nil skipReason
+---@return nil actualCount always nil (the EPP move never scales the wage)
+---@return nil skippedCount always nil
+---@return table extra { movedCount, skippedAge }
+function RLHerdsmanExecutor._doMoveToEPP(action, ctx, placeable, dest, pp, farmId, count)
+    -- 1. typeData PRESENCE (before any age read). The source pen is single-type; its type index
+    -- keys the butcher's animalsTypeData. getAnimalTypeIndex is the source placeable's own method
+    -- (in-ctx, no g_*), the same read the planner ctx uses for the pen type.
+    local typeIndex = placeable.getAnimalTypeIndex ~= nil and placeable:getAnimalTypeIndex() or nil
+    local typeData = (typeIndex ~= nil and type(pp.animalsTypeData) == "table") and pp.animalsTypeData[typeIndex] or nil
+    if typeData == nil then
+        Log:warning("%s rule=%s op=move husbandry=%s farm=%s: butcher does not accept the pen type (typeIndex=%s) - ANIMAL_NOT_SUPPORTED, dispatch skipped (wage charged)",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(typeIndex))
+        return true, false, "bad-data"
+    end
+
+    -- 2. Delivery-time age filter (player-move parity: same minimumAge/maximumAge, same `or 0`/`or 999`
+    -- defaults). animal.age is the pen animal's live age (in RLRM the cluster IS the Animal).
+    local minAge = typeData.minimumAge or 0
+    local maxAge = typeData.maximumAge or 999
+    local eligible = {}
+    local skippedAge = 0
+    for _, animal in ipairs(action.animals) do
+        local age = (type(animal) == "table" and animal.age) or 0
+        if age >= minAge and age <= maxAge then
+            eligible[#eligible + 1] = animal
+        else
+            skippedAge = skippedAge + 1
+        end
+    end
+    Log:info("%s rule=%s op=move husbandry=%s farm=%s: butcher age filter (window %d-%d) -> %d eligible, %d skipped-age of %d",
+        LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), minAge, maxAge, #eligible, skippedAge, count)
+
+    -- 3. All eligible filtered out: no dispatch, wage charged (buy/no-space parity), skipped-age still surfaced.
+    if #eligible == 0 then
+        Log:warning("%s rule=%s op=move husbandry=%s farm=%s: all %d animal(s) age-ineligible for the butcher - dispatch skipped (wage charged)",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), count)
+        return true, false, "all-age-ineligible", nil, nil, { movedCount = 0, skippedAge = skippedAge }
+    end
+
+    -- 4. Space + subtype validate on the ELIGIBLE count (validate unwraps the pp). ALL-OR-NOTHING: a
+    -- no-space / unsupported-subtype reject skips the WHOLE dispatch (deliberate divergence from the
+    -- player UI's part-fill - Design Notes), wage charged, skipped-age still surfaced. Log the butcher's
+    -- free slots at validate to make the same-tick slot-sync residual visible.
+    -- Representative subtype = the FIRST ELIGIBLE animal's (a survivor of the age filter), not
+    -- action.animals[1] which could be an age-dropped animal of a different subtype in a hypothetical
+    -- multi-subtype pen. #eligible >= 1 is guaranteed here (the eligible==0 early-return above).
+    local repSubTypeIndex = eligible[1].subTypeIndex
+    local freeSlots = (pp.getNumOfFreeAnimalSlots ~= nil) and pp:getNumOfFreeAnimalSlots(repSubTypeIndex) or nil
+    Log:info("%s rule=%s op=move husbandry=%s farm=%s: butcher free slots at validate = %s (need %d eligible)",
+        LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(freeSlots), #eligible)
+
+    local errorCode = AIAnimalMoveEvent.validate(placeable, dest, #eligible, repSubTypeIndex)
+    if errorCode == AnimalMoveEvent.MOVE_ERROR_NOT_ENOUGH_SPACE then
+        Log:warning("%s rule=%s op=move husbandry=%s farm=%s: butcher has no room for %d eligible (ALL-OR-NOTHING) - dispatch skipped (wage charged)",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), #eligible)
+        return true, false, "no-space", nil, nil, { movedCount = 0, skippedAge = skippedAge }
+    elseif errorCode ~= nil then
+        Log:warning("%s rule=%s op=move husbandry=%s farm=%s: butcher validate rejected (errorCode=%s) - dispatch skipped (wage charged)",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(errorCode))
+        return true, false, "bad-data", nil, nil, { movedCount = 0, skippedAge = skippedAge }
+    end
+
+    -- 5. Dispatch the eligible animals only. targetObject is the EPP PLACEABLE (MP-stable node-object);
+    -- AIAnimalMoveEvent:run unwraps the pp and delivers via the shipped player-path primitive.
+    ctx.server:broadcastEvent(AIAnimalMoveEvent.new(placeable, dest, eligible), true)
+    Log:debug("%s rule=%s op=move husbandry=%s farm=%s: broadcast AIAnimalMoveEvent to butcher dest=%s eligible=%d skippedAge=%d",
+        LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(action.destinationHusbandry), #eligible, skippedAge)
+    return true, true, nil, nil, nil, { movedCount = #eligible, skippedAge = skippedAge }
 end

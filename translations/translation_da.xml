@@ -634,6 +634,8 @@
 		<text name="rl_message_aiManager_movedAnimals_multiple" text="Herdsman moved %s animals"/>
 		<text name="rl_message_aiManager_mark_move_single" text="Herdsman marked 1 animal for moving"/>
 		<text name="rl_message_aiManager_mark_move_multiple" text="Herdsman marked %s animals for moving"/>
+		<text name="rl_message_aiManager_moveSkippedAge_single" text="Herdsman skipped 1 animal (wrong age for the butcher)"/>
+		<text name="rl_message_aiManager_moveSkippedAge_multiple" text="Herdsman skipped %s animals (wrong age for the butcher)"/>
 
 
 
@@ -813,6 +815,7 @@
 			<text name="rl_menu_herdsman_section_move" text="Move"/>
 			<text name="rl_menu_herdsman_detail_destination" text="Destination"/>
 			<text name="rl_menu_herdsman_destination_select" text="Select destination"/>
+			<text name="rl_menu_herdsman_destination_butcher_suffix" text="(butcher)"/>
 			<text name="rl_menu_herdsman_destination_picker_title" text="Select Destination"/>
 			<text name="rl_menu_herdsman_destination_picker_empty" text="No destination husbandry available for this rule."/>
 			<text name="rl_menu_herdsman_destination_picker_currentUnavailable" text="Current destination unavailable for this rule."/>

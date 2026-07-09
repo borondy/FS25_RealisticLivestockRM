@@ -688,6 +688,8 @@
 <text name="rl_message_aiManager_movedAnimals_multiple" text="Le responsable d'élevage a déplacé %s animaux"/>
 <text name="rl_message_aiManager_mark_move_single" text="Le responsable d'élevage a marqué 1 animal pour déplacement"/>
 <text name="rl_message_aiManager_mark_move_multiple" text="Le responsable d'élevage a marqué %s animaux pour déplacement"/>
+<text name="rl_message_aiManager_moveSkippedAge_single" text="Herdsman skipped 1 animal (wrong age for the butcher)"/>
+<text name="rl_message_aiManager_moveSkippedAge_multiple" text="Herdsman skipped %s animals (wrong age for the butcher)"/>
 
 		<!-- Messages de résumé quotidien -->
 <text name="rl_message_dailyBirthsSummary" text="%s animaux sont nés à %s"/>
@@ -846,6 +848,7 @@
 			<text name="rl_menu_herdsman_section_move" text="Déplacement"/>
 			<text name="rl_menu_herdsman_detail_destination" text="Destination"/>
 			<text name="rl_menu_herdsman_destination_select" text="Sélectionner une destination"/>
+			<text name="rl_menu_herdsman_destination_butcher_suffix" text="(butcher)"/>
 			<text name="rl_menu_herdsman_destination_picker_title" text="Sélectionner une destination"/>
 			<text name="rl_menu_herdsman_destination_picker_empty" text="Aucun élevage de destination disponible pour cette règle."/>
 			<text name="rl_menu_herdsman_destination_picker_currentUnavailable" text="La destination actuelle n'est pas disponible pour cette règle."/>

@@ -226,6 +226,20 @@ RLMessage = {
 		["title"] = "aiManager",
 		["importance"] = 3
 	},
+	-- Herdsman move age-skip (EPP butcher destinations, RLRM-489): animals outside the butcher's
+	-- accepted age window are skipped at delivery. Count-only, INDIVIDUAL (not in
+	-- RLMessageAggregator.AGGREGATABLE) - exceptional + actionable, so it stays out of the daily
+	-- summary fold. Emitted alongside (not instead of) the moved message when a move partially skips.
+	["AI_MANAGER_MOVE_SKIPPED_AGE_SINGLE"] = {
+		["text"] = "aiManager_moveSkippedAge_single",
+		["title"] = "aiManager",
+		["importance"] = 3
+	},
+	["AI_MANAGER_MOVE_SKIPPED_AGE_MULTIPLE"] = {
+		["text"] = "aiManager_moveSkippedAge_multiple",
+		["title"] = "aiManager",
+		["importance"] = 3
+	},
 	-- Daily summary message types
 	["DAILY_BIRTHS_SUMMARY"] = {
 		["text"] = "dailyBirthsSummary",

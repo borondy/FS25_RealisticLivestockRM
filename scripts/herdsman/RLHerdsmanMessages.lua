@@ -136,10 +136,16 @@ RLHerdsmanMessages.ID_FAMILY       = ID_FAMILY
 ---                                   on buy/naming (no mark family) -> skip
 ---   4. elseif dispatched == true -> the EXEC id family
 ---   5. else                      -> genuine skip (no record)
---- then count-normalize: n = tonumber(count); nil/non-number or n < 1 -> skip; floor(n) == 1 ->
---- _SINGLE else _MULTIPLE. Args: sell/buy exec carry money (SINGLE {money}, MULTIPLE {count,money});
---- all others SINGLE {}, MULTIPLE {count}; the count arg is a STRING (the canonical RL message
---- arg type), while record.count stays numeric.
+--- then count-normalize: n = tonumber(movedCount or count); nil/non-number or n < 1 -> skip;
+--- floor(n) == 1 -> _SINGLE else _MULTIPLE. Args: sell/buy exec carry money (SINGLE {money}, MULTIPLE
+--- {count,money}); all others SINGLE {}, MULTIPLE {count}; the count arg is a STRING (the canonical RL
+--- message arg type), while record.count stays numeric. A move row uses movedCount when present (an
+--- EPP butcher move can dispatch fewer than planned after the age filter, RLRM-489); husbandry-move +
+--- every other row fall back to count.
+--- SEPARATE branch (independent of the above, move rows only): a move row (mark=false) with
+--- skippedAge>0 ALSO emits an AI_MANAGER_MOVE_SKIPPED_AGE_SINGLE/MULTIPLE record REGARDLESS of
+--- dispatched (count arg = skippedAge) - it can accompany the moved record (partial-age) or stand
+--- alone (all-age-ineligible / partial-age+no-space).
 ---@param results table|nil T3 summary.results (array of executor result rows)
 ---@param formatMoney fun(amount:number):string injected money formatter (g_i18n:formatMoney closure)
 ---@return table built { records = {{husbandryId,id,args,mark,count,warn}, ...}, skips = {{row,reason,level}, ...} }
@@ -182,12 +188,18 @@ function RLHerdsmanMessages.buildMessages(results, formatMoney)
             end
 
             if idSet ~= nil then
-                local n = tonumber(row.count)
+                -- The moved record's count comes from movedCount when present (an EPP butcher move can
+                -- dispatch fewer than planned after the delivery-time age filter, RLRM-489); every
+                -- other row - including husbandry-move rows, which carry no movedCount - falls back to
+                -- count (unchanged). 0 is a valid movedCount but never reaches here (dispatched=false
+                -- on a 0-moved EPP row -> the genuine-skip branch above), so `or` cannot mis-fall to count.
+                local countSource = row.movedCount or row.count
+                local n = tonumber(countSource)
                 if n == nil then
-                    addSkip(row, "count-not-a-number:" .. tostring(row.count), "warn")
+                    addSkip(row, "count-not-a-number:" .. tostring(countSource), "warn")
                 elseif n < 1 then
                     -- 0 / negative count: nothing to report. Expected-ish, so DEBUG.
-                    addSkip(row, "count-below-one:" .. tostring(row.count), "debug")
+                    addSkip(row, "count-below-one:" .. tostring(countSource), "debug")
                 else
                     local count = math.floor(n)         -- fractional (corrupt) -> floor; legacy counts are integers
                     local single = count == 1
@@ -223,6 +235,28 @@ function RLHerdsmanMessages.buildMessages(results, formatMoney)
                         mark        = mark,
                         count       = count,
                         warn        = warn,
+                    }
+                end
+            end
+
+            -- Skipped-for-age (EPP butcher move, RLRM-489): a move row (mark=false) with skippedAge>0
+            -- emits the skipped-age record REGARDLESS of `dispatched` - it ACCOMPANIES the moved record
+            -- on a partial-age move, or stands ALONE on an all-age-ineligible / partial-age+no-space
+            -- move (dispatched=false, no moved record). Count arg = skippedAge. INDIVIDUAL only (the ids
+            -- are deliberately NOT in RLMessageAggregator.AGGREGATABLE - exceptional + actionable).
+            if op == "move" and not mark then
+                local skippedAge = tonumber(row.skippedAge)
+                if skippedAge ~= nil and skippedAge >= 1 then
+                    local sa = math.floor(skippedAge)
+                    local single = sa == 1
+                    local id = single and "AI_MANAGER_MOVE_SKIPPED_AGE_SINGLE" or "AI_MANAGER_MOVE_SKIPPED_AGE_MULTIPLE"
+                    records[#records + 1] = {
+                        husbandryId = row.husbandryId,
+                        id          = id,
+                        args        = single and {} or { string.format("%d", sa) },
+                        mark        = false,
+                        count       = sa,
+                        warn        = nil,
                     }
                 end
             end

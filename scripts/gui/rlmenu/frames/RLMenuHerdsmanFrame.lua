@@ -88,17 +88,22 @@ local function resolveFilterById(filterId)
     return g_rlFilterService:getById(filterId)
 end
 
---- Injected husbandry-name resolver for getHusbandrySummary / formatHusbandryButtonLabel.
---- Resolves the rule's stored target key (uniqueId on server, net-object-id on a pure client) via
---- RLHusbandryTargetKey.resolve. NIL-GUARDED: a deleted / stale / unresolvable key returns nil (NOT
---- a crash) so the presenter substitutes labels.missing - resolve stays quiet on a clean not-found,
---- so this render-path resolver does not spam the log.
----@param key any stable target key (uniqueId server / net-object-id client)
----@return string|nil placeable name
+--- Injected placeable-name resolver for the target summary AND the move destination button.
+--- Resolves the rule's stored key (uniqueId on server, net-object-id on a pure client) via
+--- RLHusbandryTargetKey.resolveDestination - the move-dest opt-in that also admits an EPP butcher on
+--- the client, so the destination button renders the butcher name (targets are always husbandries, so
+--- widening is a no-op for them). An EPP-shaped resolved placeable gets the shared "(butcher)" suffix
+--- (RLAnimalQuery.composeDestinationLabel) so the button label agrees with the picker rows.
+--- NIL-GUARDED: a deleted / stale / unresolvable key returns nil (NOT a crash) so the presenter
+--- substitutes labels.missing - resolveDestination stays quiet on a clean not-found, so this
+--- render-path resolver does not spam the log.
+---@param key any stable target/dest key (uniqueId server / net-object-id client)
+---@return string|nil placeable name (with the "(butcher)" suffix for an EPP dest)
 local function resolvePlaceableName(key)
-    local placeable = RLHusbandryTargetKey.resolve(key)
+    local placeable = RLHusbandryTargetKey.resolveDestination(key)
     if placeable == nil or placeable.getName == nil then return nil end
-    return placeable:getName()
+    local isEPP = placeable.spec_extendedProductionPoint ~= nil
+    return RLAnimalQuery.composeDestinationLabel(placeable:getName(), isEPP)
 end
 
 --- Multiset (order-insensitive) equality of two arrays of plain strings, for the husbandry-
@@ -1258,6 +1263,32 @@ function RLMenuHerdsmanFrame:buildHusbandryTypeByUid(farmId)
     return typeByUid
 end
 
+--- Build a uniqueId -> type-spec map for the farm's LIVE move DESTINATIONS (husbandries + EPP
+--- butchers), the dest-axis SIBLING of buildHusbandryTypeByUid feeding revalidatePendingDestination
+--- (RLRM-489). A husbandry maps to its scalar animalType; an EPP butcher maps to its type-index SET
+--- (animalTypes) so revalidateDestination gates an EPP dest set-aware instead of treating it as
+--- unresolvable and preserving it forever. Reuses listMoveDestinationDescriptorsForFarm so this
+--- map and the dest picker share ONE enumeration source. A descriptor with no usable type-spec is
+--- omitted - an omitted uid is exactly an unresolvable dest, which revalidateDestination preserves.
+--- @param farmId number|nil
+--- @return table typeByUid map uniqueId(string) -> animalType index (husbandry) or type-index set (EPP)
+function RLMenuHerdsmanFrame:buildDestinationTypeByUid(farmId)
+    local typeByUid = {}
+    local count = 0
+    for _, d in ipairs(RLAnimalQuery.listMoveDestinationDescriptorsForFarm(farmId)) do
+        if d.animalTypes ~= nil then
+            typeByUid[d.uniqueId] = d.animalTypes
+            count = count + 1
+        elseif d.animalType ~= nil then
+            typeByUid[d.uniqueId] = d.animalType
+            count = count + 1
+        end
+    end
+    Log:trace("RLMenuHerdsmanFrame:buildDestinationTypeByUid: farmId=%s -> %d dest type-specs (husbandry scalar + EPP set)",
+        tostring(farmId), count)
+    return typeByUid
+end
+
 --- True when dewar `semenUid` is still in the farm's dewar pool for `filterAnimalType` -
 --- mirrors populateSemenSelector's g_dewarManager enumeration exactly. An ANY / nil
 --- filterAnimalType has no typed pool (only the "any" sentinel), so any real dewar is out of
@@ -1322,7 +1353,9 @@ function RLMenuHerdsmanFrame:revalidatePendingDestination(id, merged, sourceUids
     local dest = merged.params and merged.params.destinationHusbandry or nil
     if dest == nil then return end
     local farmId = RLAnimalInfoService.getCurrentFarmId()
-    local typeByUid = self:buildHusbandryTypeByUid(farmId)
+    -- Dest-axis map (husbandries + EPP butchers): an EPP dest resolves to its type-index SET here, so
+    -- revalidateDestination type-gates it instead of treating it as unresolvable-preserved-forever.
+    local typeByUid = self:buildDestinationTypeByUid(farmId)
     local chickenIdx = AnimalType ~= nil and AnimalType.CHICKEN or nil
     local filterAnimalType = self:resolveFilterAnimalType(merged.filterId)
     local kept = RLHerdsmanRulePresenter.revalidateDestination(dest, typeByUid, filterAnimalType, chickenIdx, sourceUids)
@@ -1367,7 +1400,10 @@ function RLMenuHerdsmanFrame:onClickRuleDestination(_button)
         return
     end
 
-    local descriptors = RLAnimalQuery.listHusbandryDescriptorsForFarm(farmId)
+    -- Move-dest enumeration = husbandries + owner-farm EPP butchers (RLRM-489); the presenter's
+    -- set-aware gate keeps a multi-type butcher under an ANY filter and a type-matching one under a
+    -- typed filter. Husbandry-only picker sources would never offer a butcher.
+    local descriptors = RLAnimalQuery.listMoveDestinationDescriptorsForFarm(farmId)
     local chickenIdx = AnimalType ~= nil and AnimalType.CHICKEN or nil
     local filterAnimalType = self:resolveFilterAnimalType(merged.filterId)
     local candidates = RLHerdsmanRulePresenter.selectDestinationHusbandries(
