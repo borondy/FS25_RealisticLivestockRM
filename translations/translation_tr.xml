@@ -185,6 +185,8 @@
         <text name="rl_ui_moveErrorNoPermission" text="Buraya hayvan taşıma izniniz yok."/>
         <text name="rl_ui_moveErrorNotSupported" text="Bu hedef bu hayvan türünü desteklemiyor."/>
         <text name="rl_ui_moveErrorNoSpace" text="Hedefte yeterli yer yok."/>
+        <text name="rl_ui_tradeRequestInProgress" text="Zaten bir işlem devam ediyor. Lütfen bekleyin."/>
+        <text name="rl_ui_tradeRequestTimeout" text="Sunucu yanıt vermedi. Lütfen tekrar deneyin."/>
 
         <text name="rl_ui_monitor" text="İzleme"/>
         <text name="rl_ui_monitorSubscriptions" text="İzleme Aboneliği"/>

@@ -209,6 +209,13 @@ source(modDirectory .. "scripts/gui/rlmenu/services/RLGeneticsFormatter.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLPenFeedForecast.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalInfoService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLDetailPaneHelper.lua")
+-- Shared trade-request guard (RLRM-167): one in-flight g_messageCenter request per event
+-- class + a cancellable Timer watchdog + single-consume token. Sourced BEFORE the three
+-- trade services (Move/Sell/Buy) that route their dispatch through it.
+source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalEventRequest.lua")
+-- GUI-local nil-safe selection-key builder (RLRM-166): used by the four multi-select frames'
+-- selection paths. Pure (delegates to RLAnimalUtil.toKey, SECTION 2b); sourced before the frames.
+source(modDirectory .. "scripts/gui/rlmenu/services/RLSelectionKey.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalMoveService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalSellService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalBuyService.lua")

@@ -185,6 +185,8 @@
         <text name="rl_ui_moveErrorNoPermission" text="Nemáte oprávnění přesouvat zvířata sem."/>
         <text name="rl_ui_moveErrorNotSupported" text="Toto cílové místo nepodporuje tento typ zvířete."/>
         <text name="rl_ui_moveErrorNoSpace" text="Na cílovém místě není dostatek místa."/>
+        <text name="rl_ui_tradeRequestInProgress" text="Obchod již probíhá. Vyčkejte prosím."/>
+        <text name="rl_ui_tradeRequestTimeout" text="Server neodpověděl. Zkuste to prosím znovu."/>
 
         <text name="rl_ui_monitor" text="Monitor"/>
         <text name="rl_ui_monitorSubscriptions" text="Předplatné monitorů"/>

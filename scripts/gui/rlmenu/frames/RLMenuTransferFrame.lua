@@ -358,7 +358,10 @@ function RLMenuTransferFrame:pruneSelectionToList()
     for _, item in ipairs(self.items) do
         if item.cluster ~= nil then
             local c = item.cluster
-            live[RLAnimalUtil.toKey(c.farmId, c.uniqueId, c.birthday and c.birthday.country or "")] = true
+            local key = RLSelectionKey.build(c.farmId, c.uniqueId, c.birthday and c.birthday.country)
+            if key ~= nil then
+                live[key] = true
+            end
         end
     end
     local stale = {}
@@ -702,9 +705,9 @@ function RLMenuTransferFrame:collectSelectedAnimals()
             for _, item in ipairs(items) do
                 if item.cluster ~= nil then
                     local cluster = item.cluster
-                    local identityKey = RLAnimalUtil.toKey(cluster.farmId, cluster.uniqueId,
-                        cluster.birthday and cluster.birthday.country or "")
-                    if self.selectedAnimals[identityKey] then
+                    local identityKey = RLSelectionKey.build(cluster.farmId, cluster.uniqueId,
+                        cluster.birthday and cluster.birthday.country)
+                    if identityKey ~= nil and self.selectedAnimals[identityKey] then
                         table.insert(animals, cluster)
                     end
                 end
@@ -717,14 +720,22 @@ end
 
 --- Toggle the focused animal's checkbox.
 function RLMenuTransferFrame:onClickSelect()
+    if not self.isFrameOpen then
+        Log:trace("RLMenuTransferFrame:onClickSelect: frame closed, ignoring")
+        return
+    end
     local animal = self:getSelectedAnimal()
     if animal == nil then
         Log:trace("RLMenuTransferFrame:onClickSelect: no animal focused")
         return
     end
 
-    local key = RLAnimalUtil.toKey(animal.farmId, animal.uniqueId,
-        animal.birthday and animal.birthday.country or "")
+    local key = RLSelectionKey.build(animal.farmId, animal.uniqueId,
+        animal.birthday and animal.birthday.country)
+    if key == nil then
+        Log:trace("RLMenuTransferFrame:onClickSelect: nil selection key, skipping")
+        return
+    end
     self.selectedAnimals[key] = not self.selectedAnimals[key]
     Log:trace("RLMenuTransferFrame:onClickSelect: key=%s -> %s", key, tostring(self.selectedAnimals[key]))
 
@@ -739,6 +750,10 @@ end
 
 --- Toggle all rows: if any are checked, clear; otherwise check all on this side.
 function RLMenuTransferFrame:onClickSelectAll()
+    if not self.isFrameOpen then
+        Log:trace("RLMenuTransferFrame:onClickSelectAll: frame closed, ignoring")
+        return
+    end
     local hasSelection = self:getSelectedCount() > 0
 
     if hasSelection then
@@ -751,9 +766,13 @@ function RLMenuTransferFrame:onClickSelectAll()
                 for _, item in ipairs(items) do
                     if item.cluster ~= nil then
                         local cluster = item.cluster
-                        local identityKey = RLAnimalUtil.toKey(cluster.farmId, cluster.uniqueId,
-                            cluster.birthday and cluster.birthday.country or "")
-                        self.selectedAnimals[identityKey] = true
+                        local identityKey = RLSelectionKey.build(cluster.farmId, cluster.uniqueId,
+                            cluster.birthday and cluster.birthday.country)
+                        if identityKey ~= nil then
+                            self.selectedAnimals[identityKey] = true
+                        else
+                            Log:trace("RLMenuTransferFrame:onClickSelectAll: nil key for a cluster, skipping")
+                        end
                     end
                 end
             end
@@ -857,7 +876,8 @@ function RLMenuTransferFrame:dispatchTransfer(animals)
     -- Duplicate-submit guard: the action buttons are selection/focus-gated, not
     -- request-gated, so block a second dispatch while a move is in flight.
     if self.movePending then
-        Log:debug("RLMenuTransferFrame:dispatchTransfer: a transfer is already in flight, ignoring")
+        Log:debug("RLMenuTransferFrame:dispatchTransfer: a transfer is already in flight, ignoring (selection kept)")
+        InfoDialog.show(g_i18n:getText("rl_ui_tradeRequestInProgress"))
         return
     end
 
@@ -911,6 +931,11 @@ end
 --- @param dispatchedTrailer table  the trailer captured at dispatch time (stale guard)
 --- @param dispatchedCounterpart table|nil  the counterpart captured at dispatch (stale guard)
 function RLMenuTransferFrame:onTransferComplete(success, errorText, dispatchedTrailer, dispatchedCounterpart)
+    -- The dispatched request has completed - always release the in-flight lock first so the
+    -- frame isn't stranded, even when the stale-callback guard below skips the repaint (matches
+    -- onBuyComplete / onMoveComplete, which release before their stale-return).
+    self.movePending = false
+
     if not self.isFrameOpen or self.trailer ~= dispatchedTrailer
         or self.context == nil or self.context.counterpartHandle ~= dispatchedCounterpart then
         Log:debug("RLMenuTransferFrame:onTransferComplete: stale callback (frameOpen=%s, sameTrailer=%s, sameCounterpart=%s), ignoring",
@@ -933,7 +958,6 @@ function RLMenuTransferFrame:onTransferComplete(success, errorText, dispatchedTr
         Log:info("RLMenuTransferFrame:onTransferComplete: transfer succeeded")
     end
 
-    self.movePending = false
     self:updateSourceLabels()
     self:reloadAnimalList()
     -- Cardinality-aware selection clear (reuses pruneSelectionToList): the rebuilt list
@@ -1082,10 +1106,18 @@ function RLMenuTransferFrame:populateCellForItemInSection(list, section, index, 
     if checkbox ~= nil then
         checkbox:setVisible(true)
         if check ~= nil then
-            local identityKey = RLAnimalUtil.toKey(row.farmId, row.uniqueId, row.country)
-            check:setVisible(self.selectedAnimals[identityKey] == true)
+            local identityKey = RLSelectionKey.build(row.farmId, row.uniqueId, row.country)
+            check:setVisible(identityKey ~= nil and self.selectedAnimals[identityKey] == true)
 
             checkbox.onClickCallback = function()
+                if not self.isFrameOpen then
+                    Log:trace("RLMenuTransferFrame checkbox click: frame closed, ignoring")
+                    return
+                end
+                if identityKey == nil then
+                    Log:trace("RLMenuTransferFrame checkbox click: nil selection key, skipping")
+                    return
+                end
                 self.selectedAnimals[identityKey] = not self.selectedAnimals[identityKey]
                 check:setVisible(self.selectedAnimals[identityKey] == true)
                 self:updateButtonVisibility()

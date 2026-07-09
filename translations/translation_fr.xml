@@ -184,6 +184,8 @@
 <text name="rl_ui_moveErrorNoPermission" text="Vous n'avez pas la permission de déplacer des animaux ici."/>
 <text name="rl_ui_moveErrorNotSupported" text="Cette destination ne prend pas en charge ce type d'animal."/>
 <text name="rl_ui_moveErrorNoSpace" text="Pas assez de place à destination."/>
+<text name="rl_ui_tradeRequestInProgress" text="Une transaction est déjà en cours. Veuillez patienter."/>
+<text name="rl_ui_tradeRequestTimeout" text="Le serveur n'a pas répondu. Veuillez réessayer."/>
 
 		<text name="rl_ui_monitor" text="Suivi"/>
 <text name="rl_ui_monitorSubscriptions" text="Abonnements de suivi"/>

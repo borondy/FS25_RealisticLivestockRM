@@ -267,10 +267,14 @@ end
 --- @param moveType string "SOURCE" (-> target) or "TARGET" (-> target); any other value fails closed
 --- @param callback function|nil Callback fired with the server error code (or the surfaced firstErrorCode when all rejected)
 --- @param callbackTarget table|nil Callback target; when set the callback is invoked as callback(callbackTarget, errorCode)
-function RLAnimalMoveService.moveAnimals(source, target, animals, moveType, callback, callbackTarget)
+--- @param deps table|nil Optional RLAnimalEventRequest injection seam (in-game recorder test); nil -> real g_*
+--- @return boolean accepted True when the request was armed + dispatched; false when nothing was dispatched
+---   (no animals, invalid moveType, all-rejected short-circuit, or a same-class request already in flight).
+---   The caller reads this to keep its selection + release its UI lock on false.
+function RLAnimalMoveService.moveAnimals(source, target, animals, moveType, callback, callbackTarget, deps)
     if animals == nil or #animals == 0 then
         Log:debug("RLAnimalMoveService.moveAnimals: no animals, skipping")
-        return
+        return false
     end
 
     -- Fail-closed moveType: a nil/garbage moveType would crash the client at
@@ -279,7 +283,7 @@ function RLAnimalMoveService.moveAnimals(source, target, animals, moveType, call
     -- valid moveTypes.
     if moveType ~= "SOURCE" and moveType ~= "TARGET" then
         Log:warning("RLAnimalMoveService.moveAnimals: invalid moveType=%s, aborting (no dispatch, no broadcast)", tostring(moveType))
-        return
+        return false
     end
 
     Log:debug("RLAnimalMoveService.moveAnimals: %d animals, moveType=%s, source='%s' target='%s'",
@@ -324,6 +328,12 @@ function RLAnimalMoveService.moveAnimals(source, target, animals, moveType, call
         source, target, animals, ownerFarmId, eppTypeData, AnimalMoveEvent.validate)
 
     if #survivors == 0 then
+        -- All-rejected short-circuit: surface the first rejection synchronously (the callback
+        -- fires HERE) AND return false. This path NEVER arms the request helper (nothing is
+        -- dispatched), so it must not touch the in-flight flag. The callback-fired + false-return
+        -- co-occur by design: the callback surfaces the error (via onXxxComplete), while false
+        -- tells the caller no async request is pending - the frame's lock release on false is
+        -- idempotent with any release the callback already performed.
         if firstErrorCode ~= nil then
             Log:debug("RLAnimalMoveService.moveAnimals: all %d animals rejected (firstErrorCode=%d), surfacing without dispatch",
                 #animals, firstErrorCode)
@@ -337,19 +347,18 @@ function RLAnimalMoveService.moveAnimals(source, target, animals, moveType, call
         else
             Log:debug("RLAnimalMoveService.moveAnimals: no animals passed the filter (no error code), skipping dispatch")
         end
-        return
+        return false
     end
 
-    -- Subscription handler: unsubscribe immediately on response, then fire caller's callback.
-    -- Uses a unique table as subscription identity to avoid cross-fire with other subscribers.
-    local subscriptionId = {}
-    local function onMoveResponse(_self, errorCode)
-        -- _self is subscriptionId passed by messageCenter as the callback target
+    -- Route the subscribe + dispatch through the shared request helper: one in-flight
+    -- request per event CLASS, a cancellable watchdog, and a single-consume completion.
+    -- onMoveResponse keeps the caller-callback shape; the helper owns unsubscribe + cleanup.
+    -- errorCode may be RLAnimalEventRequest.TIMEOUT_CODE on watchdog expiry (!= MOVE_SUCCESS,
+    -- so it surfaces as a failure and getErrorText maps it to the timeout text).
+    local function onMoveResponse(errorCode)
         Log:trace("RLAnimalMoveService.onMoveResponse: errorCode=%s", tostring(errorCode))
-        g_messageCenter:unsubscribe(AnimalMoveEvent, subscriptionId)
-
         if errorCode ~= AnimalMoveEvent.MOVE_SUCCESS then
-            Log:debug("RLAnimalMoveService.onMoveResponse: move failed, errorCode=%d", errorCode)
+            Log:debug("RLAnimalMoveService.onMoveResponse: move failed, errorCode=%s", tostring(errorCode))
         else
             Log:debug("RLAnimalMoveService.onMoveResponse: move succeeded")
         end
@@ -363,13 +372,15 @@ function RLAnimalMoveService.moveAnimals(source, target, animals, moveType, call
         end
     end
 
-    g_messageCenter:subscribe(AnimalMoveEvent, onMoveResponse, subscriptionId)
-    Log:trace("RLAnimalMoveService.moveAnimals: subscribed to AnimalMoveEvent, dispatching %d survivor(s)", #survivors)
-
-    g_client:getServerConnection():sendEvent(
-        AnimalMoveEvent.new(source, target, survivors, moveType)
-    )
-    Log:trace("RLAnimalMoveService.moveAnimals: sendEvent returned")
+    local accepted = RLAnimalEventRequest.dispatch(
+        AnimalMoveEvent,
+        AnimalMoveEvent.new(source, target, survivors, moveType),
+        onMoveResponse, nil, deps)
+    if not accepted then
+        Log:debug("RLAnimalMoveService.moveAnimals: dispatch rejected (same-class request in flight), no broadcast")
+        return false
+    end
+    Log:trace("RLAnimalMoveService.moveAnimals: dispatched %d survivor(s) via request helper", #survivors)
 
     -- Exactly-one-broadcast: the client leg adds the message ONLY in pure SP, mirroring the
     -- server :run pure-SP early-return. In MP (host / dedi / pure client) the server :run is
@@ -387,6 +398,8 @@ function RLAnimalMoveService.moveAnimals(source, target, animals, moveType, call
     else
         Log:trace("RLAnimalMoveService.moveAnimals: MP context, deferring broadcast to server :run")
     end
+
+    return true
 end
 
 
@@ -394,6 +407,10 @@ end
 --- @param errorCode number The error code from AnimalMoveEvent
 --- @return string Localized error text, or a generic fallback for unknown codes
 function RLAnimalMoveService.getErrorText(errorCode)
+    if errorCode == RLAnimalEventRequest.TIMEOUT_CODE then
+        Log:trace("RLAnimalMoveService.getErrorText: synthetic timeout code -> rl_ui_tradeRequestTimeout")
+        return g_i18n:getText("rl_ui_tradeRequestTimeout")
+    end
     local key = RLAnimalMoveService.ERROR_CODE_MAPPING[errorCode]
     if key ~= nil then
         Log:trace("RLAnimalMoveService.getErrorText: code=%d -> key='%s'", errorCode, key)

@@ -170,6 +170,8 @@
 		<text name="rl_ui_moveErrorNoPermission" text="Du hast keine Erlaubnis Tiere hierhin zu verschieben."/>
 		<text name="rl_ui_moveErrorNotSupported" text="Dieser Zielort unterstützt diese Tierart nicht."/>
 		<text name="rl_ui_moveErrorNoSpace" text="Nicht genug Platz am Zielort."/>/
+		<text name="rl_ui_tradeRequestInProgress" text="Es wird bereits ein Handel ausgeführt. Bitte warten."/>
+		<text name="rl_ui_tradeRequestTimeout" text="Der Server hat nicht geantwortet. Bitte versuche es erneut."/>
 
 		<text name="rl_ui_monitor" text="Tierüberwachung"/>
 		<text name="rl_ui_monitorSubscriptions" text="Tierüberwachung-Abonnements"/>

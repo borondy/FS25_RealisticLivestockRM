@@ -159,14 +159,17 @@ end
 --- @param totalFee number Sum of transportation fees (POSITIVE input; negated on dispatch)
 --- @param callback function Callback function(target, errorCode)
 --- @param target table Callback target (typically the frame)
-function RLAnimalBuyService.buyAnimals(destination, animals, totalPrice, totalFee, callback, target)
+--- @param deps table|nil Optional RLAnimalEventRequest injection seam (in-game recorder test); nil -> real g_*
+--- @return boolean accepted True when the request was armed + dispatched; false when nothing was dispatched
+---   (no animals, nil destination, or a same-class request already in flight). Caller keeps selection + releases lock on false.
+function RLAnimalBuyService.buyAnimals(destination, animals, totalPrice, totalFee, callback, target, deps)
     if animals == nil or #animals == 0 then
         Log:debug("RLAnimalBuyService.buyAnimals: no animals, skipping")
-        return
+        return false
     end
     if destination == nil then
         Log:warning("RLAnimalBuyService.buyAnimals: nil destination")
-        return
+        return false
     end
 
     Log:debug("RLAnimalBuyService.buyAnimals: %d animals to '%s' (price=%.0f fee=%.0f)",
@@ -174,13 +177,12 @@ function RLAnimalBuyService.buyAnimals(destination, animals, totalPrice, totalFe
         tostring(destination.getName and destination:getName()),
         totalPrice or 0, totalFee or 0)
 
-    -- Subscription handler: unsubscribe immediately on response, then fire
-    -- caller's callback. Unique table as subscription identity to avoid
-    -- cross-fire with other subscribers.
-    local subscriptionId = {}
-    local function onBuyResponse(_self, errorCode)
+    -- Response handler. On success it mirrors the server's authoritative sale-list
+    -- removal locally (see the sale-list-mirror block below); the request helper owns
+    -- unsubscribe + cleanup. errorCode may be RLAnimalEventRequest.TIMEOUT_CODE on
+    -- watchdog expiry (!= BUY_SUCCESS, so getErrorText maps it to the timeout text).
+    local function onBuyResponse(errorCode)
         Log:trace("RLAnimalBuyService.onBuyResponse: errorCode=%s", tostring(errorCode))
-        g_messageCenter:unsubscribe(AnimalBuyEvent, subscriptionId)
 
         if errorCode == AnimalBuyEvent.BUY_SUCCESS then
             Log:info("RLAnimalBuyService.onBuyResponse: buy succeeded (%d animals)", #animals)
@@ -212,7 +214,7 @@ function RLAnimalBuyService.buyAnimals(destination, animals, totalPrice, totalFe
                 end
             end
         else
-            Log:debug("RLAnimalBuyService.onBuyResponse: buy failed, errorCode=%d", errorCode)
+            Log:debug("RLAnimalBuyService.onBuyResponse: buy failed, errorCode=%s", tostring(errorCode))
         end
 
         if callback ~= nil then
@@ -224,18 +226,22 @@ function RLAnimalBuyService.buyAnimals(destination, animals, totalPrice, totalFe
         end
     end
 
-    g_messageCenter:subscribe(AnimalBuyEvent, onBuyResponse, subscriptionId)
-    Log:trace("RLAnimalBuyService.buyAnimals: subscribed to AnimalBuyEvent, sending event")
-
     -- Pre-negate both price and fee. See file header for full rationale.
     local negPrice = -(totalPrice or 0)
     local negFee = -(totalFee or 0)
     Log:trace("RLAnimalBuyService.buyAnimals: dispatching AnimalBuyEvent price=%.0f fee=%.0f",
         negPrice, negFee)
-    g_client:getServerConnection():sendEvent(
-        AnimalBuyEvent.new(destination, animals, negPrice, negFee)
-    )
-    Log:trace("RLAnimalBuyService.buyAnimals: sendEvent returned")
+
+    -- Route the subscribe + dispatch through the shared request helper: one in-flight
+    -- request per event CLASS, a cancellable watchdog, and a single-consume completion.
+    local accepted = RLAnimalEventRequest.dispatch(
+        AnimalBuyEvent,
+        AnimalBuyEvent.new(destination, animals, negPrice, negFee),
+        onBuyResponse, nil, deps)
+    if not accepted then
+        Log:debug("RLAnimalBuyService.buyAnimals: dispatch rejected (same-class request in flight)")
+    end
+    return accepted
 end
 
 
@@ -368,6 +374,10 @@ end
 --- @param errorCode number The error code from AnimalBuyEvent
 --- @return string Localized error text, or a generic fallback for unknown codes
 function RLAnimalBuyService.getErrorText(errorCode)
+    if errorCode == RLAnimalEventRequest.TIMEOUT_CODE then
+        Log:trace("RLAnimalBuyService.getErrorText: synthetic timeout code -> rl_ui_tradeRequestTimeout")
+        return g_i18n:getText("rl_ui_tradeRequestTimeout")
+    end
     local mapping = AnimalScreenDealerFarm.BUY_ERROR_CODE_MAPPING[errorCode]
     if mapping ~= nil and mapping.text ~= nil then
         Log:trace("RLAnimalBuyService.getErrorText: code=%s -> key='%s'",

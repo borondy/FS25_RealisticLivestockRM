@@ -185,6 +185,8 @@
 		<text name="rl_ui_moveErrorNoPermission" text="Nincs jogosultságod ide állatokat áthelyezni."/>
 		<text name="rl_ui_moveErrorNotSupported" text="Ez a célállomás nem támogatja ezt az állatfajt."/>
 		<text name="rl_ui_moveErrorNoSpace" text="Nincs elég hely a célállomáson."/>
+		<text name="rl_ui_tradeRequestInProgress" text="Egy tranzakció már folyamatban van. Kérlek, várj."/>
+		<text name="rl_ui_tradeRequestTimeout" text="A szerver nem válaszolt. Kérlek, próbáld újra."/>
 
 		<text name="rl_ui_monitor" text="Monitor"/>
 		<text name="rl_ui_monitorSubscriptions" text="Monitor előfizetések"/>
