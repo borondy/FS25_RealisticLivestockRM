@@ -77,6 +77,13 @@ RLTransferAdapter.MOVE_TO_SPAWN_PLACE_KEY = "shop_moveToSpawnPlace"
 -- returns an engine string; this constant just names the key in one place.
 RLTransferAdapter.WORLD_NAME_KEY = "rl_menu_transfer_world"
 
+-- The EPP (butcher) counterpart's footer action-label key. The butcher is a pure
+-- sink - the only real action is delivering OUT of the trailer to it - so this key
+-- reads "Deliver" rather than the pen's "move to farm" / world's "move to spawn
+-- place". A NEW translation key (the deliver verb has no base-game analog), seeded
+-- in every locale.
+RLTransferAdapter.DELIVER_LABEL_KEY = "rl_menu_transfer_deliver"
+
 -- =============================================================================
 -- Pure helpers (dual-run boundary)
 -- =============================================================================
@@ -186,6 +193,20 @@ function RLTransferAdapter.worldActionLabelKey(direction)
         return RLTransferAdapter.MOVE_TO_SPAWN_PLACE_KEY
     end
     return RLTransferAdapter.MOVE_TO_TRAILER_KEY
+end
+
+--- The footer action-label i18n KEY for an EPP (butcher) transfer. The butcher is
+--- a pure SINK: the only real action is delivering OUT of the trailer, which reads
+--- "Deliver" (DELIVER_LABEL_KEY) - deliberately NOT a mirror of penActionLabelKey's
+--- OUT (move-to-farm) / worldActionLabelKey's OUT (move-to-spawn-place). The reverse
+--- (IN) direction is dead here (the counterpart enumerate is {}, so the butcher side
+--- never has a live selection), but still returns the same valid key so a stray
+--- layout read never getTexts nil. Returns the KEY (the frame resolves it). Pure:
+--- dual-run boundary.
+--- @param direction string  DIR_INTO_TRAILER | DIR_OUT_OF_TRAILER
+--- @return string i18nKey
+function RLTransferAdapter.eppActionLabelKey(direction)
+    return RLTransferAdapter.DELIVER_LABEL_KEY
 end
 
 -- =============================================================================

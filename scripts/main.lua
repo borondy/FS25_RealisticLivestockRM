@@ -276,6 +276,11 @@ source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferPenAdapter.lua")
 source(modDirectory .. "scripts/animals/shop/events/AnimalUnloadEvent.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTrailerWorldService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferWorldAdapter.lua")
+-- EPP (butcher) counterpart adapter (RLRM-495, Phase 9). In-game sink adapter; registers
+-- into RLTransferAdapter._adapters[RLMenuTabPolicy.EPP] at load, so it must follow
+-- RLMenuTabPolicy (EPP constant) and the services it calls (RLTransferAdapter,
+-- RLAnimalMoveService, RLTrailerEndpointService, all sourced above). No RLMenu dependency.
+source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferEppAdapter.lua")
 source(modDirectory .. "scripts/gui/rlmenu/RLMenu.lua")
 -- Surviving AnimalScreen routing seam. Sourced last in 13b (after RLMenu) so it is the
 -- SOLE installer of the AnimalScreen.show + LivestockTrailerActivatable.run overrides and

@@ -752,6 +752,7 @@
         <text name="rl_menu_transfer_empty_no_animals" text="No animals on this side"/>
         <text name="rl_menu_transfer_counterpart" text="Destination"/>
         <text name="rl_menu_transfer_world" text="Nearby Animals"/>
+        <text name="rl_menu_transfer_deliver" text="Deliver"/>
         <text name="rl_menu_sell_title" text="Vendi"/>
         <text name="rl_menu_sell_cart_header" text="Riepilogo vendita"/>
         <text name="rl_menu_sell_cart_selected" text="Selezionati"/>

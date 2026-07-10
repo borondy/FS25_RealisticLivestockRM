@@ -42,6 +42,9 @@ RLMenu.MODE_TRAILER = RLMenuTabPolicy.MODE_TRAILER
 RLMenu.TRAILER_PEN = RLMenuTabPolicy.PEN
 RLMenu.TRAILER_DEALER = RLMenuTabPolicy.DEALER
 RLMenu.TRAILER_WORLD = RLMenuTabPolicy.WORLD
+-- EPP (butcher) direct-open sink counterpart. Routes through the non-dealer
+-- Transfer branch of openTrailerFromBridge exactly like pen/world.
+RLMenu.TRAILER_EPP = RLMenuTabPolicy.EPP
 
 -- Highest page id registered in setupMenuPages. Used as the upper bound for
 -- openFromBridge's startPageId validation. If a tab is added/removed, bump
@@ -589,12 +592,15 @@ function RLMenu.openTrailerFromBridge(context)
         return false
     end
 
-    -- (3) counterpart must be exactly one of the three constants (nil or any
-    -- other value is invalid).
+    -- (3) counterpart must be exactly one of the four constants (nil or any
+    -- other value is invalid). EPP (butcher sink) is accepted here and then routed
+    -- through the non-dealer Transfer branch below (restorePageIndex = 1), the same
+    -- as pen/world.
     local counterpart = context.counterpart
     if counterpart ~= RLMenu.TRAILER_PEN
         and counterpart ~= RLMenu.TRAILER_DEALER
-        and counterpart ~= RLMenu.TRAILER_WORLD then
+        and counterpart ~= RLMenu.TRAILER_WORLD
+        and counterpart ~= RLMenu.TRAILER_EPP then
         Log:warning("openFromBridge[trailer]: invalid counterpart=%s, no-op (no vanilla fallback)",
             tostring(counterpart))
         return false

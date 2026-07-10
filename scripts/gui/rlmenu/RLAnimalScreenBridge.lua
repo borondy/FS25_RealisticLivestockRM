@@ -1,8 +1,10 @@
 local Log = RmLogging.getLogger("RLRM")
 
---- Surviving routing seam for every `AnimalScreen.show` shape and the standalone
---- livestock-trailer activatable. Lives OUTSIDE the legacy AnimalScreen monolith so
---- the redirect outlives that file's teardown.
+--- Surviving routing seam for every `AnimalScreen.show` shape, the standalone
+--- livestock-trailer activatable, and the EPP butcher direct-open (which bypasses
+--- `AnimalScreen.show` and so is caught at `AnimalScreen.onOpen`, redirecting to the
+--- MODE_TRAILER EPP counterpart). Lives OUTSIDE the legacy AnimalScreen monolith so the
+--- redirects outlive that file's teardown.
 ---
 --- Contract:
 ---   * Routing parity - `show()` walks the same `(husbandry, vehicle, isDealer)` branch
@@ -19,7 +21,7 @@ local Log = RmLogging.getLogger("RLRM")
 ---   * Routing tripwire - every recognized shape logs an INFO naming the decision, every
 ---     refusal a WARN. This is the seam's permanent per-call contract, not diagnostics.
 ---
---- Load-time inert apart from the two installs at the tail (needs only the base-game
+--- Load-time inert apart from the three installs at the tail (needs only the base-game
 --- `AnimalScreen` / `LivestockTrailerActivatable` / `Utils` tables and the logger;
 --- `RLMenu` and `g_rlMenu` are read at call time).
 RLAnimalScreenBridge = {}
@@ -84,6 +86,80 @@ function RLAnimalScreenBridge.show(husbandry, vehicle, isDealer)
 end
 
 
+--- Pure shape predicate: is this the EPP (butcher) controller? A third-party EPP
+--- trigger direct-opens the vanilla AnimalScreen with its own controller
+--- (`AnimalScreenTrailerExtendedProduction`) whose `.husbandry` IS the production point
+--- (the loading trigger sets `trigger.husbandry = self`), NOT a real animal pen. Detect
+--- by SHAPE, never class name (EPP is an optional third-party mod): the pp carries
+--- `animalsTypeData` + `addCluster` + `getNumOfFreeAnimalSlots` and has NO
+--- `spec_husbandryAnimals`, whereas a pen-trailer controller's `.husbandry` is a real
+--- husbandry (`spec_husbandryAnimals` present, no `animalsTypeData`). The
+--- `getNumOfFreeAnimalSlots` check makes the gate match the FULL pp contract the redirect
+--- then relies on (the sidebar reads it in `getDisplayData`, and the delivery filter calls
+--- `target:getNumOfFreeAnimalSlots` for every survivor in `RLAnimalMoveService`), so a
+--- partial EPP-like controller cannot be redirected into a slot-API crash. Total + nil-safe:
+--- any missing field -> false.
+--- @param controller table|nil  the AnimalScreen's pre-assigned controller
+--- @return boolean isEPP
+function RLAnimalScreenBridge.isEPPControllerShape(controller)
+    return controller ~= nil
+        and controller.trailer ~= nil
+        and controller.husbandry ~= nil
+        and controller.husbandry.animalsTypeData ~= nil
+        and controller.husbandry.spec_husbandryAnimals == nil
+        and type(controller.husbandry.addCluster) == "function"
+        and type(controller.husbandry.getNumOfFreeAnimalSlots) == "function"
+end
+
+
+--- Base-game `AnimalScreen.onOpen` wrapper - the redirect for the EPP butcher
+--- direct-open. That trigger bypasses `AnimalScreen.show` (it sets its controller then
+--- `g_gui:showGui("AnimalScreen")` directly), so the `show()` seam above never catches
+--- it; `onOpen` is the earliest hook after the controller is set. Post-cutover NO
+--- surviving RLRM flow opens `AnimalScreen` via `showGui` (every RLRM trigger redirects
+--- at `.show` / `run`), so this hook fires ONLY for external EPP opens - the shape
+--- predicate is the sole guard.
+---
+--- On an EPP-shaped controller: SKIP `superFunc` (the vanilla cluster-style open) and
+--- swap to RLMenu MODE_TRAILER with the EPP counterpart. `counterpartHandle` is
+--- `controller.husbandry` (the pp itself - no unwrap). On a refused open (`g_rlMenu`
+--- nil / a dialog visible / nil trailer or pp) WARN and `g_gui:changeScreen(nil)` to
+--- CLOSE the already-shown screen (mirrors base-game `AnimalScreen:onOpen`, which itself
+--- `changeScreen(nil)`s from onOpen when there are no animals to show) - NEVER call
+--- `superFunc` (post-cutover `superFunc` IS the vanilla open). A non-EPP-shaped
+--- controller passes to `superFunc` unchanged (RLRM-476's C3 tripwire territory - no
+--- surviving RLRM flow should reach here).
+--- @param self table  the AnimalScreen instance (`self.controller` is pre-assigned)
+--- @param superFunc function  base-game AnimalScreen.onOpen
+function RLAnimalScreenBridge.onOpen(self, superFunc, ...)
+    local controller = self ~= nil and self.controller or nil
+    if not RLAnimalScreenBridge.isEPPControllerShape(controller) then
+        -- Not an EPP butcher open: pass through to the vanilla onOpen unchanged.
+        return superFunc(self, ...)
+    end
+
+    local trailer = controller.trailer
+    local pp = controller.husbandry
+    Log:info("AnimalScreen.onOpen: EPP butcher direct-open -> RLMenu (mode=trailer counterpart=epp)")
+
+    -- Direct swap: openFromBridge -> showGui("RLMenu") replaces the just-shown
+    -- AnimalScreen. Base-game precedent: onOpen itself changeScreen()s mid-open, so
+    -- redirecting from the wrapped onOpen is supported. If in-game testing shows a
+    -- one-frame vanilla flash, defer this swap to the next frame via Timer.createOneshot
+    -- (the documented fallback; primary is this direct swap).
+    if g_rlMenu ~= nil and RLMenu.openFromBridge(nil, RLMenu.MODE_TRAILER,
+            { trailer = trailer, counterpart = RLMenu.TRAILER_EPP, counterpartHandle = pp }) == true then
+        return
+    end
+
+    -- Refused: close the vanilla screen rather than leave the cluster-style EPP
+    -- presentation up, and NEVER call superFunc (post-cutover superFunc IS the vanilla open).
+    Log:warning("AnimalScreen.onOpen: EPP redirect refused (g_rlMenu=%s), closing screen (never vanilla)",
+        tostring(g_rlMenu ~= nil))
+    g_gui:changeScreen(nil)
+end
+
+
 --- World-trailer redirect for the standalone `LivestockTrailerActivatable` ("Open animal
 --- screen" prompt on a parked livestock trailer with no loading trigger). This activatable
 --- opens the vanilla screen unconditionally once it runs, so a `setController`-level hook
@@ -106,10 +182,15 @@ function RL_LivestockTrailerActivatable:run(_superFunc)
 end
 
 
--- Sole installer for both overrides (the legacy monolith's own installs are removed in the
--- same slice, so there is no source-order-decided double-install / double-wrap). The
--- activatable keeps the overwrittenFunction wrap as the interception mechanism; the injected
--- superFunc is intentionally unused (see RL_LivestockTrailerActivatable:run).
+-- Sole installer for all three overrides (the legacy monolith's own installs are removed
+-- in the same slice, so there is no source-order-decided double-install / double-wrap).
+-- The activatable and the onOpen redirect keep the overwrittenFunction wrap as the
+-- interception mechanism; the activatable's injected superFunc is intentionally unused
+-- (see RL_LivestockTrailerActivatable:run), while the onOpen wrap DOES call superFunc for
+-- any non-EPP-shaped controller (the vanilla open, RLRM-476 C3 territory).
 AnimalScreen.show = RLAnimalScreenBridge.show
 LivestockTrailerActivatable.run = Utils.overwrittenFunction(LivestockTrailerActivatable.run,
     RL_LivestockTrailerActivatable.run)
+-- EPP butcher direct-open redirect: it bypasses AnimalScreen.show, so the intercept is
+-- onOpen (the earliest hook after the controller is set), not the show() seam above.
+AnimalScreen.onOpen = Utils.overwrittenFunction(AnimalScreen.onOpen, RLAnimalScreenBridge.onOpen)
