@@ -1081,11 +1081,15 @@ function RLMenuSettingsFrame:updateButtonVisibility()
         if hasSelection then
             table.insert(self.menuButtonInfo, self.editConditionButtonInfo)
             table.insert(self.menuButtonInfo, self.addConditionButtonInfo)
-            table.insert(self.menuButtonInfo, self.addGroupButtonInfo)
+            -- Phase 2: "Add group" hidden until group editing is implemented.
+            -- addGroupButtonInfo / onAddGroupClicked / addGroupAtSelection stay
+            -- defined; re-enable by restoring these two inserts. The stub still
+            -- surfaces an InfoDialog if ever invoked directly.
+            -- table.insert(self.menuButtonInfo, self.addGroupButtonInfo)
             table.insert(self.menuButtonInfo, self.deleteConditionButtonInfo)
             table.insert(appended, "Edit")
             table.insert(appended, "AddCondition")
-            table.insert(appended, "AddGroup")
+            -- table.insert(appended, "AddGroup")
             table.insert(appended, "DeleteCondition")
         end
     end
