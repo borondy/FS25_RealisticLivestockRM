@@ -246,6 +246,16 @@ function RLMenuMoveFrame:refreshHusbandries()
     Log:debug("RLMenuMoveFrame:refreshHusbandries: farmId=%s husbandries=%d",
         tostring(farmId), #self.sortedHusbandries)
 
+    -- Capture-and-consume the one-shot MODE_FULL husbandry anchor into a local and
+    -- clear the shared field NOW - before the empty-list guard below - so every path
+    -- (empty, selector-nil, populated) consumes it exactly once and none leaks it to
+    -- a later open. resolveIndex (below) prefers this anchor over the shared selection.
+    local anchorHusbandry = nil
+    if g_rlMenu ~= nil then
+        anchorHusbandry = g_rlMenu.anchoredHusbandry
+        g_rlMenu.anchoredHusbandry = nil
+    end
+
     if self.subCategoryDotBox ~= nil then
         for i, dot in pairs(self.subCategoryDotBox.elements) do
             dot:delete()
@@ -290,18 +300,22 @@ function RLMenuMoveFrame:refreshHusbandries()
         self.subCategoryDotBox:setVisible(1 < #names)
     end
 
-    -- Resolve initial husbandry: match shared selection by placeable reference,
-    -- fall back to state 1 if not found or no shared state.
-    local initialState = 1
-    if g_rlMenu ~= nil and g_rlMenu.sharedSelection ~= nil
-        and g_rlMenu.sharedSelection.husbandry ~= nil then
-        for i, h in ipairs(self.sortedHusbandries) do
-            if h == g_rlMenu.sharedSelection.husbandry then
-                initialState = i
-                break
-            end
+    -- Resolve initial husbandry: prefer the one-shot anchor, then the persistent
+    -- shared selection, then the first pen (all matched by placeable identity).
+    local sharedHusbandry = nil
+    if g_rlMenu ~= nil and g_rlMenu.sharedSelection ~= nil then
+        sharedHusbandry = g_rlMenu.sharedSelection.husbandry
+    end
+    local initialState, anchorMatched =
+        RLMenuHusbandryAnchor.resolveIndex(self.sortedHusbandries, anchorHusbandry, sharedHusbandry)
+    if anchorHusbandry ~= nil then
+        if anchorMatched then
+            Log:debug("RLMenuMoveFrame:refreshHusbandries: anchor resolved to state=%d", initialState)
+        else
+            Log:debug("RLMenuMoveFrame:refreshHusbandries: anchor not in current farm list, unanchored (state=%d)", initialState)
         end
-        Log:trace("RLMenuMoveFrame:refreshHusbandries: shared husbandry resolved to state=%d", initialState)
+    else
+        Log:trace("RLMenuMoveFrame:refreshHusbandries: husbandry resolved to state=%d (no anchor)", initialState)
     end
 
     if self.subCategorySelector ~= nil then

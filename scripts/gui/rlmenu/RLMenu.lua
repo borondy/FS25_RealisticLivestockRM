@@ -69,7 +69,7 @@ function RLMenu.new(target, custom_mt)
     -- { husbandry = placeable ref, animalIdentity = { farmId, uniqueId, country } }
     self.sharedSelection = nil
 
-    -- Open mode: MODE_FULL exposes all 7 tabs (keyboard-shortcut path);
+    -- Open mode: MODE_FULL exposes all 8 tabs (keyboard-shortcut path);
     -- MODE_DEALER hides Move/Messages/Settings via predicate gating
     -- (set by RLMenu.openFromBridge for the AnimalScreen dealer-shape redirect).
     -- Reset to MODE_FULL on every onClose so the next keyboard open is unaffected.
@@ -84,6 +84,15 @@ function RLMenu.new(target, custom_mt)
     self.trailerVehicle = nil
     self.trailerCounterpart = nil
     self.trailerCounterpartHandle = nil
+
+    -- One-shot MODE_FULL husbandry anchor: a caller may land the first husbandry
+    -- frame (Info/Move/Sell) on a specific pen by passing context.husbandry to
+    -- openFromBridge. The frames capture-and-consume it on their first refresh; it
+    -- is also cleared on every onClose and on keyboard open() so a no-anchor open
+    -- is byte-for-byte unchanged. nil in MODE_DEALER / MODE_TRAILER. Init here (not
+    -- only in openFromBridge) so the DEV_RELOAD re-instantiation - where open() runs
+    -- against a fresh instance - starts from a known nil.
+    self.anchoredHusbandry = nil
 
     Log:trace("RLMenu.new: instance created (openMode=%s)", tostring(self.openMode))
     return self
@@ -332,6 +341,14 @@ function RLMenu:onClose()
     self.trailerCounterpart = nil
     self.trailerCounterpartHandle = nil
 
+    -- Clear the one-shot husbandry anchor here too (pre-pcall, beside the trailer
+    -- fields so a super-onClose throw cannot skip it): a bridged MODE_FULL open
+    -- that never reached a husbandry frame must not leak its anchor into the next
+    -- open. hadAnchor is surfaced in the log below so a dropped-unconsumed anchor
+    -- is visible.
+    local hadAnchor = (self.anchoredHusbandry ~= nil)
+    self.anchoredHusbandry = nil
+
     -- Wrap super-onClose in pcall: base TabbedMenu:onClose touches
     -- currentPage:onFrameClose(), g_inputBinding, pageSelector:getState(),
     -- and g_currentMission:resetGameState(). Any one of those can nil-deref
@@ -358,8 +375,8 @@ function RLMenu:onClose()
         self.restorePageIndex = 1
         self.restorePage = nil
     end
-    Log:debug("RLMenu:onClose: openMode reset (wasDealer=%s, wasTrailer=%s, restorePageIndex=%s, superOk=%s)",
-        tostring(wasDealer), tostring(wasTrailer), tostring(self.restorePageIndex), tostring(superOk))
+    Log:debug("RLMenu:onClose: openMode reset (wasDealer=%s, wasTrailer=%s, hadAnchor=%s, restorePageIndex=%s, superOk=%s)",
+        tostring(wasDealer), tostring(wasTrailer), tostring(hadAnchor), tostring(self.restorePageIndex), tostring(superOk))
 
     self.isOpen = false
     Log:info("RLMenu closed")
@@ -389,6 +406,15 @@ function RLMenu.open()
         if not ok then
             Log:error("RLMenu.open: DEV reload failed (err=%s)", tostring(err))
         end
+    end
+
+    -- Keyboard open always starts unanchored: drop any one-shot husbandry anchor a
+    -- prior bridged-then-ESC'd MODE_FULL session may have left. UNCONDITIONAL (only
+    -- guarded on g_rlMenu ~= nil) - it MUST sit OUTSIDE the stale-mode reset below,
+    -- which fires only for a parked non-FULL openMode; a normal FULL keyboard open
+    -- would otherwise inherit the anchor and hijack the next husbandry frame.
+    if g_rlMenu ~= nil then
+        g_rlMenu.anchoredHusbandry = nil
     end
 
     -- Keyboard-open stale-mode reset. A parked non-FULL openMode (e.g. a
@@ -426,9 +452,11 @@ end
 --- @param startPageId number Page index in [1, RLMenu.PAGE_COUNT] to land on (Buy=1).
 ---   IGNORED for MODE_TRAILER (the anchor is heuristic-derived; callers pass nil).
 --- @param mode string RLMenu.MODE_FULL, RLMenu.MODE_DEALER, or RLMenu.MODE_TRAILER.
---- @param context table|nil MODE_TRAILER only: { trailer = <livestock-trailer vehicle>,
----   counterpart = RLMenu.TRAILER_PEN | TRAILER_DEALER | TRAILER_WORLD }. Ignored for
----   MODE_FULL / MODE_DEALER (no trailer state stored).
+--- @param context table|nil For MODE_TRAILER: { trailer = <livestock-trailer vehicle>,
+---   counterpart = RLMenu.TRAILER_PEN | TRAILER_DEALER | TRAILER_WORLD }. For MODE_FULL:
+---   an optional { husbandry = <local animal-husbandry placeable> } one-shot anchor that
+---   lands the first husbandry frame (Info/Move/Sell) on that pen (ignored unless it is a
+---   real animal husbandry). Ignored for MODE_DEALER (no state stored).
 --- @return boolean opened  true when the menu was shown; false on any refused open
 ---   (g_rlMenu nil, bad args, a dialog visible, or a showGui rollback) so a caller
 ---   that can fall back to legacy (e.g. the LivestockTrailerActivatable redirect) may
@@ -473,6 +501,30 @@ function RLMenu.openFromBridge(startPageId, mode, context)
     local priorOpenMode = g_rlMenu.openMode
     local priorRestorePageIndex = g_rlMenu.restorePageIndex
     local priorRestorePage = g_rlMenu.restorePage
+    local priorAnchoredHusbandry = g_rlMenu.anchoredHusbandry
+
+    -- MODE_FULL husbandry anchor (one-shot): a caller may pass context.husbandry
+    -- to land the first husbandry frame (Info/Move/Sell) on a specific pen. Set
+    -- fail-closed - ONLY a table context carrying a real animal husbandry anchors:
+    --   * mode ~= MODE_FULL (i.e. MODE_DEALER) never anchors;
+    --   * a non-table context is never dereferenced (no crash);
+    --   * a context.husbandry that is not an animal husbandry (no
+    --     spec_husbandryAnimals) opens unanchored with a WARNING.
+    -- Otherwise nil, so no stale anchor leaks into a later open. The husbandry
+    -- frames capture-and-consume it once; onClose / open() clear it. context.husbandry
+    -- MUST be the caller's LOCAL placeable (frames match by ==, so a server handle
+    -- on a pure client would miss); no MP sync - the anchor is per-client GUI state.
+    local anchorHusbandry = nil
+    if mode == RLMenu.MODE_FULL and type(context) == "table" and context.husbandry ~= nil then
+        -- Guard the deref: a non-table context.husbandry (a number / boolean
+        -- sentinel) must fail closed to an unanchored open, never crash - the
+        -- spec_husbandryAnimals read below would otherwise throw outside the pcall.
+        if type(context.husbandry) == "table" and context.husbandry.spec_husbandryAnimals ~= nil then
+            anchorHusbandry = context.husbandry
+        else
+            Log:warning("openFromBridge: husbandry anchor invalid (not an animal husbandry), opening unanchored")
+        end
+    end
 
     -- Force restorePageIndex over restorePage: TabbedMenu:onOpen reads
     -- restorePage first, so clearing it makes
@@ -480,8 +532,14 @@ function RLMenu.openFromBridge(startPageId, mode, context)
     g_rlMenu.openMode = mode
     g_rlMenu.restorePageIndex = startPageId
     g_rlMenu.restorePage = nil
+    g_rlMenu.anchoredHusbandry = anchorHusbandry
 
-    Log:info("openFromBridge: page=%d mode=%s", startPageId, tostring(mode))
+    if anchorHusbandry ~= nil then
+        Log:info("openFromBridge: page=%d mode=%s (husbandry anchor set for the next husbandry frame)",
+            startPageId, tostring(mode))
+    else
+        Log:info("openFromBridge: page=%d mode=%s", startPageId, tostring(mode))
+    end
 
     local ok, err = pcall(function() g_gui:showGui("RLMenu") end)
     if not ok then
@@ -490,6 +548,7 @@ function RLMenu.openFromBridge(startPageId, mode, context)
         g_rlMenu.openMode = priorOpenMode
         g_rlMenu.restorePageIndex = priorRestorePageIndex
         g_rlMenu.restorePage = priorRestorePage
+        g_rlMenu.anchoredHusbandry = priorAnchoredHusbandry
         return false
     end
     return true
@@ -563,6 +622,7 @@ function RLMenu.openTrailerFromBridge(context)
         local priorTrailerVehicle = g_rlMenu.trailerVehicle
         local priorTrailerCounterpart = g_rlMenu.trailerCounterpart
         local priorTrailerCounterpartHandle = g_rlMenu.trailerCounterpartHandle
+        local priorAnchoredHusbandry = g_rlMenu.anchoredHusbandry
 
         g_rlMenu.openMode = RLMenu.MODE_TRAILER
         g_rlMenu.trailerVehicle = trailer
@@ -572,6 +632,10 @@ function RLMenu.openTrailerFromBridge(context)
         -- lockstep with the other two trailer fields - stored here, cleared in
         -- onClose + the keyboard reset, rolled back below on a showGui throw.
         g_rlMenu.trailerCounterpartHandle = context.counterpartHandle
+        -- Trailer mode never anchors a husbandry; clear defensively so this entry
+        -- point establishes a known anchor state (a prior unconsumed MODE_FULL
+        -- anchor must not survive into a trailer open).
+        g_rlMenu.anchoredHusbandry = nil
         g_rlMenu.restorePageIndex = 1
         g_rlMenu.restorePage = nil
 
@@ -588,6 +652,7 @@ function RLMenu.openTrailerFromBridge(context)
             g_rlMenu.trailerVehicle = priorTrailerVehicle
             g_rlMenu.trailerCounterpart = priorTrailerCounterpart
             g_rlMenu.trailerCounterpartHandle = priorTrailerCounterpartHandle
+            g_rlMenu.anchoredHusbandry = priorAnchoredHusbandry
             return false
         end
         return true
@@ -603,6 +668,7 @@ function RLMenu.openTrailerFromBridge(context)
     local priorTrailerVehicle = g_rlMenu.trailerVehicle
     local priorTrailerCounterpart = g_rlMenu.trailerCounterpart
     local priorTrailerCounterpartHandle = g_rlMenu.trailerCounterpartHandle
+    local priorAnchoredHusbandry = g_rlMenu.anchoredHusbandry
 
     local isEmpty = RLTrailerEndpointService.isEmpty(trailer)
     local anchor = RLMenuTabPolicy.anchorPage(counterpart, isEmpty)
@@ -613,6 +679,10 @@ function RLMenu.openTrailerFromBridge(context)
     -- nil for the dealer counterpart (no pen/world handle); stored in lockstep
     -- with the other two trailer fields so the reset sites clear all three.
     g_rlMenu.trailerCounterpartHandle = context.counterpartHandle
+    -- Trailer mode never anchors a husbandry; clear defensively so this entry
+    -- point establishes a known anchor state (a prior unconsumed MODE_FULL anchor
+    -- must not survive into a trailer open).
+    g_rlMenu.anchoredHusbandry = nil
     g_rlMenu.restorePageIndex = anchor
     g_rlMenu.restorePage = nil
 
@@ -631,6 +701,7 @@ function RLMenu.openTrailerFromBridge(context)
         g_rlMenu.trailerVehicle = priorTrailerVehicle
         g_rlMenu.trailerCounterpart = priorTrailerCounterpart
         g_rlMenu.trailerCounterpartHandle = priorTrailerCounterpartHandle
+        g_rlMenu.anchoredHusbandry = priorAnchoredHusbandry
         return false
     end
     return true
