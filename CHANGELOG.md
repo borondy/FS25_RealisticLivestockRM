@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.3.0.0-dev.2
+
+### Added
+- Herdsman: a move rule can now target a butcher (Extended Production Point); animals outside the butcher's age range are skipped and reported.
+- Dev builds now log a "legacy-tripwire" error if anything still opens the legacy animal screen, to catch leftover paths before it is removed (expected on dev/tester builds; gone by the stable release).
+
+### Changed
+- RL Menu now has a default hotkey (Right Shift + O) and a cleaner input-binding name; existing installations need to bind or reset the key manually.
+- Walking up to one of your own animal pens, approaching an animal dealer on foot, or opening the animal screen from the in-game menu (R) now open the RL Menu instead of the legacy animal screen.
+- Driving a loaded livestock trailer to a butcher now opens the RL Menu with an individual-animal delivery view instead of the legacy cluster-style screen.
+
+### Fixed
+- In multiplayer, quickly triggering two animal trades of the same kind (buy, sell, or move) could affect the wrong animals or leave the menu stuck - trades now run one at a time with a "trade in progress" notice and a timeout recovery.
+- A declined semen purchase (e.g. not enough money) no longer uses up dealer spawn space, so repeated declined attempts can't eventually make valid purchases fail with a "no space" message.
+- Herdsman task editor: the green slider on the Mark / Naming convention / Budget type toggles no longer lands on the wrong option after switching between tasks with different actions (display-only glitch; the stored setting was always correct).
+
 ## v1.3.0.0-dev.1
 
 ### Added
