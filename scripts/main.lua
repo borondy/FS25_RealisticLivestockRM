@@ -201,6 +201,10 @@ source(modDirectory .. "scripts/gui/FileExplorerDialog.lua")
 source(modDirectory .. "scripts/gui/ProfileDialog.lua")
 source(modDirectory .. "scripts/gui/RL_InfoDisplayKeyValueBox.lua")
 source(modDirectory .. "scripts/gui/RealisticLivestock_InGameMenuAnimalsFrame.lua")
+-- Temporary legacy-layer tripwire: arms every doomed AnimalScreen-layer member.
+-- Sourced LAST in SECTION 13 so every doomed install (controllers, monolith,
+-- both dialogs) is complete before it arms. Removed with the legacy layer.
+source(modDirectory .. "scripts/gui/RLLegacyTripwire.lua")
 
 -- SECTION 13b: RL Tabbed Menu (new standalone TabbedMenu - migration in progress)
 -- Services must be sourced before frames that call them; frames must be
