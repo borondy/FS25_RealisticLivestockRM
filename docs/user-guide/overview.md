@@ -95,7 +95,7 @@ All of these live in the RL Menu's Settings tab - the in-game menu's Game Settin
 
 ### Livestock Menu
 
-Press **R** in the animal menu to open the animal screen. It has seven tabs:
+Open the **RL Menu** with **Right Shift + O** in-game - or, from the ESC menu's **Animals** page, select a pen and press **R** ("Manage Animals"). It has eight tabs:
 
 - **Buy** - Purchase animals from the dealer with full genetics preview
 - **Sell** - Sell animals back to the dealer
@@ -104,6 +104,7 @@ Press **R** in the animal menu to open the animal screen. It has seven tabs:
 - **Insemination** - Browse and buy stored semen for artificial breeding without keeping males
 - **Message Log** - Track births, deaths, diseases, and other events
 - **Herdsman** - Automate herd management: auto-buy, auto-sell, castration rules, naming conventions, and auto-insemination. Save and load automation profiles.
+- **Settings** - Adjust every RLRM option: death and disease toggles, food scaling, dealer stock size, ear tag colours, genetics display, CSV export, and more.
 
 ### Controls
 
