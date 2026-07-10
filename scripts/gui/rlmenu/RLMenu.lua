@@ -439,33 +439,34 @@ function RLMenu.open()
     g_gui:showGui("RLMenu")
 end
 
---- Open the RL Menu from another GUI surface (the AnimalScreen.show dealer
---- redirect). Mirrors the legacy `AnimalScreen.show` pattern of calling
---- `g_gui:showGui` directly to REPLACE a non-dialog screen (e.g. the shop
---- menu). Dialog gating still applies: if a modal dialog (YesNoDialog,
---- AnimalFilterDialog, etc.) is up, the bridge bails -- replacing the
---- underlying screen would leave the dialog floating over RLMenu with no
---- owner. State mutations to g_rlMenu happen ONLY after we've decided to
---- show, and are rolled back if showGui throws (so a partial show does not
---- poison the next legitimate open).
+--- Open the RL Menu from another GUI surface (the AnimalScreen routing bridge). Calls
+--- `g_gui:showGui` directly to REPLACE a non-dialog screen (e.g. the shop menu). Dialog
+--- gating still applies: if a modal dialog (YesNoDialog, AnimalFilterDialog, etc.) is up,
+--- the bridge bails (returns false) -- replacing the underlying screen would leave the
+--- dialog floating over RLMenu with no owner. State mutations to g_rlMenu happen ONLY after
+--- we've decided to show, and are rolled back if showGui throws (so a partial show does not
+--- poison the next legitimate open). There is NO vanilla fallback: a refused open returns
+--- false and the caller WARN-no-ops.
 ---
 --- @param startPageId number Page index in [1, RLMenu.PAGE_COUNT] to land on (Buy=1).
 ---   IGNORED for MODE_TRAILER (the anchor is heuristic-derived; callers pass nil).
 --- @param mode string RLMenu.MODE_FULL, RLMenu.MODE_DEALER, or RLMenu.MODE_TRAILER.
 --- @param context table|nil For MODE_TRAILER: { trailer = <livestock-trailer vehicle>,
----   counterpart = RLMenu.TRAILER_PEN | TRAILER_DEALER | TRAILER_WORLD }. For MODE_FULL:
----   an optional { husbandry = <local animal-husbandry placeable> } one-shot anchor that
----   lands the first husbandry frame (Info/Move/Sell) on that pen (ignored unless it is a
+---   counterpart = RLMenu.TRAILER_PEN | TRAILER_DEALER | TRAILER_WORLD, counterpartHandle =
+---   <optional pen husbandry the concrete adapter enumerates; nil for dealer/world> }. For
+---   MODE_FULL: an optional { husbandry = <local animal-husbandry placeable> } one-shot anchor
+---   that lands the first husbandry frame (Info/Move/Sell) on that pen (ignored unless it is a
 ---   real animal husbandry). Ignored for MODE_DEALER (no state stored).
 --- @return boolean opened  true when the menu was shown; false on any refused open
----   (g_rlMenu nil, bad args, a dialog visible, or a showGui rollback) so a caller
----   that can fall back to legacy (e.g. the LivestockTrailerActivatable redirect) may
----   branch on it. The MODE_TRAILER branch propagates openTrailerFromBridge's result.
+---   (g_rlMenu nil, bad args, a dialog visible, or a showGui rollback) so a caller may branch
+---   on it (the LivestockTrailerActivatable redirect logs its decision only on true and
+---   WARN-no-ops on false -- there is no vanilla fallback). The MODE_TRAILER branch
+---   propagates openTrailerFromBridge's result.
 function RLMenu.openFromBridge(startPageId, mode, context)
     -- Mod load order regression: setupGui() not yet completed when bridge
-    -- fires. Caller is expected to fall through to legacy if we early-out.
+    -- fires. Caller WARN-no-ops if we early-out (there is no vanilla fallback).
     if g_rlMenu == nil then
-        Log:warning("openFromBridge: g_rlMenu nil, falling back to legacy")
+        Log:warning("openFromBridge: g_rlMenu nil, no-op (no vanilla fallback)")
         return false
     end
 
@@ -488,10 +489,10 @@ function RLMenu.openFromBridge(startPageId, mode, context)
 
     -- Dialog gate: replacing the underlying screen via showGui leaves any
     -- active dialog floating, with input focus stuck on the dialog and no
-    -- valid owner-screen. Bail to legacy AnimalScreen path (caller can
-    -- fall through) rather than paint RLMenu under a stale dialog.
+    -- valid owner-screen. Bail (return false; the caller WARN-no-ops) rather
+    -- than paint RLMenu under a stale dialog.
     if g_gui.getIsDialogVisible ~= nil and g_gui:getIsDialogVisible() then
-        Log:warning("openFromBridge: a dialog is visible, skipping RLMenu redirect")
+        Log:warning("openFromBridge: a dialog is visible, no-op (no vanilla fallback)")
         return false
     end
 
@@ -559,22 +560,23 @@ end
 --- the PEN / WORLD counterparts anchor the Transfer tab (their sole visible tab).
 ---
 --- Validation runs in order and warns-and-returns with ZERO state change on any
---- failure (the caller falls through to legacy): (1) nil/invalid context, BEFORE
---- any context.* deref; (2) trailer nil or not a livestock trailer; (3)
+--- failure (the caller WARN-no-ops; there is no vanilla fallback): (1) nil/invalid
+--- context, BEFORE any context.* deref; (2) trailer nil or not a livestock trailer; (3)
 --- counterpart not one of TRAILER_PEN/DEALER/WORLD; (4) a dialog is visible. The
 --- dealer anchor reads emptiness via RLTrailerEndpointService.isEmpty - mandatory,
 --- no fallback. Step (2) checks the livestock-trailer spec is
 --- present (a real such trailer always exposes the count getter), so in practice
 --- "empty" means a real empty trailer; the service's safe default for an
 --- unreadable count (-> empty -> Buy) is the intended fallback, not a bug.
---- @param context table|nil { trailer = <livestock-trailer vehicle>, counterpart = TRAILER_* }
+--- @param context table|nil { trailer = <livestock-trailer vehicle>, counterpart = TRAILER_*,
+---   counterpartHandle = <optional pen husbandry the PEN adapter enumerates; nil for dealer/world> }
 --- @return boolean opened  true when the menu was shown; false on any refused open
 ---   (invalid context / trailer / counterpart, a dialog visible, or a showGui
----   rollback) with ZERO state change, so the caller falls back to legacy.
+---   rollback) with ZERO state change, so the caller WARN-no-ops (no vanilla fallback).
 function RLMenu.openTrailerFromBridge(context)
     -- (1) nil/invalid context guard - returns BEFORE any context.* index.
     if type(context) ~= "table" then
-        Log:warning("openFromBridge[trailer]: nil/invalid context, falling back to legacy")
+        Log:warning("openFromBridge[trailer]: nil/invalid context, no-op (no vanilla fallback)")
         return false
     end
 
@@ -583,7 +585,7 @@ function RLMenu.openTrailerFromBridge(context)
     -- here, never reaching the anchor read.
     local trailer = context.trailer
     if trailer == nil or trailer.spec_livestockTrailer == nil then
-        Log:warning("openFromBridge[trailer]: context.trailer nil or not a livestock trailer, falling back to legacy")
+        Log:warning("openFromBridge[trailer]: context.trailer nil or not a livestock trailer, no-op (no vanilla fallback)")
         return false
     end
 
@@ -593,7 +595,7 @@ function RLMenu.openTrailerFromBridge(context)
     if counterpart ~= RLMenu.TRAILER_PEN
         and counterpart ~= RLMenu.TRAILER_DEALER
         and counterpart ~= RLMenu.TRAILER_WORLD then
-        Log:warning("openFromBridge[trailer]: invalid counterpart=%s, falling back to legacy",
+        Log:warning("openFromBridge[trailer]: invalid counterpart=%s, no-op (no vanilla fallback)",
             tostring(counterpart))
         return false
     end
@@ -601,7 +603,7 @@ function RLMenu.openTrailerFromBridge(context)
     -- (4) Dialog gate: same rationale as the FULL/DEALER path - replacing the
     -- underlying screen would strand a floating dialog with no owner.
     if g_gui.getIsDialogVisible ~= nil and g_gui:getIsDialogVisible() then
-        Log:warning("openFromBridge[trailer]: a dialog is visible, skipping RLMenu redirect")
+        Log:warning("openFromBridge[trailer]: a dialog is visible, no-op (no vanilla fallback)")
         return false
     end
 

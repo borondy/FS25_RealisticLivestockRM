@@ -277,6 +277,10 @@ source(modDirectory .. "scripts/animals/shop/events/AnimalUnloadEvent.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTrailerWorldService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferWorldAdapter.lua")
 source(modDirectory .. "scripts/gui/rlmenu/RLMenu.lua")
+-- Surviving AnimalScreen routing seam. Sourced last in 13b (after RLMenu) so it is the
+-- SOLE installer of the AnimalScreen.show + LivestockTrailerActivatable.run overrides and
+-- reads RLMenu's constants at load. Survives the SECTION 13 monolith teardown.
+source(modDirectory .. "scripts/gui/rlmenu/RLAnimalScreenBridge.lua")
 
 -- SECTION 14: Migration System
 source(modDirectory .. "scripts/migration/RmMigrationManager.lua")

@@ -257,9 +257,11 @@ function RealisticLivestock_InGameMenuAnimalsFrame:onUpdateMenuButtons()
         inputAction = InputAction.RL_OPEN_ANIMAL_SCREEN,
         text = g_i18n:getText("rl_ui_openAnimalScreen"),
         callback = function()
+            -- Routes through the bridge to the standalone RLMenu (MODE_FULL anchored to
+            -- this pen, lands Info). Closes to gameplay like any RLMenu open; the legacy
+            -- vanilla-screen affordances (Esc-back-to-InGameMenu, info-mode click) do not
+            -- carry over.
             AnimalScreen.show(selectedHusbandry, nil, false)
-            g_animalScreen.openedFromInGameMenu = true
-            g_animalScreen:onClickInfoMode()
         end
     })
 end
