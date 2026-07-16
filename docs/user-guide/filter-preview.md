@@ -4,11 +4,10 @@ This page is for power users who want to author saveable animal filters by hand.
 It documents the on-disk XML format, every available field and comparator, the
 rules the evaluator follows, and a few real examples.
 
-> **Status:** The in-game filter editor shipped in v1.2.5.0 (Settings ->
-> Filters); the current version is 1.2.6.0. This page remains a reference for
-> the on-disk XML format and power-user hand-editing - most players should use
-> the in-game editor instead. It is intentionally kept out of the site
-> navigation.
+> **Status:** Most players should use the in-game filter editor (RL Menu ->
+> Settings -> Filters) - see the [Saved Filters guide](guide-saved-filters.md).
+> This page remains a reference for the on-disk XML format and power-user
+> hand-editing, and is intentionally kept out of the site navigation.
 
 > **Note:** This documentation was generated with AI assistance and may
 > contain inaccuracies. If you spot an error, please

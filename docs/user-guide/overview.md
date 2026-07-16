@@ -100,11 +100,13 @@ Open the **RL Menu** with **Right Shift + O** in-game - or, from the ESC menu's 
 - **Buy** - Purchase animals from the dealer with full genetics preview
 - **Sell** - Sell animals back to the dealer
 - **Move** - Transfer animals between your husbandries
-- **Animal Information** - View detailed stats, genetics, health, and production for each animal
+- **Manage** - View detailed stats, genetics, health, and production for each animal
 - **Insemination** - Browse and buy stored semen for artificial breeding without keeping males
 - **Message Log** - Track births, deaths, diseases, and other events
-- **Herdsman** - Automate herd management: auto-buy, auto-sell, castration rules, naming conventions, and auto-insemination. Save and load automation profiles.
-- **Settings** - Adjust every RLRM option: death and disease toggles, food scaling, dealer stock size, ear tag colours, genetics display, CSV export, and more.
+- **Herdsman** - Automate daily herd chores with rules: sell, buy, move, castrate, name, or inseminate the animals a saved filter picks, in the pens you choose. See the [Herdsman guide](guide-herdsman.md).
+- **Settings** - Adjust every RLRM option: death and disease toggles, food scaling, dealer stock size, ear tag colours, genetics display, CSV export, and more. This tab also hosts the **saved filter** editor.
+
+**Saved filters** let you narrow the Buy, Sell, Move, and Manage lists to just the animals you care about - and they are how the Herdsman targets animals. Press **F** on any of those screens to cycle them. See the [Saved Filters guide](guide-saved-filters.md).
 
 ### Controls
 
@@ -155,6 +157,8 @@ Each species has a detailed factsheet with breed comparisons, production ranges,
 - [Genetics Guide](guide-genetics.md) - Trait ratings, breeding strategy, the CVM dilemma
 - [Disease Guide](guide-diseases.md) - Prevention, treatment, and immunity
 - [Breeding Guide](guide-breeding.md) - Fertility windows, offspring tables, lactation
+- [Saved Filters](guide-saved-filters.md) - Build reusable animal filters and use them in-game
+- [Herdsman Automation](guide-herdsman.md) - Automate selling, buying, moving, and more with daily rules
 - [Hof Bergmann Map Support](map-hof-bergmann.md) - Exotic animals, supported versions, known limitations
 - [Witcombe Map Support](map-witcombe.md) - UK breeds, supported versions, and the Hereford heritage profile
 - [Le Mechet Map Support](map-le-mechet.md) - French breeds, supported versions, and caveats

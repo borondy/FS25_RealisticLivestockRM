@@ -11,6 +11,8 @@ A Farming Simulator 25 mod that replaces the default animal cluster system with 
 - **Realistic breeding** - Gestation periods, offspring genetics, breeding age limits, and pregnancy complications
 - **Disease simulation** - Species-specific diseases that spread, require treatment, and affect production
 - **Lifecycle & aging** - Animals age, peak in productivity, grow old, and eventually die
+- **Herd automation** - Set daily rules that sell, buy, move, castrate, name, or inseminate animals for you
+- **Saved filters** - Build reusable searches to find and act on exactly the animals you want
 - **Multiplayer support** - Full server/client synchronization
 
 ## Download
@@ -71,6 +73,8 @@ In-depth explanations of the mod's core systems:
 - [Genetics](guide-genetics.md) - How traits work, inheritance, and the CVM gene
 - [Breeding & Reproduction](guide-breeding.md) - Breeding requirements, gestation, lactation, and complications
 - [Diseases](guide-diseases.md) - How diseases spread, treatment, immunity, and prevention
+- [Saved Filters](guide-saved-filters.md) - Build reusable animal filters and use them in-game
+- [Herdsman Automation](guide-herdsman.md) - Automate daily herd chores with rules
 
 ### Map Support
 

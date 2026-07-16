@@ -62,6 +62,8 @@ nav:
       - Genetics: guide-genetics.md
       - Breeding & Reproduction: guide-breeding.md
       - Diseases: guide-diseases.md
+      - Saved Filters: guide-saved-filters.md
+      - Herdsman Automation: guide-herdsman.md
       - Animal Packs: guide-animal-packs.md
   - Maps:
       - Hof Bergmann: map-hof-bergmann.md
