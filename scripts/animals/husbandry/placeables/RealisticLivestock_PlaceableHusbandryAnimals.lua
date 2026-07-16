@@ -351,6 +351,11 @@ function PlaceableHusbandryAnimals:_flushPenDayChange(spec, totalChildren, total
 end
 
 
+-- Module-scope latch so the legacy-herdsman freeze announces itself once per session
+-- (resets each map load = each source()). See AIAnimalManager.FREEZE_LEGACY_HERDSMAN.
+local freezeAnnounced = false
+
+
 function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
     RmSafeUtils.safeCall("PlaceableHusbandryAnimals:onDayChanged", function()
 
@@ -471,7 +476,15 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
 
             end
 
-            spec.aiAnimalManager:onDayChanged()
+            if not AIAnimalManager.FREEZE_LEGACY_HERDSMAN then
+                spec.aiAnimalManager:onDayChanged()
+            else
+                if not freezeAnnounced then
+                    freezeAnnounced = true
+                    Log:debug("legacy-herdsman-freeze: AIAnimalManager legacy day-tick frozen; skipping legacy buy/sell/castrate/name/AI and wage on all pens this session")
+                end
+                Log:trace("legacy-herdsman-freeze: skipped legacy onDayChanged for pen '%s'", tostring(self.getName and self:getName() or self))
+            end
 
         end
 

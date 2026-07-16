@@ -2,6 +2,16 @@ AIAnimalManager = {}
 
 local AIAnimalManager_mt = Class(AIAnimalManager)
 
+--- Master freeze for the legacy per-pen herdsman day-tick. The legacy AnimalScreen tab that
+--- used to view and edit these ops is retired, so an enabled op would otherwise run invisible,
+--- unstoppable automation (buy/sell/castrate/name/AI) and keep charging a daily wage with no
+--- in-game way to see or disable it. While this is true the RLRM-authored call sites skip the
+--- legacy day-change execution and its wage, and the herdsman frame hides the legacy-active
+--- banner. Only the call sites are gated; onDayChanged, the op bodies, and save/load stay
+--- byte-identical and reversible. Read at RUNTIME only: this module sources after its placeable
+--- consumer, so a load-time read of the flag would see nil and silently fail to freeze.
+AIAnimalManager.FREEZE_LEGACY_HERDSMAN = true
+
 
 function AIAnimalManager.new(husbandry, isServer)
 

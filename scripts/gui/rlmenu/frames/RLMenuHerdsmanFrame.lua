@@ -2277,6 +2277,11 @@ end
 --- @param farmId number|nil owning farm id (resolved from the current farm when nil)
 function RLMenuHerdsmanFrame:refreshBanner(farmId)
     if self.legacyBanner == nil then return end
+    if AIAnimalManager.FREEZE_LEGACY_HERDSMAN then
+        self.legacyBanner:setVisible(false)
+        Log:trace("RLMenuHerdsmanFrame:refreshBanner: legacy-herdsman-freeze active; banner hidden")
+        return
+    end
     if farmId == nil then farmId = RLAnimalInfoService.getCurrentFarmId() end
     local entries = self:gatherLegacyEntries(farmId)
     local active, affectedNames = RLHerdsmanRulePresenter.isLegacyActive(entries)
