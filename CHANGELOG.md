@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.3.0.0-dev.3
+
+### Changed
+- The old built-in herdsman automation (from before the new Herdsman menu) no longer runs or charges wages on saves where it was left enabled, and its now-inaccurate on-screen warning is hidden. Set up rules in the new Herdsman menu to automate your herd.
+
+### Fixed
+- Fixed cows producing no milk on Hof Bergmann v1.4 cow pastures: all cow breeds now produce milk cans.
+
+### Documentation
+- Added user guides for Saved Filters and Herdsman automation - how to build reusable animal filters and set up daily herd-management rules.
+
 ## v1.3.0.0-dev.2
 
 ### Added
