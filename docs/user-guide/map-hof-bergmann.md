@@ -90,6 +90,18 @@ On HB v1.4, horses are fully rideable and compatible with the Horse Addon Pack. 
 
 ---
 
+## Cow Milk on Pastures
+
+On Hof Bergmann, the cow pasture buildings collect milk as **milk cans** (physical pallets that spawn at the building) rather than filling a milk tank. Every RLRM cow breed produces cans here - including the beef breeds - so a whole mixed herd contributes.
+
+> **Milk cans ignore lactation.** Everywhere else in RLRM a cow only gives milk while lactating (the 10 months after calving), and non-lactating cows give zero - see the [Cattle Factsheet](factsheet-cattle.md#milk-production-by-breed). The can-collecting cow buildings are the exception: they produce cans for **every adult cow** (from 12 months) regardless of lactation, following the cow's age curve instead of the lactation cycle. A dry cow, or a heifer that has never calved, will still fill cans. This matches how the map's own cow buildings behaved before RLRM.
+
+If your cow building fills a **milk tank** instead of spawning cans (the older farm-style cow barn), it uses the normal RLRM rules - only lactating cows contribute.
+
+> **Hof Bergmann v1.3:** the can-collecting cow buildings don't produce milk cans on the v1.3 configuration yet - a known limitation. The v1.4 configuration is where cow-pasture milk works.
+
+---
+
 ## Known Limitations
 
 ### Pasture Bulls Are Not Cattle
