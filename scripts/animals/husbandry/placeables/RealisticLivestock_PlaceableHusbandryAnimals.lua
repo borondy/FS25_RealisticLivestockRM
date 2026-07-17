@@ -67,19 +67,43 @@ function PlaceableHusbandryAnimals:addRLMessageDirect(id, animal, args, date, un
 
     end
 
-    for i, arg in pairs(args or {}) do args[i] = tostring(arg) end
+    args = args or {}
+    for i, arg in pairs(args) do args[i] = tostring(arg) end
+
+    -- Resolve the uniqueId into a local BEFORE the insert so the incremental broadcast (below) carries
+    -- the SAME server-assigned id the client must insert verbatim. A broadcast/apply message passes its
+    -- uniqueId in; a fresh server add mints the next one from the per-husbandry counter.
+    local resolvedUniqueId = uniqueId or spec:getNextRLMessageUniqueId()
 
     table.insert(spec.messages, {
         ["id"] = id,
         ["animal"] = animal,
-        ["args"] = args or {},
+        ["args"] = args,
         ["date"] = date,
-        ["uniqueId"] = uniqueId or spec:getNextRLMessageUniqueId()
+        ["uniqueId"] = resolvedUniqueId
     })
 
     if not isLoading and #spec.messages > PlaceableHusbandryAnimals.maxNumMessages then table.remove(spec.messages, 1) end
 
     spec.unreadMessages = true
+
+    -- Incremental MP sync (RLRM-464): broadcast this server-added message to connected clients so their
+    -- Messages tab stays current during play - the join snapshot (HusbandryMessageStateEvent) only
+    -- covers connect time. Server-authoritative + netIsRunning; skipped on savegame load (server-local,
+    -- predates any join - the join snapshot covers loaded messages). NO sendLocal: the host already
+    -- inserted above, so the event :run fires only on clients (g_server == nil) and never re-broadcasts.
+    if not isLoading and g_server ~= nil and g_server.netIsRunning then
+        Log:debug("addRLMessageDirect: broadcasting id='%s' uniqueId=%s to clients", tostring(id), tostring(resolvedUniqueId))
+        HusbandryMessageAddEvent.sendEvent(self, resolvedUniqueId, id, animal, args, date)
+    end
+
+    -- Refresh an open Messages tab on EVERY machine (host, SP, and client-via-:run) - mirrors
+    -- HusbandryMessageDeleteEvent:run so there is no host/client asymmetry. Nil-guarded: g_rlMenu /
+    -- messagesFrame may be absent during early lifecycle or if the menu was never opened.
+    if g_rlMenu ~= nil and g_rlMenu.messagesFrame ~= nil
+       and g_rlMenu.messagesFrame.refreshIfOpen ~= nil then
+        g_rlMenu.messagesFrame:refreshIfOpen()
+    end
 
 end
 

@@ -70,7 +70,6 @@ source(modDirectory .. "scripts/animals/shop/events/AIAnimalBuyEvent.lua")
 source(modDirectory .. "scripts/animals/shop/events/AIAnimalInseminationEvent.lua")
 source(modDirectory .. "scripts/animals/shop/events/AIAnimalMoveEvent.lua")
 source(modDirectory .. "scripts/animals/shop/events/AIAnimalSellEvent.lua")
-source(modDirectory .. "scripts/animals/shop/events/AIBulkMessageEvent.lua")
 source(modDirectory .. "scripts/animals/shop/events/AnimalBuyEvent.lua")
 source(modDirectory .. "scripts/animals/shop/events/AnimalInseminationEvent.lua")
 source(modDirectory .. "scripts/animals/shop/events/AnimalInseminationResultEvent.lua")
@@ -84,6 +83,7 @@ source(modDirectory .. "scripts/animals/shop/RealisticLivestock_AnimalItemStock.
 
 -- SECTION 9: Events (General)
 source(modDirectory .. "scripts/events/HusbandryMessageStateEvent.lua")
+source(modDirectory .. "scripts/events/HusbandryMessageAddEvent.lua")
 source(modDirectory .. "scripts/events/HusbandryMessageDeleteEvent.lua")
 source(modDirectory .. "scripts/events/ReturnStrawEvent.lua")
 source(modDirectory .. "scripts/events/TakeStrawEvent.lua")
@@ -165,9 +165,10 @@ source(modDirectory .. "scripts/herdsman/RLHerdsmanPlanner.lua")
 source(modDirectory .. "scripts/herdsman/RLHerdsmanExecutor.lua")
 
 -- SECTION 11j2: Herdsman day-tick messages (M-Tick T5). The player-notification readout: a pure
--- buildMessages (summary.results -> AI_MANAGER_* records) + a thin emit (server-local addRLMessage +
--- one AIBulkMessageEvent broadcast per husbandry). References AIBulkMessageEvent (SECTION 9) + the
--- aggregator only at call time, so it loads after 11j and before the 11k tick that invokes emit.
+-- buildMessages (summary.results -> AI_MANAGER_* records) + a thin emit that drives the server-local
+-- addRLMessage sink per husbandry (MP transport now rides the addRLMessageDirect chokepoint's
+-- incremental broadcast, RLRM-464). References the aggregator only at call time, so it loads after 11j
+-- and before the 11k tick that invokes emit.
 source(modDirectory .. "scripts/herdsman/RLHerdsmanMessages.lua")
 
 -- SECTION 11k: Herdsman day-tick wiring (M-Tick T4). The tick that fires the planner (11i) ->

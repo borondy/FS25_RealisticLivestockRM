@@ -3,7 +3,7 @@
 -- day-tick. T3 (RLHerdsmanExecutor.executeActions) applies the planned mutations and returns a
 -- per-action summary.results but, by decision 1a, emits NO notifications. Legacy
 -- AIAnimalManager:onDayChanged surfaced every executed/marked op as an AI_MANAGER_* message via
--- husbandry:addRLMessage + one AIBulkMessageEvent broadcast per husbandry. This module restores
+-- husbandry:addRLMessage per husbandry. This module restores
 -- that readout (the SAME AI_MANAGER_* ids + args legacy used, per executed/marked op), driven off
 -- summary.results instead of re-deriving it. Parity is on the id/args mapping, NOT a byte-identical
 -- wire order: intra-husbandry message order follows PLAN order, and the new multi-rule model can
@@ -19,17 +19,15 @@
 --   * emit(summary, ctx) is the thin in-game wiring: it reads g_i18n (to build the real
 --     formatMoney closure) + g_server, groups the records by husbandry in first-seen order,
 --     resolves each placeable via ctx.husbandryPlaceablesById (the SAME handle T3 dispatched its
---     events against), drives the dual sink (server-local addRLMessage PLUS one AIBulkMessageEvent
---     broadcast per husbandry), and logs every emission decision + skip cause.
+--     events against), drives the server-local addRLMessage sink per husbandry (MP transport rides
+--     the addRLMessageDirect chokepoint's incremental broadcast, RLRM-464), and logs every emission
+--     decision + skip cause.
 --
--- Parity anchors: AIAnimalManager:onDayChanged - its per-operation emission legs (the SELL / BUY /
+-- Parity anchor: AIAnimalManager:onDayChanged - its per-operation emission legs (the SELL / BUY /
 -- CASTRATE / NAMING / AI sections) each do `husbandry:addRLMessage(id, nil, args)` for the local
--- sink AND `table.insert(messages, { id = id, args = args })` for the wire, then fire ONE
--- `g_server:broadcastEvent(AIBulkMessageEvent.new(husbandry, messages))` per husbandry at the end.
--- That broadcast passes NO sendLocal arg (see Server:broadcastEvent): the host's own copy comes
--- from the local addRLMessage, so omitting sendLocal prevents a host double-emit. The wire messages
--- list is the per-op {id, args} records ALWAYS, independent of summary mode (the aggregator decision
--- affects only the local sink on each side, never what goes on the wire).
+-- sink. Both this module and legacy now rely on the addRLMessageDirect chokepoint to broadcast each
+-- server-added message to connected clients (one incremental HusbandryMessageAddEvent per message,
+-- server-authoritative, RLRM-464); emit itself no longer builds or broadcasts a wire payload.
 --
 -- Summary mode (decision 1b): every message goes through placeable:addRLMessage so the aggregator
 -- decides individual-vs-summary. RLMessageAggregator is extended (separately) so castrate / named /
@@ -273,11 +271,10 @@ end
 --- Emit the herdsman day-tick's notifications from T3's summary. Builds the records via the pure
 --- buildMessages (with the REAL g_i18n:formatMoney closure - bound to g_i18n so `self` is not
 --- dropped), logs every skip, then per husbandry (in first-seen plan order) resolves the placeable
---- and drives the dual sink: the server-local placeable:addRLMessage (so the aggregator decides
---- individual-vs-summary) PLUS one AIBulkMessageEvent broadcast carrying the per-op {id, args}
---- records (guarded #messages > 0 and g_server.netIsRunning, NO sendLocal - parity with
---- AIAnimalManager:onDayChanged's per-husbandry broadcast). Reads no summary fields beyond results;
---- never mutates summary.
+--- and drives the server-local sink: placeable:addRLMessage (so the aggregator decides
+--- individual-vs-summary). MP transport to clients rides the addRLMessageDirect chokepoint's
+--- incremental HusbandryMessageAddEvent broadcast (RLRM-464); emit no longer builds a wire payload.
+--- Reads no summary fields beyond results; never mutates summary.
 ---@param summary table|nil T3 executor summary ({ results = {...} })
 ---@param ctx table executor ctx; only ctx.husbandryPlaceablesById ({ [uniqueId] = placeable }) is read
 function RLHerdsmanMessages.emit(summary, ctx)
@@ -323,34 +320,22 @@ function RLHerdsmanMessages.emit(summary, ctx)
             Log:warning("%s husbandry '%s' not in ctx.husbandryPlaceablesById - %d message(s) dropped, no broadcast",
                 LOG_PREFIX, tostring(husbandryId), #recs)
         elseif placeable.addRLMessage == nil then
-            -- Wrong-type object (lacks the husbandryAnimals spec) - mirror AIBulkMessageEvent:run's guard.
+            -- Wrong-type object (lacks the husbandryAnimals spec) - mirror the husbandry-message events' run guard.
             Log:warning("%s husbandry '%s' placeable lacks addRLMessage (wrong-type object) - %d message(s) dropped, no broadcast",
                 LOG_PREFIX, tostring(husbandryId), #recs)
         else
-            local wireMessages = {}
             for _, rec in ipairs(recs) do
-                -- Local sink gets its OWN args copy (addRLMessageDirect mutates in place); the wire
-                -- record keeps its own pristine args table - legacy's two-table pattern.
+                -- Server-local sink only. addRLMessage -> addRLMessageDirect coerces args in place, so
+                -- copyArgs keeps the record's args pristine. MP transport to clients now rides that
+                -- chokepoint's incremental HusbandryMessageAddEvent broadcast (RLRM-464), so emit no
+                -- longer builds a wire payload here.
                 placeable:addRLMessage(rec.id, nil, copyArgs(rec.args))
-                wireMessages[#wireMessages + 1] = { id = rec.id, args = rec.args }
 
                 Log:debug("%s emit husbandry=%s id=%s count=%d mark=%s",
                     LOG_PREFIX, tostring(husbandryId), rec.id, rec.count, tostring(rec.mark))
                 if rec.warn ~= nil then
                     Log:warning("%s %s", LOG_PREFIX, rec.warn)
                 end
-            end
-
-            -- One AIBulkMessageEvent per husbandry (parity AIAnimalManager:onDayChanged). SP has no
-            -- network (netIsRunning false) -> server-local sink only, no broadcast.
-            local netIsRunning = g_server ~= nil and g_server.netIsRunning == true
-            if #wireMessages > 0 and netIsRunning then
-                g_server:broadcastEvent(AIBulkMessageEvent.new(placeable, wireMessages))
-                Log:debug("%s broadcast husbandry=%s messages=%d netIsRunning=true",
-                    LOG_PREFIX, tostring(husbandryId), #wireMessages)
-            else
-                Log:debug("%s no broadcast husbandry=%s messages=%d netIsRunning=%s",
-                    LOG_PREFIX, tostring(husbandryId), #wireMessages, tostring(netIsRunning))
             end
         end
     end
