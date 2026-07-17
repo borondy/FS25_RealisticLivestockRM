@@ -499,8 +499,16 @@ function RealisticLivestock_AnimalSystem:loadSubTypes(_, animalType, xmlFile, ke
 
 		local rawName = xmlFile:getString(subTypeKey .. "#subType")
         local requiredDLC = xmlFile:getString(subTypeKey .. "#requiredDLC")
+        local dlcModName = requiredDLC ~= nil and (g_uniqueDlcNamePrefix .. requiredDLC) or nil
 
-        if requiredDLC == nil or g_modNameToDirectory[g_uniqueDlcNamePrefix .. requiredDLC] ~= nil then
+        -- Register a requiredDLC subtype only when its DLC is ACTIVE in the session
+        -- (g_modIsLoaded), not merely installed on disk (g_modNameToDirectory). Install
+        -- state is not synchronized across MP peers, so gating on it let a server register
+        -- a DLC subtype while its session had the DLC inactive; peers without the DLC then
+        -- mis-resolved the streamed subtype and corrupted animals on write-back (RLRM-512).
+        -- Gating on the active set keeps the registry identical across peers; when the DLC
+        -- is inactive the subtype is skipped and its saved animals are dropped on load.
+        if requiredDLC == nil or g_modIsLoaded[dlcModName] ~= nil then
 
 		    if rawName == nil then
 			    Logging.xmlError(xmlFile, "Missing animal subtype. \'%s\'", subTypeKey)
@@ -558,6 +566,9 @@ function RealisticLivestock_AnimalSystem:loadSubTypes(_, animalType, xmlFile, ke
                     name, animalType.name)
 		    end
 
+        else
+            Log:debug("loadSubTypes: skipping subType '%s' - required DLC '%s' not active (installed=%s)",
+                tostring(rawName), tostring(requiredDLC), tostring(g_modNameToDirectory[dlcModName] ~= nil))
         end
 
 	end
