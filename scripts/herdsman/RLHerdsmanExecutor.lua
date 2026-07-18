@@ -675,8 +675,11 @@ function RLHerdsmanExecutor._doAi(action, ctx, placeable, farmId, count)
         return setMarkOnAll(ctx, placeable, action, MARK_BY_OPERATION.ai, farmId)
     end
 
-    -- A nil / empty dewar would zip into the event and silently match nothing
-    -- (dewar:getUniqueId() == item.dewar matches no dewar), inseminating nothing - fail closed.
+    -- The planner emits plain-data uniqueId strings (RLHerdsmanPlanner stays data-only for headless
+    -- purity). The event wires the dewar as a network node object (RLRM-513), so resolve each
+    -- string to the LIVE server-side dewar here (a server-side uniqueId lookup is fine). A nil/empty
+    -- string OR a string that resolves to no live dewar fails the WHOLE action bad-data (no wage, no
+    -- dispatch) - parity with the existing all-or-nothing early-returns, keeping #items == count.
     local dewars = action.dewars
     if type(dewars) ~= "table" or #dewars ~= count then
         Log:warning("%s rule=%s op=ai husbandry=%s farm=%s: animals/dewars length mismatch (%d vs %s) - skipped (no wage)",
@@ -685,18 +688,40 @@ function RLHerdsmanExecutor._doAi(action, ctx, placeable, farmId, count)
         return false, false, "bad-data"
     end
 
+    local farmDewars = g_dewarManager:getDewarsByFarm(farmId)
+
     local items = {}
     for i = 1, count do
-        local dewar = dewars[i]
-        if type(dewar) ~= "string" or dewar == "" then
+        local dewarUniqueId = dewars[i]
+        if type(dewarUniqueId) ~= "string" or dewarUniqueId == "" then
             Log:warning("%s rule=%s op=ai husbandry=%s farm=%s: dewar[%d] not a non-empty string (%s) - skipped (no wage)",
-                LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), i, tostring(dewar))
+                LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), i, tostring(dewarUniqueId))
             return false, false, "bad-data"
         end
-        items[i] = { animal = action.animals[i], dewar = dewar }
+
+        -- Resolve to the live dewar in the target animal's type bucket - the same match the event's
+        -- old server loop performed (getDewarsByFarm[animalTypeIndex] -> uniqueId compare).
+        local animal = action.animals[i]
+        local bucket = farmDewars and animal and farmDewars[animal.animalTypeIndex]
+        local dewar
+        if type(bucket) == "table" then
+            for _, d in pairs(bucket) do
+                if d:getUniqueId() == dewarUniqueId then dewar = d break end
+            end
+        end
+
+        if dewar == nil then
+            Log:warning("%s rule=%s op=ai husbandry=%s farm=%s: dewar[%d] uniqueId=%s resolved to no live dewar - skipped (no wage)",
+                LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), i, tostring(dewarUniqueId))
+            return false, false, "bad-data"
+        end
+
+        items[i] = { animal = animal, dewar = dewar }
     end
 
     ctx.server:broadcastEvent(AIAnimalInseminationEvent.new(placeable, items), true)
+    Log:debug("%s rule=%s op=ai husbandry=%s farm=%s: dispatched %d insemination item(s)",
+        LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), count)
     return true, true, nil
 end
 

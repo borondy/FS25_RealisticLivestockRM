@@ -61,20 +61,31 @@ end
 
 function AnimalAIDialog:onClickOk()
 
+    Log:debug("AnimalAIDialog:onClickOk: farmId=%s animalTypeIndex=%s selectedIndex=%s",
+        tostring(self.farmId), tostring(self.animalTypeIndex), tostring(self.dewarList.selectedIndex))
+
     local farmDewars = g_dewarManager:getDewarsByFarm(self.farmId)
     local selectedDewar = self.dewars[self.dewarList.selectedIndex]
-    
-    if farmDewars == nil or farmDewars[self.animalTypeIndex] == nil or selectedDewar == nil then return end
+
+    if farmDewars == nil or farmDewars[self.animalTypeIndex] == nil or selectedDewar == nil then
+        Log:trace("AnimalAIDialog:onClickOk: no dewars / stale selection - nothing to do")
+        return
+    end
 
     local uniqueId = selectedDewar:getUniqueId()
 
+    -- selectedDewar is a table.clone snapshot (see updateDewars); re-find the LIVE dewar in the
+    -- manager so the event carries the real node object, not a detached copy.
     for _, dewar in pairs(farmDewars[self.animalTypeIndex]) do
 
         if dewar:getUniqueId() == uniqueId then
 
+            -- Pattern A dialog leg: pre-mutate locally, then dispatch the live dewar node object.
             dewar:changeStraws(-1)
             self.animal:setInsemination(dewar.animal)
-            AIAnimalInseminationEvent.sendEvent(self.object, { { animal = self.animal, dewar = uniqueId } })
+            AIAnimalInseminationEvent.sendEvent(self.object, { { animal = self.animal, dewar = dewar } })
+            Log:info("AnimalAIDialog:onClickOk: inseminated uniqueId=%s via dewar=%s",
+                tostring(self.animal.uniqueId), tostring(uniqueId))
             break
 
         end

@@ -815,7 +815,10 @@ function AIAnimalManager:onDayChanged()
 
 			if #inseminatedAnimals >= ai.maxAnimals then break end
 
-			table.insert(inseminatedAnimals, { ["animal"] = item.animal, ["dewar"] = item.dewar:getUniqueId() })
+			-- Pass the live dewar object: AIAnimalInseminationEvent wires the dewar as a network
+			-- node object (RLRM-513). (This legacy tick is frozen via
+			-- AIAnimalManager.FREEZE_LEGACY_HERDSMAN; kept wire-correct in case it is ever unfrozen.)
+			table.insert(inseminatedAnimals, { ["animal"] = item.animal, ["dewar"] = item.dewar })
 
 			if mark then item.animal:setMarked("AI_MANAGER_INSEMINATE", true) end
 
