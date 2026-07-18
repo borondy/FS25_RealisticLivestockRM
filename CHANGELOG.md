@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.3.0.0-dev.4
+
+### Fixed
+- Multiplayer: husbandry log messages (animal buy/sell/move, births/deaths, and daily summaries) now appear live for connected players instead of only after rejoining.
+- Multiplayer: DLC animals (e.g. Highland Cattle) whose DLC is installed but not active in the session are no longer loaded, preventing them from showing as the wrong breed/gender - or being corrupted when bought - for players without the DLC.
+- Multiplayer: inseminating a female from the animal menu now works on dedicated servers and clients (previously it silently did nothing on the server - no pregnancy resulted and a straw was wasted); straw counts now stay in sync across all players.
+
 ## v1.3.0.0-dev.3
 
 ### Changed
