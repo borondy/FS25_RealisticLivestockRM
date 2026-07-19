@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.3.0.0-dev.5
+
+### Fixed
+- Multiplayer: a mother's post-birth recovery now counts down live for connected players instead of appearing stuck as "recovering" (which had wrongly blocked inseminating her again until a relog).
+- Fixed FPS stutter when switching the active implement (G) in some instances - the animal-visibility settings dialog now loads once per session instead of reloading on every switch.
+
 ## v1.3.0.0-dev.4
 
 ### Fixed
