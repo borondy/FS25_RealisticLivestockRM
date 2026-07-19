@@ -112,9 +112,26 @@ function PlayerInputComponent:onFinishedLoadStraw(handTool, loadingState, args)
 end
 
 
+--- Register the VisualAnimalsDialog input action. This hook runs on every
+--- action-event rebuild (switch implement, enter/leave vehicle, binding change),
+--- so the dialog GUI is loaded once instead of re-running the full g_gui:loadGui
+--- on every rebuild.
+---
+--- The load-once check uses rawget on purpose: VisualAnimalsDialog is a Class()
+--- of YesNoDialog, whose base carries a non-nil INSTANCE, so a plain
+--- VisualAnimalsDialog.INSTANCE read falls through __index to that inherited
+--- instance and would never report nil - the guard would skip register() forever
+--- and show() would then operate on the wrong (YesNoDialog) instance. rawget
+--- inspects only the own field, which register() sets once loaded.
+---
+--- The action-event binding is cheap and must re-register each pass, so it stays
+--- outside the guard.
 function RealisticLivestock_PlayerInputComponent:registerGlobalPlayerActionEvents()
 
-    VisualAnimalsDialog.register()
+    if rawget(VisualAnimalsDialog, "INSTANCE") == nil then
+        Log:debug("registerGlobalPlayerActionEvents: loading VisualAnimalsDialog GUI (once per session)")
+        VisualAnimalsDialog.register()
+    end
 
     g_inputBinding:registerActionEvent(InputAction.VisualAnimalsDialog, VisualAnimalsDialog, VisualAnimalsDialog.show, false, true, false, true, nil, true)
 
