@@ -1172,12 +1172,30 @@ function Animal:updateWeight(foodFactor)
         self.health - (((minWeightForAge - self.weight) / minWeightForAge) * 0.2), 0, 100) end
 end
 
-function Animal:onPeriodChanged()
+--- Advance post-birth recovery by one period: bump monthsSinceLastBirth and,
+--- once it reaches the lactation cutoff, stop lactating. Pure and deterministic
+--- -- reads/writes only these two fields, touches no game state and sets no
+--- dirty flag -- so MP clients can run it locally in lockstep with the server,
+--- the same property that lets aging run client-side. The isLactating flip is
+--- one-directional at >= 10; re-enabling lactation is AnimalBirthEvent's job.
+--- @see RealisticLivestock_PlaceableHusbandryAnimals.onPeriodChanged (client branch)
+function Animal:advanceRecoveryPeriod()
+    -- A legacy/corrupt savegame may carry a nil counter (Animal.new coerces it to
+    -- 0); guard so the +1 cannot throw on a peer that bypassed those defaults.
+    if self.monthsSinceLastBirth == nil then self.monthsSinceLastBirth = 0 end
+
     self.monthsSinceLastBirth = self.monthsSinceLastBirth + 1
 
     if self.isLactating and self.monthsSinceLastBirth >= 10 then
         self.isLactating = false
     end
+
+    Log:trace("advanceRecoveryPeriod: uniqueId=%s monthsSinceLastBirth=%d isLactating=%s",
+        tostring(self.uniqueId), self.monthsSinceLastBirth, tostring(self.isLactating))
+end
+
+function Animal:onPeriodChanged()
+    self:advanceRecoveryPeriod()
 
     local totalTreatmentCost = 0
 

@@ -573,6 +573,29 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onPeriodChanged(_)
                 g_diseaseManager:calculateTransmission(animals)
             end
 
+        else
+
+            -- MP client branch (RLRM-526): recovery (monthsSinceLastBirth) is
+            -- deterministic and unsynced, so a client advances it locally in
+            -- lockstep with the server -- the same reason aging runs client-side
+            -- in onDayChanged (no server guard around its per-animal loop).
+            -- Recovery ONLY: disease progression, treatment-cost money, and
+            -- disease transmission stay server-authoritative in the branch above.
+            -- No testAnimalPrefix filter (nil on clients; mirrors onDayChanged,
+            -- which gates that filter on self.isServer).
+            local animals = self.spec_husbandryAnimals.clusterSystem:getClusters()
+            local nAdvanced = 0
+
+            for _, animal in pairs(animals) do
+                RmSafeUtils.safeAnimalCall(animal, "advanceRecoveryPeriod", function()
+                    animal:advanceRecoveryPeriod()
+                end)
+                nAdvanced = nAdvanced + 1
+            end
+
+            Log:debug("onPeriodChanged client recovery [%s]: advanced monthsSinceLastBirth for %d animal(s)",
+                tostring(self.getName and self:getName() or self), nAdvanced)
+
         end
 
     end)
