@@ -23,6 +23,8 @@ local Log = RmLogging.getLogger("RLRM")
 
 RLPenFeedForecast.MAX_MONTHS         = 12   -- Projection cap; UI maps this to "~12+m".
 RLPenFeedForecast.LACTATION_CUTOFF   = 10   -- Mirrors Animal:onPeriodChanged.
+RLPenFeedForecast.WARNING_DAYS       = 2    -- < this many real days of feed -> orange alert (RLDetailPaneHelper).
+RLPenFeedForecast.DANGER_DAYS        = 1    -- < this many real days of feed -> red alert.
 
 
 -- =============================================================================
@@ -294,4 +296,75 @@ function RLPenFeedForecast.getMonthsRemaining(husbandry, foodTotalLiters)
     Log:debug("RLPenFeedForecast.getMonthsRemaining: animals=%d foodTotalLiters=%.1f -> monthsRemaining=%d (cap)",
         initialCount, foodTotalLiters, RLPenFeedForecast.MAX_MONTHS)
     return RLPenFeedForecast.MAX_MONTHS
+end
+
+
+--- Estimate how many real game-DAYS the pen's current food covers at the herd's
+--- current daily draw. This is the stable basis for the low-feed colour alert
+--- because it is measured in real days the player experiences, not a month/period
+--- count (a "month" is daysPerPeriod real days, so a month-count threshold fired
+--- far too early at 3/5+ days-per-period).
+---
+--- Unit note (verified in-game + engine source): the food-curve value summed by
+--- sumDailyFood is consumed PER PERIOD, not per real day. The engine draws
+--- litersPerHour * timeAdjustment once per game-hour, timeAdjustment = 1/daysPerPeriod
+--- (Environment.lua), so per-period consumption is invariant to daysPerPeriod and
+--- the real per-day draw is dailyFood / daysPerPeriod. Real-days runway is therefore
+--- foodTotalLiters / (dailyFood / daysPerPeriod) = foodTotalLiters * daysPerPeriod / dailyFood.
+---
+--- Uses the current herd's rate only (no birth/aging projection): over the 1-2 day
+--- alert horizon herd composition does not change, so it is accurate and
+--- deterministic. Never mutates live Animal entities.
+--- @param husbandry table placeable husbandry instance
+--- @param foodTotalLiters number current pen food (sum across mixes)
+--- @return number daysRemaining >= 0; math.huge when there is no draw (empty
+---         herd or zero daily consumption) so callers treat the pen as "plenty"
+function RLPenFeedForecast.getDaysRemaining(husbandry, foodTotalLiters)
+    foodTotalLiters = foodTotalLiters or 0
+
+    if husbandry == nil or husbandry.spec_husbandryAnimals == nil
+        or husbandry.spec_husbandryAnimals.getClusters == nil
+    then
+        Log:warning("RLPenFeedForecast.getDaysRemaining: cluster system unreachable; returning math.huge")
+        return math.huge
+    end
+
+    local clusterSystem = husbandry.spec_husbandryAnimals
+    local animals = clusterSystem:getClusters() or {}
+
+    -- Empty herd: nothing drains; treat as unlimited runway.
+    if #animals == 0 then
+        Log:debug("RLPenFeedForecast.getDaysRemaining: animals=0 foodTotalLiters=%.1f -> daysRemaining=inf",
+            foodTotalLiters)
+        return math.huge
+    end
+
+    local foodScale = (RealisticLivestock_PlaceableHusbandryFood ~= nil)
+        and RealisticLivestock_PlaceableHusbandryFood.foodScale or 1
+
+    -- Build scratch state (read-only copy) and sum the herd's current daily draw.
+    local scratch = {}
+    for _, animal in pairs(animals) do
+        table.insert(scratch, buildScratch(animal))
+    end
+
+    local dailyFood = sumDailyFood(scratch, foodScale)
+
+    -- No draw (e.g. foodScale 0, or all animals off the food curve) => unlimited.
+    if dailyFood <= 0 then
+        Log:debug("RLPenFeedForecast.getDaysRemaining: animals=%d dailyFood=0 -> daysRemaining=inf (no draw)",
+            #scratch)
+        return math.huge
+    end
+
+    -- dailyFood (food-curve value) is consumed PER PERIOD, not per real day, so
+    -- the real per-day draw is dailyFood / daysPerPeriod and the real-days runway
+    -- scales with daysPerPeriod. Mirror getMonthsRemaining's environment read.
+    local environment   = (g_currentMission ~= nil) and g_currentMission.environment or nil
+    local daysPerPeriod = (environment ~= nil and environment.daysPerPeriod) or 3
+
+    local daysRemaining = foodTotalLiters / dailyFood * daysPerPeriod
+    Log:debug("RLPenFeedForecast.getDaysRemaining: animals=%d foodTotalLiters=%.1f dailyFood=%.2f daysPerPeriod=%d -> daysRemaining=%.2f",
+        #scratch, foodTotalLiters, dailyFood, daysPerPeriod, daysRemaining)
+    return daysRemaining
 end

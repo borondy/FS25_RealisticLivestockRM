@@ -213,6 +213,13 @@ function RLAnimalInfoService.getHusbandryDisplay(husbandry, farmId)
         foodMonthsRemaining = RLPenFeedForecast.getMonthsRemaining(husbandry, foodTotalValue)
     end
 
+    -- Real-days runway drives the low-feed colour alert (daysPerPeriod-stable);
+    -- foodMonthsRemaining above still drives the at-a-glance months range label.
+    local foodDaysRemaining
+    if RLPenFeedForecast ~= nil and RLPenFeedForecast.getDaysRemaining ~= nil then
+        foodDaysRemaining = RLPenFeedForecast.getDaysRemaining(husbandry, foodTotalValue)
+    end
+
     Log:debug("RLAnimalInfoService.getHusbandryDisplay: farmId=%s husbandry='%s' count=%s",
         tostring(farmId), name, countText)
 
@@ -226,6 +233,7 @@ function RLAnimalInfoService.getHusbandryDisplay(husbandry, farmId)
         foodTotalCapacity   = foodTotalCapacity,
         foodTotalRatio      = foodTotalRatio,
         foodMonthsRemaining = foodMonthsRemaining,
+        foodDaysRemaining   = foodDaysRemaining,
     }
 end
 
