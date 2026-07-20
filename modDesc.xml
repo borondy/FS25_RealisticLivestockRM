@@ -24,6 +24,16 @@ Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivest
 
 Changelog
 
+1.3.0.0-dev.6:
+
+Changed:
+- The maximum-visible-animals control moved from the Shift+T keybind into the RL Menu Settings > General tab; it stays a per-machine display setting (each player sets their own, not shared in multiplayer), and the Shift+T keybind was removed.
+
+Fixed:
+- Pen feed forecast: the low-stock warning now reflects real days of feed remaining (orange under 2 days left, red under 1 day) instead of a month estimate, so it no longer warns too early when playing with 3 or more days per month.
+- Pen feed forecast: the "months of feed left" range shown in the pen info is no longer under-estimated when playing with 2 or more days per month (it previously divided the estimate by the days-per-month setting).
+
+
 1.3.0.0-dev.5:
 
 Fixed:
