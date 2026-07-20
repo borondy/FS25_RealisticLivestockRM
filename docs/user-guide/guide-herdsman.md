@@ -1,6 +1,6 @@
 # Herdsman Automation
 
-The Herdsman handles your routine herd chores automatically, once a day. You set up **rules** - each rule does one job (sell, move, buy, castrate, name, or inseminate) to the animals a [saved filter](guide-saved-filters.md) picks out, in the pens you choose. Set your rules once and the Herdsman keeps your herd in shape while you get on with farming.
+The Herdsman handles your routine herd chores automatically, once a day. You set up **tasks** - each task does one job (sell, move, buy, castrate, name, or inseminate) to the animals a [saved filter](guide-saved-filters.md) picks out, in the pens you choose. Set your tasks once and the Herdsman keeps your herd in shape while you get on with farming.
 
 > **Note:** This documentation was generated with AI assistance and may contain inaccuracies. If you spot an error, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues).
 
@@ -8,7 +8,7 @@ The Herdsman handles your routine herd chores automatically, once a day. You set
 
 ## What the Herdsman does
 
-Once per in-game day, the Herdsman works through your enabled rules and carries each one out. It runs on the server - including dedicated servers - so it keeps working whether or not anyone has the menu open. The Herdsman charges a **daily wage** for its work, shown in your farm finances.
+Once per in-game day, the Herdsman works through your enabled tasks and carries each one out. It runs on the server - including dedicated servers - so it keeps working whether or not anyone has the menu open. The Herdsman charges a **daily wage** for its work, shown in your farm finances.
 
 ---
 
@@ -16,20 +16,20 @@ Once per in-game day, the Herdsman works through your enabled rules and carries 
 
 Open the **RL Menu** (default **Right Shift + O**, or press **R** at one of your pens) and pick the **Herdsman** tab, between **Message Log** and **Settings**. It is part of your own-herd menu, so it isn't shown when you open the menu at an animal dealer.
 
-In multiplayer you need the **trade animals** farm permission to create or edit rules.
+In multiplayer you need the **trade animals** farm permission to create or edit tasks.
 
 ---
 
-## How a rule works
+## How a task works
 
-Every rule has four parts:
+Every task has four parts:
 
-- **Operation** - the single job it does: Sell, Move, Buy, Castrate, Naming, or AI.
-- **Filter** - a [saved filter](guide-saved-filters.md) that decides which animals qualify. (Naming rules don't need one.)
-- **Pens** - which of your husbandries the rule looks at. A rule with **no pens does nothing** - it never falls back to "all pens".
+- **Operation** (labeled **Task** in the menu) - the single job it does: Sell, Move, Buy, Castrate, Naming, or AI.
+- **Filter** - a [saved filter](guide-saved-filters.md) that decides which animals qualify. (Naming tasks don't need one.)
+- **Pens** - which of your husbandries the task looks at. A task with **no pens does nothing** - it never falls back to "all pens".
 - **Settings** - the options for that operation (how many animals per day, a buy budget, a semen source, and so on), plus an on/off switch.
 
-Each day the Herdsman runs rules in a **fixed order**:
+Each day the Herdsman runs tasks in a **fixed order**:
 
 **Sell -> Move -> Buy -> Castrate -> Naming -> AI**
 
@@ -48,28 +48,28 @@ So selling happens before buying - a "sell old cows, then buy young ones" pair d
 
 ---
 
-## Setting up a rule
+## Setting up a task
 
-1. **New** - creates a draft rule to start from (a disabled Sell rule).
+1. **New** - creates a draft task to start from (a disabled Sell task).
 2. **Operation** - pick the job you want.
 3. **Filter** - open the filter picker and choose a saved filter. Only filters that suit the operation are offered, so it helps to [build the filter first](guide-saved-filters.md).
 4. **Pens** - open the pen picker and select one or more husbandries. Only pens matching the filter's animal type are offered.
 5. **Settings** - set the per-operation options.
-6. **Enable** - switch the rule on. A rule needs at least one pen before it can be enabled.
+6. **Enable** - switch the task on. A task needs at least one pen before it can be enabled.
 
-You can **Duplicate** a rule as a starting point for another, or **Delete** one (with a confirmation).
+You can **Duplicate** a task as a starting point for another, or **Delete** one (with a confirmation).
 
 ---
 
 ## Good to know
 
-- **No pens, no action.** A rule with no pens selected does nothing - this is deliberate, so a half-finished rule can't run wild across your whole farm.
+- **No pens, no action.** A task with no pens selected does nothing - this is deliberate, so a half-finished task can't run wild across your whole farm.
 - **Order matters.** Because Sell runs before Buy, a sell-then-buy pair refreshes a pen in one day rather than two.
-- **Start narrow, then watch.** Test a new rule with a tight filter and check the **Message Log** to see exactly what the Herdsman did before widening it.
+- **Start narrow, then watch.** Test a new task with a tight filter and check the **Message Log** to see exactly what the Herdsman did before widening it.
 - **The filter is the whole game.** The Herdsman only ever touches animals the filter matches - a well-built filter is what keeps automation safe.
 
 ---
 
 ## Multiplayer
 
-Rules are shared across the server and run on the host or dedicated server. You need the **trade animals** permission to edit them, and the results sync to every player.
+Tasks are shared across the server and run on the host or dedicated server. You need the **trade animals** permission to edit them, and the results sync to every player.
