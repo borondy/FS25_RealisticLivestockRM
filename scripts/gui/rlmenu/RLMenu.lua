@@ -97,6 +97,15 @@ function RLMenu.new(target, custom_mt)
     -- against a fresh instance - starts from a known nil.
     self.anchoredHusbandry = nil
 
+    -- One-shot "opened from the in-game menu Animals frame" flag. When true, a Back/Esc
+    -- in onButtonBack returns to the in-game menu (Animals page) instead of closing to
+    -- gameplay - restoring the affordance the vanilla animal screen had. Set ONLY in
+    -- openFromBridge's committed block (MODE_FULL + context.fromInGameMenu); cleared on
+    -- every other open path (open(), onClose, both openTrailerFromBridge store blocks) and
+    -- consumed on Back, so no other open is affected. Init here (not only in openFromBridge)
+    -- so a DEV_RELOAD re-instantiation starts from a known false.
+    self.openedFromInGameMenu = false
+
     Log:trace("RLMenu.new: instance created (openMode=%s)", tostring(self.openMode))
     return self
 end
@@ -274,7 +283,23 @@ function RLMenu:setupMenuButtonInfo()
 end
 
 --- Back button callback (ESC or clicking the Back footer button).
+--- If this open originated from the in-game menu Animals frame (openedFromInGameMenu),
+--- redirect Back/Esc to the in-game menu (Animals page) instead of closing to gameplay,
+--- mirroring the vanilla animal screen's onClickBack. Consume the one-shot flag FIRST so
+--- the redirect-driven onClose sees it false; on a showGui throw, fall back to exitMenu
+--- (close to gameplay) rather than strand the player. Every other open leaves the flag
+--- false and closes to gameplay as before.
 function RLMenu:onButtonBack()
+    if self.openedFromInGameMenu then
+        self.openedFromInGameMenu = false
+        Log:debug("RLMenu:onButtonBack: opened from in-game menu -> returning to InGameMenu")
+        local ok = pcall(function() g_gui:showGui("InGameMenu") end)
+        if not ok then
+            Log:warning("RLMenu:onButtonBack: showGui(InGameMenu) threw, falling back to exitMenu")
+            self:exitMenu()
+        end
+        return
+    end
     Log:debug("RLMenu:onButtonBack: closing menu via back")
     self:exitMenu()
 end
@@ -352,6 +377,12 @@ function RLMenu:onClose()
     local hadAnchor = (self.anchoredHusbandry ~= nil)
     self.anchoredHusbandry = nil
 
+    -- Clear the from-menu flag defensively for ANY non-Back close (Back consumes it in
+    -- onButtonBack before triggering this onClose; this also covers a close that bypasses
+    -- onButtonBack, e.g. a changeScreen from elsewhere) so it never leaks into the next
+    -- open. Pre-pcall, beside the anchor clear, so a super-onClose throw cannot skip it.
+    self.openedFromInGameMenu = false
+
     -- Wrap super-onClose in pcall: base TabbedMenu:onClose touches
     -- currentPage:onFrameClose(), g_inputBinding, pageSelector:getState(),
     -- and g_currentMission:resetGameState(). Any one of those can nil-deref
@@ -418,6 +449,11 @@ function RLMenu.open()
     -- would otherwise inherit the anchor and hijack the next husbandry frame.
     if g_rlMenu ~= nil then
         g_rlMenu.anchoredHusbandry = nil
+        -- Same one-shot discipline as the anchor: a prior bridged-then-ESC'd from-menu
+        -- session must not leak its flag into a keyboard open. UNCONDITIONAL, OUTSIDE the
+        -- stale-mode block below, so a normal FULL keyboard open still clears it -> Back
+        -- closes to gameplay.
+        g_rlMenu.openedFromInGameMenu = false
     end
 
     -- Keyboard-open stale-mode reset. A parked non-FULL openMode (e.g. a
@@ -457,9 +493,12 @@ end
 --- @param context table|nil For MODE_TRAILER: { trailer = <livestock-trailer vehicle>,
 ---   counterpart = RLMenu.TRAILER_PEN | TRAILER_DEALER | TRAILER_WORLD, counterpartHandle =
 ---   <optional pen husbandry the concrete adapter enumerates; nil for dealer/world> }. For
----   MODE_FULL: an optional { husbandry = <local animal-husbandry placeable> } one-shot anchor
----   that lands the first husbandry frame (Info/Move/Sell) on that pen (ignored unless it is a
----   real animal husbandry). Ignored for MODE_DEALER (no state stored).
+---   MODE_FULL: an optional { husbandry = <local animal-husbandry placeable>, fromInGameMenu =
+---   <boolean> } table. `husbandry` is a one-shot anchor that lands the first husbandry frame
+---   (Info/Move/Sell) on that pen (ignored unless it is a real animal husbandry).
+---   `fromInGameMenu = true` marks an open originating from the in-game menu Animals frame so
+---   Back/Esc returns there (via onButtonBack) instead of closing to gameplay; one-shot, cleared
+---   on every other open path. Ignored for MODE_DEALER (no state stored).
 --- @return boolean opened  true when the menu was shown; false on any refused open
 ---   (g_rlMenu nil, bad args, a dialog visible, or a showGui rollback) so a caller may branch
 ---   on it (the LivestockTrailerActivatable redirect logs its decision only on true and
@@ -506,6 +545,7 @@ function RLMenu.openFromBridge(startPageId, mode, context)
     local priorRestorePageIndex = g_rlMenu.restorePageIndex
     local priorRestorePage = g_rlMenu.restorePage
     local priorAnchoredHusbandry = g_rlMenu.anchoredHusbandry
+    local priorOpenedFromInGameMenu = g_rlMenu.openedFromInGameMenu
 
     -- MODE_FULL husbandry anchor (one-shot): a caller may pass context.husbandry
     -- to land the first husbandry frame (Info/Move/Sell) on a specific pen. Set
@@ -538,6 +578,18 @@ function RLMenu.openFromBridge(startPageId, mode, context)
     g_rlMenu.restorePage = nil
     g_rlMenu.anchoredHusbandry = anchorHusbandry
 
+    -- One-shot in-game-menu origin flag: set ONLY here (after the arg/dialog refusal gates
+    -- above, so a refused open is zero-mutation). True only for a MODE_FULL open whose context
+    -- explicitly carries fromInGameMenu = true (the in-game menu Animals frame's open action);
+    -- every other open (keyboard, dealer, trailer) leaves it false, so Back closes to gameplay.
+    -- Consumed + cleared in onButtonBack; also cleared on open()/onClose/both trailer blocks;
+    -- snapshotted as priorOpenedFromInGameMenu above + restored on the showGui-throw rollback.
+    g_rlMenu.openedFromInGameMenu =
+        (mode == RLMenu.MODE_FULL and type(context) == "table" and context.fromInGameMenu == true)
+    if g_rlMenu.openedFromInGameMenu then
+        Log:debug("openFromBridge: opened from the in-game menu -> Back will return to InGameMenu")
+    end
+
     if anchorHusbandry ~= nil then
         Log:info("openFromBridge: page=%d mode=%s (husbandry anchor set for the next husbandry frame)",
             startPageId, tostring(mode))
@@ -553,6 +605,7 @@ function RLMenu.openFromBridge(startPageId, mode, context)
         g_rlMenu.restorePageIndex = priorRestorePageIndex
         g_rlMenu.restorePage = priorRestorePage
         g_rlMenu.anchoredHusbandry = priorAnchoredHusbandry
+        g_rlMenu.openedFromInGameMenu = priorOpenedFromInGameMenu
         return false
     end
     return true
@@ -631,6 +684,7 @@ function RLMenu.openTrailerFromBridge(context)
         local priorTrailerCounterpart = g_rlMenu.trailerCounterpart
         local priorTrailerCounterpartHandle = g_rlMenu.trailerCounterpartHandle
         local priorAnchoredHusbandry = g_rlMenu.anchoredHusbandry
+        local priorOpenedFromInGameMenu = g_rlMenu.openedFromInGameMenu
 
         g_rlMenu.openMode = RLMenu.MODE_TRAILER
         g_rlMenu.trailerVehicle = trailer
@@ -644,6 +698,9 @@ function RLMenu.openTrailerFromBridge(context)
         -- point establishes a known anchor state (a prior unconsumed MODE_FULL
         -- anchor must not survive into a trailer open).
         g_rlMenu.anchoredHusbandry = nil
+        -- Trailer mode never returns to the in-game menu; clear the from-menu flag in
+        -- lockstep with the anchor so a prior from-menu open cannot leak Back-to-InGameMenu.
+        g_rlMenu.openedFromInGameMenu = false
         g_rlMenu.restorePageIndex = 1
         g_rlMenu.restorePage = nil
 
@@ -661,6 +718,7 @@ function RLMenu.openTrailerFromBridge(context)
             g_rlMenu.trailerCounterpart = priorTrailerCounterpart
             g_rlMenu.trailerCounterpartHandle = priorTrailerCounterpartHandle
             g_rlMenu.anchoredHusbandry = priorAnchoredHusbandry
+            g_rlMenu.openedFromInGameMenu = priorOpenedFromInGameMenu
             return false
         end
         return true
@@ -677,6 +735,7 @@ function RLMenu.openTrailerFromBridge(context)
     local priorTrailerCounterpart = g_rlMenu.trailerCounterpart
     local priorTrailerCounterpartHandle = g_rlMenu.trailerCounterpartHandle
     local priorAnchoredHusbandry = g_rlMenu.anchoredHusbandry
+    local priorOpenedFromInGameMenu = g_rlMenu.openedFromInGameMenu
 
     local isEmpty = RLTrailerEndpointService.isEmpty(trailer)
     local anchor = RLMenuTabPolicy.anchorPage(counterpart, isEmpty)
@@ -691,6 +750,9 @@ function RLMenu.openTrailerFromBridge(context)
     -- point establishes a known anchor state (a prior unconsumed MODE_FULL anchor
     -- must not survive into a trailer open).
     g_rlMenu.anchoredHusbandry = nil
+    -- Trailer mode never returns to the in-game menu; clear the from-menu flag in
+    -- lockstep with the anchor so a prior from-menu open cannot leak Back-to-InGameMenu.
+    g_rlMenu.openedFromInGameMenu = false
     g_rlMenu.restorePageIndex = anchor
     g_rlMenu.restorePage = nil
 
@@ -710,6 +772,7 @@ function RLMenu.openTrailerFromBridge(context)
         g_rlMenu.trailerCounterpart = priorTrailerCounterpart
         g_rlMenu.trailerCounterpartHandle = priorTrailerCounterpartHandle
         g_rlMenu.anchoredHusbandry = priorAnchoredHusbandry
+        g_rlMenu.openedFromInGameMenu = priorOpenedFromInGameMenu
         return false
     end
     return true

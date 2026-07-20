@@ -257,11 +257,16 @@ function RealisticLivestock_InGameMenuAnimalsFrame:onUpdateMenuButtons()
         inputAction = InputAction.RL_OPEN_ANIMAL_SCREEN,
         text = g_i18n:getText("rl_ui_openAnimalScreen"),
         callback = function()
-            -- Routes through the bridge to the standalone RLMenu (MODE_FULL anchored to
-            -- this pen, lands Info). Closes to gameplay like any RLMenu open; the legacy
-            -- vanilla-screen affordances (Esc-back-to-InGameMenu, info-mode click) do not
-            -- carry over.
-            AnimalScreen.show(selectedHusbandry, nil, false)
+            -- Open the standalone RLMenu in MODE_FULL, anchored to this pen (page 4,
+            -- the own-pen landing). Call openFromBridge DIRECTLY (not via the
+            -- AnimalScreen.show parity seam) so this in-game-menu-originated open can
+            -- carry the one-shot fromInGameMenu flag: it makes Esc/Back return to the
+            -- in-game menu (Animals page) instead of closing to gameplay, restoring the
+            -- affordance the vanilla animal screen had. The flag is consumed on Back and
+            -- cleared on every other open path, so no other RLMenu open is affected.
+            Log:debug("AnimalsFrame: opening RLMenu from in-game menu (fromInGameMenu=true, husbandry=%s)",
+                tostring(selectedHusbandry))
+            RLMenu.openFromBridge(4, RLMenu.MODE_FULL, { husbandry = selectedHusbandry, fromInGameMenu = true })
         end
     })
 end
