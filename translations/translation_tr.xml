@@ -72,7 +72,6 @@
         <!-- UI -->
 
 
-        <text name="input_VisualAnimalsDialog" text="Görsel Hayvanların Miktarını Değiştir"/>
         <text name="input_RL_OPEN_ANIMAL_SCREEN" text="Hayvan Ekranını Aç"/>
         <text name="input_RL_MARK" text="Hayvanı İşaretle/İşaretini Kaldır"/>
         <text name="input_RL_MONITOR" text="Monitör Ekle/Çıkar"/>
@@ -528,6 +527,9 @@
         <text name="rl_settings_tagColour_label" text="Küpe Rengini Değiştir"/>
         <text name="rl_settings_tagColour_tooltip" text="Kulak küpelerinin rengini değiştirin"/>
         <text name="rl_settings_tagColour_text" text="Küpe Rengini Değiştir"/>
+        <text name="rl_settings_maxVisualAnimals_label" text="Set Maximum Visual Animals"/>
+        <text name="rl_settings_maxVisualAnimals_text" text="Set Maximum Visual Animals"/>
+        <text name="rl_settings_maxVisualAnimals_tooltip" text="Set the maximum number of animals rendered per pen. Per-machine display setting; not synced in multiplayer."/>
 
         <text name="rl_settings_exportCSV_label" text="CSV Olarak Dışa Aktar"/>
         <text name="rl_settings_exportCSV_tooltip" text="İstatistikleri CSV olarak dışa aktar"/>

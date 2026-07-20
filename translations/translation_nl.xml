@@ -72,7 +72,6 @@
 		<!-- UI -->
 
 
-		<text name="input_VisualAnimalsDialog" text="Wijzig aantal zichtbare dieren"/>
 		<text name="rl_button_apply" text="Toepassen"/>
 		<text name="rl_button_confirm" text="Bevestigen"/>
 		<text name="rl_button_recommended" text="Aanbevolen"/>
@@ -501,6 +500,9 @@
 		<text name="rl_settings_tagColour_label" text="Wijzig Tag kleur"/>
 		<text name="rl_settings_tagColour_tooltip" text="Wijzig de kleur van de oor tags"/>
 		<text name="rl_settings_tagColour_text" text="Wijzig Tag kleur"/>
+		<text name="rl_settings_maxVisualAnimals_label" text="Set Maximum Visual Animals"/>
+		<text name="rl_settings_maxVisualAnimals_text" text="Set Maximum Visual Animals"/>
+		<text name="rl_settings_maxVisualAnimals_tooltip" text="Set the maximum number of animals rendered per pen. Per-machine display setting; not synced in multiplayer."/>
 
 		<text name="rl_settings_exportCSV_label" text="Exporteer naar CSV"/>
 		<text name="rl_settings_exportCSV_tooltip" text="Exporteer statistieken naar CSV"/>

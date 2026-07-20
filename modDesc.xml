@@ -146,9 +146,6 @@ Codice sorgente e tracciamento issue: https://github.com/rittermod/FS25_Realisti
     </extraSourceFiles>
     <l10n filenamePrefix="translations/translation"/>
     <inputBinding>
-        <actionBinding action="VisualAnimalsDialog">
-            <binding device="KB_MOUSE_DEFAULT" input="KEY_lshift KEY_t"/>
-        </actionBinding>
         <actionBinding action="RL_OPEN_ANIMAL_SCREEN">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_r" index="1"/>
         </actionBinding>
@@ -181,7 +178,6 @@ Codice sorgente e tracciamento issue: https://github.com/rittermod/FS25_Realisti
         </actionBinding>
     </inputBinding>
     <actions>
-        <action name="VisualAnimalsDialog"/>
         <action name="RL_OPEN_ANIMAL_SCREEN"/>
         <action name="RL_MARK"/>
         <action name="RL_MONITOR"/>

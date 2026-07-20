@@ -71,7 +71,6 @@
 
 		<!-- INTERFACE -->
 
-<text name="input_VisualAnimalsDialog" text="Modifier le nombre d'animaux visibles"/>
 <text name="input_RL_OPEN_ANIMAL_SCREEN" text="Ouvrir l'écran des animaux"/>
 <text name="input_RL_MARK" text="Marquer/Démarquer l'animal"/>
 <text name="input_RL_MONITOR" text="Activer/Désactiver le suivi"/>
@@ -528,6 +527,9 @@
 <text name="rl_settings_tagColour_label" text="Changer la couleur des boucles"/>
 <text name="rl_settings_tagColour_tooltip" text="Modifier la couleur des boucles d'oreille"/>
 <text name="rl_settings_tagColour_text" text="Changer la couleur des boucles"/>
+<text name="rl_settings_maxVisualAnimals_label" text="Set Maximum Visual Animals"/>
+<text name="rl_settings_maxVisualAnimals_text" text="Set Maximum Visual Animals"/>
+<text name="rl_settings_maxVisualAnimals_tooltip" text="Set the maximum number of animals rendered per pen. Per-machine display setting; not synced in multiplayer."/>
 
 <text name="rl_settings_exportCSV_label" text="Exporter en CSV"/>
 <text name="rl_settings_exportCSV_tooltip" text="Exporter les statistiques en CSV"/>

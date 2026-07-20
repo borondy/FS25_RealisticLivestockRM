@@ -22,6 +22,32 @@ function RLSettings.onClickTagColour()
 end
 
 
+--- Open the visual-animals dialog from the General-tab action row (mirrors the
+--- tagColour -> EarTagColourPickerDialog pattern). Client-local control: the
+--- dialog mutates RealisticLivestock_AnimalClusterHusbandry.MAX_HUSBANDRIES and
+--- persists it per-machine, so this row carries no adminOnly gate. Invoked with
+--- no args by onClickGeneralAction.
+---
+--- The INSTANCE guard uses rawget: VisualAnimalsDialog is a Class() of
+--- YesNoDialog whose base carries a non-nil INSTANCE, so a plain
+--- VisualAnimalsDialog.INSTANCE read falls through __index to that inherited
+--- instance and would never report nil - masking a failed eager registration
+--- and pushing show() onto the wrong dialog. rawget inspects only the own field
+--- that register() sets. Eager registration in RealisticLivestock_FSBaseMission
+--- is the sole contract, so a nil own INSTANCE is a defect (log ERROR, no crash).
+function RLSettings.onClickVisualAnimals()
+
+	if rawget(VisualAnimalsDialog, "INSTANCE") == nil then
+		Log:error("RLSettings.onClickVisualAnimals: VisualAnimalsDialog.INSTANCE is nil (eager registration failed?); cannot open dialog")
+		return
+	end
+
+	Log:debug("RLSettings.onClickVisualAnimals: opening VisualAnimalsDialog")
+	VisualAnimalsDialog.show()
+
+end
+
+
 function RLSettings.onClickExportCSV()
 
 	local file = io.open(modSettingsDirectory .. "animals.csv", "w")
@@ -109,10 +135,10 @@ end
 
 
 -- Render order is set by setting.index; the RL Tabbed Menu Settings ->
--- General subtab walks this table in index order. Sections (1..18):
+-- General subtab walks this table in index order. Sections (1..19):
 -- Mortality (1-2), Health & Disease (3-4), Husbandry & Economy (5-7),
 -- Custom Animals (8-9), Message Log (10-11), Display Preferences (12-15),
--- Tools & Admin (16-18).
+-- Tools & Admin (16-18), Visual Animals (19, client-local, no admin gate).
 RLSettings.SETTINGS = {
 
 	["deathEnabled"] = {
@@ -306,6 +332,18 @@ RLSettings.SETTINGS = {
 		["ignore"] = true,
 		["adminOnly"] = true,
 		["callback"] = AnimalSystem.onClickResetAIAnimals
+	},
+
+	-- Client-local display preference (per-machine MAX_HUSBANDRIES). Deliberately
+	-- NOT adminOnly, so any MP client (admin or not) can adjust its own visual
+	-- density; ignore=true keeps it off the RL_BroadcastSettingsEvent wire codec
+	-- and out of rm_RlSettings.xml. The dialog persists the value per peer to
+	-- modSettings/Settings.xml.
+	["maxVisualAnimals"] = {
+		["index"] = 19,
+		["type"] = "Button",
+		["ignore"] = true,
+		["callback"] = RLSettings.onClickVisualAnimals
 	}
 
 }

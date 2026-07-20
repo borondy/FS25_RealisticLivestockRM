@@ -64,7 +64,6 @@
 		<text name="rl_descriptionChickenReproduction" text="Кури, які здорові та старші за 6 місяців, можуть розмножуватись."/>
 
 		<!-- ІНТЕРФЕЙС КОРИСТУВАЧА -->
-		<text name="input_VisualAnimalsDialog" text="Змінити кількість видимих тварин"/>
 		<text name="rl_button_apply" text="Застосувати"/>
 		<text name="rl_button_confirm" text="Підтвердити"/>
 		<text name="rl_button_recommended" text="Рекомендовано"/>
@@ -479,6 +478,9 @@
 		<text name="rl_settings_tagColour_label" text="Змінити колір тегу"/>
 		<text name="rl_settings_tagColour_tooltip" text="Змінити колір вушних бірок"/>
 		<text name="rl_settings_tagColour_text" text="Змінити колір тегу"/>
+		<text name="rl_settings_maxVisualAnimals_label" text="Set Maximum Visual Animals"/>
+		<text name="rl_settings_maxVisualAnimals_text" text="Set Maximum Visual Animals"/>
+		<text name="rl_settings_maxVisualAnimals_tooltip" text="Set the maximum number of animals rendered per pen. Per-machine display setting; not synced in multiplayer."/>
 
 		<text name="rl_settings_exportCSV_label" text="Експорт до CSV"/>
 		<text name="rl_settings_exportCSV_tooltip" text="Експорт статистики в CSV"/>

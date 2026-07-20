@@ -2,6 +2,7 @@ VisualAnimalsDialog = {}
 
 local visualAnimalsDialog_mt = Class(VisualAnimalsDialog, YesNoDialog)
 local modDirectory = g_currentModDirectory
+local modSettingsDirectory = g_currentModSettingsDirectory
 
 function VisualAnimalsDialog.register()
     local dialog = VisualAnimalsDialog.new()
@@ -12,10 +13,13 @@ end
 
 function VisualAnimalsDialog.show()
 
-    if VisualAnimalsDialog.INSTANCE == nil then VisualAnimalsDialog.register() end
+    -- rawget the OWN INSTANCE: VisualAnimalsDialog is a Class() of YesNoDialog
+    -- whose base carries a non-nil INSTANCE, so a plain read would fall through
+    -- __index and never report a failed eager registration. Eager registration
+    -- in RealisticLivestock_FSBaseMission is the sole contract.
+    local instance = rawget(VisualAnimalsDialog, "INSTANCE")
 
-    if VisualAnimalsDialog.INSTANCE ~= nil then
-        local instance = VisualAnimalsDialog.INSTANCE
+    if instance ~= nil then
         local profile = Utils.getPerformanceClassId()
 
         local recommendedAnimals = (profile == GS_PROFILE_VERY_LOW and 8) or (profile == GS_PROFILE_LOW and 10) or (profile == GS_PROFILE_MEDIUM and 16) or (profile == GS_PROFILE_HIGH and 20) or (profile == GS_PROFILE_VERY_HIGH and 25) or (profile == GS_PROFILE_ULTRA and 25) or 8
@@ -74,6 +78,16 @@ function VisualAnimalsDialog:onRecommended()
 end
 
 
+--- Apply the chosen visual-animal cap. When the value changed, updates
+--- RealisticLivestock_AnimalClusterHusbandry.MAX_HUSBANDRIES and refreshes pen
+--- visuals; then persists the value per-machine to modSettings/Settings.xml on
+--- THIS peer. The write is client-local by design - it runs on every peer
+--- (including a pure MP client) and targets machine-local modSettings, never the
+--- savegame, so it carries no g_server guard - and sits OUTSIDE the change-only
+--- branch so re-applying the same value still persists. Same file + key shape as
+--- RealisticLivestock_PlaceableSystem.saveToXML (loadIfExists-then-create): the
+--- host keeps its save-hook fallback and this write is additive.
+---@return boolean true when buttons are disabled (block close); false to close
 function VisualAnimalsDialog:onYes()
 
     if self.areButtonsDisabled then return true end
@@ -81,10 +95,11 @@ function VisualAnimalsDialog:onYes()
     local maxHusbandries = RealisticLivestock_AnimalClusterHusbandry.MAX_HUSBANDRIES
     local newMaxHusbandries = self.quantityElement:getState()
 
-
     local husbandrySystem = g_currentMission.husbandrySystem
 
     if maxHusbandries ~= newMaxHusbandries then
+
+        Log:debug("VisualAnimalsDialog:onYes: maxHusbandries %d -> %d; refreshing pen visuals", maxHusbandries, newMaxHusbandries)
 
         RealisticLivestock_AnimalClusterHusbandry.MAX_HUSBANDRIES = newMaxHusbandries
         for _, clusterHusbandry in ipairs(husbandrySystem.clusterHusbandries) do
@@ -92,6 +107,29 @@ function VisualAnimalsDialog:onYes()
             clusterHusbandry:updateVisuals(maxHusbandries > newMaxHusbandries)
         end
 
+    else
+        Log:trace("VisualAnimalsDialog:onYes: value unchanged (%d); no visual refresh, still persisting", newMaxHusbandries)
+    end
+
+    -- Persist per-machine so this peer keeps its own value across launches.
+    createFolder(modSettingsDirectory)
+    local path = modSettingsDirectory .. "Settings.xml"
+    local xmlFile = XMLFile.loadIfExists("RealisticLivestock", path)
+
+    if xmlFile == nil then xmlFile = XMLFile.create("RealisticLivestock", path, "Settings") end
+
+    if xmlFile ~= nil then
+        xmlFile:setInt("Settings.setting(0)#maxHusbandries", RealisticLivestock_AnimalClusterHusbandry.MAX_HUSBANDRIES)
+        local saved = xmlFile:save(false, true)
+        xmlFile:delete()
+
+        if saved then
+            Log:info("VisualAnimalsDialog:onYes: persisted maxHusbandries=%d to %s", RealisticLivestock_AnimalClusterHusbandry.MAX_HUSBANDRIES, path)
+        else
+            Log:error("VisualAnimalsDialog:onYes: XMLFile:save reported failure for %s; value applies this session only", path)
+        end
+    else
+        Log:error("VisualAnimalsDialog:onYes: could not open or create %s (engine IO sandbox?); value applies this session only", path)
     end
 
     self:close()

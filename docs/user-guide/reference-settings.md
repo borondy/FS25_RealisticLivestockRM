@@ -2,7 +2,7 @@
 
 All Realistic Livestock RM settings live in the RL Menu's **Settings** tab (it opens on the **General** sub-tab, where all of the options below are). The quickest way there: open the in-game menu (ESC), go to **Game Settings**, scroll to the **Realistic Livestock** section at the bottom, and press **Open Settings**. You can also open the RL Menu directly with its hotkey - it defaults to **Right Shift + O** (remappable in Settings -> Controls); look for "Open RL Menu" in the game's input bindings. If your installation was set up before this default was added, the key may not be assigned automatically - bind or reset it manually. *(Older versions listed every setting directly on the Game Settings page; those rows have moved here.)*
 
-Settings are saved per-savegame and synced in multiplayer. In multiplayer, settings can only be changed by an admin - everyone else sees them read-only.
+Most settings are saved per-savegame and synced in multiplayer, and in multiplayer can only be changed by an admin - everyone else sees them read-only. The one exception is **Maximum Visible Animals** (under Customisation below): it is a per-machine display preference, saved locally on your own computer, never synced, and any player can change their own.
 
 > **Note:** This documentation was generated with AI assistance and may contain inaccuracies. If you spot an error, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues).
 
@@ -55,6 +55,7 @@ Settings are saved per-savegame and synced in multiplayer. In multiplayer, setti
 |---------|---------|---------|-------------|
 | **Change Tag Colour** | - | Button | Opens the ear tag colour picker. Customise the colour of animal identification tags. |
 | **Export To CSV** | - | Button | Exports all animal data to a CSV file. Useful for tracking herd statistics in a spreadsheet. |
+| **Set Maximum Visual Animals** | 2 | Button (opens a slider) | Sets the maximum number of animals rendered per pen. A per-machine display/performance preference: each player sets their own value, it is not synced in multiplayer or saved per-savegame, and any player (not just admins) can change it. The dialog's **Recommended** button suggests a value based on your graphics settings. |
 
 ---
 

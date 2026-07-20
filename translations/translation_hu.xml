@@ -72,7 +72,6 @@
 		<!-- UI -->
 
 
-		<text name="input_VisualAnimalsDialog" text="Látható állatok számának módosítása"/>
 		<text name="input_RL_OPEN_ANIMAL_SCREEN" text="Állatok menü megnyitása"/>
 		<text name="input_RL_MARK" text="Állat megjelölése / jelölés törlése"/>
 		<text name="input_RL_MONITOR" text="Monitor alkalmazása / eltávolítása"/>
@@ -528,6 +527,9 @@
 		<text name="rl_settings_tagColour_label" text="Füljelző színének módosítása"/>
 		<text name="rl_settings_tagColour_tooltip" text="A füljelzők alapszínének megváltoztatása"/>
 		<text name="rl_settings_tagColour_text" text="Füljelző színének módosítása"/>
+		<text name="rl_settings_maxVisualAnimals_label" text="Set Maximum Visual Animals"/>
+		<text name="rl_settings_maxVisualAnimals_text" text="Set Maximum Visual Animals"/>
+		<text name="rl_settings_maxVisualAnimals_tooltip" text="Set the maximum number of animals rendered per pen. Per-machine display setting; not synced in multiplayer."/>
 
 		<text name="rl_settings_exportCSV_label" text="Exportálás CSV-be"/>
 		<text name="rl_settings_exportCSV_tooltip" text="Statisztikák kimentése CSV fájlba"/>

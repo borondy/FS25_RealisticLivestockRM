@@ -70,7 +70,6 @@
 
         <!-- UI -->
 
-        <text name="input_VisualAnimalsDialog" text="Ændr visuelt antal dyr"/>
         <text name="rl_button_apply" text="Anvend"/>
         <text name="rl_button_confirm" text="Bekræft"/>
         <text name="rl_button_recommended" text="Anbefalet"/>
@@ -491,6 +490,9 @@
 		<text name="rl_settings_tagColour_label" text="Skift Øremærkes farve"/>
 		<text name="rl_settings_tagColour_tooltip" text="Skift øremærkets farve"/>
 		<text name="rl_settings_tagColour_text" text="Skift øremærkets farve"/>
+		<text name="rl_settings_maxVisualAnimals_label" text="Set Maximum Visual Animals"/>
+		<text name="rl_settings_maxVisualAnimals_text" text="Set Maximum Visual Animals"/>
+		<text name="rl_settings_maxVisualAnimals_tooltip" text="Set the maximum number of animals rendered per pen. Per-machine display setting; not synced in multiplayer."/>
 
 		<text name="rl_settings_exportCSV_label" text="eksporter til CSV"/>
 		<text name="rl_settings_exportCSV_tooltip" text="Eksporter stats til CSV"/>

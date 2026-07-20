@@ -72,7 +72,6 @@
         <!-- UI -->
 
 
-        <text name="input_VisualAnimalsDialog" text="Změnit počet vizuálních zvířat"/>
         <text name="input_RL_OPEN_ANIMAL_SCREEN" text="Otevřít obrazovku zvířat"/>
         <text name="input_RL_MARK" text="Označit/Odznačit zvíře"/>
         <text name="input_RL_MONITOR" text="Přidat/Odebrat monitor"/>
@@ -528,6 +527,9 @@
         <text name="rl_settings_tagColour_label" text="Změnit barvu štítků"/>
         <text name="rl_settings_tagColour_tooltip" text="Změní barvu ušních štítků"/>
         <text name="rl_settings_tagColour_text" text="Změnit barvu štítků"/>
+        <text name="rl_settings_maxVisualAnimals_label" text="Set Maximum Visual Animals"/>
+        <text name="rl_settings_maxVisualAnimals_text" text="Set Maximum Visual Animals"/>
+        <text name="rl_settings_maxVisualAnimals_tooltip" text="Set the maximum number of animals rendered per pen. Per-machine display setting; not synced in multiplayer."/>
 
         <text name="rl_settings_exportCSV_label" text="Exportovat do CSV"/>
         <text name="rl_settings_exportCSV_tooltip" text="Exportovat statistiky do CSV"/>

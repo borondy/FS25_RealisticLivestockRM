@@ -72,7 +72,6 @@
 		<!-- UI -->
 
 
-		<text name="input_VisualAnimalsDialog" text="更改可视动物数量"/>
 		<text name="rl_button_apply" text="应用"/>
 		<text name="rl_button_confirm" text="确认"/>
 		<text name="rl_button_recommended" text="推荐"/>
@@ -511,6 +510,9 @@
 		<text name="rl_settings_tagColour_label" text="更改标签颜色"/>
 		<text name="rl_settings_tagColour_tooltip" text="更改耳标颜色"/>
 		<text name="rl_settings_tagColour_text" text="更改耳标颜色"/>
+		<text name="rl_settings_maxVisualAnimals_label" text="Set Maximum Visual Animals"/>
+		<text name="rl_settings_maxVisualAnimals_text" text="Set Maximum Visual Animals"/>
+		<text name="rl_settings_maxVisualAnimals_tooltip" text="Set the maximum number of animals rendered per pen. Per-machine display setting; not synced in multiplayer."/>
 
 		<text name="rl_settings_exportCSV_label" text="导出为CSV"/>
 		<text name="rl_settings_exportCSV_tooltip" text="将统计信息导出为CSV"/>

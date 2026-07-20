@@ -70,7 +70,6 @@
 
         <!-- UI -->
 
-        <text name="input_VisualAnimalsDialog" text="Cambia il numero di animali visibili"/>
         <text name="input_RL_OPEN_ANIMAL_SCREEN" text="Apri schermata animali"/>
         <text name="input_RL_MARK" text="Segna/Deseleziona animale"/>
         <text name="input_RL_MONITOR" text="Applica/Rimuovi monitor"/>
@@ -504,6 +503,9 @@
         <text name="rl_settings_tagColour_label" text="Cambia colore targhetta"/>
         <text name="rl_settings_tagColour_tooltip" text="Modifica il colore delle targhette auricolari"/>
         <text name="rl_settings_tagColour_text" text="Cambia colore targhetta"/>
+        <text name="rl_settings_maxVisualAnimals_label" text="Set Maximum Visual Animals"/>
+        <text name="rl_settings_maxVisualAnimals_text" text="Set Maximum Visual Animals"/>
+        <text name="rl_settings_maxVisualAnimals_tooltip" text="Set the maximum number of animals rendered per pen. Per-machine display setting; not synced in multiplayer."/>
 
         <text name="rl_settings_exportCSV_label" text="Esporta in CSV"/>
         <text name="rl_settings_exportCSV_tooltip" text="Esporta statistiche in CSV"/>

@@ -72,7 +72,6 @@
 		<!-- UI -->
 
 
-		<text name="input_VisualAnimalsDialog" text="Change Visual Animals Amount"/>
 		<text name="input_RL_OPEN_ANIMAL_SCREEN" text="Open Animal Screen"/>
 		<text name="input_RL_MARK" text="Mark/Unmark Animal"/>
 		<text name="input_RL_MONITOR" text="Apply/Remove Monitor"/>
@@ -528,6 +527,9 @@
 		<text name="rl_settings_tagColour_label" text="Change Tag Colour"/>
 		<text name="rl_settings_tagColour_tooltip" text="Change the colour of ear tags"/>
 		<text name="rl_settings_tagColour_text" text="Change Tag Colour"/>
+		<text name="rl_settings_maxVisualAnimals_label" text="Set Maximum Visual Animals"/>
+		<text name="rl_settings_maxVisualAnimals_text" text="Set Maximum Visual Animals"/>
+		<text name="rl_settings_maxVisualAnimals_tooltip" text="Set the maximum number of animals rendered per pen. Per-machine display setting; not synced in multiplayer."/>
 
 		<text name="rl_settings_exportCSV_label" text="Export To CSV"/>
 		<text name="rl_settings_exportCSV_tooltip" text="Export stats to CSV"/>
