@@ -70,10 +70,13 @@ local function buildScratch(animal)
 end
 
 
---- Sum daily food liters across the scratch herd using Animal._computeDailyFood.
+--- Sum the food-curve draw across the scratch herd using Animal._computeDailyFood.
+--- NOTE: the summed value is a per-PERIOD ration (invariant to daysPerPeriod),
+--- despite the "daily" naming - see the getMonthsRemaining/getDaysRemaining unit
+--- notes. Callers must NOT scale it by daysPerPeriod.
 --- @param scratch table list of per-animal scratch tables
 --- @param foodScale number|nil global foodScale setting
---- @return number litersPerDay
+--- @return number litersPerPeriod food-curve sum (per period, not per real day)
 local function sumDailyFood(scratch, foodScale)
     local total = 0
     for i = 1, #scratch do
@@ -269,10 +272,15 @@ function RLPenFeedForecast.getMonthsRemaining(husbandry, foodTotalLiters)
         end
 
         local daily = sumDailyFood(scratch, foodScale)
-        local drain = daily * daysPerPeriod
+        -- Per-period drain: `daily` (the food-curve sum) is ALREADY a per-PERIOD
+        -- ration, invariant to daysPerPeriod. The engine draws
+        -- litersPerHour * timeAdjustment per game-hour (timeAdjustment =
+        -- 1/daysPerPeriod) over 24*daysPerPeriod ticks = `daily` liters/period.
+        -- Mirrors the getDaysRemaining unit note; must NOT multiply by daysPerPeriod.
+        local drain = daily
 
-        Log:trace("RLPenFeedForecast: m=%d herd=%d daily=%.2f drain=%.2f litersBefore=%.1f",
-            m, #scratch, daily, drain, liters)
+        Log:trace("RLPenFeedForecast: m=%d herd=%d daily=%.2f drain=%.2f daysPerPeriod=%d litersBefore=%.1f",
+            m, #scratch, daily, drain, daysPerPeriod, liters)
 
         if liters - drain < 0 then
             Log:debug("RLPenFeedForecast.getMonthsRemaining: animals=%d foodTotalLiters=%.1f -> monthsRemaining=%d (mid-month %d bust)",
