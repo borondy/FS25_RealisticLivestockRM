@@ -1,6 +1,6 @@
 # Mod Compatibility
 
-Realistic Livestock RM rewrites the animal system from the ground up. That makes it incompatible with many other mods that change the same systems, and gives it sharp edges when paired with mods that modify animal data. This page lists the mods RLRM will block or warn you about at startup. That a mod is NOT on this list does NOT mean that it is tested and confirmed to work. 
+Realistic Livestock RM rewrites the animal system from the ground up. That makes it incompatible with many other mods that change the same systems, and gives it sharp edges when paired with mods that modify animal data. This page lists the mods RLRM blocks or warns you about at startup, plus mods that load but have known limitations. That a mod is NOT on this list does NOT mean that it is tested and confirmed to work. 
 
 > **Note:** This documentation was generated with AI assistance and may contain inaccuracies. If you spot an error, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues).
 
@@ -21,6 +21,16 @@ If any of these mods is enabled when you start the game, RLRM detects them, show
 | **FS25_AnimalFoodCalculator** | Breaks the core animal loop with RLRM: blocks food and water intake and halts milk, egg, and wool output, plus a significant performance impact that grows with herd size. A dismissible warning proved insufficient for a silent husbandry break. |
 
 If you previously played with **FS25_RealisticLivestock** (the original), RLRM migrates your savegame automatically the first time you load it - just disable the old mod and enable RLRM in its place.
+
+---
+
+## Partial Compatibility
+
+These mods load and run alongside RLRM, but one or more of their features do not work because of how they interact with RLRM's rewritten animal system. RLRM does not necessarily detect these mods or warn you about them at startup - the rest of the mod keeps working, so you can keep using it as long as you avoid the affected feature. The specific limitation is listed per mod.
+
+| Mod | Limitation |
+|-----|-----------|
+| **FS25_lsfmAnimalTransportPack.zip** | The LSFM Animal Transport Pack's animal herding / driving feature does not work. Driving animals opens the animal screen through the pack's custom object instead of a standard livestock trailer, and RLRM's rewritten animal screen does not recognise that call, so the action fails. There may be further errors later in the process. The rest of the pack is unaffected. This pack is distributed with the Hof Bergmann map, so it may be active even if you did not install it separately - see [Hof Bergmann Map Support](map-hof-bergmann.md#bundled-animal-transport-pack). |
 
 ---
 

@@ -128,6 +128,14 @@ Hof Bergmann includes 8 dog breeds (4 Labrador variants, 4 Border Collie variant
 
 RLRM tracks dogs as individuals with names and genetics, but does not add breeding or reproduction. Dogs remain companion animals that behave the same as in vanilla FS25.
 
+### Bundled Animal Transport Pack
+
+Hof Bergmann is distributed together with a separate mod, **FS25_lsfmAnimalTransportPack.zip** (the LSFM Animal Transport Pack). Because it arrives with the map, it is easy to assume it is part of Hof Bergmann itself - it is not, and the limitation below is a fault of that pack, not the map.
+
+The transport pack's animal herding / driving feature does not work with RLRM. Driving animals opens the animal screen through the pack's custom object instead of a standard livestock trailer, and RLRM's rewritten animal screen does not recognise that call, so the action fails; there may be further errors later in the process. Everything else on the map works normally, and the rest of the transport pack is unaffected.
+
+See [Mod Compatibility](reference-mod-compatibility.md#partial-compatibility) for the full compatibility list.
+
 ---
 
 ## Related Pages
@@ -136,3 +144,4 @@ RLRM tracks dogs as individuals with names and genetics, but does not add breedi
 - [Genetics Guide](guide-genetics.md) - How traits are inherited
 - [FAQ: Can you add more breeds?](faq.md#can-you-add-more-breeds-or-animal-types) - Why new breeds aren't created from scratch
 - [FAQ: Why don't HB bulls breed like cattle?](faq.md#why-dont-hof-bergmann-pasture-bulls-breed-like-cattle) - More detail on the BULL vs COW limitation
+- [Mod Compatibility](reference-mod-compatibility.md) - Which mods conflict with or work alongside RLRM
