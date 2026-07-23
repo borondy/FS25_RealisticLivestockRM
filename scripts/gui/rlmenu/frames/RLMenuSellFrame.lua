@@ -1,15 +1,13 @@
 --[[
     RLMenuSellFrame.lua
-    RL Tabbed Menu - Sell tab (Phase 4, shell).
+    RL Tabbed Menu - Sell tab.
 
     Left-sidebar husbandry picker with dot indicators, multi-section
     SmoothList of animal cards with checkboxes for multi-select, and
     right-hand detail pane (pen column + animal column via RLDetailPaneHelper).
 
-    Phase 1 (shell): browsable frame with shared selection, canBeSold filter,
-    and disabled Sell/Sell Selected placeholder buttons.
-    Phase 2 adds cart display in pen column.
-    Phase 3 wires actual sell logic via RLAnimalSellService.
+    Shared selection, canBeSold filter, cart display in the pen column;
+    sell logic via RLAnimalSellService.
 ]]
 
 RLMenuSellFrame = {}

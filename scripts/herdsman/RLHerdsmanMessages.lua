@@ -20,14 +20,14 @@
 --     formatMoney closure) + g_server, groups the records by husbandry in first-seen order,
 --     resolves each placeable via ctx.husbandryPlaceablesById (the SAME handle T3 dispatched its
 --     events against), drives the server-local addRLMessage sink per husbandry (MP transport rides
---     the addRLMessageDirect chokepoint's incremental broadcast, RLRM-464), and logs every emission
+--     the addRLMessageDirect chokepoint's incremental broadcast), and logs every emission
 --     decision + skip cause.
 --
 -- Parity anchor: AIAnimalManager:onDayChanged - its per-operation emission legs (the SELL / BUY /
 -- CASTRATE / NAMING / AI sections) each do `husbandry:addRLMessage(id, nil, args)` for the local
 -- sink. Both this module and legacy now rely on the addRLMessageDirect chokepoint to broadcast each
 -- server-added message to connected clients (one incremental HusbandryMessageAddEvent per message,
--- server-authoritative, RLRM-464); emit itself no longer builds or broadcasts a wire payload.
+-- server-authoritative); emit itself no longer builds or broadcasts a wire payload.
 --
 -- Summary mode (decision 1b): every message goes through placeable:addRLMessage so the aggregator
 -- decides individual-vs-summary. RLMessageAggregator is extended (separately) so castrate / named /
@@ -138,7 +138,7 @@ RLHerdsmanMessages.ID_FAMILY       = ID_FAMILY
 --- floor(n) == 1 -> _SINGLE else _MULTIPLE. Args: sell/buy exec carry money (SINGLE {money}, MULTIPLE
 --- {count,money}); all others SINGLE {}, MULTIPLE {count}; the count arg is a STRING (the canonical RL
 --- message arg type), while record.count stays numeric. A move row uses movedCount when present (an
---- EPP butcher move can dispatch fewer than planned after the age filter, RLRM-489); husbandry-move +
+--- EPP butcher move can dispatch fewer than planned after the age filter); husbandry-move +
 --- every other row fall back to count.
 --- SEPARATE branch (independent of the above, move rows only): a move row (mark=false) with
 --- skippedAge>0 ALSO emits an AI_MANAGER_MOVE_SKIPPED_AGE_SINGLE/MULTIPLE record REGARDLESS of
@@ -187,7 +187,7 @@ function RLHerdsmanMessages.buildMessages(results, formatMoney)
 
             if idSet ~= nil then
                 -- The moved record's count comes from movedCount when present (an EPP butcher move can
-                -- dispatch fewer than planned after the delivery-time age filter, RLRM-489); every
+                -- dispatch fewer than planned after the delivery-time age filter); every
                 -- other row - including husbandry-move rows, which carry no movedCount - falls back to
                 -- count (unchanged). 0 is a valid movedCount but never reaches here (dispatched=false
                 -- on a 0-moved EPP row -> the genuine-skip branch above), so `or` cannot mis-fall to count.
@@ -237,7 +237,7 @@ function RLHerdsmanMessages.buildMessages(results, formatMoney)
                 end
             end
 
-            -- Skipped-for-age (EPP butcher move, RLRM-489): a move row (mark=false) with skippedAge>0
+            -- Skipped-for-age (EPP butcher move): a move row (mark=false) with skippedAge>0
             -- emits the skipped-age record REGARDLESS of `dispatched` - it ACCOMPANIES the moved record
             -- on a partial-age move, or stands ALONE on an all-age-ineligible / partial-age+no-space
             -- move (dispatched=false, no moved record). Count arg = skippedAge. INDIVIDUAL only (the ids
@@ -273,7 +273,7 @@ end
 --- dropped), logs every skip, then per husbandry (in first-seen plan order) resolves the placeable
 --- and drives the server-local sink: placeable:addRLMessage (so the aggregator decides
 --- individual-vs-summary). MP transport to clients rides the addRLMessageDirect chokepoint's
---- incremental HusbandryMessageAddEvent broadcast (RLRM-464); emit no longer builds a wire payload.
+--- incremental HusbandryMessageAddEvent broadcast; emit no longer builds a wire payload.
 --- Reads no summary fields beyond results; never mutates summary.
 ---@param summary table|nil T3 executor summary ({ results = {...} })
 ---@param ctx table executor ctx; only ctx.husbandryPlaceablesById ({ [uniqueId] = placeable }) is read
@@ -286,7 +286,7 @@ function RLHerdsmanMessages.emit(summary, ctx)
     Log:trace("%s built %d record(s), %d skip(s) from %d result row(s)",
         LOG_PREFIX, #built.records, #built.skips, #results)
 
-    -- Log every dropped row so a missing message is never silent (M1: logging is emit's job).
+    -- Log every dropped row so a missing message is never silent (logging is emit's job).
     for _, skip in ipairs(built.skips) do
         if skip.level == "warn" then
             Log:warning("%s skipped row: %s (rule=%s husbandry=%s op=%s)", LOG_PREFIX, skip.reason,
@@ -327,7 +327,7 @@ function RLHerdsmanMessages.emit(summary, ctx)
             for _, rec in ipairs(recs) do
                 -- Server-local sink only. addRLMessage -> addRLMessageDirect coerces args in place, so
                 -- copyArgs keeps the record's args pristine. MP transport to clients now rides that
-                -- chokepoint's incremental HusbandryMessageAddEvent broadcast (RLRM-464), so emit no
+                -- chokepoint's incremental HusbandryMessageAddEvent broadcast, so emit no
                 -- longer builds a wire payload here.
                 placeable:addRLMessage(rec.id, nil, copyArgs(rec.args))
 

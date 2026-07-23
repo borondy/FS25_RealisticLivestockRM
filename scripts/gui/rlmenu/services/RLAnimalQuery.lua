@@ -71,7 +71,7 @@ end
 --- client) - the field name is kept because the picker / presenter / wire treat it as one opaque
 --- unique string, and keying it the SAME way the decoded targets are keyed is what makes the
 --- picker's pre-check match. `animalType` is getAnimalTypeIndex() (nil for a not-fully-loaded /
---- non-animal placeable - the pure gate excludes nil-type from typed lists, H6); `name` uses the
+--- non-animal placeable - the pure gate excludes nil-type from typed lists); `name` uses the
 --- formatHusbandryLabel "Husbandry N" fallback so the picker + sort never see an empty label. A
 --- husbandry with no usable key (keyFor returns nil + :warning) is SKIPPED (it could never
 --- round-trip as a stored target). Returns a fresh array (empty for nil / farmless).
@@ -90,10 +90,10 @@ function RLAnimalQuery.listHusbandryDescriptorsForFarm(farmId)
         else
             local animalType = placeable.getAnimalTypeIndex ~= nil and placeable:getAnimalTypeIndex() or nil
             if animalType == nil then
-                -- H6: a nil-type husbandry (not-fully-loaded / non-animal placeable) is excluded
+                -- A nil-type husbandry (not-fully-loaded / non-animal placeable) is excluded
                 -- from typed picker lists by the pure gate and never matches the castrate
                 -- exclusion; log it per-case so its disappearance from the picker is traceable.
-                Log:debug("RLAnimalQuery.listHusbandryDescriptorsForFarm: husbandry '%s' (key=%s) has nil animalType; excluded from typed lists (H6)",
+                Log:debug("RLAnimalQuery.listHusbandryDescriptorsForFarm: husbandry '%s' (key=%s) has nil animalType; excluded from typed lists",
                     RLAnimalQuery.formatHusbandryLabel(placeable, i), tostring(key))
             end
             descriptors[#descriptors + 1] = {
@@ -131,7 +131,7 @@ end
 --- placeable scan, but enumerating the PLACEABLE (MP-stable key) rather than the production point, and
 --- reporting the SET of supported type indices (`animalTypes` = keys of pp.animalsTypeData) so a
 --- multi-type butcher is ONE picker row under an ANY-type filter. An EPP whose type set is EMPTY is
---- EXCLUDED (H6 analog - it can never accept the pen's animals), as is one with no usable target key.
+--- EXCLUDED (it can never accept the pen's animals), as is one with no usable target key.
 --- EPP is an OPTIONAL third-party mod: every hop nil-guards spec_extendedProductionPoint /
 --- productionPoint / animalsTypeData, so an absent mod yields exactly the husbandry descriptors (zero
 --- behavior change). EPP descriptors are appended (unsorted); the presenter re-sorts the candidate set.
@@ -159,9 +159,9 @@ function RLAnimalQuery.listMoveDestinationDescriptorsForFarm(farmId)
                     animalTypes[#animalTypes + 1] = typeIndex
                 end
                 if #animalTypes == 0 then
-                    -- H6 analog: a butcher that accepts no animal types can never be a valid dest.
+                    -- A butcher that accepts no animal types can never be a valid dest.
                     skipped = skipped + 1
-                    Log:debug("RLAnimalQuery.listMoveDestinationDescriptorsForFarm: EPP '%s' has empty animalsTypeData; excluded (H6)",
+                    Log:debug("RLAnimalQuery.listMoveDestinationDescriptorsForFarm: EPP '%s' has empty animalsTypeData; excluded",
                         tostring(placeable.getName ~= nil and placeable:getName() or "?"))
                 else
                     local key = RLHusbandryTargetKey.keyFor(placeable)

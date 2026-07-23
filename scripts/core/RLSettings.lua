@@ -478,7 +478,7 @@ function RLSettings.loadFiltersFromXMLFile()
 end
 
 
---- Deferred rule-load entry point (M-Service S2). Sibling of
+--- Deferred rule-load entry point. Sibling of
 --- loadFiltersFromXMLFile: server-only, GUI-free, called from
 --- AnimalSystem:loadFromXMLFile (NOT from the GUI-coupled RLSettings.initialize,
 --- which is reached only through the in-game-menu builder). Rules carry no
@@ -592,7 +592,7 @@ function RLSettings.saveToXMLFile(name, state)
 			end
 
 			-- Herdsman rules share the same rm_RlSettings.xml file (their own
-			-- subtree under RLHerdsmanRuleService.XML_BASE_KEY, M-Service S2).
+			-- subtree under RLHerdsmanRuleService.XML_BASE_KEY).
 			-- Symmetric with the filter save above; server-only.
 			if g_rlHerdsmanRuleService ~= nil then
 				g_rlHerdsmanRuleService:saveToXMLFile(xmlFile, RLHerdsmanRuleService.XML_BASE_KEY)

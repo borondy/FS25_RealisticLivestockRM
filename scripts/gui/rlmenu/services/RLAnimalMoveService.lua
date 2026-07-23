@@ -6,7 +6,7 @@
     AnimalMoveEvent dispatch. Provides the same move code paths the legacy
     AnimalScreen move flow used without coupling to a controller's instance state.
 
-    The service also moves animals to and from a livestock trailer (Phase 8 M2),
+    The service also moves animals to and from a livestock trailer,
     mirroring the legacy AnimalScreenTrailerFarm bulk filter pipeline: per-animal
     AnimalMoveEvent.validate, then a destination EPP age-gate, then a running-count
     capacity check, builds a survivor list; only survivors are dispatched and the
@@ -257,7 +257,7 @@ end
 
 --- Filter animals through the legacy-parity pipeline, dispatch the survivors via the SAME
 --- AnimalMoveEvent the legacy controller fires, and (in pure SP only) add the single
---- MOVED_ANIMALS_* message. Handles pen<->trailer (Phase 8) and the existing pen<->pen /
+--- MOVED_ANIMALS_* message. Handles pen<->trailer and the existing pen<->pen /
 --- pen->EPP moves through one shared path; the only endpoint difference is the source /
 --- target objects and the moveType string.
 ---

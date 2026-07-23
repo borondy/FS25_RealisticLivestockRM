@@ -87,7 +87,7 @@ function AIAnimalMoveEvent:run(connection)
 
         if g_server == nil then return end
 
-        -- Resolve the TARGET shape BEFORE the cluster-system prologue (RLRM-489). A herdsman dest is
+        -- Resolve the TARGET shape BEFORE the cluster-system prologue. A herdsman dest is
         -- a husbandry OR an owner-farm EPP (butcher). An EPP placeable has no real cluster system (its
         -- internal one is a placeholder), so self.targetObject:getClusterSystem() must NOT run for it -
         -- it would crash. Unwrap the production point here; getClusterSystem moves into the husbandry
@@ -194,7 +194,7 @@ end
 --- total count, so one representative subtype answers type-support + total-room for the whole
 --- single-type source pen - no per-subtype loop. An EPP destination (spec_extendedProductionPoint)
 --- delegates to its production point: the support + free-slot methods live on the pp, and the
---- free-slot gate is subtype-arg'd (player-path parity, RLRM-489). Omits the player path's
+--- free-slot gate is subtype-arg'd (player-path parity). Omits the player path's
 --- canFarmAccess: the herdsman is server-authoritative and both source + dest are owner-farm, so the
 --- permission gate is structurally always-true; omitting it keeps the executor's decision path free
 --- of g_* reads for dual-running. Reuses the base-game AnimalMoveEvent.MOVE_ERROR_* constants.

@@ -3,7 +3,7 @@
 --
 -- Extracted from AnimalScreenBase.lua for reuse outside of shop UI.
 -- Consumers: RLAnimalDisplayHelper (name tag), RLGeneticsFormatter (Info frame),
--- RLFilterFieldCatalog (Phase 0 saveable filters).
+-- RLFilterFieldCatalog (saveable filters).
 --
 -- Do NOT duplicate this math - always call RLScaleHelper.scaleToNinetyNine.
 

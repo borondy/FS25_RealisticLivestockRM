@@ -38,8 +38,9 @@
 -- TEMPORARY: this module, its one source() line, RLLegacyTripwireTests.lua, and
 -- that suite's RLTestRunner registration all die when the legacy AnimalScreen
 -- layer is deleted (the migration doc's legacy-layer-removal checklist owns the
--- removal steps). It ships in dev/tester builds only; per-call ERROR spam is the
--- intended trade for never masking a later unexpected caller.
+-- removal steps). It ships in all builds until the legacy layer is removed;
+-- per-call ERROR spam is the intended trade for never masking a later
+-- unexpected caller.
 --
 -- Author: Ritter
 -- Usage: self-arms at source time (file tail); no caller needed.
@@ -322,7 +323,7 @@ function RLLegacyTripwire.armAll()
     RLLegacyTripwire.armTable(ProfileDialog,        "ProfileDialog")
     RLLegacyTripwire.armTable(AnimalInfoDialog,     "AnimalInfoDialog")
 
-    -- The 167 total is the reproducible count gate (see the MANIFEST header). A
+    -- The 160 total is the reproducible count gate (see the MANIFEST header). A
     -- live WARN on drift makes a coverage loss during the migration SCREAM rather
     -- than silently shrink - a WARN, never a load abort, per the spec's count-gate
     -- boundary. Coverage-counted (not mutation), so a repeat arm stays at 167.

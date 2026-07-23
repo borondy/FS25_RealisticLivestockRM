@@ -1,8 +1,8 @@
 --[[
     RLTrailerEndpointService.lua
     Read-only query service: reads a base-game livestock trailer as an
-    animal-collection endpoint for the RL Tabbed Menu Phase 8 transfer slices
-    (M2 pen / M3 dealer / M4 world).
+    animal-collection endpoint for the RL Tabbed Menu transfer slices
+    (pen / dealer / world).
 
     Wraps the LivestockTrailer getters into plain shapes - numbers, booleans,
     strings, and live Animal-ref arrays - that every later slice consumes.
@@ -25,7 +25,7 @@
     structurally support a type it is not currently locked to. The fit predicate
     mirrors legacy applySourceBulk exactly (reject when free <= queued).
 
-    M1 keystone (Phase 8 trailer-transfer): trailer-scoped, no GUI / events /
+    Transfer keystone: trailer-scoped, no GUI / events /
     routing, zero behavior change. Loaded by main.lua but invoked by no shipped
     path until the M2 transfer frame consumes it.
     Mirrors the pcall-per-getter + level-logging house pattern of
@@ -69,7 +69,7 @@ end
 --- already-queued running count. The operator is `>` (NOT `>=`): legacy
 --- AnimalScreenTrailerFarm:applySourceBulk rejects when `free <= queued`, so the
 --- slot a queued item will occupy is not offered to the next item. Endpoint-agnostic
---- by design - M2's husbandry side reuses this with its own free-slot read.
+--- by design - the pen (husbandry) side reuses this with its own free-slot read.
 --- @param freeSlots number
 --- @param alreadyQueued number
 --- @return boolean room

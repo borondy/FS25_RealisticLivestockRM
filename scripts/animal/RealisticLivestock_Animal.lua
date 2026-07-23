@@ -1478,7 +1478,7 @@ function Animal:updateOutput(temp)
             litersPerDay = litersPerDay * productivity
         end
 
-        -- RLRM-264 diagnostics: capture the milk gate breakdown here, but defer the
+        -- Milk diagnostics: capture the milk gate breakdown here, but defer the
         -- logging until AFTER the disease modifier below - a sick cow is zeroed by
         -- disease:modifyOutput, not by the lactation gate, and the two are
         -- indistinguishable from the husbandry side (both read 0). Carrying these in

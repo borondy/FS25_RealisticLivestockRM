@@ -233,7 +233,7 @@ local function buildPlannerCtx(farm, husbandriesById, env)
 end
 
 --- Shape the FROZEN executor ctx (T3): the same uniqueId->placeable map the planner keyed off, the
---- owner-farm EPP placeable map for the move-dest fall-through (RLRM-489), plus the dispatch
+--- owner-farm EPP placeable map for the move-dest fall-through, plus the dispatch
 --- boundary (server/mission) + the service refs. `eppPlaceablesById` is ALWAYS set (possibly an empty
 --- table - EPP is an optional mod), the always-set contract the executor relies on (a nil map would be
 --- treated as empty anyway - the missing-dest skip - but the day-tick never hands it nil).
@@ -330,7 +330,7 @@ function RLHerdsmanDayTick.run(env)
                         LOG_PREFIX, tostring(farmId), #enabledRules)
                 end
 
-                -- Owner-farm EPP (butcher) placeables for the move-dest fall-through (RLRM-489). ALWAYS
+                -- Owner-farm EPP (butcher) placeables for the move-dest fall-through. ALWAYS
                 -- built (possibly empty - EPP is an optional mod, and a test env may omit eppsForFarm):
                 -- keyed by uniqueId, the same key space the rule's move destinationHusbandry uses.
                 local eppPlaceablesById = indexEPPsByUniqueId(env.eppsForFarm ~= nil and env.eppsForFarm(farmId) or {})
@@ -398,7 +398,7 @@ function RLHerdsmanDayTick.buildEnv()
         farms              = g_farmManager:getFarms(),
         rulesForFarm       = function(farmId) return ruleService:listForFarm(farmId) end,
         husbandriesForFarm = function(farmId) return husbandrySystem:getPlaceablesByFarm(farmId) end,
-        -- Owner-farm EPP (butcher) placeables for the move-dest fall-through (RLRM-489). Scans the
+        -- Owner-farm EPP (butcher) placeables for the move-dest fall-through. Scans the
         -- placeableSystem for spec_extendedProductionPoint, mirroring RLMoveDestinationHelper.getValidDestinations' scan;
         -- nil-guarded so an absent EPP mod (no such spec on any placeable) yields an empty list.
         eppsForFarm        = function(farmId)

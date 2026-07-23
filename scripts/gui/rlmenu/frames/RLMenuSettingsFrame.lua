@@ -198,7 +198,7 @@ function RLMenuSettingsFrame.new()
         callback = function() self:onDeleteConditionClicked() end,
     }
     -- Add group: Tier 3 only. MENU_EXTRA_2 slot. v2 stub - callback logs
-    -- and no-ops; Phase 2 wires the actual sibling-group insertion.
+    -- and no-ops; the group-editing follow-up wires the actual sibling-group insertion.
     self.addGroupButtonInfo = {
         inputAction = InputAction.MENU_EXTRA_2,
         text = g_i18n:getText("rl_menu_filters_add_group_button"),
@@ -1081,7 +1081,7 @@ function RLMenuSettingsFrame:updateButtonVisibility()
         if hasSelection then
             table.insert(self.menuButtonInfo, self.editConditionButtonInfo)
             table.insert(self.menuButtonInfo, self.addConditionButtonInfo)
-            -- Phase 2: "Add group" hidden until group editing is implemented.
+            -- "Add group" hidden until group editing is implemented.
             -- addGroupButtonInfo / onAddGroupClicked / addGroupAtSelection stay
             -- defined; re-enable by restoring these two inserts. The stub still
             -- surfaces an InfoDialog if ever invoked directly.
@@ -1376,7 +1376,7 @@ local function overlayPending(stored, overlay)
     end
     if overlay.op ~= nil then
         -- Build a fresh root group with the new op; preserve any nested
-        -- children so a filter authored with sub-groups (Phase 2 / API /
+        -- children so a filter authored with sub-groups (group editing / API /
         -- peer) keeps its structure when the user flips the root match
         -- mode in the UI.
         local stored_children = (stored.expression and stored.expression.children) or {}
@@ -1816,7 +1816,7 @@ end
 --- editor can render plus a verbatim list of preserved (unsupported) child
 --- nodes. Preserved nodes round-trip through flush unchanged so saving
 --- supported edits cannot destroy nested groups or enum/string conditions
---- authored elsewhere (hand-edited XML, peer client, future Phase 2 UI).
+--- authored elsewhere (hand-edited XML, peer client, future group-editing UI).
 ---
 --- Returned tables are shallow-cloned at the top level; supported rows are
 --- fresh `{ field, cmp, value }` tables so editing one does not mutate the
@@ -2379,7 +2379,7 @@ end
 --- 1-based index within that parent's children. v2 ships a flat root (no
 --- nested groups), so the helper either returns `(expression, k)` for a
 --- matching leaf condition in expression.children or `(nil, nil)` when
---- the node isn't present. Phase 2 will recurse through nested groups.
+--- the node isn't present. Group editing will recurse through nested groups.
 ---
 --- Signature takes `expression` explicitly so callers can pass whichever
 --- AST they are operating on (stored filter, pending overlay, or
@@ -2427,7 +2427,7 @@ end
 --- Selection-aware insertion. For v2 with flat data, "selection" means the
 --- 1-based index of the focused row in filterConditionsList. No selection
 --- (or empty list) -> append to end. Selected row k -> insert at k+1 (next
---- sibling). Phase 2 group rows will route through getParentGroupAndIndex
+--- sibling). Future group rows will route through getParentGroupAndIndex
 --- to insert as child of a focused group; v2 always inserts at the root.
 function RLMenuSettingsFrame:addConditionAtSelection(newCond)
     if self.selectedFilterId == nil then return end
@@ -2467,14 +2467,14 @@ function RLMenuSettingsFrame:addConditionAtSelection(newCond)
     reloadConditionsList(self, insertAt)
 end
 
---- Phase 2 stub. v2 binding: enabled callback that logs + warns + surfaces
+--- Group-editing stub. v2 binding: enabled callback that logs + warns + surfaces
 --- an InfoDialog so the user gets visible feedback instead of a silent
 --- no-op. Verifies the action-bar context-switching plumbing without
---- committing Phase 2 group semantics. InfoDialog.show gives the action
+--- committing group semantics. InfoDialog.show gives the action
 --- closed-loop feedback that grouping is intentionally unimplemented in
 --- this version.
 function RLMenuSettingsFrame:addGroupAtSelection(_newGroup)
-    Log:warning("RLMenuSettingsFrame:addGroupAtSelection: Add group: placeholder (Phase 2) - no state change")
+    Log:warning("RLMenuSettingsFrame:addGroupAtSelection: Add group: placeholder (group editing not implemented) - no state change")
     if InfoDialog ~= nil and InfoDialog.show ~= nil and g_i18n ~= nil then
         Log:debug("RLMenuSettingsFrame:addGroupAtSelection: showing not-yet-implemented InfoDialog")
         InfoDialog.show(g_i18n:getText("rl_menu_filters_add_group_not_implemented"))
@@ -2539,7 +2539,7 @@ function RLMenuSettingsFrame:onDeleteConditionClicked()
     reloadConditionsList(self, idx)
 end
 
---- Action-bar Add group stub (Tier 3, MENU_EXTRA_2 after step 5). Phase 2
+--- Action-bar Add group stub (Tier 3, MENU_EXTRA_2 slot). The group-editing follow-up
 --- replaces this body with selection-aware sibling-group insertion. The
 --- v2 binding is enabled-but-no-op; this callback's existence verifies
 --- the action-bar context-switching plumbing.
@@ -2860,9 +2860,9 @@ function RLMenuSettingsFrame:onClickDuplicate()
     local merged = overlayPending(stored, self.pendingChanges[self.selectedFilterId])
     local dupName = self:computeDuplicateName(merged.name)
 
-    -- _cloneFilter deep-clones the expression (P2 carryover ownership
+    -- _cloneFilter deep-clones the expression (carryover ownership
     -- contract). The service ALSO deep-clones internally; double-clone is
-    -- a correctness belt-and-suspenders honoured throughout Phase 0.
+    -- a correctness belt-and-suspenders honoured throughout the filter code.
     -- Preserve the source filter's scope. A global filter (farmId == nil)
     -- stays global; a farm-scoped filter keeps its farmId. Using
     -- self.farmId here would narrow a global copy down to the active
@@ -3180,7 +3180,7 @@ function RLMenuSettingsFrame:populateCellForItemInSection(list, _section, index,
     -- Indent: depth-aware left position. v2 ships flat (depth=0 for every
     -- row), so the static XML position="20px -10px" already produces the
     -- correct layout and this branch is a no-op. The depth-aware override
-    -- is wired NOW so Phase 2 just needs to populate self.conditionRowDepths
+    -- is wired NOW so group editing just needs to populate self.conditionRowDepths
     -- alongside its partition pass.
     --
     -- setPosition takes NORMALIZED coordinates; GuiUtils.getNormalizedXValue

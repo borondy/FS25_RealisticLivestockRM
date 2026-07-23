@@ -1,6 +1,6 @@
 --[[
     RLTransferEppAdapter.lua
-    The EPP (butcher) counterpart adapter behind the RLTransferAdapter seam (RLRM-495, Phase 9).
+    The EPP (butcher) counterpart adapter behind the RLTransferAdapter seam.
 
     When a third-party EPP butcher trigger (boucherie / MeatProcessingPlant /
     Butcher_Table) direct-opens the vanilla AnimalScreen with its own controller,
@@ -16,7 +16,7 @@
                           move), then routes deliver to RLAnimalMoveService.moveAnimals
                           (trailer, pp, animals, "TARGET") - the SAME AnimalMoveEvent EPP
                           delivery leg the vanilla EPP screen fires (whose
-                          _dispatchTargetDelivery primitive the RLRM-489 herdsman
+                          _dispatchTargetDelivery primitive the herdsman
                           AIAnimalMoveEvent path also reuses); mutation parity, never a
                           new event class.
 
@@ -116,7 +116,7 @@ end
 --- the butcher side. For the deliver direction, routes to
 --- RLAnimalMoveService.moveAnimals(trailer, pp, animals, "TARGET") - the SAME
 --- AnimalMoveEvent EPP leg the vanilla EPP screen fires (whose _dispatchTargetDelivery
---- primitive the RLRM-489 herdsman AIAnimalMoveEvent path also reuses); mutation
+--- primitive the herdsman AIAnimalMoveEvent path also reuses); mutation
 --- parity. The move-service errorCode result (incl. the all-rejected firstErrorCode,
 --- fired synchronously) is wrapped here into the frame's uniform (success, errorText)
 --- completion contract; the accept/reject bool propagates so the frame releases

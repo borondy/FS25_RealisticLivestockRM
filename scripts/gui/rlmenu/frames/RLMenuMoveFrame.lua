@@ -1,6 +1,6 @@
 --[[
     RLMenuMoveFrame.lua
-    RL Tabbed Menu - Move tab (Phase 3).
+    RL Tabbed Menu - Move tab.
 
     Left-sidebar husbandry picker with dot indicators, multi-section
     SmoothList of animal cards with checkboxes for multi-select, and

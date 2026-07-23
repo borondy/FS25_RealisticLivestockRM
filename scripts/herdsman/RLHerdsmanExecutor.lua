@@ -676,7 +676,7 @@ function RLHerdsmanExecutor._doAi(action, ctx, placeable, farmId, count)
     end
 
     -- The planner emits plain-data uniqueId strings (RLHerdsmanPlanner stays data-only for headless
-    -- purity). The event wires the dewar as a network node object (RLRM-513), so resolve each
+    -- purity). The event wires the dewar as a network node object, so resolve each
     -- string to the LIVE server-side dewar here (a server-side uniqueId lookup is fine). A nil/empty
     -- string OR a string that resolves to no live dewar fails the WHOLE action bad-data (no wage, no
     -- dispatch) - parity with the existing all-or-nothing early-returns, keeping #items == count.
@@ -763,7 +763,7 @@ function RLHerdsmanExecutor._doMove(action, ctx, placeable, farmId, count)
     end
 
     -- Dest resolves DI-purely from the owner-farm uniqueId->placeable maps the source came from:
-    -- husbandry first, then the EPP (butcher) map (RLRM-489). An owner-farm dest is guaranteed a
+    -- husbandry first, then the EPP (butcher) map. An owner-farm dest is guaranteed a
     -- member (the picker only offers owner-farm dests), so no g_* read / RLHusbandryTargetKey.resolve
     -- is needed, keeping the decision path dual-runnable. eppPlaceablesById is nil-tolerated (treated
     -- as empty - the always-set-possibly-empty contract), so no-EPP-mod falls straight through to
@@ -780,7 +780,7 @@ function RLHerdsmanExecutor._doMove(action, ctx, placeable, farmId, count)
     end
 
     -- EPP (butcher) dest: unwrap the production point and run the delivery-time age filter +
-    -- all-or-nothing capacity gate in the pinned order (RLRM-489). A husbandry dest has no
+    -- all-or-nothing capacity gate in the pinned order. A husbandry dest has no
     -- spec_extendedProductionPoint, so this branch is skipped and the existing husbandry path runs
     -- byte-identical (nil-guarded, zero change when the EPP mod is absent).
     local eppSpec = dest.spec_extendedProductionPoint
@@ -814,7 +814,7 @@ function RLHerdsmanExecutor._doMove(action, ctx, placeable, farmId, count)
     return true, true, nil
 end
 
---- Move to an EPP (butcher) destination (RLRM-489): player-move-FACING parity - the delivery-time age
+--- Move to an EPP (butcher) destination: player-move-FACING parity - the delivery-time age
 --- filter + the same delivery primitive - with two DELIBERATE divergences (placeable-keyed transport;
 --- ALL-OR-NOTHING capacity). PINNED order:
 ---   1. typeData PRESENCE on the SOURCE pen's type index (placeable:getAnimalTypeIndex() - single-type

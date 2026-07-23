@@ -87,7 +87,7 @@ function PlaceableHusbandryAnimals:addRLMessageDirect(id, animal, args, date, un
 
     spec.unreadMessages = true
 
-    -- Incremental MP sync (RLRM-464): broadcast this server-added message to connected clients so their
+    -- Incremental MP sync: broadcast this server-added message to connected clients so their
     -- Messages tab stays current during play - the join snapshot (HusbandryMessageStateEvent) only
     -- covers connect time. Server-authoritative + netIsRunning; skipped on savegame load (server-local,
     -- predates any join - the join snapshot covers loaded messages). NO sendLocal: the host already
@@ -575,7 +575,7 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onPeriodChanged(_)
 
         else
 
-            -- MP client branch (RLRM-526): recovery (monthsSinceLastBirth) is
+            -- MP client branch: recovery (monthsSinceLastBirth) is
             -- deterministic and unsynced, so a client advances it locally in
             -- lockstep with the server -- the same reason aging runs client-side
             -- in onDayChanged (no server guard around its per-animal loop).

@@ -8,7 +8,7 @@
       * overall-quality label computation for the row (carries forward legacy
         behavior - the overall-quality label in the "price" slot of each row)
       * per-quantity semen price computation for the middle-column display
-        (Phase 1 uses quantity = 1; Phase 2 wires the quantity stepper)
+        (the quantity stepper drives the quantity argument)
 
     Disjoint from RLAnimalQuery / RLDealerQuery: AI stock comes from
     animalSystem:getAIAnimalsByTypeIndex, not from husbandries or dealer stock.
@@ -281,9 +281,7 @@ end
 ---
 --- Legacy has a second display-side computation that splits PRICE_PER_STRAW
 --- into the `setText` call; math is equivalent,
---- but this service returns the complete price for clarity. Phase 1 callers
---- pass quantity = 1; Phase 2 wires the stepper to call with any DEWAR_QUANTITIES
---- value.
+--- but this service returns the complete price for clarity. The quantity stepper calls with any DEWAR_QUANTITIES value.
 --- @param animal table  Raw Animal with `.birthday.country`, `.farmId`, `.success`, `.genetics`
 --- @param quantity number  Positive integer straw count
 --- @return number price

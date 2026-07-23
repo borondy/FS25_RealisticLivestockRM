@@ -3,7 +3,7 @@ RealisticLivestock_PlaceableHusbandryMilk = {}
 
 function RealisticLivestock_PlaceableHusbandryMilk.registerOverwrittenFunctions(placeable)
 	SpecializationUtil.registerOverwrittenFunction(placeable, "updateInputAndOutput", PlaceableHusbandryMilk.updateInputAndOutput)
-	-- RLRM-264 diagnostics: wrap the base milk deposit (PlaceableHusbandryMilk:updateOutput)
+	-- Milk diagnostics: wrap the base milk deposit (PlaceableHusbandryMilk:updateOutput)
 	-- to log the production factors and the actual liters deposited. Registered AFTER the
 	-- base spec's own updateOutput registration (this fn is appended to
 	-- PlaceableHusbandryMilk.registerOverwrittenFunctions), so the RL wrapper is outermost
@@ -29,7 +29,7 @@ function RealisticLivestock_PlaceableHusbandryMilk:onHusbandryAnimalsUpdate(supe
 				end
 			end
 		end
-		-- RLRM-264 diagnostics: this fires on every herd change (birth/buy/sell/move)
+		-- Milk diagnostics: this fires on every herd change (birth/buy/sell/move)
 		-- on BOTH server and client. Confirms the event reaches a dedicated server and
 		-- shows how many milk fillTypes are active for UI. It does NOT recompute
 		-- litersPerHour (that is server-only, in updateInputAndOutput each hour).
@@ -55,7 +55,7 @@ function PlaceableHusbandryMilk:updateInputAndOutput(superFunc, animals)
 
     spec.activeFillTypes = {}
 
-    -- RLRM-264 diagnostics: pre-compute the registered litersPerHour keys once so a
+    -- Milk diagnostics: pre-compute the registered litersPerHour keys once so a
     -- "dropped" line can show which fillTypes the building actually accepts. An empty
     -- key set means the base onLoad registered no milk fillType (load-order / data
     -- problem) and NO milk can ever be summed for this pen.
@@ -90,7 +90,7 @@ function PlaceableHusbandryMilk:updateInputAndOutput(superFunc, animals)
                         (animal.genetics and animal.genetics.productivity) or -1,
                         milkPerHour, tostring(g_fillTypeManager:getFillTypeNameByIndex(milk.fillType)))
 
-                    -- Client shows lactating, server contributes nothing: RLRM-264 symptom.
+                    -- Client shows lactating, server contributes nothing: the dedicated-server milk-bug symptom.
                     if animal.isLactating and milkPerHour <= 0 then
                         Log:debug("Milk[%s]: cow=%s/%s is LACTATING but contributes 0 l/h (age=%d isParent=%s months=%s) - see Animal:updateOutput[milk] gate log",
                             penName, tostring(animal.farmId), tostring(animal.uniqueId), animal.age or -1,
@@ -122,7 +122,7 @@ function PlaceableHusbandryMilk:updateInputAndOutput(superFunc, animals)
         penName, numCows, numLactating, numProducing, numDropped,
         table.concat(litersSummary, ", "), #spec.activeFillTypes, tostring(self.isServer))
 
-    -- The exact RLRM-264 fingerprint: cows lactating, but total production is zero.
+    -- The exact milk-bug fingerprint: cows lactating, but total production is zero.
     if numLactating > 0 and numProducing == 0 then
         Log:warning("Milk[%s]: %d cow(s) lactating but NONE producing milk (litersPerHour all 0) - enable TRACE for per-cow gate values.",
             penName, numLactating)
@@ -132,7 +132,7 @@ end
 
 
 --- Build a comma-separated list of fillType names present as keys in a litersPerHour
---- table. RLRM-264 diagnostics helper: an empty result means the base husbandry onLoad
+--- table. Milk diagnostics helper: an empty result means the base husbandry onLoad
 --- registered no milk fillType for this pen, so nothing can ever be summed/deposited.
 --- @param litersPerHour table fillTypeIndex -> liters map
 --- @return string names Comma-separated fillType names ("<none>" if empty)
@@ -146,7 +146,7 @@ function RealisticLivestock_PlaceableHusbandryMilk._fillTypeKeyList(litersPerHou
 end
 
 
---- RLRM-264 diagnostics: behaviour-preserving wrapper around the base milk deposit
+--- Milk diagnostics: behaviour-preserving wrapper around the base milk deposit
 --- (PlaceableHusbandryMilk:updateOutput). The deposit is scaled down by the pen's
 --- feeding and production factors, so a lactating herd with litersPerHour > 0 can still
 --- store zero milk when any of those factors collapses (or the store is full). There is
@@ -181,12 +181,15 @@ function RealisticLivestock_PlaceableHusbandryMilk:updateOutput(superFunc, foodF
                     foodFactor or -1, productionFactor or -1, globalProductionFactor or -1,
                     litersPerHour, freeCapacity, fillLevel)
 
-                -- Rate exists but nothing can land: a zero feeding/production factor or a
-                -- full store suppresses production. Watch fillLevel across ticks to confirm
-                -- whether milk is actually accumulating.
-                if litersPerHour > 0 and ((productionFactor or 0) <= 0 or (globalProductionFactor or 0) <= 0 or freeCapacity <= 0) then
+                -- Rate exists but nothing can land: a zero feeding/production factor
+                -- suppresses production and warrants a WARNING; a merely-full store is a
+                -- normal player state (milk awaiting collection) and only logs at DEBUG.
+                if litersPerHour > 0 and ((productionFactor or 0) <= 0 or (globalProductionFactor or 0) <= 0) then
                     Log:warning("MilkDeposit[%s]: litersPerHour=%.3f but production is suppressed (productionFactor=%.3f globalProductionFactor=%.3f freeCapacity=%.1f)",
                         penName, litersPerHour, productionFactor or -1, globalProductionFactor or -1, freeCapacity)
+                elseif litersPerHour > 0 and freeCapacity <= 0 then
+                    Log:debug("MilkDeposit[%s]: litersPerHour=%.3f but the store is full (freeCapacity=%.1f) - production suppressed until milk is collected",
+                        penName, litersPerHour, freeCapacity)
                 end
             end
         end)

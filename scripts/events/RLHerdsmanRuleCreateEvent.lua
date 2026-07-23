@@ -1,6 +1,6 @@
 --[[
     RLHerdsmanRuleCreateEvent.lua
-    Network event for creating a Herdsman rule record (M-Service S3).
+    Network event for creating a Herdsman rule record.
 
     Pattern A (caller-mutates-first + rebroadcast-from-run with
     ignoreConnection=sender). The caller (RLHerdsmanRuleService:create) MUST mutate

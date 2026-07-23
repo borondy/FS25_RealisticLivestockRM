@@ -1,6 +1,6 @@
 --[[
     RLMenuTransferFrame.lua
-    RL Tabbed Menu - Transfer tab (Phase 8, pen/world trailer placements).
+    RL Tabbed Menu - Transfer tab (pen/world trailer placements).
 
     One frame for every trailer placement. The left sidebar is a fixed two-entry
     source picker - the counterpart (a pen/world endpoint) and the trailer - each

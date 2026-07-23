@@ -127,7 +127,7 @@ end
 --- CLOSE the already-shown screen (mirrors base-game `AnimalScreen:onOpen`, which itself
 --- `changeScreen(nil)`s from onOpen when there are no animals to show) - NEVER call
 --- `superFunc` (post-cutover `superFunc` IS the vanilla open). A non-EPP-shaped
---- controller passes to `superFunc` unchanged (RLRM-476's C3 tripwire territory - no
+--- controller passes to `superFunc` unchanged (no
 --- surviving RLRM flow should reach here).
 --- @param self table  the AnimalScreen instance (`self.controller` is pre-assigned)
 --- @param superFunc function  base-game AnimalScreen.onOpen
@@ -187,7 +187,7 @@ end
 -- The activatable and the onOpen redirect keep the overwrittenFunction wrap as the
 -- interception mechanism; the activatable's injected superFunc is intentionally unused
 -- (see RL_LivestockTrailerActivatable:run), while the onOpen wrap DOES call superFunc for
--- any non-EPP-shaped controller (the vanilla open, RLRM-476 C3 territory).
+-- any non-EPP-shaped controller (the vanilla open).
 AnimalScreen.show = RLAnimalScreenBridge.show
 LivestockTrailerActivatable.run = Utils.overwrittenFunction(LivestockTrailerActivatable.run,
     RL_LivestockTrailerActivatable.run)

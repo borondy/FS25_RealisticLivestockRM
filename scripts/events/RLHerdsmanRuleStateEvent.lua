@@ -1,6 +1,6 @@
 --[[
     RLHerdsmanRuleStateEvent.lua
-    Full-state Herdsman rule snapshot (M-Service S5).
+    Full-state Herdsman rule snapshot.
 
     Server -> client only. Dispatched from `sendInitialClientState` for every
     connecting client so late-joiners converge with the authoritative server

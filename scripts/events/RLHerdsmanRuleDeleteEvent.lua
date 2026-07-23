@@ -1,6 +1,6 @@
 --[[
     RLHerdsmanRuleDeleteEvent.lua
-    Network event for deleting a Herdsman rule record by id (M-Service S4).
+    Network event for deleting a Herdsman rule record by id.
 
     Pattern A (caller-mutates-first + rebroadcast-from-run with ignoreConnection=sender).
     The caller (RLHerdsmanRuleService:delete) MUST mutate local state BEFORE calling

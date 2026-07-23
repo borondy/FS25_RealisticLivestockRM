@@ -890,7 +890,7 @@ function RLMenuHerdsmanFrame:refreshRuleDetail(stored)
     if self.ruleHusbandriesButton ~= nil then
         -- Button label: 0 targets -> a "select husbandries" CTA (mirrors the Filter button's
         -- empty CTA); 1 -> that husbandry's resolved name (or (missing)); >= 2 -> "N selected"
-        -- (the count form - H5; the full name list is the deferred Ask-First area below).
+        -- (the count form; the full name list is the deferred Ask-First area below).
         local selectText = g_i18n:getText("rl_menu_herdsman_husbandry_select")
         self.ruleHusbandriesButton:setText(RLHerdsmanRulePresenter.formatHusbandryButtonLabel(
             merged.targetHusbandries, resolvePlaceableName, {
@@ -1274,9 +1274,9 @@ function RLMenuHerdsmanFrame:onFilterPicked(filterId)
     Log:debug("RLMenuHerdsmanFrame:onFilterPicked: id=%s filterId stashed %s -> %s",
         tostring(id), tostring(merged.filterId), tostring(filterId))
 
-    -- Cross-type revalidation against the NEW merged (filterId now applied - H4): drop
-    -- type-incompatible RESOLVABLE targets (preserve unresolvable - H2) + reset semen if its
-    -- dewar leaves the new animalType pool (H1). Pinned to current merged so two edits compose.
+    -- Cross-type revalidation against the NEW merged (filterId now applied): drop
+    -- type-incompatible RESOLVABLE targets (preserve unresolvable) + reset semen if its
+    -- dewar leaves the new animalType pool. Pinned to current merged so two edits compose.
     local newMerged = RLHerdsmanRuleEditModel.overlayRule(stored, self.pendingChanges[id])
     self:revalidatePendingTargetsAndSemen(id, newMerged)
     -- Drop a now-type-incompatible move destination (the filter-rebind axis). Recompute the
@@ -1294,7 +1294,7 @@ end
 --- animalType + operation (D8). The presenter owns the gate + sort (selectTargetableHusbandries);
 --- this frame enumerates the farm's live husbandries (RLAnimalQuery descriptors - one source,
 --- M12), resolves the filter animalType + the CHICKEN index, nil-guards farm / husbandrySystem
---- (M5 - mirror onClickRuleFilter's refuse-to-open), and hands plain data to the dialog.
+--- (mirror onClickRuleFilter's refuse-to-open), and hands plain data to the dialog.
 --- @param _button table the ruleHusbandriesButton element (unused; selection = selectedRuleId)
 function RLMenuHerdsmanFrame:onClickRuleHusbandries(_button)
     local id = self.selectedRuleId
@@ -1334,9 +1334,9 @@ function RLMenuHerdsmanFrame:onClickRuleHusbandries(_button)
 end
 
 --- Picker result (target-first via the dialog). nil -> cancel (rule unchanged; targets
---- preserved). Otherwise re-read the merged baseline at commit (H7) and stash the picked set
+--- preserved). Otherwise re-read the merged baseline at commit and stash the picked set
 --- as pending targetHusbandries. The dialog already PRESERVED checked-but-out-of-scope /
---- unresolvable targets and guaranteed non-empty strings (H2/CR1), so this frame stashes the
+--- unresolvable targets and guaranteed non-empty strings, so this frame stashes the
 --- set as-is - it does NOT re-strip (the type-incompatible drop is a rebind/op-change concern,
 --- not a pick concern). A pick equal to the current targets with nothing else pending -> no-op
 --- (no redundant :update). Flush happens on the existing selection-change / close path.
@@ -1381,7 +1381,7 @@ end
 --- Build a uniqueId -> animalType map for the farm's LIVE husbandries (non-nil types only),
 --- the typeByUid input to revalidateTargets. Reuses the same RLAnimalQuery descriptor source
 --- as the picker (M12), so a uid the picker would gate is gated identically on rebind cleanup,
---- and a uid absent here is exactly an unresolvable target (revalidateTargets preserves it - H2).
+--- and a uid absent here is exactly an unresolvable target (revalidateTargets preserves it).
 --- @param farmId number|nil
 --- @return table typeByUid map uniqueId(string) -> animalType index
 function RLMenuHerdsmanFrame:buildHusbandryTypeByUid(farmId)
@@ -1394,7 +1394,7 @@ end
 
 --- Build a uniqueId -> type-spec map for the farm's LIVE move DESTINATIONS (husbandries + EPP
 --- butchers), the dest-axis SIBLING of buildHusbandryTypeByUid feeding revalidatePendingDestination
---- (RLRM-489). A husbandry maps to its scalar animalType; an EPP butcher maps to its type-index SET
+---A husbandry maps to its scalar animalType; an EPP butcher maps to its type-index SET
 --- (animalTypes) so revalidateDestination gates an EPP dest set-aware instead of treating it as
 --- unresolvable and preserving it forever. Reuses listMoveDestinationDescriptorsForFarm so this
 --- map and the dest picker share ONE enumeration source. A descriptor with no usable type-spec is
@@ -1437,10 +1437,10 @@ function RLMenuHerdsmanFrame:isSemenInPool(semenUid, filterAnimalType, farmId)
     return false
 end
 
---- Cross-type revalidation after a filter rebind OR an operation change (H4), pinned to the
---- passed `merged` baseline (current stored+pending - H7). Drops type-incompatible RESOLVABLE
---- targets via the pure revalidateTargets (preserving unresolvable - H2), and resets a non-"any"
---- ai semen to "any" ONLY when its dewar left the new animalType pool (H1: a widen / ANY keeps a
+--- Cross-type revalidation after a filter rebind OR an operation change, pinned to the
+--- passed `merged` baseline (current stored+pending). Drops type-incompatible RESOLVABLE
+--- targets via the pure revalidateTargets (preserving unresolvable), and resets a non-"any"
+--- ai semen to "any" ONLY when its dewar left the new animalType pool (a widen / ANY keeps a
 --- valid dewar). Stashes results into pending against `id`; logs the dropped-target count.
 --- @param id any rule id
 --- @param merged table the current overlay-merged record (filter/op already applied)
@@ -1529,7 +1529,7 @@ function RLMenuHerdsmanFrame:onClickRuleDestination(_button)
         return
     end
 
-    -- Move-dest enumeration = husbandries + owner-farm EPP butchers (RLRM-489); the presenter's
+    -- Move-dest enumeration = husbandries + owner-farm EPP butchers; the presenter's
     -- set-aware gate keeps a multi-type butcher under an ANY filter and a type-matching one under a
     -- typed filter. Husbandry-only picker sources would never offer a butcher.
     local descriptors = RLAnimalQuery.listMoveDestinationDescriptorsForFarm(farmId)
@@ -1775,7 +1775,7 @@ function RLMenuHerdsmanFrame:applyOperationChange(id, newOp)
         end
     end
 
-    -- Cross-type revalidation against the NEW merged op/filter (H4) - the SAME path a filter
+    -- Cross-type revalidation against the NEW merged op/filter - the SAME path a filter
     -- rebind runs: a switch to castrate drops chicken targets/semen; a filter cleared above
     -- widens the gate. Re-read merged so the op + filter-clear are both reflected.
     local newMerged = RLHerdsmanRuleEditModel.overlayRule(stored, self.pendingChanges[id])
@@ -1791,7 +1791,7 @@ end
 -- =============================================================================
 
 --- Flush one id's pending overlay through the real service update. Gates via the presenter's
---- enabled-conditional RLHerdsmanRulePresenter.validateFlush (H3/1a): nameOk + operationOk +
+--- enabled-conditional RLHerdsmanRulePresenter.validateFlush: nameOk + operationOk +
 --- paramsOk always required; AND both husbandriesOk (>= 1 target) and a bound non-naming filter
 --- are required ONLY when the rule is enabled (F7's enabled-conditional filter, the frame-side
 --- twin of the relaxed service floor). A disabled / incomplete rule therefore persists as a draft (nil filterId
@@ -1815,7 +1815,7 @@ function RLMenuHerdsmanFrame:flushPendingForId(id)
 
     local merged = RLHerdsmanRuleEditModel.overlayRule(stored, pending)
     local g = RLHerdsmanRulePresenter.validateFlush(merged)
-    -- Gate (H3/1a): nameOk + operationOk + paramsOk always; husbandriesOk (>= 1 target) AND a
+    -- Gate: nameOk + operationOk + paramsOk always; husbandriesOk (>= 1 target) AND a
     -- bound non-naming filter required ONLY when enabled (F7's enabled-conditional filter, the
     -- frame-side twin of the relaxed service floor). A disabled / incomplete rule persists as a draft (nil
     -- filterId / 0 targets = no-op); an enabled rule missing either is handled by the

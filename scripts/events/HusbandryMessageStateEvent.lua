@@ -83,7 +83,7 @@ function HusbandryMessageStateEvent:writeStream(streamId, connection)
 		NetworkUtil.writeNodeObject(streamId, husbandry)
 		streamWriteBool(streamId, husbandry:getHasUnreadRLMessages())
 
-		-- Non-mutating counter read (RLRM-464): the join snapshot must REPORT the next-uid counter,
+		-- Non-mutating counter read: the join snapshot must REPORT the next-uid counter,
 		-- not ADVANCE it. getNextRLMessageUniqueId increments, burning a server uid on every join and
 		-- drifting the server<->client namespace; read spec.rlMessageUniqueId directly, as
 		-- saveToXMLFile does.

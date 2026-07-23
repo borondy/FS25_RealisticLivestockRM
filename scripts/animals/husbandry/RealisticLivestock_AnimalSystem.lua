@@ -505,7 +505,7 @@ function RealisticLivestock_AnimalSystem:loadSubTypes(_, animalType, xmlFile, ke
         -- (g_modIsLoaded), not merely installed on disk (g_modNameToDirectory). Install
         -- state is not synchronized across MP peers, so gating on it let a server register
         -- a DLC subtype while its session had the DLC inactive; peers without the DLC then
-        -- mis-resolved the streamed subtype and corrupted animals on write-back (RLRM-512).
+        -- mis-resolved the streamed subtype and corrupted animals on write-back.
         -- Gating on the active set keeps the registry identical across peers; when the DLC
         -- is inactive the subtype is skipped and its saved animals are dropped on load.
         if requiredDLC == nil or g_modIsLoaded[dlcModName] ~= nil then
@@ -1132,8 +1132,8 @@ function AnimalSystem:loadFromXMLFile()
     -- silently dropped scope to global on every filter.
     RLSettings.loadFiltersFromXMLFile()
 
-    -- Herdsman rules share rm_RlSettings.xml with the filters (their own subtree,
-    -- M-Service S2). Loaded here for the same reason filters are: this is RLRM's
+    -- Herdsman rules share rm_RlSettings.xml with the filters (their own
+    -- subtree). Loaded here for the same reason filters are: this is RLRM's
     -- GUI-free, server-side, once-per-load savegame hook. Each registry owns its
     -- own error boundary (separate re-open), so a corrupt filters subtree cannot
     -- abort rule load, or vice versa.

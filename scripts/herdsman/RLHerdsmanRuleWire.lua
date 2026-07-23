@@ -1,5 +1,5 @@
 -- RLHerdsmanRuleWire.lua
--- Byte-level wire codec shared by the Herdsman rule MP events (M-Service S3).
+-- Byte-level wire codec shared by the Herdsman rule MP events.
 --
 -- Stream layout (writeRule):
 --   streamWriteString  rule.id
@@ -113,7 +113,7 @@ local PARAMS_WIRE_CODECS = {
             streamWriteBool(streamId, hasDest)
             if hasDest then
                 -- Move-DESTINATION site: resolve via the EPP-admitting opt-in (resolveDestination),
-                -- NOT the husbandry-only `resolve` the targets leg uses (RLRM-489). A butcher (EPP)
+                -- NOT the husbandry-only `resolve` the targets leg uses. A butcher (EPP)
                 -- dest must resolve on a pure client too, or a client editing the rule would fail-close
                 -- the record; the targets read/write legs keep `resolve`/`keyFor` unchanged.
                 local placeable = RLHusbandryTargetKey.resolveDestination(p.destinationHusbandry)

@@ -374,7 +374,7 @@ function RealisticLivestock_FSBaseMission:sendInitialClientState(connection, _, 
         Log:warning("RealisticLivestock_FSBaseMission:sendInitialClientState: g_rlFilterService is nil; new client will have empty filter state")
     end
 
-    -- M-Service S5: push the authoritative full Herdsman rule registry to the new
+    -- Push the authoritative full Herdsman rule registry to the new
     -- client so late-joiners converge with the server. Empty-set (count=0) is a
     -- valid state event and still sends, giving a deterministic "clear-to-empty".
     --

@@ -517,7 +517,7 @@ end
 
 --- Set the Favourite button label from the bull's current favourite state.
 --- Called on selection change (read-only). Routes through the service's
---- getFavouriteButtonText so selection-change and toggle-site (Phase 2's
+--- getFavouriteButtonText so selection-change and toggle-site (this frame's
 --- onClickFavourite) share one i18n-key mapping.
 --- @param animal table Raw Animal
 function RLMenuAIFrame:refreshFavouriteButtonLabel(animal)
@@ -572,7 +572,7 @@ end
 --- on no-bull OR no tradeAnimals permission.
 ---
 --- Legacy parity gates both buttons SOLELY on selection. Intentional UX
---- divergence: Phase 2 adds a client-side tradeAnimals gate for Buy so MP
+--- divergence: this frame adds a client-side tradeAnimals gate for Buy so MP
 --- clients never see an active Buy button they cannot actually use. Legacy's
 --- click-time permission check stays in place as defense in depth.
 function RLMenuAIFrame:updateButtonVisibility()
@@ -717,7 +717,7 @@ function RLMenuAIFrame:onClickBuy()
 
     -- farmId sanity. Guard BEFORE markPlaceUsed so a spectator / no-farm click
     -- does not leak a store spawn slot. Legacy reads g_localPlayer.farmId
-    -- unconditionally (crashes on nil); Phase 2 declines
+    -- unconditionally (crashes on nil); this frame declines
     -- gracefully with a WARNING.
     if g_localPlayer == nil
         or g_localPlayer.farmId == nil
@@ -832,7 +832,7 @@ end
 
 
 --- InfoDialog dismissal callback. Mirrors the legacy postSemenBought handler
---- which calls `self.aiList:reloadData()`. Phase 2 reloads
+--- which calls `self.aiList:reloadData()`. This frame reloads
 --- the whole bull list so stock changes reflect immediately.
 ---
 --- Stale-frame guard mirrors Buy/Sell/Info's pattern: the

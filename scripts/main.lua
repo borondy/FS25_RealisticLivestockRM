@@ -11,7 +11,7 @@ local modDirectory = g_currentModDirectory
 -- SECTION 0: Logging
 source(modDirectory .. "scripts/rmlib/RmLogging.lua")
 Log = RmLogging.getLogger("RLRM")
-Log:setLevel(RmLogging.LOG_LEVEL.DEBUG)
+Log:setLevel(RmLogging.LOG_LEVEL.INFO)
 
 -- SECTION 1: Font Library
 source(modDirectory .. "scripts/fontlib/RmFontCharacter.lua")
@@ -117,7 +117,7 @@ source(modDirectory .. "scripts/animal/AnimalHealth.lua")
 source(modDirectory .. "scripts/animal/AnimalPersistence.lua")
 source(modDirectory .. "scripts/animal/AnimalSerialization.lua")
 
--- SECTION 11g: Saveable Filters - headless service + MP events (Phase 0)
+-- SECTION 11g: Saveable Filters - headless service + MP events
 source(modDirectory .. "scripts/filters/RLFilterFieldCatalog.lua")
 source(modDirectory .. "scripts/filters/RLFilterFieldDisplay.lua")
 source(modDirectory .. "scripts/filters/RLFilterEvaluator.lua")
@@ -135,7 +135,7 @@ source(modDirectory .. "scripts/events/RLFilterStateEvent.lua")
 -- and the RLQuickFilterToSavedFilterTests suite.
 source(modDirectory .. "scripts/utils/RLQuickFilterToSavedFilter.lua")
 
--- SECTION 11h: Herdsman Rules - headless service + persistence + MP events (M-Service S1-S5)
+-- SECTION 11h: Herdsman Rules - headless service + persistence + MP events
 -- In-memory rule registry (sibling of RLFilterService). Serializer before
 -- service (mirrors 11g): the service's saveToXMLFile/loadFromXMLFile call into
 -- RLHerdsmanRuleSerialization. Wire + Create/Update/Delete/State events after the
@@ -167,7 +167,7 @@ source(modDirectory .. "scripts/herdsman/RLHerdsmanExecutor.lua")
 -- SECTION 11j2: Herdsman day-tick messages (M-Tick T5). The player-notification readout: a pure
 -- buildMessages (summary.results -> AI_MANAGER_* records) + a thin emit that drives the server-local
 -- addRLMessage sink per husbandry (MP transport now rides the addRLMessageDirect chokepoint's
--- incremental broadcast, RLRM-464). References the aggregator only at call time, so it loads after 11j
+-- incremental broadcast). References the aggregator only at call time, so it loads after 11j
 -- and before the 11k tick that invokes emit.
 source(modDirectory .. "scripts/herdsman/RLHerdsmanMessages.lua")
 
@@ -216,11 +216,11 @@ source(modDirectory .. "scripts/gui/rlmenu/services/RLGeneticsFormatter.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLPenFeedForecast.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalInfoService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLDetailPaneHelper.lua")
--- Shared trade-request guard (RLRM-167): one in-flight g_messageCenter request per event
+-- Shared trade-request guard: one in-flight g_messageCenter request per event
 -- class + a cancellable Timer watchdog + single-consume token. Sourced BEFORE the three
 -- trade services (Move/Sell/Buy) that route their dispatch through it.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalEventRequest.lua")
--- GUI-local nil-safe selection-key builder (RLRM-166): used by the four multi-select frames'
+-- GUI-local nil-safe selection-key builder: used by the four multi-select frames'
 -- selection paths. Pure (delegates to RLAnimalUtil.toKey, SECTION 2b); sourced before the frames.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLSelectionKey.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalMoveService.lua")
@@ -228,12 +228,12 @@ source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalSellService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalBuyService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLDealerQuery.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAIStockService.lua")
--- Trailer endpoint read service (Phase 8 transfer keystone). Stateless reader that
+-- Trailer endpoint read service (transfer keystone). Stateless reader that
 -- wraps the base-game LivestockTrailer getters into transfer primitives; depends on
 -- nothing but the trailer passed in. Loaded now but invoked by no shipped path until
 -- the M2 transfer frame consumes it.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTrailerEndpointService.lua")
--- Transfer-frame adapter seam (Phase 8 M2). Pure data-in/data-out (no g_*/getText);
+-- Transfer-frame adapter seam. Pure data-in/data-out (no g_*/getText);
 -- the headless dual-run boundary. Loaded with the services, before the Transfer
 -- frame and RLMenu consume it.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferAdapter.lua")
@@ -263,12 +263,12 @@ source(modDirectory .. "scripts/gui/rlmenu/RLMenuTabPolicy.lua")
 -- Info/Move/Sell frames (sourced above) reference it at runtime only, so it can
 -- load here alongside RLMenuTabPolicy (same pure tier), before RLMenu.
 source(modDirectory .. "scripts/gui/rlmenu/RLMenuHusbandryAnchor.lua")
--- Concrete PEN counterpart adapter (Phase 8 M2). In-game tier; registers itself
+-- Concrete PEN counterpart adapter. In-game tier; registers itself
 -- into RLTransferAdapter._adapters[RLMenuTabPolicy.PEN] at load, so it must follow
 -- RLMenuTabPolicy (PEN constant) and the services it calls (RLTransferAdapter,
 -- RLAnimalQuery, RLAnimalMoveService, all sourced above). No RLMenu dependency.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferPenAdapter.lua")
--- WORLD counterpart service + adapter (Phase 8 M4). The service owns the vanilla-
+-- WORLD counterpart service + adapter. The service owns the vanilla-
 -- cluster -> Animal conversion + the base-game load/unload dispatch; the adapter
 -- routes the seam to it and registers into RLTransferAdapter._adapters[RLMenuTabPolicy
 -- .WORLD] at load, so both must follow RLMenuTabPolicy (WORLD constant) + RLTransferAdapter
@@ -281,7 +281,7 @@ source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferPenAdapter.lua")
 source(modDirectory .. "scripts/animals/shop/events/AnimalUnloadEvent.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTrailerWorldService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferWorldAdapter.lua")
--- EPP (butcher) counterpart adapter (RLRM-495, Phase 9). In-game sink adapter; registers
+-- EPP (butcher) counterpart adapter. In-game sink adapter; registers
 -- into RLTransferAdapter._adapters[RLMenuTabPolicy.EPP] at load, so it must follow
 -- RLMenuTabPolicy (EPP constant) and the services it calls (RLTransferAdapter,
 -- RLAnimalMoveService, RLTrailerEndpointService, all sourced above). No RLMenu dependency.
