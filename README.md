@@ -10,7 +10,7 @@
 
 Replaces FS25's simple animal clusters with individually tracked animals - each with unique genetics, breeding, diseases, and production traits. A maintained version of Arrow-kb's [Realistic Livestock](https://github.com/Arrow-kb/FS25_RealisticLivestock) mod.
 
-Every animal is tracked separately with its own identity, genetic makeup, health status, and production output. Genetics are inherited through breeding, diseases can spread and require treatment, and production is driven by each animal's individual traits.
+Every animal is tracked separately with its own identity, genetic makeup, health status, and production output. Genetics are inherited through breeding, diseases can spread and require treatment, and production is driven by each animal's individual traits. Everything is managed from the RL Menu - a dedicated tabbed interface for browsing, trading, moving, filtering, and automating your herds.
 
 This is a maintained version of the original mod by Arrow-kb, who has discontinued development. The goal is to keep the mod working, fix bugs, and make improvements where needed. While less ambitious in scope than the original roadmap, this version focuses on stability and reliability.
 
@@ -27,7 +27,10 @@ This is a maintained version of the original mod by Arrow-kb, who has discontinu
 - Animal monitoring to track individual animals over time
 - Weight system tied to genetics and feeding
 - Animal marking and castration
-- Move tab for transferring animals between husbandries with bulk move support
+- RL Menu: a standalone tabbed menu (default Right Shift + O, also opened from pens, dealers, and trailers) covering all animal management - animal browsing with pedigree/genetics/disease detail, moving, selling, buying, AI straw purchases, messages, and trailer loading/unloading
+- Saveable animal filters: build reusable filters in-game (age, gender, pregnancy, genetics, weight, health, and more) and cycle them with F across the menu tabs
+- Herdsman automation: named daily tasks (sell, buy, castrate, naming, AI insemination, move) driven by saved filters, with per-task caps, budgets, and a herdsman wage
+- Animal Country of Origin setting: choose the country new animals are registered in (ear tags, identifiers)
 - Daily summary mode for message log
 - In-game help pages covering monitors, pregnancy, production, weight, and genetics
 - Highland cattle bull support
