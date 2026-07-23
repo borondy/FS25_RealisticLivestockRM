@@ -57,7 +57,7 @@ To maintain a top-tier herd:
 
 This is more work than the old model, but it's what real livestock farmers do - and it makes the breeding game genuinely interesting as a long-term strategy rather than a one-time setup.
 
-See the [Genetics Guide](guide-genetics.md#breeding--inheritance) for practical breeding strategies.
+See the [Genetics Guide](guide-genetics.md#breeding-inheritance) for practical breeding strategies.
 
 ### Further reading
 
