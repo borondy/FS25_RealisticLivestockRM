@@ -178,7 +178,7 @@
     </animal>
 
     <!-- RABBIT: override reproduction age for existing RABBIT_MALE + pregnancy -->
-    <!-- Map sets RABBIT_MALE reproduction supported="false" with no minAgeMonth → defaults to 18 -->
+    <!-- Map sets RABBIT_MALE reproduction supported="false" with no minAgeMonth -> defaults to 18 -->
     <!-- Real rabbits mature at 3-4 months; 6 months is conservative -->
     <!-- Default pregnancy avg=1, max=3 - real rabbits have 4-8 kits per litter -->
     <animal type="RABBIT">
@@ -187,7 +187,7 @@
         <!-- Override: fix RABBIT weights (navMesh h=0.1, r=0.1 gives max=7.5 - refine) -->
         <subType subType="RABBIT" minWeight="0.1" targetWeight="2.5" maxWeight="5.0"/>
 
-        <!-- Override: fix RABBIT_MALE reproduction age from default 18 → 6 months -->
+        <!-- Override: fix RABBIT_MALE reproduction age from default 18 -> 6 months -->
         <subType subType="RABBIT_MALE" minWeight="0.1" targetWeight="3.0" maxWeight="5.5">
             <reproduction minAgeMonth="6"/>
         </subType>
@@ -577,6 +577,116 @@
         </subType>
         <subType subType="RAM_BLACK_WELSH">
             <output><pallets fillType="SHEEPWOOL_SHEARED"/></output>
+        </subType>
+    </animal>
+
+    <!--
+        COW type: HB's pallet-spawner cow buildings (constructible cow pasture, cowPasture01,
+        cowHusbandryFarm02) carry husbandryPallets but no husbandryMilk, so output.pallets is
+        the ONLY milk path there. RLRM cows define output.milk but no output.pallets, so those
+        spawners are never fed and no milk cans appear. Give every RLRM female cow subtype an
+        output.pallets mirroring its own milk curve so the spawner produces milkCan pallets.
+        (cowHusbandryOldFarm is unaffected: it milks to a tank via output.milk, no spawner.)
+
+        The <pallets> MUST carry a FULL <key> curve, unlike the SHEEP/CHICKEN fillType-only
+        remaps above. RLRM cows have no pre-existing output.pallets, so only the bridge's
+        create-branch (which requires a curve) builds one; a bare fillType-only entry takes the
+        remap branch, which needs an existing output.pallets - a silent no-op for cows.
+
+        All RLRM cow breeds carry a milk curve by design (beef breeds a smaller one), so all get
+        cans - excluding a breed would silently drop it for a player who relies on it. The pallets
+        path is not lactation-gated (parity with base-HB cluster pallets): a dry or nulliparous
+        adult cow still spawns cans. MILK and BUFFALOMILK already exist in HB's cow palletSpawner.
+    -->
+    <animal type="COW">
+        <subType subType="COW_SWISS_BROWN">
+            <output>
+                <pallets fillType="MILK">
+                    <key ageMonth="0" value="0"/>
+                    <key ageMonth="12" value="0"/>
+                    <key ageMonth="12" value="180"/>
+                    <key ageMonth="36" value="180"/>
+                    <key ageMonth="36" value="255"/>
+                    <key ageMonth="72" value="255"/>
+                    <key ageMonth="120" value="110"/>
+                </pallets>
+            </output>
+        </subType>
+        <subType subType="COW_HOLSTEIN">
+            <output>
+                <pallets fillType="MILK">
+                    <key ageMonth="0" value="0"/>
+                    <key ageMonth="12" value="0"/>
+                    <key ageMonth="12" value="195"/>
+                    <key ageMonth="36" value="195"/>
+                    <key ageMonth="36" value="330"/>
+                    <key ageMonth="72" value="330"/>
+                    <key ageMonth="120" value="180"/>
+                </pallets>
+            </output>
+        </subType>
+        <subType subType="COW_ANGUS">
+            <output>
+                <pallets fillType="MILK">
+                    <key ageMonth="0" value="0"/>
+                    <key ageMonth="12" value="0"/>
+                    <key ageMonth="12" value="100"/>
+                    <key ageMonth="36" value="100"/>
+                    <key ageMonth="36" value="160"/>
+                    <key ageMonth="72" value="160"/>
+                    <key ageMonth="120" value="70"/>
+                </pallets>
+            </output>
+        </subType>
+        <subType subType="COW_LIMOUSIN">
+            <output>
+                <pallets fillType="MILK">
+                    <key ageMonth="0" value="0"/>
+                    <key ageMonth="12" value="0"/>
+                    <key ageMonth="12" value="90"/>
+                    <key ageMonth="36" value="90"/>
+                    <key ageMonth="36" value="140"/>
+                    <key ageMonth="72" value="140"/>
+                    <key ageMonth="120" value="50"/>
+                </pallets>
+            </output>
+        </subType>
+        <subType subType="COW_HEREFORD">
+            <output>
+                <pallets fillType="MILK">
+                    <key ageMonth="0" value="0"/>
+                    <key ageMonth="12" value="0"/>
+                    <key ageMonth="12" value="190"/>
+                    <key ageMonth="36" value="190"/>
+                    <key ageMonth="36" value="265"/>
+                    <key ageMonth="72" value="265"/>
+                    <key ageMonth="120" value="125"/>
+                </pallets>
+            </output>
+        </subType>
+        <!-- DLC-gated (highlandsFishingPack): if the DLC is absent the subtype is unregistered
+             and the bridge simply skips this override - harmless. -->
+        <subType subType="COW_HIGHLAND_CATTLE">
+            <output>
+                <pallets fillType="MILK">
+                    <key ageMonth="0" value="0"/>
+                    <key ageMonth="12" value="0"/>
+                    <key ageMonth="12" value="100"/>
+                    <key ageMonth="36" value="100"/>
+                    <key ageMonth="36" value="160"/>
+                    <key ageMonth="72" value="160"/>
+                    <key ageMonth="120" value="70"/>
+                </pallets>
+            </output>
+        </subType>
+        <subType subType="COW_WATERBUFFALO">
+            <output>
+                <pallets fillType="BUFFALOMILK">
+                    <key ageMonth="0" value="0"/>
+                    <key ageMonth="12" value="0"/>
+                    <key ageMonth="12" value="30"/>
+                </pallets>
+            </output>
         </subType>
     </animal>
 

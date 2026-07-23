@@ -72,7 +72,6 @@
 		<!-- UI -->
 
 
-		<text name="input_VisualAnimalsDialog" text="Látható állatok számának módosítása"/>
 		<text name="input_RL_OPEN_ANIMAL_SCREEN" text="Állatok menü megnyitása"/>
 		<text name="input_RL_MARK" text="Állat megjelölése / jelölés törlése"/>
 		<text name="input_RL_MONITOR" text="Monitor alkalmazása / eltávolítása"/>
@@ -185,6 +184,8 @@
 		<text name="rl_ui_moveErrorNoPermission" text="Nincs jogosultságod ide állatokat áthelyezni."/>
 		<text name="rl_ui_moveErrorNotSupported" text="Ez a célállomás nem támogatja ezt az állatfajt."/>
 		<text name="rl_ui_moveErrorNoSpace" text="Nincs elég hely a célállomáson."/>
+		<text name="rl_ui_tradeRequestInProgress" text="Egy tranzakció már folyamatban van. Kérlek, várj."/>
+		<text name="rl_ui_tradeRequestTimeout" text="A szerver nem válaszolt. Kérlek, próbáld újra."/>
 
 		<text name="rl_ui_monitor" text="Monitor"/>
 		<text name="rl_ui_monitorSubscriptions" text="Monitor előfizetések"/>
@@ -488,6 +489,8 @@
 
 
 		<text name="rl_settings" text="Realistic Livestock"/>
+		<text name="rl_settings_openMenu_button" text="Beállítások megnyitása"/>
+		<text name="rl_settings_openMenu_label" text="Realistic Livestock beállítások megnyitása"/>
 
 		<text name="rl_settings_off" text="Ki"/>
 		<text name="rl_settings_on" text="Be"/>
@@ -509,6 +512,10 @@
 		<text name="rl_settings_maxDealerAnimals_label" text="Kereskedő max. készlete"/>
 		<text name="rl_settings_maxDealerAnimals_tooltip" text="Az állatkereskedőnél típusonként elérhető állatok maximális számának módosítása"/>
 
+		<text name="rl_settings_mapCountry_label" text="Állatok származási országa"/>
+		<text name="rl_settings_mapCountry_tooltip" text="Felülírja az országot, amelyben az új állatok nyilvántartásba kerülnek (fülcímkék, azonosítók). Csak az új állatokra vonatkozik; a meglévő állatok megtartják országukat."/>
+		<text name="rl_settings_mapCountry_texts_1" text="Térkép alapértelmezése"/>
+
 		<text name="rl_settings_resetDealer_label" text="Állatkereskedő frissítése"/>
 		<text name="rl_settings_resetDealer_tooltip" text="A kereskedő összes állatának eltávolítása és a készlet feltöltése új állatokkal"/>
 		<text name="rl_settings_resetDealer_text" text="Állatkereskedő frissítése"/>
@@ -520,6 +527,9 @@
 		<text name="rl_settings_tagColour_label" text="Füljelző színének módosítása"/>
 		<text name="rl_settings_tagColour_tooltip" text="A füljelzők alapszínének megváltoztatása"/>
 		<text name="rl_settings_tagColour_text" text="Füljelző színének módosítása"/>
+		<text name="rl_settings_maxVisualAnimals_label" text="Set Maximum Visual Animals"/>
+		<text name="rl_settings_maxVisualAnimals_text" text="Set Maximum Visual Animals"/>
+		<text name="rl_settings_maxVisualAnimals_tooltip" text="Set the maximum number of animals rendered per pen. Per-machine display setting; not synced in multiplayer."/>
 
 		<text name="rl_settings_exportCSV_label" text="Exportálás CSV-be"/>
 		<text name="rl_settings_exportCSV_tooltip" text="Statisztikák kimentése CSV fájlba"/>
@@ -682,6 +692,8 @@
 		<text name="rl_message_aiManager_movedAnimals_multiple" text="Herdsman moved %s animals"/>
 		<text name="rl_message_aiManager_mark_move_single" text="Herdsman marked 1 animal for moving"/>
 		<text name="rl_message_aiManager_mark_move_multiple" text="Herdsman marked %s animals for moving"/>
+		<text name="rl_message_aiManager_moveSkippedAge_single" text="Herdsman skipped 1 animal (wrong age for the butcher)"/>
+		<text name="rl_message_aiManager_moveSkippedAge_multiple" text="Herdsman skipped %s animals (wrong age for the butcher)"/>
 
 		<!-- Daily summary messages -->
 		<text name="rl_message_dailyBirthsSummary" text="%s állat született itt: %s"/>
@@ -739,7 +751,7 @@
 
 
 		<!-- Missing keys (English fallback) -->
-		<text name="input_RL_MENU" text="Open RL Menu (new)"/>
+		<text name="input_RL_MENU" text="Open RL Menu"/>
 		<text name="input_RL_RENAME" text="Rename"/>
 		<text name="input_RL_CYCLE_FILTER" text="Cycle Saved Filter"/>
 		<text name="rl_menu_info_children" text="Children"/>
@@ -775,6 +787,7 @@
 		<text name="rl_menu_transfer_empty_no_animals" text="No animals on this side"/>
 		<text name="rl_menu_transfer_counterpart" text="Destination"/>
 		<text name="rl_menu_transfer_world" text="Nearby Animals"/>
+		<text name="rl_menu_transfer_deliver" text="Deliver"/>
 		<text name="rl_menu_sell_title" text="Sell"/>
 		<text name="rl_menu_sell_cart_header" text="Sale Summary"/>
 		<text name="rl_menu_sell_cart_selected" text="Selected"/>
@@ -838,6 +851,7 @@
 			<text name="rl_menu_herdsman_section_move" text="Move"/>
 			<text name="rl_menu_herdsman_detail_destination" text="Destination"/>
 			<text name="rl_menu_herdsman_destination_select" text="Select destination"/>
+			<text name="rl_menu_herdsman_destination_butcher_suffix" text="(butcher)"/>
 			<text name="rl_menu_herdsman_destination_picker_title" text="Select Destination"/>
 			<text name="rl_menu_herdsman_destination_picker_empty" text="No destination husbandry available for this rule."/>
 			<text name="rl_menu_herdsman_destination_picker_currentUnavailable" text="Current destination unavailable for this rule."/>

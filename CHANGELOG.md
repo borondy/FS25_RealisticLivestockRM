@@ -1,5 +1,66 @@
 # Changelog
 
+## v1.3.0.0-dev.6
+
+### Changed
+- The maximum-visible-animals control moved from the Shift+T keybind into the RL Menu Settings > General tab; it stays a per-machine display setting (each player sets their own, not shared in multiplayer), and the Shift+T keybind was removed.
+
+### Fixed
+- Pen feed forecast: the low-stock warning now reflects real days of feed remaining (orange under 2 days left, red under 1 day) instead of a month estimate, so it no longer warns too early when playing with 3 or more days per month.
+- Pen feed forecast: the "months of feed left" range shown in the pen info is no longer under-estimated when playing with 2 or more days per month (it previously divided the estimate by the days-per-month setting).
+
+## v1.3.0.0-dev.5
+
+### Fixed
+- Multiplayer: a mother's post-birth recovery now counts down live for connected players instead of appearing stuck as "recovering" (which had wrongly blocked inseminating her again until a relog).
+- Fixed FPS stutter when switching the active implement (G) in some instances - the animal-visibility settings dialog now loads once per session instead of reloading on every switch.
+
+## v1.3.0.0-dev.4
+
+### Fixed
+- Multiplayer: husbandry log messages (animal buy/sell/move, births/deaths, and daily summaries) now appear live for connected players instead of only after rejoining.
+- Multiplayer: DLC animals (e.g. Highland Cattle) whose DLC is installed but not active in the session are no longer loaded, preventing them from showing as the wrong breed/gender - or being corrupted when bought - for players without the DLC.
+- Multiplayer: inseminating a female from the animal menu now works on dedicated servers and clients (previously it silently did nothing on the server - no pregnancy resulted and a straw was wasted); straw counts now stay in sync across all players.
+
+## v1.3.0.0-dev.3
+
+### Changed
+- The old built-in herdsman automation (from before the new Herdsman menu) no longer runs or charges wages on saves where it was left enabled, and its now-inaccurate on-screen warning is hidden. Set up rules in the new Herdsman menu to automate your herd.
+
+### Fixed
+- Fixed cows producing no milk on Hof Bergmann v1.4 cow pastures: all cow breeds now produce milk cans.
+
+### Documentation
+- Added user guides for Saved Filters and Herdsman automation - how to build reusable animal filters and set up daily herd-management rules.
+
+## v1.3.0.0-dev.2
+
+### Added
+- Herdsman: a move rule can now target a butcher (Extended Production Point); animals outside the butcher's age range are skipped and reported.
+- Dev builds now log a "legacy-tripwire" error if anything still opens the legacy animal screen, to catch leftover paths before it is removed (expected on dev/tester builds; gone by the stable release).
+
+### Changed
+- RL Menu now has a default hotkey (Right Shift + O) and a cleaner input-binding name; existing installations need to bind or reset the key manually.
+- Walking up to one of your own animal pens, approaching an animal dealer on foot, or opening the animal screen from the in-game menu (R) now open the RL Menu instead of the legacy animal screen.
+- Driving a loaded livestock trailer to a butcher now opens the RL Menu with an individual-animal delivery view instead of the legacy cluster-style screen.
+
+### Fixed
+- In multiplayer, quickly triggering two animal trades of the same kind (buy, sell, or move) could affect the wrong animals or leave the menu stuck - trades now run one at a time with a "trade in progress" notice and a timeout recovery.
+- A declined semen purchase (e.g. not enough money) no longer uses up dealer spawn space, so repeated declined attempts can't eventually make valid purchases fail with a "no space" message.
+- Herdsman task editor: the green slider on the Mark / Naming convention / Budget type toggles no longer lands on the wrong option after switching between tasks with different actions (display-only glitch; the stored setting was always correct).
+
+## v1.3.0.0-dev.1
+
+### Added
+- "Animal Country of Origin" setting (RL Menu -> Settings -> General): choose the country new animals are registered in (ear tags, identifiers) or keep the map default. New animals only - existing animals keep their country. Admin-only in multiplayer, saved per savegame.
+
+### New RL Menu
+- All mod settings now live in the RL Menu's Settings tab; the in-game menu's Settings page shows a single "Realistic Livestock Settings" button that opens it (the 17 duplicated rows are gone).
+
+### Improvements
+- Breeding ages now better match real livestock: goats breed from 8 months (was 16), horse stallions from 24 months (was 36).
+- Hens now stop hatching chicks by about 5 years (previously ~10); roosters now retire at 6 years (previously bred for life).
+
 ## v1.2.6.0
 
 ### RL Menu (preview - work in progress)

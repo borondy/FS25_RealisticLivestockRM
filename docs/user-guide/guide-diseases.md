@@ -10,9 +10,9 @@ Realistic Livestock RM includes five diseases that can infect, spread between, a
 
 | Disease | Species | Spread | Fatal | Treatable | Sell Price Impact |
 |---------|---------|--------|-------|-----------|-------------------|
-| **Mastitis** | Cow, Sheep, Goat | Slow | No | Yes ($200) | Small reduction |
+| **Mastitis** | Cow, Goat | Slow | No | Yes ($200) | Small reduction |
 | **CVM** | Cow only | Genetic | Almost always (calves) | No | Moderate reduction |
-| **Foot & Mouth** | Cow, Sheep, Pig | Moderate | Yes | Yes ($250) | Major reduction |
+| **Foot & Mouth** | Cow, Sheep, Goat, Pig | Moderate | Yes | Yes ($250) | Major reduction |
 | **PED** | Pig only | Moderate | Devastating to newborns | Yes ($150) | Significant reduction |
 | **Avian Influenza** | Chicken only | Fast | Yes, high fatality | No | Severe reduction |
 
@@ -20,9 +20,9 @@ Realistic Livestock RM includes five diseases that can infect, spread between, a
 
 ## Mastitis
 
-**Affects:** Cows, Sheep, Goats (lactating females only)
+**Affects:** Cows, Goats (lactating females only)
 
-Mastitis is an udder infection that stops all milk and wool production. It only affects animals that are currently lactating - non-lactating animals cannot contract it.
+Mastitis is an udder infection that stops all milk production. It only affects animals that are currently lactating - non-lactating animals cannot contract it. Since sheep never lactate, they can never catch mastitis, and it never touches wool.
 
 | Parameter | Value |
 |-----------|-------|
@@ -36,7 +36,7 @@ Mastitis is an udder infection that stops all milk and wool production. It only 
 
 | Impact | Effect |
 |--------|--------|
-| Milk / Goat milk / Wool | **Completely stopped** |
+| Milk / Goat milk | **Completely stopped** |
 | Sell price | Small reduction |
 
 ### Management Tips
@@ -83,7 +83,7 @@ CVM carriers appear healthy and suffer no ill effects. In fact, **CVM carrier co
 
 ## Foot & Mouth Disease
 
-**Affects:** Cows, Sheep, Pigs
+**Affects:** Cows, Sheep, Goats, Pigs
 
 Foot & Mouth is the most widespread disease, affecting three species. It's moderately contagious and can be fatal, especially in recently infected animals.
 
@@ -128,12 +128,12 @@ Foot & Mouth is the most widespread disease, affecting three species. It's moder
 
 **Affects:** Pigs only
 
-PED is devastating to young piglets - almost always fatal in newborns. Older pigs survive more easily, making this the most age-dependent disease in the mod.
+PED is devastating to young piglets - almost always fatal in newborns. Older pigs rarely catch it on their own, but any pig infected during an outbreak faces the same danger (see below).
 
 | Parameter | Value |
 |-----------|-------|
 | Spread | Moderate - spreads to nearby pigs |
-| Fatality | Almost always fatal in newborns, rarely fatal in older pigs |
+| Fatality | Almost always fatal in the first month after infection |
 | Treatment | $150, cured in 1 month |
 | Natural recovery | 3 months without treatment |
 | Immunity after recovery | 12 months |
@@ -165,7 +165,7 @@ With pig litters of 11-16 piglets, a PED outbreak in a maternity pen can kill mo
 - Treatment is cheap ($150) and fast (1 month) - treat immediately
 - Natural recovery takes 3 months, during which piglets continue dying
 - Consider separating pregnant sows from infected animals
-- Adult pigs are essentially immune to PED fatality - focus protection on newborns
+- Adult pigs rarely catch PED on their own - focus protection on newborns and on stopping outbreaks early
 - If PED keeps recurring, consider the diseases toggle in settings
 
 ---
@@ -196,8 +196,8 @@ Avian Flu is the fastest-spreading disease and has **no treatment**. Infected ch
 | Time Infected | Death Risk |
 |--------------|------------|
 | Just infected | **High - many birds die** |
-| After 1-2 months | High |
-| 3+ months (survivors) | Moderate but ongoing |
+| After 1 month | Much lower - risk drops sharply once past the first month |
+| Survivors (past recovery) | Low but ongoing |
 
 ### Why Avian Flu Is Dangerous
 
@@ -226,4 +226,4 @@ Two settings control diseases globally:
 | **Diseases Enabled** | On | On/Off | Toggles entire disease system |
 | **Disease Chance** | 1x | 0.25-5x | Scales infection probability |
 
-*Reducing Disease Chance to 0.25x makes diseases much less common. Setting to 5x makes them much more frequent. Disabling diseases removes them entirely.*
+*Reducing Disease Chance to 0.25x makes diseases much less common. Setting to 5x makes them much more frequent. Disabling diseases suspends them - no new infections, spread, or effects; animals already infected are not cured, and their diseases resume if you re-enable the setting.*

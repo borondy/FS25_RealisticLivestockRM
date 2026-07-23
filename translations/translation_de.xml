@@ -72,7 +72,6 @@
 		<!-- UI -->
 
 
-		<text name="input_VisualAnimalsDialog" text="Anzahl der sichtbaren Tiere ändern"/>
 		<text name="rl_button_apply" text="Anwenden"/>
 		<text name="rl_button_confirm" text="Bestätigen"/>
 		<text name="rl_button_recommended" text="Empfohlen"/>
@@ -170,6 +169,8 @@
 		<text name="rl_ui_moveErrorNoPermission" text="Du hast keine Erlaubnis Tiere hierhin zu verschieben."/>
 		<text name="rl_ui_moveErrorNotSupported" text="Dieser Zielort unterstützt diese Tierart nicht."/>
 		<text name="rl_ui_moveErrorNoSpace" text="Nicht genug Platz am Zielort."/>/
+		<text name="rl_ui_tradeRequestInProgress" text="Es wird bereits ein Handel ausgeführt. Bitte warten."/>
+		<text name="rl_ui_tradeRequestTimeout" text="Der Server hat nicht geantwortet. Bitte versuche es erneut."/>
 
 		<text name="rl_ui_monitor" text="Tierüberwachung"/>
 		<text name="rl_ui_monitorSubscriptions" text="Tierüberwachung-Abonnements"/>
@@ -471,6 +472,8 @@
 
 
 		<text name="rl_settings" text="Realistic Livestock"/>
+		<text name="rl_settings_openMenu_button" text="Einstellungen öffnen"/>
+		<text name="rl_settings_openMenu_label" text="Realistic Livestock Einstellungen öffnen"/>
 
 		<text name="rl_settings_off" text="Aus"/>
 		<text name="rl_settings_on" text="An"/>
@@ -488,9 +491,16 @@
 		<text name="rl_settings_maxDealerAnimals_label" text="Maximale Tiere beim Händler"/>
 		<text name="rl_settings_maxDealerAnimals_tooltip" text="Ändern Sie die maximale Anzahl der Tiere, die der Tierhändler pro Tierart auf Lager hat"/>
 
+		<text name="rl_settings_mapCountry_label" text="Herkunftsland der Tiere"/>
+		<text name="rl_settings_mapCountry_tooltip" text="Überschreibt das Land, in dem neue Tiere registriert werden (Ohrmarken, Kennungen). Gilt nur für neue Tiere; vorhandene Tiere behalten ihr Land."/>
+		<text name="rl_settings_mapCountry_texts_1" text="Kartenstandard"/>
+
 		<text name="rl_settings_tagColour_label" text="Ohrmarke-Farbe ändern"/>
 		<text name="rl_settings_tagColour_tooltip" text="Ändern Sie die Farbe der Ohrmarken."/>
 		<text name="rl_settings_tagColour_text" text="Ohrmarke-Farbe ändern"/>
+		<text name="rl_settings_maxVisualAnimals_label" text="Set Maximum Visual Animals"/>
+		<text name="rl_settings_maxVisualAnimals_text" text="Set Maximum Visual Animals"/>
+		<text name="rl_settings_maxVisualAnimals_tooltip" text="Set the maximum number of animals rendered per pen. Per-machine display setting; not synced in multiplayer."/>
 
 		<text name="rl_settings_exportCSV_label" text="Als CSV exportieren"/>
 		<text name="rl_settings_exportCSV_tooltip" text="Statistiken in CSV exportieren"/>
@@ -636,6 +646,8 @@
 		<text name="rl_message_aiManager_movedAnimals_multiple" text="Herdsman moved %s animals"/>
 		<text name="rl_message_aiManager_mark_move_single" text="Herdsman marked 1 animal for moving"/>
 		<text name="rl_message_aiManager_mark_move_multiple" text="Herdsman marked %s animals for moving"/>
+		<text name="rl_message_aiManager_moveSkippedAge_single" text="Herdsman skipped 1 animal (wrong age for the butcher)"/>
+		<text name="rl_message_aiManager_moveSkippedAge_multiple" text="Herdsman skipped %s animals (wrong age for the butcher)"/>
 
 
 
@@ -709,7 +721,7 @@
 
 
         <!-- Missing keys (English fallback) -->
-        <text name="input_RL_MENU" text="Open RL Menu (new)"/>
+        <text name="input_RL_MENU" text="Open RL Menu"/>
         <text name="input_RL_RENAME" text="Rename"/>
         <text name="input_RL_CYCLE_FILTER" text="Cycle Saved Filter"/>
         <text name="rl_bridge_version_unknown" text="Realistic Livestock: %s version %s has not been tested with version %s of Realistic Livestock. Using config '%s'. If you experience issues with exotic animals, please report them at %s."/>
@@ -750,6 +762,7 @@
         <text name="rl_menu_transfer_empty_no_animals" text="No animals on this side"/>
         <text name="rl_menu_transfer_counterpart" text="Destination"/>
         <text name="rl_menu_transfer_world" text="Nearby Animals"/>
+        <text name="rl_menu_transfer_deliver" text="Deliver"/>
         <text name="rl_menu_sell_title" text="Sell"/>
         <text name="rl_menu_sell_cart_header" text="Sale Summary"/>
         <text name="rl_menu_sell_cart_selected" text="Selected"/>
@@ -813,6 +826,7 @@
 			<text name="rl_menu_herdsman_section_move" text="Move"/>
 			<text name="rl_menu_herdsman_detail_destination" text="Destination"/>
 			<text name="rl_menu_herdsman_destination_select" text="Select destination"/>
+			<text name="rl_menu_herdsman_destination_butcher_suffix" text="(butcher)"/>
 			<text name="rl_menu_herdsman_destination_picker_title" text="Select Destination"/>
 			<text name="rl_menu_herdsman_destination_picker_empty" text="No destination husbandry available for this rule."/>
 			<text name="rl_menu_herdsman_destination_picker_currentUnavailable" text="Current destination unavailable for this rule."/>

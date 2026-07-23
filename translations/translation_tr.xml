@@ -72,7 +72,6 @@
         <!-- UI -->
 
 
-        <text name="input_VisualAnimalsDialog" text="Görsel Hayvanların Miktarını Değiştir"/>
         <text name="input_RL_OPEN_ANIMAL_SCREEN" text="Hayvan Ekranını Aç"/>
         <text name="input_RL_MARK" text="Hayvanı İşaretle/İşaretini Kaldır"/>
         <text name="input_RL_MONITOR" text="Monitör Ekle/Çıkar"/>
@@ -185,6 +184,8 @@
         <text name="rl_ui_moveErrorNoPermission" text="Buraya hayvan taşıma izniniz yok."/>
         <text name="rl_ui_moveErrorNotSupported" text="Bu hedef bu hayvan türünü desteklemiyor."/>
         <text name="rl_ui_moveErrorNoSpace" text="Hedefte yeterli yer yok."/>
+        <text name="rl_ui_tradeRequestInProgress" text="Zaten bir işlem devam ediyor. Lütfen bekleyin."/>
+        <text name="rl_ui_tradeRequestTimeout" text="Sunucu yanıt vermedi. Lütfen tekrar deneyin."/>
 
         <text name="rl_ui_monitor" text="İzleme"/>
         <text name="rl_ui_monitorSubscriptions" text="İzleme Aboneliği"/>
@@ -488,6 +489,8 @@
 
 
 		<text name="rl_settings" text="Gerçekçi Hayvancılık"/>
+		<text name="rl_settings_openMenu_button" text="Ayarları Aç"/>
+		<text name="rl_settings_openMenu_label" text="Gerçekçi Hayvancılık Ayarlarını Aç"/>
 
         <text name="rl_settings_off" text="Kapalı"/>
         <text name="rl_settings_on" text="Açık"/>
@@ -509,6 +512,10 @@
 		<text name="rl_settings_maxDealerAnimals_label" text="Maksimum Bayi Hayvanları"/>
 		<text name="rl_settings_maxDealerAnimals_tooltip" text="Hayvan satıcısının hayvan türü başına stokta bulunduracağı maksimum hayvan sayısını değiştirin"/>
 
+		<text name="rl_settings_mapCountry_label" text="Hayvanların Menşe Ülkesi"/>
+		<text name="rl_settings_mapCountry_tooltip" text="Yeni hayvanların kaydedildiği ülkeyi geçersiz kılar (kulak küpeleri, kimlikler). Yalnızca yeni hayvanlar için geçerlidir; mevcut hayvanlar ülkelerini korur."/>
+		<text name="rl_settings_mapCountry_texts_1" text="Harita varsayılanı"/>
+
 		<text name="rl_settings_resetDealer_label" text="Hayvan bayisini sıfırla"/>
 		<text name="rl_settings_resetDealer_tooltip" text="Satıcının tüm hayvanlarını çıkarın ve stoğu yeni hayvanlarla doldurun"/>
 		<text name="rl_settings_resetDealer_text" text="Hayvan Bayisini Sıfırla"/>
@@ -520,6 +527,9 @@
         <text name="rl_settings_tagColour_label" text="Küpe Rengini Değiştir"/>
         <text name="rl_settings_tagColour_tooltip" text="Kulak küpelerinin rengini değiştirin"/>
         <text name="rl_settings_tagColour_text" text="Küpe Rengini Değiştir"/>
+        <text name="rl_settings_maxVisualAnimals_label" text="Set Maximum Visual Animals"/>
+        <text name="rl_settings_maxVisualAnimals_text" text="Set Maximum Visual Animals"/>
+        <text name="rl_settings_maxVisualAnimals_tooltip" text="Set the maximum number of animals rendered per pen. Per-machine display setting; not synced in multiplayer."/>
 
         <text name="rl_settings_exportCSV_label" text="CSV Olarak Dışa Aktar"/>
         <text name="rl_settings_exportCSV_tooltip" text="İstatistikleri CSV olarak dışa aktar"/>
@@ -678,6 +688,8 @@
         <text name="rl_message_aiManager_movedAnimals_multiple" text="Herdsman moved %s animals"/>
         <text name="rl_message_aiManager_mark_move_single" text="Herdsman marked 1 animal for moving"/>
         <text name="rl_message_aiManager_mark_move_multiple" text="Herdsman marked %s animals for moving"/>
+        <text name="rl_message_aiManager_moveSkippedAge_single" text="Herdsman skipped 1 animal (wrong age for the butcher)"/>
+        <text name="rl_message_aiManager_moveSkippedAge_multiple" text="Herdsman skipped %s animals (wrong age for the butcher)"/>
 
         <!-- Daily summary messages -->
         <text name="rl_message_dailyBirthsSummary" text="%s hayvan doğdu: %s"/>
@@ -724,7 +736,7 @@
         <text name="rl_bridge_configoverride_conflict_line" text="%s: %s tarafından uygulandı"/>
 
         <!-- RL Tabbed Menu -->
-        <text name="input_RL_MENU" text="RL Menüsünü Aç (yeni)"/>
+        <text name="input_RL_MENU" text="RL Menüsünü Aç"/>
         <!-- Phase 1: Messages tab -->
         <text name="rl_menu_messages_title" text="Mesajlar"/>
         <text name="rl_menu_messages_empty" text="Henüz mesaj yok"/>
@@ -764,6 +776,7 @@
         <text name="rl_menu_transfer_empty_no_animals" text="No animals on this side"/>
         <text name="rl_menu_transfer_counterpart" text="Destination"/>
         <text name="rl_menu_transfer_world" text="Nearby Animals"/>
+        <text name="rl_menu_transfer_deliver" text="Deliver"/>
         <text name="rl_menu_move_summary" text="%d hayvan" tag="format"/>
 
         <!-- Phase 4: Sell tab -->
@@ -851,6 +864,7 @@
 			<text name="rl_menu_herdsman_section_move" text="Move"/>
 			<text name="rl_menu_herdsman_detail_destination" text="Destination"/>
 			<text name="rl_menu_herdsman_destination_select" text="Select destination"/>
+			<text name="rl_menu_herdsman_destination_butcher_suffix" text="(butcher)"/>
 			<text name="rl_menu_herdsman_destination_picker_title" text="Select Destination"/>
 			<text name="rl_menu_herdsman_destination_picker_empty" text="No destination husbandry available for this rule."/>
 			<text name="rl_menu_herdsman_destination_picker_currentUnavailable" text="Current destination unavailable for this rule."/>

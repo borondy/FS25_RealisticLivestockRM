@@ -253,6 +253,7 @@ function RealisticLivestock_FSBaseMission:onStartMission()
     ProfileDialog.register()
     NameInputDialog.register()
     EarTagColourPickerDialog.register()
+    VisualAnimalsDialog.register()
     AnimalFilterDialog.register()
     AnimalMoveDestinationDialog.register()
     RLFilterConditionDialog.register()
@@ -416,7 +417,7 @@ function RealisticLivestock_FSBaseMission:onDayChanged()
 
 				local aiManager = husbandry:getAIManager()
 
-				if aiManager ~= nil then wages = wages + (aiManager.wage or 0) end
+				if aiManager ~= nil and not AIAnimalManager.FREEZE_LEGACY_HERDSMAN then wages = wages + (aiManager.wage or 0) end
 
 			end
 

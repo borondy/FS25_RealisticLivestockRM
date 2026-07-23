@@ -32,11 +32,11 @@ Reproduction requires a male and female of the same species in the same pen. Eac
 
 | Animal | Gestation | Typical Offspring |
 |--------|-----------|-------------------|
-| Cattle | 10 months | 1 calf (twins rare) |
-| Pigs | 4 months | 11-13 piglets |
-| Sheep / Goats | 5 months | 1-2 lambs |
+| Cattle | 10 months | 1 calf (twins uncommon) |
+| Pigs | 4 months | ~12 piglets (up to 16) |
+| Sheep / Goats | 5 months | 2 lambs (twins usual) |
 | Horses | 11 months | 1 foal |
-| Chickens | 2 months | 1-12 chicks |
+| Chickens | 2 months | ~5 chicks (up to 12) |
 
 Males and females have different fertility windows - boars retire from breeding at just 4 years while sows can breed until 8 years. Cows lactate for 10 months after giving birth, during which they produce milk but need more food and water.
 
@@ -58,7 +58,7 @@ Five diseases can affect your animals:
 
 | Disease | Affects | Treatable? | Key Impact |
 |---------|---------|------------|------------|
-| Mastitis | Cows, Sheep, Goats | Yes | Stops milk and wool production |
+| Mastitis | Cows, Goats | Yes | Stops milk production (lactating animals only) |
 | CVM | Cattle (genetic) | No | Carrier cows produce extra milk, but calves may die |
 | Foot & Mouth | Cows, Sheep, Pigs | Yes (slow) | Major milk and price reduction |
 | PED | Pigs | Yes | Devastating to newborn piglets |
@@ -91,32 +91,38 @@ Almost everything can be tuned to your preference:
 - Export animal data to CSV
 - Choose between individual event messages or daily summaries
 
-See the [Settings Reference](reference-settings.md) for all options.
+All of these live in the RL Menu's Settings tab - the in-game menu's Game Settings page has an **Open Settings** button (under "Realistic Livestock") that takes you straight there. See the [Settings Reference](reference-settings.md) for all options.
 
 ### Livestock Menu
 
-Press **R** in the animal menu to open the animal screen. It has seven tabs:
+Open the **RL Menu** with **Right Shift + O** in-game - or, from the ESC menu's **Animals** page, select a pen and press **R** ("Manage Animals"). It has eight tabs:
 
 - **Buy** - Purchase animals from the dealer with full genetics preview
 - **Sell** - Sell animals back to the dealer
 - **Move** - Transfer animals between your husbandries
-- **Animal Information** - View detailed stats, genetics, health, and production for each animal
+- **Manage** - View detailed stats, genetics, health, and production for each animal
 - **Insemination** - Browse and buy stored semen for artificial breeding without keeping males
 - **Message Log** - Track births, deaths, diseases, and other events
-- **Herdsman** - Automate herd management: auto-buy, auto-sell, castration rules, naming conventions, and auto-insemination. Save and load automation profiles.
+- **Herdsman** - Automate daily herd chores with rules: sell, buy, move, castrate, name, or inseminate the animals a saved filter picks, in the pens you choose. See the [Herdsman guide](guide-herdsman.md).
+- **Settings** - Adjust every RLRM option: death and disease toggles, food scaling, dealer stock size, ear tag colours, genetics display, CSV export, and more. This tab also hosts the **saved filter** editor.
+
+**Saved filters** let you narrow the Buy, Sell, Move, and Manage lists to just the animals you care about - and they are how the Herdsman targets animals. Press **F** on any of those screens to cycle them. See the [Saved Filters guide](guide-saved-filters.md).
 
 ### Controls
 
 | Key | Action | Where |
 |-----|--------|-------|
+| **Right Shift + O** | Open RL Menu | In-game |
 | **R** | Open Manage Animals | Animal menu |
 | **A** | Select / deselect | Buy and sell dialogs |
-| **Shift + T** | Toggle 3D name tags | In-game |
+| **Shift + T** | Change visual animals amount (how many are shown in 3D) | In-game |
 | **X** | Mark animal | Animal detail view |
 | **M** | Toggle monitor | Animal detail view |
 | **I** | Insemination | Animal detail view (females only) |
 | **C** | Castrate | Animal detail view (males only) |
 | **D** | Disease treatment | Animal detail view |
+| **N** | Rename animal | Animal detail view |
+| **F** | Cycle saved filter | Animal lists |
 
 *All keybindings can be remapped in the game's input settings.*
 
@@ -125,7 +131,8 @@ Press **R** in the animal menu to open the animal screen. It has seven tabs:
 RLRM works on virtually any map out of the box - it does not need to be on a list. The maps below are special only because they add their own custom animal types or breeds; for those, the mod includes built-in support and auto-detects the installed map version so the custom animals also get full breeding and reproduction. On any other map, the standard animals just work.
 
 - **[Hof Bergmann](map-hof-bergmann.md)** - Ducks, geese, cats, rabbits, alpacas, and quail fully supported with breeding, genetics, and reproduction. See the [dedicated page](map-hof-bergmann.md) for supported versions and known limitations (pasture bulls, dogs).
-- **[Witcombe](map-witcombe.md)** - UK breeds (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) fully supported with breeding, genetics, and reproduction. See the [dedicated page](map-witcombe.md) for supported versions and the Hereford heritage profile.
+- **[Witcombe](map-witcombe.md)** - UK breeds (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) plus rabbit keeping, fully supported with breeding, genetics, and reproduction. See the [dedicated page](map-witcombe.md) for supported versions and the Hereford heritage profile.
+- **[Le Mechet](map-le-mechet.md)** - French breeds (Charolaise, Montbeliarde, Simmental, Vosgienne) fully supported with breeding, genetics, and reproduction, using the map's native 3D models. See the [dedicated page](map-le-mechet.md) for supported versions and caveats.
 
 If a map updates to a version that hasn't been tested yet, you'll see a warning dialog when the game starts. The dialog includes a link to report any problems.
 
@@ -150,7 +157,13 @@ Each species has a detailed factsheet with breed comparisons, production ranges,
 - [Genetics Guide](guide-genetics.md) - Trait ratings, breeding strategy, the CVM dilemma
 - [Disease Guide](guide-diseases.md) - Prevention, treatment, and immunity
 - [Breeding Guide](guide-breeding.md) - Fertility windows, offspring tables, lactation
+- [Saved Filters](guide-saved-filters.md) - Build reusable animal filters and use them in-game
+- [Herdsman Automation](guide-herdsman.md) - Automate selling, buying, moving, and more with daily rules
 - [Hof Bergmann Map Support](map-hof-bergmann.md) - Exotic animals, supported versions, known limitations
 - [Witcombe Map Support](map-witcombe.md) - UK breeds, supported versions, and the Hereford heritage profile
+- [Le Mechet Map Support](map-le-mechet.md) - French breeds, supported versions, and caveats
+- [Animal Packs](guide-animal-packs.md) - Installing and using third-party animal packs
+- [Breeding Reference](reference-breeding.md) - Per-breed breeding ages, gestation, and litter sizes
 - [Settings Reference](reference-settings.md) - Every configurable option explained
+- [Mod Compatibility](reference-mod-compatibility.md) - Blocking conflicts and known-working integrations
 - [FAQ](faq.md) - Common questions about genetics inheritance, breeding, and more

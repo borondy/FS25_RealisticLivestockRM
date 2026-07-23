@@ -99,6 +99,27 @@ local function indexHusbandriesByUniqueId(husbandries)
     return byId
 end
 
+--- Index a farm's live owner EPP (butcher) placeables by their uniqueId - the SAME key space the
+--- rules' move destinationHusbandry uses (RLHusbandryTargetKey.keyFor = getUniqueId() on the
+--- server, and the tick is server-only), so the executor's _doMove dest fall-through resolves an
+--- EPP dest key to its placeable. Nil-tolerant (EPP is an optional mod - an empty / nil input
+--- yields an empty map, the always-set-possibly-empty contract). A duplicate uniqueId WARNs and
+--- keeps the last (deterministic, never raises), mirroring indexHusbandriesByUniqueId.
+---@param epps table|nil array of EPP placeables (env.eppsForFarm result)
+---@return table eppsById { [uniqueId] = placeable }
+local function indexEPPsByUniqueId(epps)
+    local byId = {}
+    for _, placeable in pairs(epps or {}) do
+        local uid = placeable:getUniqueId()
+        if byId[uid] ~= nil then
+            Log:warning("%s duplicate EPP uniqueId '%s' across live placeables - keeping last",
+                LOG_PREFIX, tostring(uid))
+        end
+        byId[uid] = placeable
+    end
+    return byId
+end
+
 --- Clear each enabled sell/castrate/ai rule's op mark on EVERY animal of its target husbandries,
 --- BEFORE the executor runs (decision 1b): executeActions re-SETS the mark for mark-mode actions,
 --- so clearing afterwards would wipe a freshly-set mark. Each animal actually cleared ALSO
@@ -211,16 +232,21 @@ local function buildPlannerCtx(farm, husbandriesById, env)
     }
 end
 
---- Shape the FROZEN executor ctx (T3): the same uniqueId->placeable map the planner keyed off,
---- plus the dispatch boundary (server/mission) + the service refs. Add nothing.
+--- Shape the FROZEN executor ctx (T3): the same uniqueId->placeable map the planner keyed off, the
+--- owner-farm EPP placeable map for the move-dest fall-through (RLRM-489), plus the dispatch
+--- boundary (server/mission) + the service refs. `eppPlaceablesById` is ALWAYS set (possibly an empty
+--- table - EPP is an optional mod), the always-set contract the executor relies on (a nil map would be
+--- treated as empty anyway - the missing-dest skip - but the day-tick never hands it nil).
 ---@param husbandriesById table { [uniqueId] = placeable }
+---@param eppPlaceablesById table { [uniqueId] = EPP placeable } (possibly empty; never nil)
 ---@param env table the run(env) seam
 ---@return table executorCtx the FROZEN RLHerdsmanExecutor.executeActions ctx
-local function buildExecutorCtx(husbandriesById, env)
+local function buildExecutorCtx(husbandriesById, eppPlaceablesById, env)
     return {
         server                  = env.server,
         mission                 = env.mission,
         husbandryPlaceablesById = husbandriesById,
+        eppPlaceablesById       = eppPlaceablesById or {},
         ruleService             = env.ruleService,
         animalNameSystem        = env.animalNameSystem,
     }
@@ -240,6 +266,7 @@ end
 -- (RLHerdsmanDayTickTests) can unit-test each in isolation on real Animals - the same "internal
 -- function on the module table" testing seam RLHerdsmanExecutor._executeOne uses.
 RLHerdsmanDayTick._indexHusbandriesByUniqueId = indexHusbandriesByUniqueId
+RLHerdsmanDayTick._indexEPPsByUniqueId        = indexEPPsByUniqueId
 RLHerdsmanDayTick._clearStaleMarks            = clearStaleMarks
 RLHerdsmanDayTick._buildPlannerCtx            = buildPlannerCtx
 RLHerdsmanDayTick._buildExecutorCtx           = buildExecutorCtx
@@ -303,7 +330,12 @@ function RLHerdsmanDayTick.run(env)
                         LOG_PREFIX, tostring(farmId), #enabledRules)
                 end
 
-                local execCtx = buildExecutorCtx(husbandriesById, env)
+                -- Owner-farm EPP (butcher) placeables for the move-dest fall-through (RLRM-489). ALWAYS
+                -- built (possibly empty - EPP is an optional mod, and a test env may omit eppsForFarm):
+                -- keyed by uniqueId, the same key space the rule's move destinationHusbandry uses.
+                local eppPlaceablesById = indexEPPsByUniqueId(env.eppsForFarm ~= nil and env.eppsForFarm(farmId) or {})
+
+                local execCtx = buildExecutorCtx(husbandriesById, eppPlaceablesById, env)
                 local summary = RLHerdsmanExecutor.executeActions(plan, execCtx)
                 local wageByFarm = summary.wageByFarm or {}
 
@@ -366,6 +398,23 @@ function RLHerdsmanDayTick.buildEnv()
         farms              = g_farmManager:getFarms(),
         rulesForFarm       = function(farmId) return ruleService:listForFarm(farmId) end,
         husbandriesForFarm = function(farmId) return husbandrySystem:getPlaceablesByFarm(farmId) end,
+        -- Owner-farm EPP (butcher) placeables for the move-dest fall-through (RLRM-489). Scans the
+        -- placeableSystem for spec_extendedProductionPoint, mirroring RLMoveDestinationHelper.getValidDestinations' scan;
+        -- nil-guarded so an absent EPP mod (no such spec on any placeable) yields an empty list.
+        eppsForFarm        = function(farmId)
+            local out = {}
+            local ps = mission.placeableSystem
+            if ps ~= nil and ps.placeables ~= nil then
+                for _, placeable in ipairs(ps.placeables) do
+                    if placeable.spec_extendedProductionPoint ~= nil
+                        and placeable.getOwnerFarmId ~= nil
+                        and placeable:getOwnerFarmId() == farmId then
+                        out[#out + 1] = placeable
+                    end
+                end
+            end
+            return out
+        end,
         rawDealerAnimals   = function(typeIndex) return animalSystem:getSaleAnimalsByTypeIndex(typeIndex) end,
         filtersById        = filtersById,
         balanceForFarm     = function(farmId)

@@ -36,7 +36,7 @@
             <!-- ScrollingLayout uses fs25_settingsLayout. Rows render in
                  source order; per-section 20px GuiElement spacers act as
                  visual gaps without text headers. Order matches
-                 RLSettings.SETTINGS index 1..17. -->
+                 RLSettings.SETTINGS index 1..19. -->
             <ScrollingLayout profile="fs25_settingsLayout" id="generalSettingsLayout">
 
                 <!-- 1. Mortality -->
@@ -83,6 +83,12 @@
                         <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
                     </MultiTextOption>
                     <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_maxDealerAnimals_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_mapCountry">
+                    <MultiTextOption profile="fs25_settingsMultiTextOption" id="rlmenuSetting_mapCountry" onClick="onClickGeneralSetting">
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </MultiTextOption>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_mapCountry_label"/>
                 </Bitmap>
 
                 <GuiElement size="100% 20px" name="sectionHeader"/>
@@ -170,6 +176,18 @@
                         <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
                     </Button>
                     <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_resetAIAnimals_label"/>
+                </Bitmap>
+
+                <!-- Visual Animals (client-local; opens VisualAnimalsDialog).
+                     Appended as the last General row inside the final section,
+                     with no sectionHeader spacer, so updateAlternatingElements
+                     row parity holds. -->
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_maxVisualAnimals">
+                    <Button profile="rl_settingsButton" id="rlmenuSetting_maxVisualAnimals" text="$l10n_rl_settings_maxVisualAnimals_text" onClick="onClickGeneralAction">
+                        <ThreePartBitmap profile="fs25_settingsButtonBg"/>
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </Button>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_maxVisualAnimals_label"/>
                 </Bitmap>
 
             </ScrollingLayout>

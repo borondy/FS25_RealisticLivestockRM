@@ -1,6 +1,6 @@
-<modDesc descVersion="107">
+<modDesc descVersion="110">
     <author>Ritter</author>
-    <version>1.2.6.0</version>
+    <version>1.3.0.0-dev.6</version>
     <title>
         <en>Realistic Livestock - Ritter version</en>
         <it>Allevamento Realistico - Versione Ritter</it>
@@ -23,6 +23,73 @@ Documentation: https://rittermod.github.io/FS25_RealisticLivestockRM
 Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivestockRM
 
 Changelog
+
+1.3.0.0-dev.6:
+
+Changed:
+- The maximum-visible-animals control moved from the Shift+T keybind into the RL Menu Settings > General tab; it stays a per-machine display setting (each player sets their own, not shared in multiplayer), and the Shift+T keybind was removed.
+
+Fixed:
+- Pen feed forecast: the low-stock warning now reflects real days of feed remaining (orange under 2 days left, red under 1 day) instead of a month estimate, so it no longer warns too early when playing with 3 or more days per month.
+- Pen feed forecast: the "months of feed left" range shown in the pen info is no longer under-estimated when playing with 2 or more days per month (it previously divided the estimate by the days-per-month setting).
+
+
+1.3.0.0-dev.5:
+
+Fixed:
+- Multiplayer: a mother's post-birth recovery now counts down live for connected players instead of appearing stuck as "recovering" (which had wrongly blocked inseminating her again until a relog).
+- Fixed FPS stutter when switching the active implement (G) in some instances - the animal-visibility settings dialog now loads once per session instead of reloading on every switch.
+
+
+1.3.0.0-dev.4:
+
+Fixed:
+- Multiplayer: husbandry log messages (animal buy/sell/move, births/deaths, and daily summaries) now appear live for connected players instead of only after rejoining.
+- Multiplayer: DLC animals (e.g. Highland Cattle) whose DLC is installed but not active in the session are no longer loaded, preventing them from showing as the wrong breed/gender - or being corrupted when bought - for players without the DLC.
+- Multiplayer: inseminating a female from the animal menu now works on dedicated servers and clients (previously it silently did nothing on the server - no pregnancy resulted and a straw was wasted); straw counts now stay in sync across all players.
+
+
+1.3.0.0-dev.3:
+
+Changed:
+- The old built-in herdsman automation (from before the new Herdsman menu) no longer runs or charges wages on saves where it was left enabled, and its now-inaccurate on-screen warning is hidden. Set up rules in the new Herdsman menu to automate your herd.
+
+Fixed:
+- Fixed cows producing no milk on Hof Bergmann v1.4 cow pastures: all cow breeds now produce milk cans.
+
+Documentation:
+- Added user guides for Saved Filters and Herdsman automation - how to build reusable animal filters and set up daily herd-management rules.
+
+
+1.3.0.0-dev.2:
+
+Added:
+- Herdsman: a move rule can now target a butcher (Extended Production Point); animals outside the butcher's age range are skipped and reported.
+- Dev builds now log a "legacy-tripwire" error if anything still opens the legacy animal screen, to catch leftover paths before it is removed (expected on dev/tester builds; gone by the stable release).
+
+Changed:
+- RL Menu now has a default hotkey (Right Shift + O) and a cleaner input-binding name; existing installations need to bind or reset the key manually.
+- Walking up to one of your own animal pens, approaching an animal dealer on foot, or opening the animal screen from the in-game menu (R) now open the RL Menu instead of the legacy animal screen.
+- Driving a loaded livestock trailer to a butcher now opens the RL Menu with an individual-animal delivery view instead of the legacy cluster-style screen.
+
+Fixed:
+- In multiplayer, quickly triggering two animal trades of the same kind (buy, sell, or move) could affect the wrong animals or leave the menu stuck - trades now run one at a time with a "trade in progress" notice and a timeout recovery.
+- A declined semen purchase (e.g. not enough money) no longer uses up dealer spawn space, so repeated declined attempts can't eventually make valid purchases fail with a "no space" message.
+- Herdsman task editor: the green slider on the Mark / Naming convention / Budget type toggles no longer lands on the wrong option after switching between tasks with different actions (display-only glitch; the stored setting was always correct).
+
+
+1.3.0.0-dev.1:
+
+Added:
+- "Animal Country of Origin" setting (RL Menu -> Settings -> General): choose the country new animals are registered in (ear tags, identifiers) or keep the map default. New animals only - existing animals keep their country. Admin-only in multiplayer, saved per savegame.
+
+New RL Menu:
+- All mod settings now live in the RL Menu's Settings tab; the in-game menu's Settings page shows a single "Realistic Livestock Settings" button that opens it (the 17 duplicated rows are gone).
+
+Improvements:
+- Breeding ages now better match real livestock: goats breed from 8 months (was 16), horse stallions from 24 months (was 36).
+- Hens now stop hatching chicks by about 5 years (previously ~10); roosters now retire at 6 years (previously bred for life).
+
 
 1.2.6.0:
 
@@ -61,75 +128,6 @@ Translations:
 - All languages: new filter and herdsman labels now fall back to English instead of showing raw text codes in languages that have not translated them yet.
 
 
-1.2.5.0:
-
-Added:
-- Mod compatibility bridge: RLRM can now coexist with some foreign mods that overlap its hooks, via per-mod shim files in `mod_support/<ModName>/` (same layout as the map-support bridges). The framework activates automatically when a registered foreign mod is detected; shim files self-disable cleanly when their target mod is absent, with no impact on RLRM-only setups.
-
-Improved:
-- Hereford calves now use the breed-accurate red-and-white coat (adults shipped in 1.2.4.0; UV-layout tip from [MA] BavarianRedneck).
-
-Compatibility:
-- Seasonal Wool Production (Argsy Gaming): RLRM + SWP now coexist without the previous double-production of wool. SWP handles wool as a seasonal event with a single output per sheep per season; per-pen yield matches vanilla SWP based on flock size (mature sheep aged >= 8 months). Trade-off: wool yield does not reflect RLRM per-animal genetics.
-
-Documentation:
-- Hof Bergmann support page + FAQ: the HB bull stable's BULLSPERM trigger stays empty under RLRM (HB models bull sperm as a milk output; RLRM only produces milk for lactating female cows). HB pasture bulls remain decorative.
-
-Fixed:
-- Selling or buying animals via a livestock trailer at the dealer no longer logs `Error in AnimalSellEvent` / `Error in AnimalBuyEvent ... missing method 'addRLMessage'`. The sales themselves always completed.
-- Multiplayer: animal lists no longer show wrong breeds or species on clients missing a DLC the server has installed (e.g. Highland Cattle rendering as Water Buffalo). Server data was always correct; only the receiving client misrendered.
-- Multiplayer: player-initiated insemination from non-host clients now propagates to the server and other clients within one network frame (previously applied locally only).
-- Empty dewars (0 straws remaining) no longer survive save/load or storage round-trip; they self-delete on the server in every code path. Affected saves clean up on next load.
-- Newborns of the same farm no longer inherit "Children" counts from another species' male with the same identifier (e.g. a Texel ram showing 61 children due to a rooster collision). Existing bogus counts are not auto-cleaned.
-- AI insemination "not enough money" check now correctly blocks dewar purchases priced above farm balance (both RL Menu AI tab and the legacy R-key flow).
-- Artificial Insemination dialog: the Inseminate button now enables/disables per selected dewar instead of staying latched to the first row.
-- Per-visual `canBeBought="false"` on animal sale stages now takes effect at the dealer (previously silently ignored). Packs can restrict a breed to juvenile-only or adult-only sales; default bundle behavior unchanged.
-- Pen no longer overflows past capacity when multiple pregnancies mature on the same day-change. Existing overcap saves heal gradually via natural deaths or sold animals.
-- Defensive pregnancy backfill on legacy / orphaned saves now uses the mother's quality for offspring of mothers missing `impregnatedBy.quality`, instead of nil. Normal pregnancies were always correct.
-- Quick filter dialog no longer silently applies a "Healthy animals only" filter on open + OK; the disease filter now defaults to any.
-- Quick filter dialog polish: added a title, aligned the scrollbar inside the dialog body, stopped clamping slider ranges to a previously-applied filter, and fixed option rows drifting to the wrong segment or slider thumb after scrolling. Applies to both the new RL Menu and the legacy R-key screen.
-- Quick filter persistence is now tab-local and shown in the chip ("QF" alone or combined with a saved-filter name); it clears automatically when you leave the tab.
-- Settings -> General is now admin-only end-to-end. Non-admin players could previously edit most rows; changes would revert or briefly affect the server.
-
-RL Menu (preview - work in progress):
-- Saveable Filters are now editable in-game from Settings -> Filters. All engine field types supported (numeric, boolean, gender, subType, name); multi-value "in" / "not in" via a Select Values dialog; cross-species matching when Animal type = ANY. Out-of-range numeric values are rejected with a visible hint.
-- Saveable Filters gain a per-screen "Show on" axis (All / Owned-herd / Dealer) so the F-cycle stays uncrowded once you have several filters.
-- Quick Filter dialog gains a Save filter button that turns the current dialog state into a new saveable filter and opens Settings -> Filters on the new row. Price conditions cannot be saved and are dropped with a warning.
-- Settings -> Filters: New filter / Duplicate now picks the next free suffix as max existing N + 1, so names no longer collide after deleting earlier-numbered entries. Saved-filter cards now use the dealer-card visual style so more fit on screen.
-- Multiplayer: filter create / rename / delete now refresh peer Info / Buy / Sell / Move tabs live, no menu reopen needed.
-- Animal Dealer now opens the new RL Menu (Buy tab) at the shop counter and on walk-up; trailer loading still uses the legacy screen.
-- Pen Info and Move tabs now estimate feed runway in the "Total Capacity" row: a `(~N-Mm)` range shows how many in-game months the current feed lasts, accounting for lactation, gestation surge, scheduled births, and per-animal metabolism. The capacity bar and text turn red when the runway drops below 2 months.
-- RL Menu tab and header icons now render at the proper size (previously about half base-game size).
-
-Herdsman automation rules (preview - backend groundwork, no in-game UI yet):
-- Foundation for upcoming saveable Herdsman rules that pair a saved filter with an automated operation (sell, buy, castrate, naming, or AI) across chosen pens. Rules persist across save/load in rm_RlSettings.xml; a corrupt or hand-edited rule record is dropped safely on load. Multiplayer: rule add / edit / delete propagate to all players, and a player who joins mid-session receives the server's full rule set on connect.
-
-1.2.4.0:
-
-Added:
-- Map support: Le Mechet by MA7Studio (https://farming-simulator.com/mod.php?mod_id=357964) - four French cow breeds (Charolaise, Montbeliarde, Simmental, Vosgienne) with bull variants; full breeding, genetics, and reproduction; per-breed pricing, milk curves, and reproduction signatures preserved from the map's source XML.
-- In-game warning when two map bridges or animal packs replace the same animal type's husbandry. The second one wins and the first one's animals can become invisible (ghost animals); RLRM now shows a dismissible warning at mission start so the cause is visible instead of silent.
-- Witcombe Park Farm 1.3.0.0 (v4) now loads cleanly with the existing map bridge.
-
-Improved:
-- Hereford adult cow and bull skin updated to a more breed-accurate red-and-white coat. Texture contributed by [MA] BavarianRedneck.
-- French translation refreshed by community contributor @squall39 (PR #83): native-speaker corrections to existing strings and translations for the new RL Tabbed Menu strings (Messages, Info, Move, Sell, Buy, AI tabs).
-- User guide cattle milk chart now reconciles with the breed-range table; footnote spells out which factors compose into the table range (chart is the lifetime age envelope; the table folds in lactation-phase factor and genetics multiplier).
-
-Fixed:
-- Finance overview now shows "Medicine" for animal medicine costs instead of the `Missing 'finance_medicine' in l10n_en.xml` fallback.
-
-Compatibility:
-- Le Mechet is NOT compatible with the Cow Breeds Pack for RLRM (FS25_CowBreedsRLRM) unless you use the latest development version of the Cow Breeds Pack - both replace the cow husbandry config and only one can win. Use Le Mechet alone, or pair it with the latest dev Cow Breeds Pack. The new in-game warning will fire if you load both together.
-- Hereford is removed from the dealer when Le Mechet is the active map.
-
-RL Menu (preview - work in progress):
-- Added saveable animal filters: define filters that match on age, gender, pregnancy, lactation, genetics, subtype, weight, health, marks, and name, nested with AND/OR groups; filters persist across sessions in the savegame. For now filters are authored by hand-editing rm_RlSettings.xml - the in-game editor ships in a future release.
-- Press F on Info / Buy / Sell / Move tabs to cycle through saved filters; the active filter shows as a chip on the tab. Filter selection is shared across Info / Move / Sell; Buy keeps its own selection per dealer flow.
-- Multiplayer: filter create / update / delete sync across all connected players (admin or tradeAnimals permission required); late-joining clients receive the full filter set on connect.
-- Added Settings tab with two subtabs: [General] surfaces the existing RL settings (now editable from both the new menu and the legacy GAME SETTINGS page, reordered into thematic groups - Mortality, Health & Disease, Husbandry & Economy, Custom Animals, Message Log, Display Preferences, Tools & Admin), and [Filters] lists your saved filters (read-only view today; in-game editor in a future release). Toggling a setting on either General page reflects on the other when re-opened.
-- Added Filter Hand-Crafting reference page in the user guide for power users authoring saveable filters in rm_RlSettings.xml until the in-game editor lands.
-
 ]]>
         </en>
         <it>
@@ -158,9 +156,6 @@ Codice sorgente e tracciamento issue: https://github.com/rittermod/FS25_Realisti
     </extraSourceFiles>
     <l10n filenamePrefix="translations/translation"/>
     <inputBinding>
-        <actionBinding action="VisualAnimalsDialog">
-            <binding device="KB_MOUSE_DEFAULT" input="KEY_lshift KEY_t"/>
-        </actionBinding>
         <actionBinding action="RL_OPEN_ANIMAL_SCREEN">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_r" index="1"/>
         </actionBinding>
@@ -188,10 +183,11 @@ Codice sorgente e tracciamento issue: https://github.com/rittermod/FS25_Realisti
         <actionBinding action="RL_CYCLE_FILTER">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_f" index="1"/>
         </actionBinding>
-        <actionBinding action="RL_MENU"/>
+        <actionBinding action="RL_MENU">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_rshift KEY_o" index="1"/>
+        </actionBinding>
     </inputBinding>
     <actions>
-        <action name="VisualAnimalsDialog"/>
         <action name="RL_OPEN_ANIMAL_SCREEN"/>
         <action name="RL_MARK"/>
         <action name="RL_MONITOR"/>

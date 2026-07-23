@@ -67,19 +67,43 @@ function PlaceableHusbandryAnimals:addRLMessageDirect(id, animal, args, date, un
 
     end
 
-    for i, arg in pairs(args or {}) do args[i] = tostring(arg) end
+    args = args or {}
+    for i, arg in pairs(args) do args[i] = tostring(arg) end
+
+    -- Resolve the uniqueId into a local BEFORE the insert so the incremental broadcast (below) carries
+    -- the SAME server-assigned id the client must insert verbatim. A broadcast/apply message passes its
+    -- uniqueId in; a fresh server add mints the next one from the per-husbandry counter.
+    local resolvedUniqueId = uniqueId or spec:getNextRLMessageUniqueId()
 
     table.insert(spec.messages, {
         ["id"] = id,
         ["animal"] = animal,
-        ["args"] = args or {},
+        ["args"] = args,
         ["date"] = date,
-        ["uniqueId"] = uniqueId or spec:getNextRLMessageUniqueId()
+        ["uniqueId"] = resolvedUniqueId
     })
 
     if not isLoading and #spec.messages > PlaceableHusbandryAnimals.maxNumMessages then table.remove(spec.messages, 1) end
 
     spec.unreadMessages = true
+
+    -- Incremental MP sync (RLRM-464): broadcast this server-added message to connected clients so their
+    -- Messages tab stays current during play - the join snapshot (HusbandryMessageStateEvent) only
+    -- covers connect time. Server-authoritative + netIsRunning; skipped on savegame load (server-local,
+    -- predates any join - the join snapshot covers loaded messages). NO sendLocal: the host already
+    -- inserted above, so the event :run fires only on clients (g_server == nil) and never re-broadcasts.
+    if not isLoading and g_server ~= nil and g_server.netIsRunning then
+        Log:debug("addRLMessageDirect: broadcasting id='%s' uniqueId=%s to clients", tostring(id), tostring(resolvedUniqueId))
+        HusbandryMessageAddEvent.sendEvent(self, resolvedUniqueId, id, animal, args, date)
+    end
+
+    -- Refresh an open Messages tab on EVERY machine (host, SP, and client-via-:run) - mirrors
+    -- HusbandryMessageDeleteEvent:run so there is no host/client asymmetry. Nil-guarded: g_rlMenu /
+    -- messagesFrame may be absent during early lifecycle or if the menu was never opened.
+    if g_rlMenu ~= nil and g_rlMenu.messagesFrame ~= nil
+       and g_rlMenu.messagesFrame.refreshIfOpen ~= nil then
+        g_rlMenu.messagesFrame:refreshIfOpen()
+    end
 
 end
 
@@ -351,6 +375,11 @@ function PlaceableHusbandryAnimals:_flushPenDayChange(spec, totalChildren, total
 end
 
 
+-- Module-scope latch so the legacy-herdsman freeze announces itself once per session
+-- (resets each map load = each source()). See AIAnimalManager.FREEZE_LEGACY_HERDSMAN.
+local freezeAnnounced = false
+
+
 function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
     RmSafeUtils.safeCall("PlaceableHusbandryAnimals:onDayChanged", function()
 
@@ -471,7 +500,15 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
 
             end
 
-            spec.aiAnimalManager:onDayChanged()
+            if not AIAnimalManager.FREEZE_LEGACY_HERDSMAN then
+                spec.aiAnimalManager:onDayChanged()
+            else
+                if not freezeAnnounced then
+                    freezeAnnounced = true
+                    Log:debug("legacy-herdsman-freeze: AIAnimalManager legacy day-tick frozen; skipping legacy buy/sell/castrate/name/AI and wage on all pens this session")
+                end
+                Log:trace("legacy-herdsman-freeze: skipped legacy onDayChanged for pen '%s'", tostring(self.getName and self:getName() or self))
+            end
 
         end
 
@@ -535,6 +572,29 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onPeriodChanged(_)
             if RealisticLivestock.testAnimalPrefix == nil then
                 g_diseaseManager:calculateTransmission(animals)
             end
+
+        else
+
+            -- MP client branch (RLRM-526): recovery (monthsSinceLastBirth) is
+            -- deterministic and unsynced, so a client advances it locally in
+            -- lockstep with the server -- the same reason aging runs client-side
+            -- in onDayChanged (no server guard around its per-animal loop).
+            -- Recovery ONLY: disease progression, treatment-cost money, and
+            -- disease transmission stay server-authoritative in the branch above.
+            -- No testAnimalPrefix filter (nil on clients; mirrors onDayChanged,
+            -- which gates that filter on self.isServer).
+            local animals = self.spec_husbandryAnimals.clusterSystem:getClusters()
+            local nAdvanced = 0
+
+            for _, animal in pairs(animals) do
+                RmSafeUtils.safeAnimalCall(animal, "advanceRecoveryPeriod", function()
+                    animal:advanceRecoveryPeriod()
+                end)
+                nAdvanced = nAdvanced + 1
+            end
+
+            Log:debug("onPeriodChanged client recovery [%s]: advanced monthsSinceLastBirth for %d animal(s)",
+                tostring(self.getName and self:getName() or self), nAdvanced)
 
         end
 

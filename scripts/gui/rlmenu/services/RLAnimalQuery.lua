@@ -109,6 +109,85 @@ function RLAnimalQuery.listHusbandryDescriptorsForFarm(farmId)
     return descriptors
 end
 
+--- Compose a move-destination display label: the base placeable name plus a localized "(butcher)"
+--- suffix for an EPP destination, so the picker rows and the rule's destination button label agree
+--- (one suffix home shared by this descriptor projection AND the frame's resolvePlaceableName).
+--- A husbandry destination gets the bare name. Falls back to a literal "(butcher)" only if g_i18n is
+--- unavailable (the key is seeded in every locale, so a live game resolves it).
+---@param name string|nil base placeable name
+---@param isEPP boolean|nil true for an EPP butcher destination
+---@return string label
+function RLAnimalQuery.composeDestinationLabel(name, isEPP)
+    local base = name or ""
+    if isEPP ~= true then return base end
+    local suffix = (g_i18n ~= nil and g_i18n:getText("rl_menu_herdsman_destination_butcher_suffix")) or "(butcher)"
+    return base .. " " .. suffix
+end
+
+--- Project the farm's live MOVE DESTINATIONS into descriptors for the herdsman move-dest picker + the
+--- frame's dest-revalidation map. The husbandry half REUSES listHusbandryDescriptorsForFarm verbatim
+--- (scalar `animalType`, name-sorted, same stable target keys); the EPP half scans
+--- placeableSystem.placeables for owner-farm butchers - mirroring RLMoveDestinationHelper.getValidDestinations'
+--- placeable scan, but enumerating the PLACEABLE (MP-stable key) rather than the production point, and
+--- reporting the SET of supported type indices (`animalTypes` = keys of pp.animalsTypeData) so a
+--- multi-type butcher is ONE picker row under an ANY-type filter. An EPP whose type set is EMPTY is
+--- EXCLUDED (H6 analog - it can never accept the pen's animals), as is one with no usable target key.
+--- EPP is an OPTIONAL third-party mod: every hop nil-guards spec_extendedProductionPoint /
+--- productionPoint / animalsTypeData, so an absent mod yields exactly the husbandry descriptors (zero
+--- behavior change). EPP descriptors are appended (unsorted); the presenter re-sorts the candidate set.
+---@param farmId number|nil
+---@return table descriptors husbandry { uniqueId, animalType, name } + EPP { uniqueId, animalTypes, name, isEPP }
+function RLAnimalQuery.listMoveDestinationDescriptorsForFarm(farmId)
+    local descriptors = RLAnimalQuery.listHusbandryDescriptorsForFarm(farmId)
+    local husbandryCount = #descriptors
+
+    if farmId == nil or farmId == 0 then return descriptors end
+    if g_currentMission == nil or g_currentMission.placeableSystem == nil then
+        Log:warning("RLAnimalQuery.listMoveDestinationDescriptorsForFarm: placeableSystem unavailable; husbandry dests only")
+        return descriptors
+    end
+
+    local eppCount, skipped = 0, 0
+    for _, placeable in ipairs(g_currentMission.placeableSystem.placeables) do
+        local eppSpec = placeable.spec_extendedProductionPoint
+        if eppSpec ~= nil and placeable.getOwnerFarmId ~= nil and placeable:getOwnerFarmId() == farmId then
+            local pp = eppSpec.productionPoint
+            local typeData = pp ~= nil and pp.animalsTypeData or nil
+            if type(typeData) == "table" then
+                local animalTypes = {}
+                for typeIndex in pairs(typeData) do
+                    animalTypes[#animalTypes + 1] = typeIndex
+                end
+                if #animalTypes == 0 then
+                    -- H6 analog: a butcher that accepts no animal types can never be a valid dest.
+                    skipped = skipped + 1
+                    Log:debug("RLAnimalQuery.listMoveDestinationDescriptorsForFarm: EPP '%s' has empty animalsTypeData; excluded (H6)",
+                        tostring(placeable.getName ~= nil and placeable:getName() or "?"))
+                else
+                    local key = RLHusbandryTargetKey.keyFor(placeable)
+                    if type(key) ~= "string" or key == "" then
+                        -- keyFor already :warning'd the unkeyable placeable (nil/empty uniqueId server, nil/0 net-id client).
+                        skipped = skipped + 1
+                    else
+                        table.sort(animalTypes)  -- deterministic set order
+                        descriptors[#descriptors + 1] = {
+                            uniqueId    = key,
+                            animalTypes = animalTypes,
+                            name        = RLAnimalQuery.composeDestinationLabel(
+                                (placeable.getName ~= nil and placeable:getName()) or "", true),
+                            isEPP       = true,
+                        }
+                        eppCount = eppCount + 1
+                    end
+                end
+            end
+        end
+    end
+    Log:debug("RLAnimalQuery.listMoveDestinationDescriptorsForFarm: farmId=%s -> %d husbandry + %d EPP descriptor(s), %d EPP skipped",
+        tostring(farmId), husbandryCount, eppCount, skipped)
+    return descriptors
+end
+
 -- =============================================================================
 -- Animal list + sort + filter
 -- =============================================================================
@@ -123,7 +202,7 @@ function RLAnimalQuery._wrapCluster(cluster)
 end
 
 --- Return the sorted, filtered list of AnimalItemStock items for a husbandry.
---- Sorted via RL_AnimalScreenBase.sortAnimals (disease-first, then subType,
+--- Sorted via RLAnimalDisplayHelper.sortAnimals (disease-first, then subType,
 --- optional genetics, then age). Filtered via AnimalFilterDialog.applyFilters.
 --- @param husbandry table
 --- @param filters table|nil
@@ -149,12 +228,12 @@ function RLAnimalQuery.listAnimalsForHusbandry(husbandry, filters)
     end
 
     -- Fail-fast if the shared comparator is missing. Unreachable in practice;
-    -- main.lua load order puts AnimalScreenBase in SECTION 12 before rlmenu in 13b.
-    if RL_AnimalScreenBase == nil or RL_AnimalScreenBase.sortAnimals == nil then
-        Log:error("RLAnimalQuery.listAnimalsForHusbandry: RL_AnimalScreenBase.sortAnimals unavailable; returning empty")
+    -- main.lua load order puts RLAnimalDisplayHelper in SECTION 2b before rlmenu in 13b.
+    if RLAnimalDisplayHelper == nil or RLAnimalDisplayHelper.sortAnimals == nil then
+        Log:error("RLAnimalQuery.listAnimalsForHusbandry: RLAnimalDisplayHelper.sortAnimals unavailable; returning empty")
         return {}
     end
-    table.sort(items, RL_AnimalScreenBase.sortAnimals)
+    table.sort(items, RLAnimalDisplayHelper.sortAnimals)
 
     if filters ~= nil and next(filters) ~= nil
         and AnimalFilterDialog ~= nil and AnimalFilterDialog.applyFilters ~= nil then
@@ -241,9 +320,9 @@ function RLAnimalQuery.formatAnimalRow(item)
         row.identifier = cluster:getIdentifiers() or ""
     end
 
-    if RL_AnimalScreenBase ~= nil and RL_AnimalScreenBase.formatDisplayName ~= nil then
-        row.displayName       = RL_AnimalScreenBase.formatDisplayName(row.baseName, cluster)
-        row.displayIdentifier = RL_AnimalScreenBase.formatDisplayName(row.identifier, cluster)
+    if RLAnimalDisplayHelper ~= nil and RLAnimalDisplayHelper.formatDisplayName ~= nil then
+        row.displayName       = RLAnimalDisplayHelper.formatDisplayName(row.baseName, cluster)
+        row.displayIdentifier = RLAnimalDisplayHelper.formatDisplayName(row.identifier, cluster)
     else
         row.displayName       = row.baseName
         row.displayIdentifier = row.identifier

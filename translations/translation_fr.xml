@@ -71,7 +71,6 @@
 
 		<!-- INTERFACE -->
 
-<text name="input_VisualAnimalsDialog" text="Modifier le nombre d'animaux visibles"/>
 <text name="input_RL_OPEN_ANIMAL_SCREEN" text="Ouvrir l'écran des animaux"/>
 <text name="input_RL_MARK" text="Marquer/Démarquer l'animal"/>
 <text name="input_RL_MONITOR" text="Activer/Désactiver le suivi"/>
@@ -184,6 +183,8 @@
 <text name="rl_ui_moveErrorNoPermission" text="Vous n'avez pas la permission de déplacer des animaux ici."/>
 <text name="rl_ui_moveErrorNotSupported" text="Cette destination ne prend pas en charge ce type d'animal."/>
 <text name="rl_ui_moveErrorNoSpace" text="Pas assez de place à destination."/>
+<text name="rl_ui_tradeRequestInProgress" text="Une transaction est déjà en cours. Veuillez patienter."/>
+<text name="rl_ui_tradeRequestTimeout" text="Le serveur n'a pas répondu. Veuillez réessayer."/>
 
 		<text name="rl_ui_monitor" text="Suivi"/>
 <text name="rl_ui_monitorSubscriptions" text="Abonnements de suivi"/>
@@ -486,6 +487,8 @@
 		<!-- PARAMÈTRES -->
 
 <text name="rl_settings" text="Realistic Livestock"/>
+<text name="rl_settings_openMenu_button" text="Ouvrir les paramètres"/>
+<text name="rl_settings_openMenu_label" text="Ouvrir les paramètres Realistic Livestock"/>
 
 <text name="rl_settings_off" text="Désactivé"/>
 <text name="rl_settings_on" text="Activé"/>
@@ -509,6 +512,10 @@
 <text name="rl_settings_maxDealerAnimals_label" text="Animaux max chez le marchand"/>
 <text name="rl_settings_maxDealerAnimals_tooltip" text="Modifier le nombre maximum d'animaux disponibles par type chez le marchand"/>
 
+<text name="rl_settings_mapCountry_label" text="Pays d'origine des animaux"/>
+<text name="rl_settings_mapCountry_tooltip" text="Remplace le pays dans lequel les nouveaux animaux sont enregistrés (boucles auriculaires, identifiants). S'applique uniquement aux nouveaux animaux ; les animaux existants conservent leur pays."/>
+<text name="rl_settings_mapCountry_texts_1" text="Défaut de la carte"/>
+
 <text name="rl_settings_resetDealer_label" text="Réinitialiser le marchand d'animaux"/>
 <text name="rl_settings_resetDealer_tooltip" text="Supprimer tous les animaux du marchand et régénérer un nouveau stock"/>
 <text name="rl_settings_resetDealer_text" text="Réinitialiser le marchand d'animaux"/>
@@ -520,6 +527,9 @@
 <text name="rl_settings_tagColour_label" text="Changer la couleur des boucles"/>
 <text name="rl_settings_tagColour_tooltip" text="Modifier la couleur des boucles d'oreille"/>
 <text name="rl_settings_tagColour_text" text="Changer la couleur des boucles"/>
+<text name="rl_settings_maxVisualAnimals_label" text="Set Maximum Visual Animals"/>
+<text name="rl_settings_maxVisualAnimals_text" text="Set Maximum Visual Animals"/>
+<text name="rl_settings_maxVisualAnimals_tooltip" text="Set the maximum number of animals rendered per pen. Per-machine display setting; not synced in multiplayer."/>
 
 <text name="rl_settings_exportCSV_label" text="Exporter en CSV"/>
 <text name="rl_settings_exportCSV_tooltip" text="Exporter les statistiques en CSV"/>
@@ -682,6 +692,8 @@
 <text name="rl_message_aiManager_movedAnimals_multiple" text="Le responsable d'élevage a déplacé %s animaux"/>
 <text name="rl_message_aiManager_mark_move_single" text="Le responsable d'élevage a marqué 1 animal pour déplacement"/>
 <text name="rl_message_aiManager_mark_move_multiple" text="Le responsable d'élevage a marqué %s animaux pour déplacement"/>
+<text name="rl_message_aiManager_moveSkippedAge_single" text="Herdsman skipped 1 animal (wrong age for the butcher)"/>
+<text name="rl_message_aiManager_moveSkippedAge_multiple" text="Herdsman skipped %s animals (wrong age for the butcher)"/>
 
 		<!-- Messages de résumé quotidien -->
 <text name="rl_message_dailyBirthsSummary" text="%s animaux sont nés à %s"/>
@@ -730,7 +742,7 @@
 <text name="rl_bridge_configoverride_conflict_line" text="%s : appliqué par %s"/>
 
 		<!-- Menu à onglets RL -->
-<text name="input_RL_MENU" text="Ouvrir le menu RL (nouveau)"/>
+<text name="input_RL_MENU" text="Ouvrir le menu RL"/>
 
 <!-- Onglet Messages -->
 <text name="rl_menu_messages_title" text="Messages"/>
@@ -773,6 +785,7 @@
 <text name="rl_menu_transfer_empty_no_animals" text="No animals on this side"/>
 <text name="rl_menu_transfer_counterpart" text="Destination"/>
 <text name="rl_menu_transfer_world" text="Nearby Animals"/>
+<text name="rl_menu_transfer_deliver" text="Deliver"/>
 <text name="rl_menu_move_summary" text="%d animaux"/>
 
 <!-- Onglet Vente -->
@@ -840,6 +853,7 @@
 			<text name="rl_menu_herdsman_section_move" text="Déplacement"/>
 			<text name="rl_menu_herdsman_detail_destination" text="Destination"/>
 			<text name="rl_menu_herdsman_destination_select" text="Sélectionner une destination"/>
+			<text name="rl_menu_herdsman_destination_butcher_suffix" text="(butcher)"/>
 			<text name="rl_menu_herdsman_destination_picker_title" text="Sélectionner une destination"/>
 			<text name="rl_menu_herdsman_destination_picker_empty" text="Aucun élevage de destination disponible pour cette règle."/>
 			<text name="rl_menu_herdsman_destination_picker_currentUnavailable" text="La destination actuelle n'est pas disponible pour cette règle."/>

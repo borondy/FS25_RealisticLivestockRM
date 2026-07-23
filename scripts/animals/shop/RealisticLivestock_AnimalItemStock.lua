@@ -150,7 +150,7 @@ AnimalItemStock.new = RealisticLivestock_AnimalItemStock.new
 
 function AnimalItemStock:getDisplayName()
 
-	return RL_AnimalScreenBase.formatDisplayName(self.cluster:getName(), self.cluster)
+	return RLAnimalDisplayHelper.formatDisplayName(self.cluster:getName(), self.cluster)
 
 end
 

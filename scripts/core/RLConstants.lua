@@ -141,6 +141,15 @@ RLConstants.AREA_CODES = {
 }
 
 
+-- Reverse lookup: RL area-code string ("DE") -> AREA_CODES index. Built once
+-- from AREA_CODES so the two tables can never drift.
+RLConstants.AREA_CODES_BY_CODE = {}
+
+for index, entry in ipairs(RLConstants.AREA_CODES) do
+    RLConstants.AREA_CODES_BY_CODE[entry.code] = index
+end
+
+
 RLConstants.DAYS_PER_MONTH = {
     [1] = 31,
     [2] = 28,
@@ -160,6 +169,36 @@ RLConstants.DAYS_PER_MONTH = {
 RLConstants.START_YEAR = {
     ["FULL"] = 2024,
     ["PARTIAL"] = 24
+}
+
+
+-- AI insemination straw-purchase quantity ladder. A CONTIGUOUS 1..22 array:
+-- consumers both iterate it with pairs() (to build stepper labels) and index it
+-- positionally by stepper state ([state]), so the order and the gap-free 1..22
+-- keys are load-bearing - keep it a plain sequence, never a sparse map.
+RLConstants.DEWAR_QUANTITIES = {
+    1,
+    2,
+    3,
+    4,
+    5,
+    10,
+    15,
+    20,
+    25,
+    30,
+    40,
+    50,
+    75,
+    100,
+    150,
+    200,
+    250,
+    300,
+    400,
+    500,
+    750,
+    1000
 }
 
 

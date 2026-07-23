@@ -26,15 +26,15 @@ For reproduction to occur, ALL of the following must be true:
 | **Cattle** | 12 months | 12 months | 132 months (11 yr) | 10 months | 132 months (11 yr) |
 | **Pigs** | 6 months | 8 months | **48 months (4 yr)** | 4 months | 96 months (8 yr) |
 | **Sheep** | 8 months | 5 months | **72 months (6 yr)** | 5 months | 120 months (10 yr) |
-| **Goats** | 16 months | 5 months | 72 months (6 yr) | 5 months | 120 months (10 yr) |
-| **Horses** | 22 months | 36 months | 300 months (25 yr) | 11 months | 264 months (22 yr) |
-| **Chickens** | 6 months | 6 months | No limit | 2 months | 120 months (10 yr) |
+| **Goats** | 8 months | 5 months | 72 months (6 yr) | 5 months | 120 months (10 yr) |
+| **Horses** | 22 months | 24 months | 300 months (25 yr) | 11 months | 264 months (22 yr) |
+| **Chickens** | 6 months | 6 months | 72 months (6 yr) | 2 months | 60 months (5 yr) |
 
 *See the [Breeding Reference](reference-breeding.md) for a per-breed view that splits female and male rows and includes peak litter sizes.*
 
 > **Critical insight:** Males retire from breeding much earlier than females in some species! Boars stop at 4 years while sows breed until 8. Rams stop at 6 years while ewes breed until 10. Plan male replacements early.
 
-> **Genetics matter:** A male's maximum breeding age is scaled by his fertility genetics. A bull with high fertility may breed well beyond 11 years, while one with poor fertility may retire much sooner. The ages above assume average genetics.
+> **Genetics matter:** A male's maximum breeding age is scaled by his fertility genetics. A bull with high fertility may breed well beyond 11 years, while one with poor fertility may retire much sooner. The ages above assume average genetics. The one exception is roosters, whose 72-month cap is fixed and not affected by genetics.
 
 ---
 
@@ -104,69 +104,70 @@ A Holstein calf from an Angus bull × Holstein cow cross inherits its Holstein a
 
 ## Offspring per Birth
 
+Two things decide how many young you get: whether the mother conceives at all, and how large the litter is once she does.
+
+- **Chance of conceiving** rises once the mother reaches breeding age, stays high through her prime years, and tapers to zero at her fertility end age (see the table above). This is the part that depends on age.
+- **Litter size** does *not* depend on age. Each birth is usually the species' typical size; a smaller or larger litter is driven by the mother's **fertility genetics**, not how old she is.
+
 ### Cattle
 
-Cattle usually produce single calves. Twins and triplets are rare.
-
-| Cow Age | No Birth | 1 Calf | Twins | Triplets |
-|---------|----------|--------|-------|----------|
-| 12-28 mo | Moderate | Most likely | Rare | Very rare |
-| 29-48 mo (prime) | Low | Most likely | Rare | Very rare |
-| 49-84 mo | Increasing | Most likely | Rare | Very rare |
-| 85-132 mo (old) | Very common | Less likely | Very rare | Extremely rare |
-
-### Pigs
-
-Pigs produce the largest litters. Healthy sows at prime age almost always deliver.
-
-| Sow Age | Chance of No Birth | Small (1-6) | Medium (7-10) | Typical (11-13) | Large (14-16) |
-|---------|-------------------|-------------|---------------|-----------------|---------------|
-| 6-12 mo (young) | Low | Rare | Uncommon | Most likely | Possible |
-| 13-36 mo (prime) | Very low | Rare | Uncommon | Most likely | Possible |
-| 37-60 mo | Low-moderate | Rare | Uncommon | Most likely | Possible |
-| 61-80 mo | Moderate | Uncommon | Possible | Most likely | Less likely |
-| 81-96 mo (old) | High | Possible | Possible | Less likely | Rare |
-
-*Most pig litters are 11-13 piglets. Older sows may produce smaller litters of 1-10 piglets. Low health significantly reduces litter size.*
-
-### Sheep & Goats
-
-Sheep and goats have high twin rates at prime age. First-time mothers usually have singles.
-
-| Ewe/Doe Age | Singles | Twins | Triplets |
-|-------------|---------|-------|----------|
-| First-time mother | Most likely | Uncommon | Rare |
-| 18-36 mo | Common | Common | Rare |
-| 36-72 mo (prime) | Less common | **Most likely** | Uncommon |
-| 72-120 mo (old) | Uncommon | Most common | Rare |
-
-*At prime age, twins are more common than singles! Goats follow the same pattern but start breeding later (16 months vs 8 months for sheep).*
-
-### Horses
-
-Horses almost always produce a single foal.
+Cattle almost always produce a single calf. Twins and triplets can happen, more often from cows with high fertility genetics.
 
 | Outcome | Likelihood |
 |---------|------------|
-| 1 foal | Almost always |
-| Twins | Rare |
-| Triplets | Very rare |
+| 1 calf | Most likely |
+| Twins | Uncommon |
+| Triplets | Rare |
 
-*Horse fertility declines gradually with age through to 264 months.*
+*A cow's chance of conceiving stays steady through her prime years and tapers to zero by 132 months.*
+
+### Pigs
+
+Pigs produce the largest litters -- typically around 12 piglets, and up to 16 from a highly fertile sow.
+
+| Outcome | Likelihood |
+|---------|------------|
+| ~12 piglets (typical) | Most likely |
+| Smaller litter | Uncommon |
+| Up to 16 piglets | Possible with high fertility |
+
+*A sow stays highly fertile through her prime years, with her conception chance tapering to zero by 96 months (8 years).*
+
+### Sheep & Goats
+
+Sheep and goats usually produce twins. Singles and triplets both occur, with triplets more likely from high-fertility ewes and does.
+
+| Outcome | Likelihood |
+|---------|------------|
+| Twins | Most likely |
+| Single | Common |
+| Triplets | Uncommon |
+
+*Twins are the most common outcome at every age, including first-time mothers. Goats breed from the same age as sheep (8 months). Conception chance tapers to zero by 120 months (10 years).*
+
+### Horses
+
+Horses almost always produce a single foal. Twins are an occasional surprise and triplets are rare.
+
+| Outcome | Likelihood |
+|---------|------------|
+| 1 foal | Most likely |
+| Twins | Occasional |
+| Triplets | Rare |
+
+*A mare stays fertile across her breeding years, with her conception chance tapering to zero by 264 months (22 years).*
 
 ### Chickens
 
-Chickens have large but unreliable hatches. The chance of no offspring is always significant.
+A successful hatch is typically around 5 chicks, and can reach up to 12 from a highly fertile hen.
 
-| Hen Age | No Hatch | Small Brood (1-5) | Medium Brood (5-7) | Large Brood (7-12) |
-|---------|----------|-------------------|--------------------|---------------------|
-| 6-12 mo | Common | Uncommon | Most likely | Possible |
-| 12-24 mo | Common | Rare | Most likely | Possible |
-| 24-48 mo | Frequent | - | Most likely | Possible |
-| 48-84 mo | Very common | - | Uncommon | Rare |
-| 84-120 mo | Almost always | - | Very rare | Very rare |
+| Outcome | Likelihood |
+|---------|------------|
+| ~5 chicks (typical) | Most likely |
+| Fewer chicks | Common |
+| Up to 12 chicks | Possible with high fertility |
 
-*Unlike other animals, hens never die during hatching.*
+*A hen's chance of hatching a clutch is high from 6 months and tapers with age, ending abruptly at 60 months (5 years) -- after that she still lays eggs but hatches no chicks.*
 
 ---
 
@@ -210,16 +211,12 @@ xychart-beta
 
 ## Pregnancy Complications
 
-Breeding is not without risk. Low health significantly increases complications:
+Breeding requires the mother to be at 75% health or above to conceive (see [Requirements](#requirements-for-breeding)). Once she is pregnant, birth is usually safe, but complications can still occur:
 
-| Parent Health | Risk Level |
-|--------------|------------|
-| 90%+ | Very low risk of complications |
-| 75-90% | Low risk |
-| 60-75% | Moderate risk, fewer offspring |
-| Below 60% | High risk, mother may die during birth |
+- **Stillbirths.** An individual newborn may not survive birth. This is more likely when the newborn has poor health genetics. It reduces how many of the litter survive -- it does not shrink the litter the mother conceived.
+- **Mother death.** If a newborn is stillborn, the mother herself can die during the birth. This is rare, and only a real risk for mothers with poor health genetics; strong health genetics make it very unlikely.
 
-*If the mother dies during birth, offspring may still survive. Low health also reduces the chance of multiple offspring.*
+*Litter size is set by the mother's fertility genetics, not by her health -- health decides how safely the birth goes, not how many young she carries. If the mother dies during birth, her surviving offspring remain.*
 
 ### Freemartin Effect (Cattle Only)
 
@@ -245,8 +242,8 @@ If you don't want to keep males, artificial insemination (AI) is available throu
 
 - Breeds your female without needing a physical male in the pen
 - Uses an AI animal pool (can be refreshed in settings)
-- Same breed restrictions apply (Water Buffalo and Goats need breed-specific AI)
-- Same health and age requirements apply
+- Offspring always inherit the mother's breed, so there is no need for breed-matched semen (even for Water Buffalo or goats)
+- The female must meet the age and eligibility rules, but AI does not enforce the 75% health minimum that natural breeding requires
 - The insemination button is automatically disabled when the female is ineligible (pregnant, too young, or recovering from birth)
 
 ---
@@ -274,7 +271,7 @@ Plan your breeding based on gestation periods:
 
 2. **Actively manage your breeding stock.** Offspring inherit from parents, but individual calves can be worse than either parent due to natural genetic variation. Pair your best animals, sell or castrate underperformers, and don't let a herd breed unchecked through generations - genetics will drift towards average without active culling. See the [FAQ](faq.md#how-can-offspring-have-worse-genetics-than-their-parents) for why this happens.
 
-3. **Keep health above 75%.** Below 75%, breeding fails entirely. Below 60%, the mother risks death. Good food, water, straw, and medical treatment are essential.
+3. **Keep health above 75%.** Below 75%, breeding fails entirely. Weak newborns (poor health genetics) can be stillborn, and a stillbirth can occasionally cost the mother too. Good food, water, straw, and medical treatment are essential.
 
 4. **Budget for lactation costs.** Lactating cows eat noticeably more food and considerably more water. Plan your feed budget for the 10-month lactation window.
 

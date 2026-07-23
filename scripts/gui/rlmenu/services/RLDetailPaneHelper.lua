@@ -207,55 +207,76 @@ function RLDetailPaneHelper.updatePenDisplay(frame, husbandry, farmId)
     if frame.penFoodHeader ~= nil then frame.penFoodHeader:setVisible(hasFood) end
 
     if hasFood then
-        -- Low-food alert decision (drives both text and bar styling).
-        local lowFood = display.foodMonthsRemaining ~= nil and display.foodMonthsRemaining < 2
+        -- Low-feed alert is driven by real DAYS of feed remaining, not months:
+        -- a "month" is daysPerPeriod real days, so a month-count threshold fired
+        -- far too early at 3/5+ days-per-period. Days are daysPerPeriod-stable.
+        -- danger (red) < DANGER_DAYS; warning (orange) < WARNING_DAYS; else normal.
+        local days = display.foodDaysRemaining
+        local alertState = "normal"
+        if days ~= nil then
+            if days < RLPenFeedForecast.DANGER_DAYS then
+                alertState = "danger"
+            elseif days < RLPenFeedForecast.WARNING_DAYS then
+                alertState = "warning"
+            end
+        end
+        local isAlert = alertState ~= "normal"
 
         if frame.foodRowTotalValue ~= nil then
-            -- applyProfile FIRST so setText below is the final state. The
-            -- danger profile inherits from fs25_animalRequirementsValue and
-            -- only overrides textColor to $preset_colorRed.
-            if frame.foodRowTotalValue.applyProfile ~= nil
-                and display.foodMonthsRemaining ~= nil
-            then
-                if lowFood then
+            -- applyProfile FIRST so setText below is the final state. The Danger/
+            -- Warning profiles inherit from fs25_animalRequirementsValue and only
+            -- override textColor ($preset_colorRed / $preset_colorOrange). The
+            -- normal branch resets the profile so a recovered pen loses the colour.
+            if frame.foodRowTotalValue.applyProfile ~= nil and days ~= nil then
+                if alertState == "danger" then
                     frame.foodRowTotalValue:applyProfile("rl_animalRequirementsValueDanger")
+                elseif alertState == "warning" then
+                    frame.foodRowTotalValue:applyProfile("rl_animalRequirementsValueWarning")
                 else
                     frame.foodRowTotalValue:applyProfile("fs25_animalRequirementsValue")
                 end
             end
 
             local baseText = g_i18n:formatVolume(display.foodTotalValue, 0)
-            local monthsText = nil
-            if display.foodMonthsRemaining ~= nil then
+            local suffix = nil
+            if isAlert then
+                -- In the alert band show a simple day-bound so the text agrees
+                -- with the colour: danger "<1d", warning "<2d". (A months label
+                -- would read misleadingly here, e.g. "<1m" with several real days
+                -- left at 5 days-per-period.)
+                suffix = (alertState == "danger") and " ( <1d )" or " ( <2d )"
+                Log:trace("RLDetailPaneHelper.updatePenDisplay: days=%.2f state=%s -> label='%s'",
+                    days, alertState, suffix)
+            elseif display.foodMonthsRemaining ~= nil then
                 local m = display.foodMonthsRemaining
                 -- Range expresses forecast uncertainty: the sim proved `m` full
                 -- months survive and busts mid-(m+1), so [m, m+1] is the honest
                 -- bracket. m=0 collapses to "<1m"; the cap collapses to "12+m".
                 if m >= RLPenFeedForecast.MAX_MONTHS then
-                    monthsText = " ( ~12+m )"
+                    suffix = " ( ~12+m )"
                 elseif m <= 0 then
-                    monthsText = " ( <1m )"
+                    suffix = " ( <1m )"
                 else
-                    monthsText = string.format(" ( ~%d-%dm )", m, m + 1)
+                    suffix = string.format(" ( ~%d-%dm )", m, m + 1)
                 end
                 Log:trace("RLDetailPaneHelper.updatePenDisplay: months=%d -> label='%s'",
-                    m, monthsText)
+                    m, suffix)
             end
-            frame.foodRowTotalValue:setText(baseText .. (monthsText or ""))
+            frame.foodRowTotalValue:setText(baseText .. (suffix or ""))
         end
         if frame.foodRowTotalStatusBar ~= nil then
             -- Profile swap FIRST (resets size attribute), then setStatusBarValue
             -- so the proportional width wins.
-            if frame.foodRowTotalStatusBar.applyProfile ~= nil
-                and display.foodMonthsRemaining ~= nil
-            then
-                if lowFood then
+            if frame.foodRowTotalStatusBar.applyProfile ~= nil and days ~= nil then
+                if alertState == "danger" then
                     frame.foodRowTotalStatusBar:applyProfile("rl_animalSmallStatusBarDanger")
+                elseif alertState == "warning" then
+                    frame.foodRowTotalStatusBar:applyProfile("rl_animalSmallStatusBarWarning")
                 else
                     frame.foodRowTotalStatusBar:applyProfile("fs25_animalSmallStatusBar")
                 end
-                Log:trace("RLDetailPaneHelper.updatePenDisplay: months=%s -> profile=%s",
-                    tostring(display.foodMonthsRemaining), lowFood and "danger" or "normal")
+                Log:trace("RLDetailPaneHelper.updatePenDisplay: days=%s state=%s -> profile",
+                    tostring(days), alertState)
             end
             RLDetailPaneHelper.setStatusBarValue(frame.foodRowTotalStatusBar, display.foodTotalRatio, false)
         end

@@ -210,9 +210,10 @@ function RLMenuSettingsFrame.new()
     -- value is the BinaryOption/MultiTextOption/Button widget. Tooltip
     -- child Text refs live in self.tooltips[name]. Both populated by
     -- populateGeneralSubtab() during initialize() (per-clone, one-shot).
-    -- The new page deliberately does NOT touch RLSettings.SETTINGS[*].element
-    -- - that ref belongs to the legacy in-game settings page and the
-    -- RL_BroadcastSettingsEvent path. Each page owns its own widget refs.
+    -- The page deliberately does NOT touch RLSettings.SETTINGS[*].element
+    -- - that ref stays nil (no pause-menu rows are built anymore); the
+    -- RL_BroadcastSettingsEvent path nil-guards it. Each page owns its
+    -- own widget refs.
     self.controls          = {}
     self.tooltips          = {}
     self.didMeasureGeneralPane = false
@@ -419,7 +420,7 @@ function RLMenuSettingsFrame:onFrameOpen()
 
     -- Push current RLSettings state into General subtab widgets and run
     -- the per-row admin gate + dependency cascade. State may have changed
-    -- between opens (legacy page edit, MP broadcast); re-read every time.
+    -- between opens (MP broadcast); re-read every time.
     self:refreshGeneralSubtab()
 
     -- One-shot first-visibility measure log for the General layout. Mirrors
@@ -1080,11 +1081,15 @@ function RLMenuSettingsFrame:updateButtonVisibility()
         if hasSelection then
             table.insert(self.menuButtonInfo, self.editConditionButtonInfo)
             table.insert(self.menuButtonInfo, self.addConditionButtonInfo)
-            table.insert(self.menuButtonInfo, self.addGroupButtonInfo)
+            -- Phase 2: "Add group" hidden until group editing is implemented.
+            -- addGroupButtonInfo / onAddGroupClicked / addGroupAtSelection stay
+            -- defined; re-enable by restoring these two inserts. The stub still
+            -- surfaces an InfoDialog if ever invoked directly.
+            -- table.insert(self.menuButtonInfo, self.addGroupButtonInfo)
             table.insert(self.menuButtonInfo, self.deleteConditionButtonInfo)
             table.insert(appended, "Edit")
             table.insert(appended, "AddCondition")
-            table.insert(appended, "AddGroup")
+            -- table.insert(appended, "AddGroup")
             table.insert(appended, "DeleteCondition")
         end
     end
@@ -3207,15 +3212,20 @@ end
 -- =============================================================================
 
 --- Build the per-row option-text arrays a state-row widget needs:
+---   setting.getTexts -> the registry entry's own builder (runtime-composed texts)
 ---   binaryType=offOn -> {"Off", "On"} (localized)
 ---   valueType=int    -> { "20", "30", "40", ... }
 ---   valueType=float  -> { "0%", "10%", "20%", ... }
 ---   else             -> l10n keys "rl_settings_<name>_texts_<i>"
---- Mirrors RLSettings.initialize - same source of truth.
+--- RLSettings.SETTINGS is the single source of truth for values and types.
 --- @param name string Setting key in RLSettings.SETTINGS
 --- @param setting table The setting entry
 --- @return table The texts array indexed by state
 local function buildSettingTexts(name, setting)
+    if setting.getTexts ~= nil then
+        return setting.getTexts()
+    end
+
     local texts = {}
     local prefix = "rl_settings_" .. name .. "_"
 
@@ -3284,8 +3294,7 @@ function RLMenuSettingsFrame:populateGeneralSubtab()
             -- Static tooltip text: write once at populate so action rows
             -- (which refreshGeneralSubtab skips) get tooltip text too. Dynamic
             -- tooltips for state rows seed at the default state here and are
-            -- updated per-state in refreshGeneralSubtab. Mirrors the legacy
-            -- RLSettings.initialize ordering.
+            -- updated per-state in refreshGeneralSubtab.
             if tooltip ~= nil then
                 local tooltipKey
                 if setting.dynamicTooltip then
@@ -3348,7 +3357,7 @@ function RLMenuSettingsFrame:refreshGeneralSubtab()
 end
 
 --- Per-row admin gate + dependency cascade. Operates on self.controls
---- (this frame's element registry), not on the legacy setting.element ref.
+--- (this frame's element registry), never on RLSettings.SETTINGS[*].element.
 --- Per-row admin gating, not blanket non-admin disable: only rows flagged
 --- setting.adminOnly==true are disabled for non-admins; the rest stay
 --- enabled with their dependency cascade applied.
@@ -3380,10 +3389,10 @@ function RLMenuSettingsFrame:updateReadonlyState()
 end
 
 --- Refresh the General subtab if the frame is open. Called from
---- RL_BroadcastSettingsEvent:run after the legacy element sync so the new
---- page reflects MP-synced state changes without requiring frame reopen.
---- No-op when the frame is closed - matches the refreshIfOpen convention
---- used by the filter-event hooks elsewhere on this branch.
+--- RL_BroadcastSettingsEvent:run so the page reflects MP-synced state
+--- changes without requiring frame reopen. No-op when the frame is
+--- closed - matches the refreshIfOpen convention used by the
+--- filter-event hooks elsewhere on this branch.
 function RLMenuSettingsFrame:refreshIfGeneralOpen()
     if not self.isFrameOpen then
         Log:trace("RLMenuSettingsFrame:refreshIfGeneralOpen: frame closed, skipping")
@@ -3395,9 +3404,9 @@ end
 
 --- XML onClick handler for state rows (BinaryOption / MultiTextOption).
 --- Extracts the setting name from the widget's id (rlmenuSetting_<name>),
---- delegates to RLSettings.applyChange (single write path shared with the
---- legacy in-game settings page), then refreshes our widgets so the cascade
---- and dynamic-tooltip state stay current.
+--- delegates to RLSettings.applyChange (the single write path for stateful
+--- settings), then refreshes our widgets so the cascade and dynamic-tooltip
+--- state stay current.
 ---
 --- The colon syntax binds `self` implicitly; the GUI loader's raiseCallback
 --- chain raises onClickCallback for state-row widgets with
@@ -3405,10 +3414,10 @@ end
 --- here. So the explicit args are (state, widget) - state is the post-click
 --- state index, widget is the BinaryOption/MultiTextOption that was clicked.
 ---
---- Defensive `widget == nil then widget = state` mirrors RLSettings.onSettingChanged
---- so an accidental cross-wire from a Button (which raises with only
---- (target, widget)) still resolves to a sensible widget reference for
---- the early-return guard below; the ignore-flag check then redirects.
+--- Defensive `widget == nil then widget = state` keeps an accidental
+--- cross-wire from a Button (which raises with only (target, widget))
+--- resolving to a sensible widget reference for the early-return guard
+--- below; the ignore-flag check then redirects.
 --- @param state number 1-based new state from the widget post-click
 --- @param widget table The widget that was clicked
 function RLMenuSettingsFrame:onClickGeneralSetting(state, widget)
@@ -3443,12 +3452,10 @@ function RLMenuSettingsFrame:onClickGeneralSetting(state, widget)
 
     RLSettings.applyChange(name, newState)
 
-    -- Sync the change off this client. Broadcast the single setting via the same
-    -- event the legacy GAME SETTINGS page uses on close (InGameMenuSettingsFrame
-    -- onFrameClose -> RL_BroadcastSettingsEvent.sendEvent()), here in its
+    -- Sync the change off this client via RL_BroadcastSettingsEvent in its
     -- single-setting form. The server validates the sender (master-user),
     -- persists, and relays to other clients. Without this the RLMenu
-    -- change stayed local and the server reverted it on save/reload.
+    -- change stays local and the server reverts it on save/reload.
     Log:debug("RLMenuSettingsFrame:onClickGeneralSetting: broadcasting '%s' via RL_BroadcastSettingsEvent.sendEvent", name)
     RL_BroadcastSettingsEvent.sendEvent(name)
 
@@ -3456,10 +3463,8 @@ function RLMenuSettingsFrame:onClickGeneralSetting(state, widget)
 end
 
 --- XML onClick handler for action rows (Button). Resolves the setting name
---- from the button's id and invokes its setting.callback - same handler
---- the legacy in-game page wires for the same buttons (RLSettings.initialize
---- registers RLSettings.onSettingChanged which routes ignored buttons to
---- setting.callback() with no args).
+--- from the button's id and invokes its setting.callback with no args -
+--- action rows are self-contained (dialog / export / reset handlers).
 ---
 --- ButtonElement.raiseCallback delivers two args (`target, button`), so
 --- the colon-bound `self` absorbs the target and the explicit `button`

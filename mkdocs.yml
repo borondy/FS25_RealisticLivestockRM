@@ -28,10 +28,19 @@ theme:
     - content.tooltips
 
 plugins:
+  - to-pdf
   - search
   - mermaid-to-svg:
       renderer: mmdc
       mermaid_config:
+        # Render diagram labels as native SVG <text>, not HTML in <foreignObject>.
+        # WeasyPrint (PDF export) cannot render foreignObject, so htmlLabels: true
+        # drops all flowchart/class text from the PDF. xy-charts already use <text>.
+        htmlLabels: false
+        flowchart:
+          htmlLabels: false
+        class:
+          htmlLabels: false
         theme: base
         themeVariables:
           xyChart:
@@ -62,6 +71,8 @@ nav:
       - Genetics: guide-genetics.md
       - Breeding & Reproduction: guide-breeding.md
       - Diseases: guide-diseases.md
+      - Saved Filters: guide-saved-filters.md
+      - Herdsman Automation: guide-herdsman.md
       - Animal Packs: guide-animal-packs.md
   - Maps:
       - Hof Bergmann: map-hof-bergmann.md

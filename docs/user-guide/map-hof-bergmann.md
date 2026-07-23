@@ -16,18 +16,20 @@ You don't need to do anything - the detection and configuration loading is fully
 
 | Map Version | Config | Status |
 |-------------|--------|--------|
-| 1.3.0.1 | v1.3 | Tested |
-| 1.4.0.0 Beta1 | v1.4 | Tested |
-| 1.4.0.0 Beta2 | v1.4 | Tested |
-| 1.4.0.0 | v1.4 | Tested |
+| 1.3.0.1 up to (not including) 1.4 | v1.3 | Tested |
+| Any 1.4.x (including Beta 1 and Beta 2) | v1.4 | Tested |
 
-If your version isn't listed and you see a warning dialog, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues) so support can be added.
+The mod accepts a whole range of versions for each configuration, not just the exact numbers above. Only a map version that falls **outside** these ranges triggers the warning dialog.
+
+If your version isn't covered and you see a warning dialog, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues) so support can be added.
 
 ---
 
 ## Exotic Animals
 
 Hof Bergmann adds several animal types beyond the base game. The mod gives most of these animals full RLRM treatment: individual tracking, genetics, breeding, lifecycle, aging, and diseases.
+
+Animals on Hof Bergmann carry a **DE (Germany) eartag prefix** to reflect the map's country setting.
 
 ### What the Bridge Adds
 
@@ -44,7 +46,7 @@ For each exotic animal type, the mod adds **male subtypes** so that natural bree
 
 All exotic animals can be bought, sold, bred, monitored, and managed through the livestock menu just like base game animals.
 
-> **Wild Ducks:** You may notice wild ducks in the livestock dealer. These are decorative pond animals with no husbandry building on the map. The [map developer notes](https://www.lsfarming-mods.com/filebase/entry/112-hof-bergmann/) that they appear in the dealer due to a technical fix, but are not playable animals. They cannot be placed or managed.
+> **Wild Ducks:** On v1.4 the bridge adds a buyable wild-duck drake and a wild-duck breeding group. However, the map has no duck husbandry building, so wild ducks stay dealer-only - you can see them at the livestock dealer, but they cannot be placed or managed on the map.
 
 ### Corrections Applied
 
@@ -88,6 +90,18 @@ On HB v1.4, horses are fully rideable and compatible with the Horse Addon Pack. 
 
 ---
 
+## Cow Milk on Pastures
+
+On Hof Bergmann, the cow pasture buildings collect milk as **milk cans** (physical pallets that spawn at the building) rather than filling a milk tank. Every RLRM cow breed produces cans here - including the beef breeds - so a whole mixed herd contributes.
+
+> **Milk cans ignore lactation.** Everywhere else in RLRM a cow only gives milk while lactating (the 10 months after calving), and non-lactating cows give zero - see the [Cattle Factsheet](factsheet-cattle.md#milk-production-by-breed). The can-collecting cow buildings are the exception: they produce cans for **every adult cow** (from 12 months) regardless of lactation, following the cow's age curve instead of the lactation cycle. A dry cow, or a heifer that has never calved, will still fill cans. This matches how the map's own cow buildings behaved before RLRM.
+
+If your cow building fills a **milk tank** instead of spawning cans (the older farm-style cow barn), it uses the normal RLRM rules - only lactating cows contribute.
+
+> **Hof Bergmann v1.3:** the can-collecting cow buildings don't produce milk cans on the v1.3 configuration yet - a known limitation. The v1.4 configuration is where cow-pasture milk works.
+
+---
+
 ## Known Limitations
 
 ### Pasture Bulls Are Not Cattle
@@ -114,6 +128,14 @@ Hof Bergmann includes 8 dog breeds (4 Labrador variants, 4 Border Collie variant
 
 RLRM tracks dogs as individuals with names and genetics, but does not add breeding or reproduction. Dogs remain companion animals that behave the same as in vanilla FS25.
 
+### Bundled Animal Transport Pack
+
+Hof Bergmann is distributed together with a separate mod, **FS25_lsfmAnimalTransportPack.zip** (the LSFM Animal Transport Pack). Because it arrives with the map, it is easy to assume it is part of Hof Bergmann itself - it is not, and the limitation below is a fault of that pack, not the map.
+
+The transport pack's animal herding / driving feature does not work with RLRM. Driving animals opens the animal screen through the pack's custom object instead of a standard livestock trailer, and RLRM's rewritten animal screen does not recognise that call, so the action fails; there may be further errors later in the process. Everything else on the map works normally, and the rest of the transport pack is unaffected.
+
+See [Mod Compatibility](reference-mod-compatibility.md#partial-compatibility) for the full compatibility list.
+
 ---
 
 ## Related Pages
@@ -122,3 +144,4 @@ RLRM tracks dogs as individuals with names and genetics, but does not add breedi
 - [Genetics Guide](guide-genetics.md) - How traits are inherited
 - [FAQ: Can you add more breeds?](faq.md#can-you-add-more-breeds-or-animal-types) - Why new breeds aren't created from scratch
 - [FAQ: Why don't HB bulls breed like cattle?](faq.md#why-dont-hof-bergmann-pasture-bulls-breed-like-cattle) - More detail on the BULL vs COW limitation
+- [Mod Compatibility](reference-mod-compatibility.md) - Which mods conflict with or work alongside RLRM

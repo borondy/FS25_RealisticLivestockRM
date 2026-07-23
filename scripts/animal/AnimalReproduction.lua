@@ -364,10 +364,15 @@ function AnimalReproduction.createPregnancy(animal, childNum, month, year, fathe
                 or (animalType == AnimalType.COW and 132)
                 or (animalType == AnimalType.SHEEP and 72)
                 or (animalType == AnimalType.HORSE and 300)
-                or (animalType == AnimalType.CHICKEN and 1000)
+                or (animalType == AnimalType.CHICKEN and 72)
                 or (animalType == AnimalType.PIG and 48)
                 or 120
-            maxFertilityMonth = maxFertilityMonth * otherAnimal.genetics.fertility
+
+            -- Rooster siring is an absolute 72-month cap; the fertility multiplier
+            -- must not lift a high-fertility rooster past it.
+            if animalType ~= AnimalType.CHICKEN then
+                maxFertilityMonth = maxFertilityMonth * otherAnimal.genetics.fertility
+            end
 
             if animalSubType.reproductionMinAgeMonth ~= nil
                 and otherAnimal:getAge() >= animalSubType.reproductionMinAgeMonth

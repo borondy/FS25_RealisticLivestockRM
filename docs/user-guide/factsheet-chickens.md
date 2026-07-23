@@ -80,7 +80,7 @@ Chicken prices are low and identical for hens and roosters:
 |-----|-----|---------|
 | Newborn | 0 - 2 | 0 - 2 |
 | 6 mo | 1 - 5 | 1 - 5 |
-| 18+ mo (adult) | **2 - 12** | **1 - 9** |
+| 12+ mo (adult) | **2 - 12** | **1 - 9** |
 
 *Roosters eat noticeably less than hens at adult age. Ranges show the span from the most efficient to the hungriest birds.*
 
@@ -102,8 +102,8 @@ Chicken prices are low and identical for hens and roosters:
 |-----------|-------|
 | Hen breeding age | 6+ months |
 | Rooster breeding age | 6+ months |
-| Rooster max breeding age | No limit (breeds for life) |
-| Hen fertility | Declines sharply with age |
+| Rooster max breeding age | 72 months (6 years) |
+| Hen fertility | Declines with age; ends by ~60 months (5 years) |
 | Gestation (hatching) | 2 months |
 | Min health to breed | 75% |
 
@@ -113,17 +113,15 @@ Chicken prices are low and identical for hens and roosters:
 
 ### Chicks per Hatch
 
-Chickens can produce large broods, but the chance of no offspring is always significant:
+A successful hatch is typically around 5 chicks, and can reach up to 12 from a highly fertile hen:
 
-| Hen Age | No Hatch | Small Brood (1-5) | Medium Brood (5-7) | Large Brood (7-12) |
-|---------|----------|-------------------|--------------------|---------------------|
-| 6-12 mo | Common | Uncommon | Most likely | Possible |
-| 12-24 mo | Common | Rare | Most likely | Possible |
-| 24-48 mo | Frequent | - | Most likely | Possible |
-| 48-84 mo | Very common | - | Uncommon | Rare |
-| 84-120 mo | Almost always | - | Very rare | Very rare |
+| Outcome | Likelihood |
+|---------|------------|
+| ~5 chicks (typical) | Most likely |
+| Fewer chicks | Common |
+| Up to 12 chicks | Possible with high fertility |
 
-*Unlike other animals, hens never die during hatching. The most common successful brood is 5-7 chicks. At older ages, small broods become impossible - hens that do hatch tend to produce medium or larger broods.*
+*Hatch size does not depend on age. A hen's chance of hatching a clutch is high from 6 months and tapers with age, ending abruptly at 60 months (5 years) - after that she still lays eggs but hatches no chicks. A hen must be at 75% health or above to hatch a clutch.*
 
 ---
 
@@ -135,7 +133,7 @@ Chickens can produce large broods, but the chance of no offspring is always sign
 | Old age deaths begin | 60 months (5 years) |
 | Maximum lifespan | ~96 months (8 years) |
 
-*Chickens have the shortest lifespan. Old age deaths can begin while hens are still laying eggs. Breeding success drops sharply with age - old hens rarely hatch chicks. Death can be toggled off in settings.*
+*Chickens have the shortest lifespan. Old age deaths can begin while hens are still laying eggs. Hens stop hatching chicks entirely at 60 months - the same age old-age deaths begin. Death can be toggled off in settings.*
 
 ---
 
@@ -143,9 +141,9 @@ Chickens can produce large broods, but the chance of no offspring is always sign
 
 | Disease | Spread | Fatal? | Treatment | Impact |
 |---------|--------|--------|-----------|--------|
-| **Avian Influenza** | Rapidly | Yes, high fatality | **None** | Stops ALL egg production, major price loss |
+| **Avian Influenza** | Rapidly | Yes, high fatality | **None** | Stops ALL egg production, severe price loss |
 
-> **Avian Flu is untreatable.** It spreads fast, kills many infected birds, and completely stops egg production. Infected chickens that survive gain immunity, but an outbreak can devastate a flock. See the [Disease Guide](guide-diseases.md).
+> **Avian Flu is untreatable.** It spreads fast, kills many infected birds, and completely stops egg production. Infected chickens that survive gain immunity for about two years, but an outbreak can devastate a flock. See the [Disease Guide](guide-diseases.md).
 
 ---
 

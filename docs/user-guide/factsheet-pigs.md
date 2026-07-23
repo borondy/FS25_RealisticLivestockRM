@@ -39,7 +39,7 @@ Pig prices peak at 24 months and stay at that level for older animals (unlike ca
 
 | Factor | Effect |
 |--------|--------|
-| Quality genetics | Better genetics → noticeably higher price |
+| Quality genetics | Better genetics -> noticeably higher price |
 | Weight | Well-fed animals near target weight are worth more |
 | Health | Healthy animals sell for significantly more |
 | Pregnant | Moderate price bonus |
@@ -87,15 +87,15 @@ Genetics significantly affect how much each animal eats - some are naturally muc
 
 *Berkshire pigs eat the most. Black Pied are the most efficient to feed. Ranges show the span from the most efficient to the hungriest animals. Most animals eat near the middle of these ranges.*
 
-### Water Consumption (L/day, newborn → adult)
+### Water Consumption (L/day, newborn -> adult)
 
 | Breed | Sow | Boar |
 |-------|-----|------|
-| **Berkshire** | 10 → 80 | 13 → 85 |
-| **Landrace** | 8 → 75 | 8 → 80 |
-| **Black Pied** | 6 → 68 | 8 → 72 |
+| **Berkshire** | 10 -> 80 | 13 -> 85 |
+| **Landrace** | 8 -> 75 | 8 -> 80 |
+| **Black Pied** | 6 -> 68 | 8 -> 72 |
 
-*Lactating sows drink considerably more water than usual.*
+*Pregnant sows eat and drink more than usual.*
 
 ---
 
@@ -131,17 +131,15 @@ Genetics significantly affect how much each animal eats - some are naturally muc
 
 ### Litter Sizes
 
-Pig litters are the largest of any animal. Healthy sows at prime age almost always produce offspring:
+Pig litters are the largest of any animal - typically around 12 piglets, and up to 16 from a highly fertile sow.
 
-| Sow Age | Chance of No Birth | Small (1-6) | Medium (7-10) | Typical (11-13) | Large (14-16) |
-|---------|-------------------|-------------|---------------|-----------------|---------------|
-| 6-12 mo (young) | Low | Rare | Uncommon | Most likely | Possible |
-| 13-36 mo (prime) | Very low | Rare | Uncommon | Most likely | Possible |
-| 37-60 mo | Low-moderate | Rare | Uncommon | Most likely | Possible |
-| 61-80 mo | Moderate | Uncommon | Possible | Most likely | Less likely |
-| 81-96 mo (old) | High | Possible | Possible | Less likely | Rare |
+| Outcome | Likelihood |
+|---------|------------|
+| ~12 piglets (typical) | Most likely |
+| Smaller litter | Uncommon |
+| Up to 16 piglets | Possible with high fertility |
 
-*Most litters are 11-13 piglets. Very large litters of 14-16 are possible but less common. Older sows may produce smaller litters of 1-10 piglets. Low health significantly reduces litter sizes and increases the risk of the sow dying during birth.*
+*Litter size is driven by the sow's fertility genetics, not her age. What changes with age is her chance of conceiving each cycle, which stays high through the prime years and tapers to zero by 96 months. A sow must be at 75% health or above to conceive.*
 
 ---
 
@@ -163,15 +161,15 @@ Pig litters are the largest of any animal. Healthy sows at prime age almost alwa
 | Disease | Spread | Fatal? | Treatment | Impact |
 |---------|--------|--------|-----------|--------|
 | **Foot & Mouth** | Moderately | Yes | Slow, moderate cost | Major price loss |
-| **PED** | Moderately | Yes, devastating to newborns | Quick, affordable | Severe diarrhea (liquid manure surge, solid manure drops) |
+| **PED** | Moderately | Yes, devastating to newborns | Quick, affordable | Severe diarrhoea (liquid manure drastically increased, solid manure severely reduced) |
 
-> **PED warning:** Porcine Epidemic Diarrhea is extremely fatal in newborn piglets. In a large herd, a PED outbreak can wipe out an entire generation of offspring. Older pigs survive easily. See the [Disease Guide](guide-diseases.md).
+> **PED warning:** Porcine Epidemic Diarrhoea is extremely fatal in newborn piglets. In a large herd, a PED outbreak can wipe out an entire generation of offspring. Older pigs rarely catch PED on their own, but any pig infected during an outbreak is in danger - treat quickly. See the [Disease Guide](guide-diseases.md).
 
 ---
 
 ## Tips
 
-1. **Breeding is the business model.** With litters of 11-16 piglets every 4 months, a healthy sow can produce many piglets per year. Sell the excess for profit.
+1. **Breeding is the business model.** With litters of around 12 piglets (up to 16) and a 4-month gestation plus recovery time, a healthy sow can produce a litter roughly every 7 months. Sell the excess for profit.
 
 2. **Replace boars early.** Boars stop breeding at just 4 years - half the sow's fertile period. Buy young boars regularly or use artificial insemination.
 

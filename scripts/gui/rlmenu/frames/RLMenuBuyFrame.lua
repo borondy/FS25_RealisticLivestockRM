@@ -44,6 +44,11 @@ function RLMenuBuyFrame.new()
     self.isFrameOpen = false
     self.hasCustomMenuButtons = true
 
+    -- In-flight UI lock for a dispatched buy (mirrors RLMenuTransferFrame.movePending):
+    -- set before dispatch, released on the service's false return or on completion, and
+    -- reset on frame open so a stranded lock self-heals.
+    self.buyPending = false
+
     self.activeAnimalTypeIndex = nil
 
     -- Saved-filter session state.
@@ -152,6 +157,8 @@ end
 function RLMenuBuyFrame:onFrameOpen()
     RLMenuBuyFrame:superClass().onFrameOpen(self)
     self.isFrameOpen = true
+    -- Self-heal a lock stranded by a buy whose completion never fired (frame closed mid-flight).
+    self.buyPending = false
     Log:debug("RLMenuBuyFrame:onFrameOpen")
 
     self:refreshTypes()
@@ -634,9 +641,9 @@ function RLMenuBuyFrame:onClickBuySelected()
             for _, item in ipairs(items) do
                 if item.cluster ~= nil then
                     local cluster = item.cluster
-                    local identityKey = RLAnimalUtil.toKey(cluster.farmId, cluster.uniqueId,
-                        cluster.birthday and cluster.birthday.country or "")
-                    if self.selectedAnimals[identityKey] then
+                    local identityKey = RLSelectionKey.build(cluster.farmId, cluster.uniqueId,
+                        cluster.birthday and cluster.birthday.country)
+                    if identityKey ~= nil and self.selectedAnimals[identityKey] then
                         table.insert(animals, cluster)
                     end
                 end
@@ -947,28 +954,56 @@ function RLMenuBuyFrame:dispatchPendingBuy()
         return
     end
 
-    -- Clear selections BEFORE dispatching (bulk clears all; single removes only
-    -- the bought animal).
-    if #animals > 1 then
-        self.selectedAnimals = {}
-    else
-        for _, animal in ipairs(animals) do
-            local key = RLAnimalUtil.toKey(animal.farmId, animal.uniqueId,
-                animal.birthday and animal.birthday.country or "")
-            self.selectedAnimals[key] = nil
-        end
+    -- In-flight guard: a buy is already awaiting a server reply. Keep the selection +
+    -- surface "in progress"; do NOT dispatch a second same-class request.
+    if self.buyPending then
+        Log:debug("RLMenuBuyFrame:dispatchPendingBuy: a buy is already in flight, ignoring (selection kept)")
+        InfoDialog.show(g_i18n:getText("rl_ui_tradeRequestInProgress"))
+        return
     end
 
     Log:debug("RLMenuBuyFrame:dispatchPendingBuy: %d animals to '%s', price=%.0f fee=%.0f",
         #animals, tostring(destination.getName and destination:getName()), price, fee)
 
+    -- Capture the buy list, then clear the pending-buy staging (single-shot).
     self.pendingBuyDestination = nil
     self.pendingBuyAnimals = nil
     self.pendingBuyPrice = nil
     self.pendingBuyFee = nil
 
-    RLAnimalBuyService.buyAnimals(destination, animals, price, fee,
+    -- Set the in-flight lock BEFORE dispatch (SP fires onBuyComplete synchronously inside
+    -- buyAnimals, clearing the lock). Read the service's accept/reject: a false return means
+    -- no request is pending - release the lock and KEEP the selection so the player can retry.
+    self.buyPending = true
+    local accepted = RLAnimalBuyService.buyAnimals(destination, animals, price, fee,
         self.onBuyComplete, self)
+
+    if not accepted then
+        self.buyPending = false
+        Log:debug("RLMenuBuyFrame:dispatchPendingBuy: dispatch rejected/not-dispatched, keeping selection")
+        InfoDialog.show(g_i18n:getText("rl_ui_tradeRequestInProgress"))
+        return
+    end
+
+    -- Accepted: clear selections (bulk clears all; single removes only the bought animal).
+    if #animals > 1 then
+        self.selectedAnimals = {}
+    else
+        for _, animal in ipairs(animals) do
+            local key = RLSelectionKey.build(animal.farmId, animal.uniqueId,
+                animal.birthday and animal.birthday.country)
+            if key ~= nil then
+                self.selectedAnimals[key] = nil
+            end
+        end
+    end
+
+    -- Re-run the selection-derived refresh AFTER the clear: in SP the completion (onBuyComplete)
+    -- already fired synchronously inside buyAnimals and repainted the cart/buttons from the
+    -- PRE-clear selection, so recompute them against the now-cleared set. The bought rows were
+    -- already dropped by the completion's list reload; only these aggregates were stale.
+    self:updateCartDisplay()
+    self:updateButtonVisibility()
 end
 
 
@@ -988,6 +1023,10 @@ end
 --- so that branch returns early.
 --- @param errorCode number
 function RLMenuBuyFrame:onBuyComplete(errorCode)
+    -- The dispatched request has completed (reply or watchdog timeout) - always release
+    -- the in-flight lock so the frame isn't stranded, even when the refresh is skipped as stale.
+    self.buyPending = false
+
     if not self.isFrameOpen or self.activeAnimalTypeIndex == nil then
         Log:trace("RLMenuBuyFrame:onBuyComplete: stale frame (isFrameOpen=%s typeIndex=%s), ignoring",
             tostring(self.isFrameOpen), tostring(self.activeAnimalTypeIndex))
@@ -996,7 +1035,7 @@ function RLMenuBuyFrame:onBuyComplete(errorCode)
 
     if errorCode ~= AnimalBuyEvent.BUY_SUCCESS then
         InfoDialog.show(RLAnimalBuyService.getErrorText(errorCode))
-        Log:debug("RLMenuBuyFrame:onBuyComplete: buy failed, errorCode=%d", errorCode)
+        Log:debug("RLMenuBuyFrame:onBuyComplete: buy failed, errorCode=%s", tostring(errorCode))
     else
         Log:info("RLMenuBuyFrame:onBuyComplete: buy succeeded")
         if self:getTrailerDealerContext() ~= nil then
@@ -1045,9 +1084,9 @@ function RLMenuBuyFrame:computeCartTotals()
             for _, item in ipairs(items) do
                 if item.cluster ~= nil then
                     local cluster = item.cluster
-                    local identityKey = RLAnimalUtil.toKey(cluster.farmId, cluster.uniqueId,
-                        cluster.birthday and cluster.birthday.country or "")
-                    if self.selectedAnimals[identityKey] then
+                    local identityKey = RLSelectionKey.build(cluster.farmId, cluster.uniqueId,
+                        cluster.birthday and cluster.birthday.country)
+                    if identityKey ~= nil and self.selectedAnimals[identityKey] then
                         -- 1.075 dealer markup matches the in-game buy-screen pricing
                         totalPrice = totalPrice + (cluster:getSellPrice() or 0) * 1.075
                         if includeFee then
@@ -1102,14 +1141,22 @@ end
 
 --- Toggle the focused animal's checkbox.
 function RLMenuBuyFrame:onClickSelect()
+    if not self.isFrameOpen then
+        Log:trace("RLMenuBuyFrame:onClickSelect: frame closed, ignoring")
+        return
+    end
     local animal = self:getSelectedAnimal()
     if animal == nil then
         Log:trace("RLMenuBuyFrame:onClickSelect: no animal focused")
         return
     end
 
-    local key = RLAnimalUtil.toKey(animal.farmId, animal.uniqueId,
-        animal.birthday and animal.birthday.country or "")
+    local key = RLSelectionKey.build(animal.farmId, animal.uniqueId,
+        animal.birthday and animal.birthday.country)
+    if key == nil then
+        Log:trace("RLMenuBuyFrame:onClickSelect: nil selection key, skipping")
+        return
+    end
     self.selectedAnimals[key] = not self.selectedAnimals[key]
     Log:trace("RLMenuBuyFrame:onClickSelect: key=%s -> %s", key, tostring(self.selectedAnimals[key]))
 
@@ -1126,6 +1173,10 @@ end
 
 --- Toggle all animals: if any are checked, uncheck all; otherwise check all.
 function RLMenuBuyFrame:onClickSelectAll()
+    if not self.isFrameOpen then
+        Log:trace("RLMenuBuyFrame:onClickSelectAll: frame closed, ignoring")
+        return
+    end
     local hasSelection = self:getSelectedCount() > 0
 
     if hasSelection then
@@ -1140,9 +1191,13 @@ function RLMenuBuyFrame:onClickSelectAll()
                 for _, item in ipairs(items) do
                     if item.cluster ~= nil then
                         local cluster = item.cluster
-                        local identityKey = RLAnimalUtil.toKey(cluster.farmId, cluster.uniqueId,
-                            cluster.birthday and cluster.birthday.country or "")
-                        self.selectedAnimals[identityKey] = true
+                        local identityKey = RLSelectionKey.build(cluster.farmId, cluster.uniqueId,
+                            cluster.birthday and cluster.birthday.country)
+                        if identityKey ~= nil then
+                            self.selectedAnimals[identityKey] = true
+                        else
+                            Log:trace("RLMenuBuyFrame:onClickSelectAll: nil key for a cluster, skipping")
+                        end
                     end
                 end
             end
@@ -1342,10 +1397,18 @@ function RLMenuBuyFrame:populateCellForItemInSection(list, section, index, cell)
     if checkbox ~= nil then
         checkbox:setVisible(true)
         if check ~= nil then
-            local identityKey = RLAnimalUtil.toKey(row.farmId, row.uniqueId, row.country)
-            check:setVisible(self.selectedAnimals[identityKey] == true)
+            local identityKey = RLSelectionKey.build(row.farmId, row.uniqueId, row.country)
+            check:setVisible(identityKey ~= nil and self.selectedAnimals[identityKey] == true)
 
             checkbox.onClickCallback = function()
+                if not self.isFrameOpen then
+                    Log:trace("RLMenuBuyFrame checkbox click: frame closed, ignoring")
+                    return
+                end
+                if identityKey == nil then
+                    Log:trace("RLMenuBuyFrame checkbox click: nil selection key, skipping")
+                    return
+                end
                 self.selectedAnimals[identityKey] = not self.selectedAnimals[identityKey]
                 check:setVisible(self.selectedAnimals[identityKey] == true)
                 self:updateButtonVisibility()

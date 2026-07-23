@@ -116,7 +116,7 @@ end
 --- One-time per-clone setup. Unlinks the dot template from the element tree
 --- so it can be cloned at runtime, hides pen-info elements (inherited from
 --- buyFrame.xml for XML-parity but AI has no pen concept), populates the
---- quantity stepper labels from AnimalScreen.DEWAR_QUANTITIES, and hides the
+--- quantity stepper labels from RLConstants.DEWAR_QUANTITIES, and hides the
 --- aiPurchasePanel until a bull is selected.
 ---
 --- Called by RLMenu:setupMenuPages.
@@ -134,14 +134,14 @@ function RLMenuAIFrame:initialize()
     if self.penCountText        ~= nil then self.penCountText:setVisible(false) end
     if self.penIcon             ~= nil then self.penIcon:setVisible(false) end
 
-    -- Populate quantity stepper labels from AnimalScreen.DEWAR_QUANTITIES.
+    -- Populate quantity stepper labels from RLConstants.DEWAR_QUANTITIES.
     -- State resets to 1 here so a fresh frame open shows "1 Straw" regardless
     -- of the last value left in the element.
     if self.aiQuantitySelector ~= nil
-        and AnimalScreen ~= nil
-        and AnimalScreen.DEWAR_QUANTITIES ~= nil then
+        and RLConstants ~= nil
+        and RLConstants.DEWAR_QUANTITIES ~= nil then
         local texts = {}
-        for _, quantity in pairs(AnimalScreen.DEWAR_QUANTITIES) do
+        for _, quantity in pairs(RLConstants.DEWAR_QUANTITIES) do
             table.insert(texts, string.format("%s %s",
                 quantity,
                 g_i18n:getText("rl_ui_straw" .. (quantity == 1 and "Single" or "Multiple"))))
@@ -614,11 +614,11 @@ function RLMenuAIFrame:onQuantityStateChanged(state)
         Log:warning("RLMenuAIFrame:onQuantityStateChanged: nil state")
         return
     end
-    if AnimalScreen == nil or AnimalScreen.DEWAR_QUANTITIES == nil then
+    if RLConstants == nil or RLConstants.DEWAR_QUANTITIES == nil then
         Log:warning("RLMenuAIFrame:onQuantityStateChanged: DEWAR_QUANTITIES unavailable")
         return
     end
-    local quantity = AnimalScreen.DEWAR_QUANTITIES[state]
+    local quantity = RLConstants.DEWAR_QUANTITIES[state]
     if quantity == nil then
         Log:warning("RLMenuAIFrame:onQuantityStateChanged: unknown state %s", tostring(state))
         return
@@ -689,15 +689,17 @@ function RLMenuAIFrame:onClickFavourite()
 end
 
 
---- Buy footer action. Mirrors the legacy onClickBuyAI handler step-by-step.
---- Step ordering preserved INCLUDING the known pre-existing bug where
---- markPlaceUsed runs BEFORE the permission/money checks (leaks the store
---- slot on failed pre-flight; tracked separately and out of scope per
---- MUTATION PARITY rule).
+--- Buy footer action for the AI / semen dealer tab.
+--- Reserves a store spawn lane (markPlaceUsed) ONLY on the dispatch path -
+--- inside the BUY_SUCCESS branch, immediately before sendEvent - so a rejected
+--- pre-flight (no permission / no money) leaves the lane cursor untouched and
+--- a failed click never leaks lane space. getPlace only READS the lane usage -
+--- it does not advance the cursor - so looking the slot up before the checks
+--- is safe.
 ---
---- No-spawn-slot UX extension: legacy silently returns when no spawn slot is
---- free; this handler shows a warning dialog with `shop_messageNoSpace`
---- to close the "why didn't anything happen?" gap. No event is dispatched.
+--- No-spawn-slot UX: when no lane is free this shows a `shop_messageNoSpace`
+--- warning dialog and dispatches nothing, closing the "why did nothing
+--- happen?" gap.
 function RLMenuAIFrame:onClickBuy()
     -- Reentrancy guard: InfoDialog is async, so a second Enter press between
     -- dispatch and dialog-dismiss would double-fire SemenBuyEvent and
@@ -750,20 +752,14 @@ function RLMenuAIFrame:onClickBuy()
         return
     end
 
-    -- Step 2: mark the slot as used.
-    -- NOTE: This runs BEFORE the permission/money checks so a failed
-    -- pre-flight leaks the slot. Legacy bug mirrored per MUTATION PARITY;
-    -- tracked separately.
-    PlacementUtil.markPlaceUsed(usedPlaces, place, width)
-
     -- Commit to opening a result dialog. Flag blocks reentrant Enter clicks.
     self.buyInFlight = true
 
     -- Step 3: compute quantity + price.
     local farmId = g_localPlayer.farmId
     local state = (self.aiQuantitySelector ~= nil and self.aiQuantitySelector:getState()) or 1
-    local quantity = (AnimalScreen ~= nil and AnimalScreen.DEWAR_QUANTITIES ~= nil
-        and AnimalScreen.DEWAR_QUANTITIES[state]) or 1
+    local quantity = (RLConstants ~= nil and RLConstants.DEWAR_QUANTITIES ~= nil
+        and RLConstants.DEWAR_QUANTITIES[state]) or 1
     local price = RLAIStockService.getPriceForQuantity(animal, quantity)
 
     Log:debug("RLMenuAIFrame:onClickBuy: pre-flight farmId=%d state=%d quantity=%d price=%.2f spawn=(%.2f,%.2f,%.2f)",
@@ -779,7 +775,13 @@ function RLMenuAIFrame:onClickBuy()
         Log:warning("RLMenuAIFrame:onClickBuy: money-check triggered (balance-price<0) price=%.2f",
             price)
     else
-        -- Step 6: dispatch.
+        -- Step 6: reserve the lane, then dispatch. The lane cursor advances
+        -- only on a real dispatch, so a rejected pre-flight never leaks lane
+        -- space; the {x,y,z} sent stays the position getPlace returned.
+        PlacementUtil.markPlaceUsed(usedPlaces, place, width)
+        Log:debug("RLMenuAIFrame:onClickBuy: lane cursor advanced place=%s width=%.2f",
+            tostring(place), width)
+
         errorCode = AnimalBuyEvent.BUY_SUCCESS
         g_client:getServerConnection():sendEvent(
             SemenBuyEvent.new(animal, quantity, -price, farmId, { x, y, z }, { 0, 0, 0 }),

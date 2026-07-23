@@ -78,6 +78,31 @@ local function setRowVisible(row, visible)
     if row ~= nil then row:setVisible(visible == true) end
 end
 
+--- Force a BinaryOption's green slider onto `targetState`, even when the toggle already
+--- reports that state. A bare BinaryOptionElement:setState(target) short-circuits on
+--- `state == self.state` and never runs updateSelection, so it cannot re-seat a slider that
+--- was stranded while the row was hidden (a freshly-cloned toggle starts at state 1, so
+--- pushing the state-1 default is inert). Toggle THROUGH the opposite state so the terminal
+--- push is always a real change: updateSelection then points sliderMovingDirection at the
+--- target and skipAnimation (3rd arg) snaps it in the next update(dt). Both pushes are
+--- forceEvent=false, so MultiTextOptionElement:setState never raises the click callback -
+--- the frame's onRule*Changed handlers do not fire and no pending edit is stashed.
+--- CALL ONLY ON A VISIBLE toggle: a hidden BinaryOption gets no update(dt)
+--- (getIsActiveNonRec == getIsVisibleNonRec), so a push there strands until it next shows.
+--- NOTE: the toggle-through performs TWO real state changes, so it emits two notifyIndexChange
+--- notifications per seat (MultiTextOptionElement:setState notifies on any change, regardless of
+--- forceEvent). Harmless for these op-param toggles (no IndexChangeSubjectMixin observers) - but
+--- do NOT attach an index-change observer (e.g. a page-dot indicator) to a toggle seated this way.
+---@param toggle table|nil BinaryOptionElement
+---@param targetState number BinaryOptionElement.STATE_LEFT (1) or STATE_RIGHT (2)
+local function forceSeatToggle(toggle, targetState)
+    if toggle == nil or toggle.setState == nil then return end
+    local opposite = targetState == BinaryOptionElement.STATE_RIGHT
+        and BinaryOptionElement.STATE_LEFT or BinaryOptionElement.STATE_RIGHT
+    toggle:setState(opposite, false, true)
+    toggle:setState(targetState, false, true)
+end
+
 --- Injected filter resolver for the presenter summaries / D5 revalidation / semen
 --- animalType gate. nil-safe: a missing service or unknown id -> nil (the presenter then
 --- substitutes labels.missing / labels.none).
@@ -88,17 +113,22 @@ local function resolveFilterById(filterId)
     return g_rlFilterService:getById(filterId)
 end
 
---- Injected husbandry-name resolver for getHusbandrySummary / formatHusbandryButtonLabel.
---- Resolves the rule's stored target key (uniqueId on server, net-object-id on a pure client) via
---- RLHusbandryTargetKey.resolve. NIL-GUARDED: a deleted / stale / unresolvable key returns nil (NOT
---- a crash) so the presenter substitutes labels.missing - resolve stays quiet on a clean not-found,
---- so this render-path resolver does not spam the log.
----@param key any stable target key (uniqueId server / net-object-id client)
----@return string|nil placeable name
+--- Injected placeable-name resolver for the target summary AND the move destination button.
+--- Resolves the rule's stored key (uniqueId on server, net-object-id on a pure client) via
+--- RLHusbandryTargetKey.resolveDestination - the move-dest opt-in that also admits an EPP butcher on
+--- the client, so the destination button renders the butcher name (targets are always husbandries, so
+--- widening is a no-op for them). An EPP-shaped resolved placeable gets the shared "(butcher)" suffix
+--- (RLAnimalQuery.composeDestinationLabel) so the button label agrees with the picker rows.
+--- NIL-GUARDED: a deleted / stale / unresolvable key returns nil (NOT a crash) so the presenter
+--- substitutes labels.missing - resolveDestination stays quiet on a clean not-found, so this
+--- render-path resolver does not spam the log.
+---@param key any stable target/dest key (uniqueId server / net-object-id client)
+---@return string|nil placeable name (with the "(butcher)" suffix for an EPP dest)
 local function resolvePlaceableName(key)
-    local placeable = RLHusbandryTargetKey.resolve(key)
+    local placeable = RLHusbandryTargetKey.resolveDestination(key)
     if placeable == nil or placeable.getName == nil then return nil end
-    return placeable:getName()
+    local isEPP = placeable.spec_extendedProductionPoint ~= nil
+    return RLAnimalQuery.composeDestinationLabel(placeable:getName(), isEPP)
 end
 
 --- Multiset (order-insensitive) equality of two arrays of plain strings, for the husbandry-
@@ -153,6 +183,10 @@ function RLMenuHerdsmanFrame.new()
     -- widgets' setState(idx, false) suppression).
     self.isPopulating = false
     self.didMeasureFirstRow = false
+    -- One-shot seat-observation guard: armed per selection by refreshRuleDetail,
+    -- drained at the update seam once the re-seated op-param sliders settle. Starts drained.
+    self.didLogSeat = true
+    self.seatLogExpected = nil
     Log:trace("RLMenuHerdsmanFrame.new: instance created")
     return self
 end
@@ -366,6 +400,10 @@ function RLMenuHerdsmanFrame:onFrameOpen()
     self.didMeasureNameRow = false
     self.didMeasureMaxAnimalsRow = false
     self.didMeasureBudgetFixedRow = false
+    -- Seat-observation guard: the seeded selection below re-arms it via
+    -- refreshRuleDetail; start drained so a no-rule open logs nothing.
+    self.didLogSeat = true
+    self.seatLogExpected = nil
     self.pendingChanges = {}
 
     -- Real read path: F4 edits + F7 create/delete write back through the same
@@ -421,6 +459,12 @@ function RLMenuHerdsmanFrame:update(dt)
     if not self.didMeasureLayout and self:logLayoutMeasurements() then
         self.didMeasureLayout = true
     end
+    -- Drain the one-shot op-param seat proof once the re-seated sliders settle. The
+    -- physical move ran in the child BinaryOptionElement:update above (superClass:update), so a
+    -- settle-retry (mirrors logLayoutMeasurements) observes the final position, not mid-slide.
+    if not self.didLogSeat and self:logToggleSeatOnce() then
+        self.didLogSeat = true
+    end
 end
 
 -- =============================================================================
@@ -468,6 +512,42 @@ function RLMenuHerdsmanFrame:logLayoutMeasurements()
             (self.legacyBanner.size[2] or 0) * g_referenceScreenHeight,
             ((self.legacyBanner.absPosition[2] or 0) + (self.legacyBanner.size[2] or 0)) * g_referenceScreenHeight,
             tostring(self.legacyBanner.getIsVisible ~= nil and self.legacyBanner:getIsVisible()))
+    end
+    return true
+end
+
+--- One-shot proof that the op-param BinaryOption sliders seated on their stored option after a
+--- refreshRuleDetail. Armed per selection (refreshRuleDetail fills seatLogExpected +
+--- clears didLogSeat); drained here once every seated toggle's slider has SETTLED. The physical
+--- move runs in BinaryOptionElement:update(dt) - applied this frame by superClass:update in the
+--- update seam - so retry (return false) while any slider still moves, mirroring
+--- logLayoutMeasurements' settle-retry. Proves POSITION (sliderState: 0=left, NUM_SLIDER_STATES=
+--- right, plus the slider's screen-space left edge in px) AND each button's getIsSelected()
+--- against the expected state; hidden toggles are never in the list. TRACE + one-shot, so
+--- production INFO/WARN runs and idle frames stay quiet.
+--- @return boolean logged true once emitted (or nothing to prove); false while a slider still moves
+function RLMenuHerdsmanFrame:logToggleSeatOnce()
+    local expected = self.seatLogExpected
+    if expected == nil or #expected == 0 then return true end
+    for _, entry in ipairs(expected) do
+        local toggle = entry.toggle
+        if toggle ~= nil and toggle.sliderMovingDirection ~= nil and toggle.sliderMovingDirection ~= 0 then
+            return false
+        end
+    end
+    for _, entry in ipairs(expected) do
+        local toggle = entry.toggle
+        if toggle ~= nil then
+            local leftSel = toggle.leftButtonElement ~= nil and toggle.leftButtonElement.getIsSelected ~= nil
+                and toggle.leftButtonElement:getIsSelected()
+            local rightSel = toggle.rightButtonElement ~= nil and toggle.rightButtonElement.getIsSelected ~= nil
+                and toggle.rightButtonElement:getIsSelected()
+            local sliderPx = (toggle.sliderElement ~= nil and toggle.sliderElement.absPosition ~= nil)
+                and (toggle.sliderElement.absPosition[1] * g_referenceScreenWidth) or -1
+            Log:trace("RLMenuHerdsmanFrame: seat[%s] expected=%d state=%s sliderState=%s sliderLeftPx=%.1f leftSel=%s rightSel=%s",
+                entry.name, entry.expected, tostring(toggle.state), tostring(toggle.sliderState),
+                sliderPx, tostring(leftSel), tostring(rightSel))
+        end
     end
     return true
 end
@@ -655,6 +735,11 @@ function RLMenuHerdsmanFrame:refreshRuleDetail(stored)
     if stored == nil then
         setRowVisible(self.ruleEditorLayout, false)
         if self.ruleEditorEmpty ~= nil then self.ruleEditorEmpty:setVisible(true) end
+        -- Disarm the seat proof: the editor (and its op-param toggles) is now hidden,
+        -- so a still-armed seatLogExpected would drain stale proof for hidden toggles at the update
+        -- seam. A real selection re-arms it.
+        self.seatLogExpected = nil
+        self.didLogSeat = true
         Log:debug("RLMenuHerdsmanFrame:refreshRuleDetail: no selection; editor hidden, empty-state shown")
         return
     end
@@ -665,6 +750,13 @@ function RLMenuHerdsmanFrame:refreshRuleDetail(stored)
     local op = merged.operation
     local p = merged.params or {}
     local budget = p.budget
+
+    -- Op-param BinaryOption target states, derived ONCE here so the value push below, the
+    -- visible-toggle re-seat, and the tooltip block all read one source and cannot
+    -- drift. (budgetTypeState is only consumed when the budget row is visible, i.e. budget ~= nil.)
+    local markState       = (p.mark == true) and 2 or 1
+    local conventionState = indexOfValue(self.conventionValues, p.convention) or 1
+    local budgetTypeState = indexOfValue(self.budgetTypeValues, budget and budget.type) or 1
 
     -- Values. These are programmatic pushes, NOT user edits: setState gates its callback on
     -- forceEvent (the false here is silent), but a TextInput's setText fires onTextChanged on
@@ -685,16 +777,16 @@ function RLMenuHerdsmanFrame:refreshRuleDetail(stored)
         end
         setTextCaretSafe(self.ruleMaxAnimalsInput, p.maxAnimals ~= nil and tostring(p.maxAnimals) or "")
         if self.ruleMarkToggle ~= nil then
-            self.ruleMarkToggle:setState(p.mark == true and 2 or 1, false)
+            self.ruleMarkToggle:setState(markState, false)
         end
         if self.ruleConventionToggle ~= nil then
-            self.ruleConventionToggle:setState(indexOfValue(self.conventionValues, p.convention) or 1, false)
+            self.ruleConventionToggle:setState(conventionState, false)
         end
         -- Budget widgets: ALWAYS push a deterministic state (a malformed buy rule with no
         -- budget table must never show a stale toggle/input); real values only when a budget
         -- table exists.
         if self.ruleBudgetTypeToggle ~= nil then
-            self.ruleBudgetTypeToggle:setState(indexOfValue(self.budgetTypeValues, budget and budget.type) or 1, false)
+            self.ruleBudgetTypeToggle:setState(budgetTypeState, false)
         end
         setTextCaretSafe(self.ruleBudgetFixedInput, (budget and budget.fixed ~= nil) and tostring(budget.fixed) or "")
         if self.ruleBudgetPercentageSelector ~= nil then
@@ -722,6 +814,49 @@ function RLMenuHerdsmanFrame:refreshRuleDetail(stored)
         or { fixed = false, percentage = false }
     setRowVisible(self.ruleBudgetFixedRow, bvis.fixed)
     setRowVisible(self.ruleBudgetPercentageRow, bvis.percentage)
+
+    -- Op-param BinaryOption seating. The value pushes above ran while these rows
+    -- still carried the PREVIOUS rule's visibility, and BinaryOptionElement:setState short-
+    -- circuits on state == self.state, so a hidden or same-value push leaves the green slider
+    -- stranded on the wrong option. Now that visibility is final, re-seat every currently-
+    -- VISIBLE op-param toggle on its stored state via forceSeatToggle (toggle-through +
+    -- skipAnimation). A hidden toggle is left untouched - it gets no update(dt), so seating it
+    -- would re-strand the next show; it re-seats when it next becomes visible. Uses the same
+    -- hoisted *State locals as the value push and the tooltip block (one source, no drift). The
+    -- pushes stay forceEvent=false inside isPopulating so no pending edit is stashed.
+    local seatWasPopulating = self.isPopulating
+    self.isPopulating = true
+    local seatOk, seatErr = pcall(function()
+        if vis.mark and self.ruleMarkToggle ~= nil then
+            forceSeatToggle(self.ruleMarkToggle, markState)
+        end
+        if vis.convention and self.ruleConventionToggle ~= nil then
+            forceSeatToggle(self.ruleConventionToggle, conventionState)
+        end
+        if (vis.budget and budget ~= nil) and self.ruleBudgetTypeToggle ~= nil then
+            forceSeatToggle(self.ruleBudgetTypeToggle, budgetTypeState)
+        end
+    end)
+    self.isPopulating = seatWasPopulating
+    if not seatOk then
+        Log:error("RLMenuHerdsmanFrame:refreshRuleDetail: op-param toggle re-seat error: %s", tostring(seatErr))
+    end
+
+    -- Arm the one-shot seat-observation log, drained at the update seam once the sliders settle.
+    -- Only currently-VISIBLE op-param toggles are proven; hidden ones are excluded (nothing to
+    -- prove while they receive no update). An unknown op hides all three -> empty list -> no log.
+    local seatLog = {}
+    if vis.mark and self.ruleMarkToggle ~= nil then
+        seatLog[#seatLog + 1] = { name = "mark", toggle = self.ruleMarkToggle, expected = markState }
+    end
+    if vis.convention and self.ruleConventionToggle ~= nil then
+        seatLog[#seatLog + 1] = { name = "convention", toggle = self.ruleConventionToggle, expected = conventionState }
+    end
+    if (vis.budget and budget ~= nil) and self.ruleBudgetTypeToggle ~= nil then
+        seatLog[#seatLog + 1] = { name = "budgetType", toggle = self.ruleBudgetTypeToggle, expected = budgetTypeState }
+    end
+    self.seatLogExpected = seatLog
+    self.didLogSeat = false
 
     -- Read-only summaries.
     local labels = {
@@ -808,9 +943,8 @@ function RLMenuHerdsmanFrame:refreshRuleDetail(stored)
     -- row is shown (the SAME gating as the setVisible toggles above). Content + arg come from the
     -- pure RLHerdsmanRulePresenter.getTooltipDescriptor; the frame formats the live value per arg.
     local enabledState    = (merged.enabled == true) and 2 or 1
-    local markState       = (p.mark == true) and 2 or 1
-    local conventionState = indexOfValue(self.conventionValues, p.convention) or 1
-    local budgetTypeState = indexOfValue(self.budgetTypeValues, budget and budget.type) or 1
+    -- markState / conventionState / budgetTypeState are hoisted to the top of refreshRuleDetail
+    -- (one source shared by the value push, the seat, and this tooltip block; they cannot drift).
     -- Resolve semen from the SELECTOR's snapped index, not raw p.semen: populateSemenSelector
     -- snaps a stale / absent dewar id to "any" (state 1), so the tooltip key family AND the option
     -- label must follow the DISPLAYED option - else a stale dewar yields the dewar tooltip ("...from
@@ -1258,6 +1392,32 @@ function RLMenuHerdsmanFrame:buildHusbandryTypeByUid(farmId)
     return typeByUid
 end
 
+--- Build a uniqueId -> type-spec map for the farm's LIVE move DESTINATIONS (husbandries + EPP
+--- butchers), the dest-axis SIBLING of buildHusbandryTypeByUid feeding revalidatePendingDestination
+--- (RLRM-489). A husbandry maps to its scalar animalType; an EPP butcher maps to its type-index SET
+--- (animalTypes) so revalidateDestination gates an EPP dest set-aware instead of treating it as
+--- unresolvable and preserving it forever. Reuses listMoveDestinationDescriptorsForFarm so this
+--- map and the dest picker share ONE enumeration source. A descriptor with no usable type-spec is
+--- omitted - an omitted uid is exactly an unresolvable dest, which revalidateDestination preserves.
+--- @param farmId number|nil
+--- @return table typeByUid map uniqueId(string) -> animalType index (husbandry) or type-index set (EPP)
+function RLMenuHerdsmanFrame:buildDestinationTypeByUid(farmId)
+    local typeByUid = {}
+    local count = 0
+    for _, d in ipairs(RLAnimalQuery.listMoveDestinationDescriptorsForFarm(farmId)) do
+        if d.animalTypes ~= nil then
+            typeByUid[d.uniqueId] = d.animalTypes
+            count = count + 1
+        elseif d.animalType ~= nil then
+            typeByUid[d.uniqueId] = d.animalType
+            count = count + 1
+        end
+    end
+    Log:trace("RLMenuHerdsmanFrame:buildDestinationTypeByUid: farmId=%s -> %d dest type-specs (husbandry scalar + EPP set)",
+        tostring(farmId), count)
+    return typeByUid
+end
+
 --- True when dewar `semenUid` is still in the farm's dewar pool for `filterAnimalType` -
 --- mirrors populateSemenSelector's g_dewarManager enumeration exactly. An ANY / nil
 --- filterAnimalType has no typed pool (only the "any" sentinel), so any real dewar is out of
@@ -1322,7 +1482,9 @@ function RLMenuHerdsmanFrame:revalidatePendingDestination(id, merged, sourceUids
     local dest = merged.params and merged.params.destinationHusbandry or nil
     if dest == nil then return end
     local farmId = RLAnimalInfoService.getCurrentFarmId()
-    local typeByUid = self:buildHusbandryTypeByUid(farmId)
+    -- Dest-axis map (husbandries + EPP butchers): an EPP dest resolves to its type-index SET here, so
+    -- revalidateDestination type-gates it instead of treating it as unresolvable-preserved-forever.
+    local typeByUid = self:buildDestinationTypeByUid(farmId)
     local chickenIdx = AnimalType ~= nil and AnimalType.CHICKEN or nil
     local filterAnimalType = self:resolveFilterAnimalType(merged.filterId)
     local kept = RLHerdsmanRulePresenter.revalidateDestination(dest, typeByUid, filterAnimalType, chickenIdx, sourceUids)
@@ -1367,7 +1529,10 @@ function RLMenuHerdsmanFrame:onClickRuleDestination(_button)
         return
     end
 
-    local descriptors = RLAnimalQuery.listHusbandryDescriptorsForFarm(farmId)
+    -- Move-dest enumeration = husbandries + owner-farm EPP butchers (RLRM-489); the presenter's
+    -- set-aware gate keeps a multi-type butcher under an ANY filter and a type-matching one under a
+    -- typed filter. Husbandry-only picker sources would never offer a butcher.
+    local descriptors = RLAnimalQuery.listMoveDestinationDescriptorsForFarm(farmId)
     local chickenIdx = AnimalType ~= nil and AnimalType.CHICKEN or nil
     local filterAnimalType = self:resolveFilterAnimalType(merged.filterId)
     local candidates = RLHerdsmanRulePresenter.selectDestinationHusbandries(
@@ -2112,6 +2277,11 @@ end
 --- @param farmId number|nil owning farm id (resolved from the current farm when nil)
 function RLMenuHerdsmanFrame:refreshBanner(farmId)
     if self.legacyBanner == nil then return end
+    if AIAnimalManager.FREEZE_LEGACY_HERDSMAN then
+        self.legacyBanner:setVisible(false)
+        Log:trace("RLMenuHerdsmanFrame:refreshBanner: legacy-herdsman-freeze active; banner hidden")
+        return
+    end
     if farmId == nil then farmId = RLAnimalInfoService.getCurrentFarmId() end
     local entries = self:gatherLegacyEntries(farmId)
     local active, affectedNames = RLHerdsmanRulePresenter.isLegacyActive(entries)

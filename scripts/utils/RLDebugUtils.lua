@@ -76,7 +76,8 @@ function RLDebugUtils.dumpSettings()
     local role = resolveRole()
     Log:info("RLSettings: --- %s ---", role)
 
-    -- Iterate in stable index order, matching RLSettings.initialize.
+    -- Iterate in stable index order (setting.index), matching the RL Menu
+    -- Settings General subtab render order.
     local maxIndex = 0
     for _, setting in pairs(RLSettings.SETTINGS) do
         if setting.index ~= nil and setting.index > maxIndex then maxIndex = setting.index end
