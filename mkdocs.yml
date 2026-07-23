@@ -28,10 +28,19 @@ theme:
     - content.tooltips
 
 plugins:
+  - to-pdf
   - search
   - mermaid-to-svg:
       renderer: mmdc
       mermaid_config:
+        # Render diagram labels as native SVG <text>, not HTML in <foreignObject>.
+        # WeasyPrint (PDF export) cannot render foreignObject, so htmlLabels: true
+        # drops all flowchart/class text from the PDF. xy-charts already use <text>.
+        htmlLabels: false
+        flowchart:
+          htmlLabels: false
+        class:
+          htmlLabels: false
         theme: base
         themeVariables:
           xyChart:
