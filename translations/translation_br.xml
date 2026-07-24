@@ -933,6 +933,9 @@
 		<text name="rl_menu_filters_field_genetics_quality" text="Genetics: quality"/>
 		<text name="rl_menu_filters_field_genetics_productivity" text="Genetics: productivity"/>
 		<text name="rl_menu_filters_field_genetics_overall" text="Genetics: overall"/>
+		<text name="rl_menu_filters_field_gender" text="Gender"/>
+		<text name="rl_menu_filters_field_subType" text="Breed"/>
+		<text name="rl_menu_filters_field_name" text="Name"/>
 		<text name="rl_menu_filters_gender_male" text="Male"/>
 		<text name="rl_menu_filters_gender_female" text="Female"/>
 		<text name="rl_menu_filters_emptyValueRejected" text="Value cannot be empty"/>

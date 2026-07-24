@@ -922,9 +922,8 @@
 		<text name="rl_menu_filters_value_invalid_number" text="Invalid number"/>
 		<text name="rl_menu_filters_preserved_banner" text="%d condition(s) hidden - editable in a later phase. Saved on close."/>
 
-		<!-- Field labels per catalog key. Phase 1 needs labels for
-		     number + bool fields; enum/string fields keep their key as a
-		     fallback until a future iteration. -->
+		<!-- Field labels per catalog key - one label for every field in
+		     RLFilterFieldCatalog (number, bool, enum, and string). -->
 		<text name="rl_menu_filters_field_age" text="Age"/>
 		<text name="rl_menu_filters_field_isCastrated" text="Castrated"/>
 		<text name="rl_menu_filters_field_isPregnant" text="Pregnant"/>
@@ -940,6 +939,9 @@
 		<text name="rl_menu_filters_field_genetics_quality" text="Genetics: quality"/>
 		<text name="rl_menu_filters_field_genetics_productivity" text="Genetics: productivity"/>
 		<text name="rl_menu_filters_field_genetics_overall" text="Genetics: overall"/>
+		<text name="rl_menu_filters_field_gender" text="Gender"/>
+		<text name="rl_menu_filters_field_subType" text="Breed"/>
+		<text name="rl_menu_filters_field_name" text="Name"/>
 
 		<!-- enum value labels (gender). subType labels resolve via
 		     pre-translated fillType.title; no RLRM-local keys needed there.
