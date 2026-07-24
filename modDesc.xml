@@ -24,6 +24,10 @@ Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivest
 
 Changelog
 
+1.3.0.1:
+- Improved the saved-filter editor: comparison operators now read as plain English ("is at least", "is one of", "does not contain", ...) in the Compare dropdown and each condition row, instead of programmer symbols.
+- Fixed the saved-filter editor showing the Gender, Breed, and Name fields as raw internal names in the field picker and condition rows.
+
 1.3.0.0:
 
 Heads up before you update - things that affect existing saves:

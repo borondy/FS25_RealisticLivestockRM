@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.3.0.1
+
+### Changed
+- The saved-filter editor now shows comparison operators in plain English ("is at least", "is one of", "does not contain", ...) in the Compare dropdown and each condition row, instead of programmer symbols.
+
+### Fixed
+- The saved-filter editor no longer shows the Gender, Breed, and Name fields as raw internal names - the field picker and condition rows now use their proper labels.
+
 ## v1.3.0.0
 
 ### Heads up before you update
