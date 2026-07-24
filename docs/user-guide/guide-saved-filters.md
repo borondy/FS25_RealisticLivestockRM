@@ -41,21 +41,69 @@ Open the **RL Menu** (default **Right Shift + O**, or press **R** at one of your
 
 ---
 
+## Create one from a Quick filter
+
+Every animal screen also has a **Quick filter** - a throwaway, one-off narrowing you open with the on-screen **Filter** button. It is not saved and resets when you leave the screen. If you build a Quick filter you would rather keep, you don't have to rebuild it here by hand:
+
+1. On the **Buy**, **Sell**, **Move**, or **Manage** tab, press **Filter** to open the Quick filter.
+2. Set it up the way you want.
+3. Press **Save filter**.
+
+The mod turns it into a saved filter and drops you straight into the editor with the new filter selected - so you can rename it, set its **animal type** and **Show on** scope, and fine-tune the conditions.
+
+A few notes:
+
+- **Save filter** needs the **trade animals** permission (the same one that gates **New filter**) and a farm.
+- It appears on the RL Menu's own tabs. If you open a livestock **dealer** directly - a walk-up dealer, or the shop's *Buy Animals* button - there is no Settings tab to tune the filter in, so the button is hidden; open the RL Menu from one of your pens instead.
+- The Quick filter's **Value** (price) slider has no saved-filter equivalent yet, so if you narrowed it, that one condition is left behind (the mod warns you). Everything else carries over.
+
+---
+
 ## Adding conditions
 
 With a filter selected, press **Add condition**. A small dialog asks for three things:
 
 - **Field** - what to test (Age, Gender, a genetics trait, Breed, and so on).
-- **Compare** - how to test it (equals, is at least, is less than, contains, is one of, ...).
+- **Compare** - *how* to test it, shown as a short comparison symbol (`>=`, `==`, `contains`, ...). The symbols are explained just below.
 - **Value** - what to match against.
 
-For example, Field **Age**, Compare **is at least**, Value **30** shows up in the list as `Age >= 30`. Each condition becomes a row; select a row to **Edit** or **Delete** it.
+For example, Field **Age**, Compare **`>=`**, Value **30** becomes the row `Age >= 30` - "age is 30 months or more". Each condition becomes a row; select a row to **Edit** or **Delete** it.
 
-A few things worth knowing:
+### Reading the comparison symbols
 
-- **Genetics are shown on a 0-99 scale** - the same number you see on the animal's info card. `Genetics (overall) >= 75` does what you'd expect.
-- **Yes/no fields** (pregnant, castrated, has a disease, ...) are matched as true or false.
-- **Text fields** (the animal's name) match by "contains" / "does not contain", and are not case-sensitive.
+The **Compare** picker uses the same short symbols you see in each saved condition row. They come from maths and programming, so they can look cryptic at first - here is what each one means in plain English, with a livestock example:
+
+| Symbol | Say it as | Example row | Matches |
+|--------|-----------|-------------|---------|
+| `>=` | is **at least** (this or higher) | `Age >= 30` | animals 30 months and older |
+| `>` | is **more than** (over) | `Weight > 500` | animals over 500 |
+| `<=` | is **at most** (this or lower) | `Age <= 12` | animals 12 months and younger |
+| `<` | is **less than** (under) | `Genetics: overall < 50` | animals under 50 overall genetics |
+| `==` | **is** | `Pregnant == No` | animals that are not pregnant |
+| `!=` | **is not** | `Gender != Male` | every animal except males (so, females) |
+| `in` | is **one of** | `Breed in [Holstein, Jersey]` | Holstein or Jersey animals |
+| `notin` | is **none of** | `Breed notin [Holstein, Jersey]` | every breed except those two |
+| `contains` | name **includes** | `Name contains betty` | Betty, Bettyboop, ... (any name with "betty") |
+| `notcontains` | name **excludes** | `Name notcontains keep` | any name without "keep" in it |
+
+Reading them aloud helps:
+
+- `==` is a **double** equals sign - just read it as "**is**". `Castrated == Yes` means "castrated: yes".
+- The `!` in `!=` means "**not**", so `!=` reads as "**is not**".
+- The line under `>=` and `<=` adds "**or equal to**", so `Age >= 30` *includes* an animal that is exactly 30.
+- The open mouth of `<` and `>` always faces the **bigger** amount: `Weight > 500` is "weight is bigger than 500".
+
+Which symbols you can pick depends on the field:
+
+- **Number** fields (Age, Weight, Health, Genetics) offer all six of `<` `<=` `==` `!=` `>=` `>`, plus `in` / `notin` to match a list of exact values.
+- **Yes/no** fields (Pregnant, Castrated, Has a name, ...) only use `==`, matched against **Yes** or **No**.
+- **Gender** and **Breed** use `==` / `!=` for a single value, or `in` / `notin` for a list.
+- **Name** uses `contains` / `notcontains` only.
+
+A couple more things worth knowing:
+
+- **Genetics are shown on a 0-99 scale** - the same number you see on the animal's info card. `Genetics: overall >= 75` does what you'd expect.
+- **Text matching is not case-sensitive** - `Name contains betty` also matches "Betty" and "BETTY".
 
 ---
 
