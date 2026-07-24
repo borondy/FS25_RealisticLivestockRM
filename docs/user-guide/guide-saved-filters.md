@@ -64,45 +64,43 @@ A few notes:
 With a filter selected, press **Add condition**. A small dialog asks for three things:
 
 - **Field** - what to test (Age, Gender, a genetics trait, Breed, and so on).
-- **Compare** - *how* to test it, shown as a short comparison symbol (`>=`, `==`, `contains`, ...). The symbols are explained just below.
+- **Compare** - *how* to test it, shown as a plain-English label (`is at least`, `is`, `contains`, ...). The labels are explained just below.
 - **Value** - what to match against.
 
-For example, Field **Age**, Compare **`>=`**, Value **30** becomes the row `Age >= 30` - "age is 30 months or more". Each condition becomes a row; select a row to **Edit** or **Delete** it.
+For example, Field **Age**, Compare **is at least**, Value **30** becomes the row `Age is at least 30` - "age is 30 months or more". Each condition becomes a row; select a row to **Edit** or **Delete** it.
 
-### Reading the comparison symbols
+### Reading the comparison labels
 
-The **Compare** picker uses the same short symbols you see in each saved condition row. They come from maths and programming, so they can look cryptic at first - here is what each one means in plain English, with a livestock example:
+The **Compare** picker and each saved condition row show a plain-English label instead of a raw maths symbol, so a row reads like a short sentence. Here is what each label means, with a livestock example:
 
-| Symbol | Say it as | Example row | Matches |
-|--------|-----------|-------------|---------|
-| `>=` | is **at least** (this or higher) | `Age >= 30` | animals 30 months and older |
-| `>` | is **more than** (over) | `Weight > 500` | animals over 500 |
-| `<=` | is **at most** (this or lower) | `Age <= 12` | animals 12 months and younger |
-| `<` | is **less than** (under) | `Genetics: overall < 50` | animals under 50 overall genetics |
-| `==` | **is** | `Pregnant == No` | animals that are not pregnant |
-| `!=` | **is not** | `Gender != Male` | every animal except males (so, females) |
-| `in` | is **one of** | `Breed in [Holstein, Jersey]` | Holstein or Jersey animals |
-| `notin` | is **none of** | `Breed notin [Holstein, Jersey]` | every breed except those two |
-| `contains` | name **includes** | `Name contains betty` | Betty, Bettyboop, ... (any name with "betty") |
-| `notcontains` | name **excludes** | `Name notcontains keep` | any name without "keep" in it |
+| Label (as shown) | Meaning | Example row | Matches |
+|------------------|---------|-------------|---------|
+| **is at least** | this value or higher | `Age is at least 30` | animals 30 months and older |
+| **is more than** | over this value | `Weight is more than 500` | animals over 500 |
+| **is at most** | this value or lower | `Age is at most 12` | animals 12 months and younger |
+| **is less than** | under this value | `Genetics: overall is less than 50` | animals under 50 overall genetics |
+| **is** | matches exactly | `Gender is Female` | female animals |
+| **is not** | anything except | `Gender is not Male` | every animal except males (so, females) |
+| **is one of** | any value in a list | `Breed is one of [Holstein, Jersey]` | Holstein or Jersey animals |
+| **is none of** | no value in the list | `Breed is none of [Holstein, Jersey]` | every breed except those two |
+| **contains** | the name includes the text | `Name contains betty` | Betty, Bettyboop, ... (any name with "betty") |
+| **does not contain** | the name excludes the text | `Name does not contain keep` | any name without "keep" in it |
 
-Reading them aloud helps:
+A couple of things help when reading a row:
 
-- `==` is a **double** equals sign - just read it as "**is**". `Castrated == Yes` means "castrated: yes".
-- The `!` in `!=` means "**not**", so `!=` reads as "**is not**".
-- The line under `>=` and `<=` adds "**or equal to**", so `Age >= 30` *includes* an animal that is exactly 30.
-- The open mouth of `<` and `>` always faces the **bigger** amount: `Weight > 500` is "weight is bigger than 500".
+- Rows read like a short sentence: `Age is at least 30`, `Gender is not Male`.
+- **Yes/no rows drop the verb entirely** - a Pregnant condition reads `Pregnant No` or `Pregnant Yes` (not "Pregnant is No"), and the same goes for Castrated, Has a name, and the other yes/no fields.
 
-Which symbols you can pick depends on the field:
+Which labels you can pick depends on the field:
 
-- **Number** fields (Age, Weight, Health, Genetics) offer all six of `<` `<=` `==` `!=` `>=` `>`, plus `in` / `notin` to match a list of exact values.
-- **Yes/no** fields (Pregnant, Castrated, Has a name, ...) only use `==`, matched against **Yes** or **No**.
-- **Gender** and **Breed** use `==` / `!=` for a single value, or `in` / `notin` for a list.
-- **Name** uses `contains` / `notcontains` only.
+- **Number** fields (Age, Weight, Health, Genetics) offer all six of `is less than`, `is at most`, `is`, `is not`, `is at least`, `is more than`, plus `is one of` / `is none of` to match a list of exact values.
+- **Yes/no** fields (Pregnant, Castrated, Has a name, ...) only test `is`, matched against **Yes** or **No** - and the row drops the word, e.g. `Pregnant No`.
+- **Gender** and **Breed** use `is` / `is not` for a single value, or `is one of` / `is none of` for a list.
+- **Name** uses `contains` / `does not contain` only.
 
 A couple more things worth knowing:
 
-- **Genetics are shown on a 0-99 scale** - the same number you see on the animal's info card. `Genetics: overall >= 75` does what you'd expect.
+- **Genetics are shown on a 0-99 scale** - the same number you see on the animal's info card. `Genetics: overall is at least 75` does what you'd expect.
 - **Text matching is not case-sensitive** - `Name contains betty` also matches "Betty" and "BETTY".
 
 ---

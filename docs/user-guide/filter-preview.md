@@ -210,22 +210,26 @@ There is no `between` operator. Express ranges as
 
 ## What each comparator means
 
-Plain-English glosses for each comparator - the same wording as the
-[Saved Filters guide](guide-saved-filters.md#reading-the-comparison-symbols),
-repeated here for quick reference while hand-authoring:
+Plain-English glosses for each comparator - the same wording the in-game
+editor now shows as its **Compare** labels (see the
+[Saved Filters guide](guide-saved-filters.md#reading-the-comparison-labels)),
+repeated here for quick reference while hand-authoring. In XML the `cmp`
+attribute is always the raw symbol in the left column; the editor renders the
+"Reads as" label for it - except a bool field with `==` drops the operator
+entirely in the editor (e.g. `Pregnant No`, not `Pregnant is No`).
 
 | Comparator | Reads as | Example |
 |------------|----------|---------|
 | `<` | is less than | `age < 12` |
 | `<=` | is at most | `age <= 12` |
-| `==` | is (exactly) | `gender == male` |
+| `==` | is | `gender == male` |
 | `!=` | is not | `gender != male` |
 | `>=` | is at least | `age >= 30` |
 | `>` | is more than | `weight > 500` |
 | `in` | is one of | `subType in [BULL_HOLSTEIN, BULL_JERSEY]` |
 | `notin` | is none of | `subType notin [BULL_HOLSTEIN]` |
-| `contains` | text includes (case-insensitive) | `name contains betty` |
-| `notcontains` | text excludes (case-insensitive) | `name notcontains keep` |
+| `contains` | contains (case-insensitive) | `name contains betty` |
+| `notcontains` | does not contain (case-insensitive) | `name notcontains keep` |
 
 Inside XML attribute values, remember to entity-encode `<` as `&lt;` and
 `>` as `&gt;` (see the [quick reference card](#quick-reference-card)).

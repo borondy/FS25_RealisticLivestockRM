@@ -886,6 +886,16 @@
 		<text name="rl_menu_filters_dialog_title" text="Modifica condizione"/>
 		<text name="rl_menu_filters_field_label" text="Campo"/>
 		<text name="rl_menu_filters_cmp_label" text="Confronta"/>
+		<text name="rl_menu_filters_cmp_lt" text="is less than"/>
+		<text name="rl_menu_filters_cmp_le" text="is at most"/>
+		<text name="rl_menu_filters_cmp_eq" text="is"/>
+		<text name="rl_menu_filters_cmp_ne" text="is not"/>
+		<text name="rl_menu_filters_cmp_ge" text="is at least"/>
+		<text name="rl_menu_filters_cmp_gt" text="is more than"/>
+		<text name="rl_menu_filters_cmp_in" text="is one of"/>
+		<text name="rl_menu_filters_cmp_notin" text="is none of"/>
+		<text name="rl_menu_filters_cmp_contains" text="contains"/>
+		<text name="rl_menu_filters_cmp_notcontains" text="does not contain"/>
 		<text name="rl_menu_filters_value_label" text="Valore"/>
 		<text name="rl_menu_filters_value_invalid_number" text="Numero non valido"/>
 		<text name="rl_menu_filters_preserved_banner" text="%d condizione/i nascoste - modificabili in una fase successiva. Salvate alla chiusura."/>

@@ -916,6 +916,16 @@
 		<text name="rl_menu_filters_dialog_title" text="Edit condition"/>
 		<text name="rl_menu_filters_field_label" text="Field"/>
 		<text name="rl_menu_filters_cmp_label" text="Compare"/>
+		<text name="rl_menu_filters_cmp_lt" text="is less than"/>
+		<text name="rl_menu_filters_cmp_le" text="is at most"/>
+		<text name="rl_menu_filters_cmp_eq" text="is"/>
+		<text name="rl_menu_filters_cmp_ne" text="is not"/>
+		<text name="rl_menu_filters_cmp_ge" text="is at least"/>
+		<text name="rl_menu_filters_cmp_gt" text="is more than"/>
+		<text name="rl_menu_filters_cmp_in" text="is one of"/>
+		<text name="rl_menu_filters_cmp_notin" text="is none of"/>
+		<text name="rl_menu_filters_cmp_contains" text="contains"/>
+		<text name="rl_menu_filters_cmp_notcontains" text="does not contain"/>
 		<text name="rl_menu_filters_value_label" text="Value"/>
 		<text name="rl_menu_filters_value_invalid_number" text="Invalid number"/>
 		<text name="rl_menu_filters_preserved_banner" text="%d condition(s) hidden - editable in a later phase. Saved on close."/>
