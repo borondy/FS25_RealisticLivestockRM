@@ -130,6 +130,10 @@ function RealisticLivestock.loadMap()
     -- consumers find a live registry; this assignment is an idempotent
     -- fallback that re-creates the global if it was ever nilled.
     g_rlFilterService = g_rlFilterService or RLFilterService.new()
+    -- Same belt-and-suspenders for the dealer sale-availability registry: the
+    -- save-side append in RLSettings.saveToXMLFile reads this global, so an
+    -- accidental nilling must not leave persistence without a live registry.
+    g_rlDealerSaleRegistry = g_rlDealerSaleRegistry or RLDealerSaleRegistry.new()
 
     MoneyType.HERDSMAN_WAGES = MoneyType.register("herdsmanWages", "rl_ui_herdsmanWages")
     MoneyType.LAST_ID = MoneyType.LAST_ID + 1

@@ -515,6 +515,39 @@ function RLSettings.loadRulesFromXMLFile()
 end
 
 
+--- loadDealerSaleFromXMLFile: server-only, GUI-free sibling of
+--- loadRulesFromXMLFile. Reconstructs the g_rlDealerSaleRegistry singleton (A1's
+--- documented per-savegame reset - the pure registry owns no clear-all), then
+--- repopulates it from rm_RlSettings.xml via the additive codec load seam. Rides
+--- AnimalSystem:loadFromXMLFile alongside the filter/rule loaders - RLRM's
+--- GUI-free, server-side, once-per-load savegame hook - NOT the GUI-coupled
+--- RLSettings.initialize. Re-opens rm_RlSettings.xml for its OWN error boundary
+--- so a corrupt dealer subtree cannot abort filter or rule load, or vice versa.
+--- The codec stores subtype names verbatim and resolves no index, so unlike the
+--- filter load this hook carries no AnimalType-registry timing dependency; the
+--- position is chosen for consistency and to co-locate with A3's apply.
+function RLSettings.loadDealerSaleFromXMLFile()
+
+	if g_currentMission.missionInfo == nil or g_currentMission.missionInfo.savegameDirectory == nil then return end
+	if g_server == nil then return end
+
+	-- Reconstruct fresh: this IS the per-savegame reset (reconstruction, not a
+	-- clear-all), so a singleton populated by a prior load in the same session
+	-- cannot leak, and the no-file branch below is left an empty registry.
+	g_rlDealerSaleRegistry = RLDealerSaleRegistry.new()
+
+	local path = g_currentMission.missionInfo.savegameDirectory .. "/rm_RlSettings.xml"
+	local xmlFile = XMLFile.loadIfExists("rm_RlSettings", path)
+	if xmlFile == nil then
+		Log:debug("RLSettings.loadDealerSaleFromXMLFile: no rm_RlSettings.xml on disk; dealer override registry stays empty")
+		return
+	end
+
+	RLDealerSaleSerialization.loadFromXMLFile(xmlFile, RLDealerSaleSerialization.XML_BASE_KEY, g_rlDealerSaleRegistry)
+	xmlFile:delete()
+end
+
+
 --- Write every setting state as rm_RlSettings child elements on an
 --- already-open XML document. The codec seam behind the disk wrapper
 --- (saveToXMLFile): takes the document as a dependency so the branches are
@@ -598,6 +631,16 @@ function RLSettings.saveToXMLFile(name, state)
 				g_rlHerdsmanRuleService:saveToXMLFile(xmlFile, RLHerdsmanRuleService.XML_BASE_KEY)
 			else
 				Log:warning("RLSettings.saveToXMLFile: g_rlHerdsmanRuleService is nil; skipping rule save (load-order regression?)")
+			end
+
+			-- Dealer sale-availability overrides share the same rm_RlSettings.xml
+			-- (their own subtree). The seam is a DOT-function taking the registry
+			-- as the third arg - the pure RLDealerSaleRegistry owns no XML method.
+			-- Symmetric with the filter/herdsman appends above; server-only.
+			if g_rlDealerSaleRegistry ~= nil then
+				RLDealerSaleSerialization.saveToXMLFile(xmlFile, RLDealerSaleSerialization.XML_BASE_KEY, g_rlDealerSaleRegistry)
+			else
+				Log:warning("RLSettings.saveToXMLFile: g_rlDealerSaleRegistry is nil; skipping dealer-sale save (load-order regression?)")
 			end
 
 			local saved = xmlFile:save(false, true)

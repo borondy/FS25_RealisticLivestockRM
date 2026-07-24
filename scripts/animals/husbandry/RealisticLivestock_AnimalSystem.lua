@@ -1139,6 +1139,12 @@ function AnimalSystem:loadFromXMLFile()
     -- abort rule load, or vice versa.
     RLSettings.loadRulesFromXMLFile()
 
+    -- Dealer sale-availability overrides share rm_RlSettings.xml with the filters
+    -- and rules (their own subtree). Loaded here for the same reason: RLRM's
+    -- GUI-free, server-side, once-per-load savegame hook, with its own re-open +
+    -- error boundary. Reconstructs the registry singleton before repopulating.
+    RLSettings.loadDealerSaleFromXMLFile()
+
     return hasData
 
 end

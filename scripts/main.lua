@@ -182,6 +182,9 @@ source(modDirectory .. "scripts/herdsman/RLHerdsmanDayTick.lua")
 -- state at load. Sourced here so the global class table exists for the in-game
 -- rlTest suite; persistence, apply, and MP wiring are separate downstream modules.
 source(modDirectory .. "scripts/dealer/RLDealerSaleRegistry.lua")
+-- Flat XML codec for the override map + the shared g_rlDealerSaleRegistry
+-- singleton bootstrap. Loads after the registry class it references.
+source(modDirectory .. "scripts/dealer/RLDealerSaleSerialization.lua")
 
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")
