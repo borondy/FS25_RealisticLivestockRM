@@ -177,6 +177,12 @@ source(modDirectory .. "scripts/herdsman/RLHerdsmanMessages.lua")
 -- dual-run run(env). Loads after 11j (consumes both at call time); no game state at load.
 source(modDirectory .. "scripts/herdsman/RLHerdsmanDayTick.lua")
 
+-- SECTION 11l: Dealer sale-availability - headless registry. Pure override map
+-- (canBeBought per subTypeName+minAge stage) + effective-state resolver; no game
+-- state at load. Sourced here so the global class table exists for the in-game
+-- rlTest suite; persistence, apply, and MP wiring are separate downstream modules.
+source(modDirectory .. "scripts/dealer/RLDealerSaleRegistry.lua")
+
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")
 source(modDirectory .. "scripts/gui/elements/RenderElement.lua")
