@@ -53,6 +53,7 @@ This is a maintained version of the original mod by Arrow-kb, who has discontinu
 
 **Animal Packs:**
 - [Cow Breeds Pack for RLRM](https://github.com/ConGan98/FS25_CowBreedsRLRM) by ConGan98 - additional cattle breeds
+- [Sheep Breeds Pack for RLRM](https://github.com/ConGan98/FS25_SheepBreedsRLRM) by ConGan98 - additional sheep breeds
 
 ## Notes
 

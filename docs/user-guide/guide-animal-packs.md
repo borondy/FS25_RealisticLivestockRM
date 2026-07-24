@@ -6,6 +6,17 @@ Animal packs are third-party mods that extend Realistic Livestock RM with new br
 
 ---
 
+## Available Packs
+
+Community packs built for RLRM:
+
+- [Cow Breeds Pack for RLRM](https://github.com/ConGan98/FS25_CowBreedsRLRM) by ConGan98 - additional cattle breeds
+- [Sheep Breeds Pack for RLRM](https://github.com/ConGan98/FS25_SheepBreedsRLRM) by ConGan98 - additional sheep breeds
+
+RLRM doesn't verify or endorse third-party packs - see [Before You Install](#before-you-install).
+
+---
+
 ## What Packs Can Do
 
 There are two kinds of animal packs:
