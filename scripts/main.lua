@@ -11,7 +11,7 @@ local modDirectory = g_currentModDirectory
 -- SECTION 0: Logging
 source(modDirectory .. "scripts/rmlib/RmLogging.lua")
 Log = RmLogging.getLogger("RLRM")
-Log:setLevel(RmLogging.LOG_LEVEL.INFO)
+Log:setLevel(RmLogging.LOG_LEVEL.DEBUG)
 
 -- SECTION 1: Font Library
 source(modDirectory .. "scripts/fontlib/RmFontCharacter.lua")
@@ -185,6 +185,10 @@ source(modDirectory .. "scripts/dealer/RLDealerSaleRegistry.lua")
 -- Flat XML codec for the override map + the shared g_rlDealerSaleRegistry
 -- singleton bootstrap. Loads after the registry class it references.
 source(modDirectory .. "scripts/dealer/RLDealerSaleSerialization.lua")
+-- Apply layer: folds the override registry onto the live store.canBeBought flags
+-- (Model A). References RLDealerSaleRegistry (above) at load; RL_ResetDealerEvent
+-- only at call time inside applyAndRepopulate, so its later source order is safe.
+source(modDirectory .. "scripts/dealer/RLDealerSaleApply.lua")
 
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")

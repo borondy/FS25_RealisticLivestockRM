@@ -1145,6 +1145,13 @@ function AnimalSystem:loadFromXMLFile()
     -- error boundary. Reconstructs the registry singleton before repopulating.
     RLSettings.loadDealerSaleFromXMLFile()
 
+    -- Fold the freshly-loaded dealer overrides onto the live store flags: reset the
+    -- per-session baseline so it re-derives from the reloaded values, then apply.
+    -- Adjacent to the loaders above so all three move together when the shared
+    -- early-return above them is hoisted.
+    RLDealerSaleApply.resetBaseline()
+    RLDealerSaleApply.applyToLiveSubTypes()
+
     return hasData
 
 end
