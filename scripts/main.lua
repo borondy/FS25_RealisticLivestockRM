@@ -194,6 +194,10 @@ source(modDirectory .. "scripts/dealer/RLDealerSaleApply.lua")
 -- reads the live store.canBeBought (no mutation). Binds the RLAnimalUtil +
 -- RLFilterFieldDisplay label seams (both sourced earlier) only inside the shell.
 source(modDirectory .. "scripts/dealer/RLDealerSaleCatalog.lua")
+-- Selector model: pure sectioned checkbox model + result collector (buildSectionModel /
+-- buildResult) the sale-availability selector dialog (B2) wraps. Env-free data-in/data-out;
+-- sourced here in the dealer group, before the GUI dialog that consumes it (SECTION 13).
+source(modDirectory .. "scripts/dealer/RLDealerSaleSelectorModel.lua")
 
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")
@@ -216,6 +220,9 @@ source(modDirectory .. "scripts/gui/RLFilterValueSetDialog.lua")
 source(modDirectory .. "scripts/gui/RLHerdsmanFilterPickerDialog.lua")
 source(modDirectory .. "scripts/gui/RLHerdsmanHusbandryPickerDialog.lua")
 source(modDirectory .. "scripts/gui/RLHerdsmanDestinationPickerDialog.lua")
+-- Dealer sale-availability selector dialog (B2): sectioned icon + age-range checkbox list.
+-- Thin GUI wiring over the pure RLDealerSaleSelectorModel (sourced in the dealer group above).
+source(modDirectory .. "scripts/gui/RLDealerSaleSelectorDialog.lua")
 source(modDirectory .. "scripts/gui/FileExplorerDialog.lua")
 source(modDirectory .. "scripts/gui/ProfileDialog.lua")
 source(modDirectory .. "scripts/gui/RL_InfoDisplayKeyValueBox.lua")

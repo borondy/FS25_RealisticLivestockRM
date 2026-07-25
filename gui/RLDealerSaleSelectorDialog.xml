@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<!--
+    RLDealerSaleSelectorDialog.xml
+    Dealer sale-availability selector (B2/RLRM-545): a sectioned, single-line checkbox list.
+    One SECTION header per subType; each ROW is one age stage: a small icon + age-range text
+    ("N-M months") + checkbox (checked = currently buyable). OK returns the checked in-scope
+    for-sale set; Back returns nil. Selection-out only - the dialog never mutates the
+    registry/store or dispatches MP.
+
+    Row template MIRRORS rlHerdsmanHusbandryPickerDialog.xml (the Select Husbandries dialog): a
+    single-height alternating row with a PLAIN highlight colour and a right-anchored checkbox - NOT
+    a sidebar list-card profile (whose selected-state 9-slice renders a stretched arrow-tab in a
+    modal, and whose ~100px height forces two-line text). The ONE addition over the
+    picker is the engine section mechanism (listSectionHeader="section") so age stages group under a
+    subType title, plus a small per-stage icon. The subType is named ONLY by the section header (few
+    rows per subType, so repeating it per row reads as clutter); the row label is the age band.
+
+    Profile-bound input actions: rlButtonSelect -> RL_SELECT (KEY_a), rlButtonMenuActivate ->
+    MENU_ACTIVATE (Space, drives Select all/none), buttonOK -> MENU_ACCEPT, buttonBack ->
+    MENU_CANCEL. Geometry mirrors the husbandry picker's list/slider proportion, scaled to a taller
+    dialog (long list); confirmed by the per-open onOpen measurement log + the dev opener hot-reload.
+-->
+<GUI onOpen="onOpen" onClose="onClose" onCreate="onCreate">
+    <GuiElement profile="newLayer"/>
+    <Bitmap profile="dialogFullscreenBg" id="dialogBg"/>
+    <GuiElement profile="fs25_dialogBg" id="dialogElement" size="750px 900px">
+        <ThreePartBitmap profile="fs25_dialogBgMiddle"/>
+        <ThreePartBitmap profile="fs25_dialogBgTop"/>
+        <ThreePartBitmap profile="fs25_dialogBgBottom"/>
+        <GuiElement profile="fs25_dialogContentContainer">
+
+            <Text profile="fs25_dialogTitle" id="dialogTitleElement"
+                  position="0px -30px"
+                  text="$l10n_rl_menu_dealerSale_title"/>
+
+            <!-- Empty state: shown when the live catalog is empty. Hidden by default; toggled
+                 with the list in onOpen. -->
+            <Text profile="fs25_dialogText" id="emptyListText"
+                  position="0px -380px" size="600px 40px" visible="false"
+                  text="$l10n_rl_menu_dealerSale_empty"/>
+
+            <!-- Sectioned checkbox list. listSectionHeader="section" name-keys the header cell:
+                 the ListItem name="section" (title-only) is the per-section header, the ListItem
+                 name="defaultCell" is the rows. Row template adapts the husbandry picker's cell:
+                 small icon + age-range label + right-anchored checkbox, single line. -->
+            <SmoothList profile="rl_dealerSaleList" id="dealerSaleList"
+                        position="50px -80px"
+                        size="620px 700px"
+                        focusInit="onOpen"
+                        focusChangeTop="nil"
+                        focusChangeBottom="nil"
+                        listSectionHeader="section"
+                        onClick="onListClick">
+
+                <ListItem profile="rl_dealerSaleListItem" size="605px 55px" name="defaultCell">
+                    <Bitmap profile="rl_dealerSaleIcon" name="icon" position="8px 0px"/>
+                    <Text profile="rl_dealerSaleLabel" position="66px 0px" size="440px 55px" name="ageRange"/>
+                    <Button profile="rlMenu_checkboxButton" name="checkbox" position="-45px -15px">
+                        <ThreePartBitmap profile="rlMenu_checkboxBox"/>
+                        <Bitmap profile="rlMenu_checkbox" name="check"/>
+                    </Button>
+                </ListItem>
+
+                <ListItem profile="rl_dealerSaleSectionHeader" name="section">
+                    <Text profile="rl_dealerSaleSectionTitle" name="title"/>
+                </ListItem>
+            </SmoothList>
+
+            <ThreePartBitmap profile="fs25_listSliderBox" id="dealerSaleSliderBox"
+                             position="-30px -17px"
+                             size="12px 700px"
+                             with="anchorTopRight">
+                <Slider profile="fs25_listSlider" size="6px 692px" dataElementId="dealerSaleList"/>
+            </ThreePartBitmap>
+
+        </GuiElement>
+
+        <!-- Four-button action bar: Select / Select all / OK / Back (mirror the husbandry picker). -->
+        <BoxLayout profile="fs25_dialogButtonBox" id="buttonsPC">
+            <Button profile="rlButtonSelect" text="$l10n_button_select"
+                    onClick="onClickSelect" id="selectButton"/>
+            <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+            <Button profile="rlButtonMenuActivate" text="$l10n_rl_ui_selectAll"
+                    onClick="onClickSelectAll" id="selectAllButton"/>
+            <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+            <Button profile="buttonOK" text="$l10n_button_ok"
+                    onClick="onClickOk" id="okButton"/>
+            <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+            <Button profile="buttonBack" text="$l10n_button_back"
+                    onClick="onClickBack" id="backButton"/>
+        </BoxLayout>
+    </GuiElement>
+
+    <!--
+        Local profiles. Element-level `with=` is silently ignored by the GUI loader; declare traits
+        here so they actually apply. Sibling shapes to the husbandry picker's rl_husbandryPicker*
+        profiles (per-XML profile scope) plus a section header + a small icon.
+    -->
+    <GUIProfiles>
+        <Profile name="rl_dealerSaleList" extends="emptyPanel" with="anchorStretchingYLeft pivotTopLeft">
+        </Profile>
+
+        <Profile name="rl_dealerSaleListItem" extends="baseReference" with="anchorTopStretchingX alternating">
+            <height value="55px"/>
+            <imageColor value="$preset_fs25_colorGrey"/>
+            <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
+            <alternateBackgroundColor value="$preset_fs25_colorGreyDark_50"/>
+        </Profile>
+
+        <Profile name="rl_dealerSaleIcon" extends="baseReference" with="anchorMiddleLeft">
+            <size value="47px 47px"/>
+            <imageSliceId value="noSlice"/>
+        </Profile>
+
+        <Profile name="rl_dealerSaleLabel" extends="baseReference" with="anchorMiddleLeft">
+            <textBold value="false"/>
+            <textSize value="18px"/>
+            <textAlignment value="left"/>
+            <textColor value="$preset_fs25_colorMainLight"/>
+            <textSelectedColor value="$preset_fs25_colorMainDark"/>
+        </Profile>
+
+        <Profile name="rl_dealerSaleSectionHeader" extends="emptyPanel" with="anchorTopStretchingX">
+            <height value="45px"/>
+        </Profile>
+
+        <Profile name="rl_dealerSaleSectionTitle" extends="fs25_textDefault" with="anchorTopStretchingX">
+            <size value="100% 30px"/>
+            <absoluteSizeOffset value="20px 0px"/>
+            <position value="10px -12px"/>
+            <textBold value="true"/>
+            <textUpperCase value="true"/>
+            <textSize value="16px"/>
+        </Profile>
+
+        <Profile name="rlButtonMenuActivate" extends="fs25_wideButton" with="touchButton">
+            <inputAction value="MENU_ACTIVATE"/>
+        </Profile>
+
+        <Profile name="rlButtonSelect" extends="fs25_wideButton" with="touchButton">
+            <inputAction value="RL_SELECT"/>
+        </Profile>
+    </GUIProfiles>
+</GUI>

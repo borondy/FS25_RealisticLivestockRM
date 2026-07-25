@@ -261,6 +261,7 @@ function RealisticLivestock_FSBaseMission:onStartMission()
     RLHerdsmanFilterPickerDialog.register()
     RLHerdsmanHusbandryPickerDialog.register()
     RLHerdsmanDestinationPickerDialog.register()
+    RLDealerSaleSelectorDialog.register()
     RmMigrationDialog.register()
 
     -- Mod-compatibility detection runs on every peer (g_modIsLoaded is authoritative

@@ -29,6 +29,10 @@ function RLConsoleCommandManager.new()
         addConsoleCommand("rlHerdsmanRuleCreate", "Seed a few disabled herdsman rules (sell/buy/ai x2, farm 1) for menu dev", "createHerdsmanRules", self, "")
         addConsoleCommand("rlHerdsmanRuleList", "List all herdsman rules currently in memory", "listHerdsmanRules", self, "")
         addConsoleCommand("rlHerdsmanRuleClear", "Clear all herdsman rules (SP diagnostic only)", "clearHerdsmanRules", self, "")
+        -- Dealer sale-availability selector (B2) -- dev-only opener until the B3 (RLRM-546)
+        -- Settings launcher button lands. Opens the dialog over the live B1 catalog and logs
+        -- the returned in-scope for-sale set; verifies the sectioned-checkbox GUI standalone.
+        addConsoleCommand("rlOpenDealerSaleSelector", "Dev: open the dealer sale-availability selector dialog over the live catalog", "openDealerSaleSelector", self, "")
         -- Engine cap probe: requires writing to engine husbandries, server-side only.
         addConsoleCommand("rlTestAnimalConfigCap", "Probe engine per-type config slot cap by calling addHusbandryAnimal idx 0..127 on each active husbandry", "testAnimalConfigCap", self, "[maxIdx]")
         addConsoleCommand("rlTestAnimalConfigCapFresh", "Probe whether a fresh createAnimalHusbandry call (different XML / different typeName) gets its own 32-window. Requires AnimalCapProbe pack with heritage config.", "testAnimalConfigCapFresh", self, "[maxIdx]")
@@ -48,6 +52,54 @@ function RLConsoleCommandManager:dumpSettings()
     Log:debug("rlDumpSettings: invoked")
     RLDebugUtils.dumpSettings()
     return "rlDumpSettings: see log.txt"
+end
+
+
+--- Dev-only opener for the B2 dealer sale-availability selector dialog (RLRM-545).
+--- Enumerates the live catalog (B1) and opens the dialog with a logging callback so the
+--- returned in-scope for-sale set (or a cancel) is visible in the log. Verifies the
+--- sectioned-checkbox dialog standalone before the B3 launcher (RLRM-546) exists; fold or
+--- remove when B3 ships the real Settings launcher. SP-only via the outer registration guard.
+---@return string user-facing result
+function RLConsoleCommandManager:openDealerSaleSelector()
+    local Log = RmLogging.getLogger("RLRM")
+    if RLDealerSaleSelectorDialog == nil then
+        return "rlOpenDealerSaleSelector: RLDealerSaleSelectorDialog is nil (mod load order regression?)"
+    end
+    if RLDealerSaleCatalog == nil then
+        return "rlOpenDealerSaleSelector: RLDealerSaleCatalog is nil (mod load order regression?)"
+    end
+
+    -- Dev GUI hot-reload: re-parse the dialog XML on each open so on-disk layout edits appear
+    -- without a game restart (mirror RLMenu Mechanism B - the g_gui.currentlyReloading bracket
+    -- forces a profile re-read, else re-loadGui silently keeps prior profile values; pcall
+    -- guarantees the flag resets even if loadGui throws). Dev-only command, so always reload.
+    if g_gui ~= nil then
+        g_gui.currentlyReloading = true
+        local ok, err = pcall(RLDealerSaleSelectorDialog.register)
+        g_gui.currentlyReloading = false
+        if not ok then
+            Log:error("rlOpenDealerSaleSelector: GUI hot-reload failed: %s", tostring(err))
+        else
+            Log:debug("rlOpenDealerSaleSelector: GUI hot-reloaded dialog XML")
+        end
+    end
+
+    local catalog = RLDealerSaleCatalog.enumerate()
+    Log:info("rlOpenDealerSaleSelector: opening selector over %d catalog entr(ies)", #catalog)
+
+    RLDealerSaleSelectorDialog.show(function(_target, result)
+        if result == nil then
+            Log:info("rlOpenDealerSaleSelector: cancelled (nil result)")
+        else
+            Log:info("rlOpenDealerSaleSelector: committed %d in-scope for-sale row(s):", #result)
+            for _, r in ipairs(result) do
+                Log:info("  |--- %s @ minAge %s", tostring(r.subTypeName), tostring(r.minAge))
+            end
+        end
+    end, nil, catalog)
+
+    return "rlOpenDealerSaleSelector: dialog opened (see log for the returned set)"
 end
 
 

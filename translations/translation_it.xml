@@ -813,6 +813,8 @@
         <text name="rl_menu_herdsman_husbandry_count" text="%d selezionati"/>
         <text name="rl_menu_herdsman_husbandry_picker_title" text="Seleziona allevamenti"/>
         <text name="rl_menu_herdsman_husbandry_picker_empty" text="Nessun allevamento disponibile per questa regola."/>
+        <text name="rl_menu_dealerSale_title" text="Animals for Sale"/>
+        <text name="rl_menu_dealerSale_empty" text="No animals available at this dealer."/>
         <text name="rl_menu_herdsman_husbandry_emptyRejected" text="Seleziona almeno un allevamento."/>
         <text name="rl_menu_herdsman_filter_picker_currentUnavailable" text="Il filtro corrente non è disponibile per questa operazione."/>
 			<text name="rl_menu_herdsman_section_move" text="Spostamento"/>

@@ -842,6 +842,8 @@
         <text name="rl_menu_herdsman_husbandry_count" text="%d selected"/>
         <text name="rl_menu_herdsman_husbandry_picker_title" text="Select Husbandries"/>
         <text name="rl_menu_herdsman_husbandry_picker_empty" text="No husbandries available for this rule."/>
+        <text name="rl_menu_dealerSale_title" text="Animals for Sale"/>
+        <text name="rl_menu_dealerSale_empty" text="No animals available at this dealer."/>
         <text name="rl_menu_herdsman_husbandry_emptyRejected" text="Select at least one husbandry."/>
         <text name="rl_menu_herdsman_filter_picker_currentUnavailable" text="Current filter unavailable for this operation."/>
 			<text name="rl_menu_herdsman_section_move" text="Move"/>
