@@ -497,6 +497,10 @@
 		<text name="rl_settings_resetDealer_tooltip" text="Verwijder alle dieren van de veehandelaar en vul de voorraad aan met nieuwe dieren"/>
 		<text name="rl_settings_resetDealer_text" text="Reset Veehandelaar"/>
 
+		<text name="rl_settings_dealerSale_label" text="Choose Animals For Sale"/>
+		<text name="rl_settings_dealerSale_tooltip" text="Choose which animals and age groups the dealer offers for sale. Changing this restocks the dealer."/>
+		<text name="rl_settings_dealerSale_text" text="Choose Animals For Sale"/>
+
 		<text name="rl_settings_tagColour_label" text="Wijzig Tag kleur"/>
 		<text name="rl_settings_tagColour_tooltip" text="Wijzig de kleur van de oor tags"/>
 		<text name="rl_settings_tagColour_text" text="Wijzig Tag kleur"/>

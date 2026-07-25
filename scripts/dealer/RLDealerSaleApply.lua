@@ -173,7 +173,8 @@ end
 --- dealer" button uses - `RL_ResetDealerEvent.sendEvent(TYPE_DEALER)` - which
 --- routes host/SP -> executeOnServer (+broadcast) and client -> server request.
 --- Must NOT call `executeOnServer` directly (that dereferences `g_server`
---- unconditionally and would crash on a client). Dormant until B/C1 call it.
+--- unconditionally and would crash on a client). Called by the settings
+--- sale-availability launcher once a Confirm actually changed the registry.
 function RLDealerSaleApply.applyAndRepopulate()
     Log:debug("RLDealerSaleApply.applyAndRepopulate: apply then full dealer reset")
     RLDealerSaleApply.applyToLiveSubTypes()

@@ -36,7 +36,7 @@
             <!-- ScrollingLayout uses fs25_settingsLayout. Rows render in
                  source order; per-section 20px GuiElement spacers act as
                  visual gaps without text headers. Order matches
-                 RLSettings.SETTINGS index 1..19. -->
+                 RLSettings.SETTINGS index 1..20. -->
             <ScrollingLayout profile="fs25_settingsLayout" id="generalSettingsLayout">
 
                 <!-- 1. Mortality -->
@@ -169,6 +169,13 @@
                         <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
                     </Button>
                     <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_resetDealer_label"/>
+                </Bitmap>
+                <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_dealerSale">
+                    <Button profile="rl_settingsButton" id="rlmenuSetting_dealerSale" text="$l10n_rl_settings_dealerSale_text" onClick="onClickGeneralAction">
+                        <ThreePartBitmap profile="fs25_settingsButtonBg"/>
+                        <Text profile="fs25_multiTextOptionTooltip" name="tooltip"/>
+                    </Button>
+                    <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_settings_dealerSale_label"/>
                 </Bitmap>
                 <Bitmap profile="fs25_multiTextOptionContainer" id="rlmenuSettingRow_resetAIAnimals">
                     <Button profile="rl_settingsButton" id="rlmenuSetting_resetAIAnimals" text="$l10n_rl_settings_resetAIAnimals_text" onClick="onClickGeneralAction">

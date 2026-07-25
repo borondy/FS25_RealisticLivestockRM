@@ -520,6 +520,10 @@
         <text name="rl_settings_resetDealer_tooltip" text="Odstraní všechna zvířata u obchodníka a doplní sklad novými zvířaty"/>
         <text name="rl_settings_resetDealer_text" text="Resetovat obchodníka se zvířaty"/>
 
+        <text name="rl_settings_dealerSale_label" text="Choose Animals For Sale"/>
+        <text name="rl_settings_dealerSale_tooltip" text="Choose which animals and age groups the dealer offers for sale. Changing this restocks the dealer."/>
+        <text name="rl_settings_dealerSale_text" text="Choose Animals For Sale"/>
+
         <text name="rl_settings_resetAIAnimals_label" text="Resetovat zvířata pro AI"/>
         <text name="rl_settings_resetAIAnimals_tooltip" text="Odstraní všechna zvířata dostupná pro umělou inseminaci a doplní je novými náhodně generovanými zvířaty"/>
         <text name="rl_settings_resetAIAnimals_text" text="Resetovat zvířata pro AI"/>

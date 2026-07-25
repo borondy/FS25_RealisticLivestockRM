@@ -697,6 +697,10 @@
         <text name="rl_settings_resetAIAnimals_tooltip" text="Usuń wszystkie zwierzęta AI dostępne do sztucznego zapłodnienia i uzupełnij nowymi losowo wygenerowanymi zwierzętami"/>
         <text name="rl_settings_resetDealer_label" text="Zresetuj handlarza zwierząt"/>
         <text name="rl_settings_resetDealer_text" text="Zresetuj handlarza zwierząt"/>
+
+        <text name="rl_settings_dealerSale_label" text="Choose Animals For Sale"/>
+        <text name="rl_settings_dealerSale_tooltip" text="Choose which animals and age groups the dealer offers for sale. Changing this restocks the dealer."/>
+        <text name="rl_settings_dealerSale_text" text="Choose Animals For Sale"/>
         <text name="rl_settings_resetDealer_tooltip" text="Usuń wszystkie zwierzęta handlarza i uzupełnij zapasy nowymi zwierzętami"/>
         <text name="rl_ui_genetics_highest" text="Najwyższy"/>
         <text name="rl_ui_meat_github" text="Jakość mięsa"/>

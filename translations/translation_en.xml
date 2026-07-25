@@ -520,6 +520,10 @@
 		<text name="rl_settings_resetDealer_tooltip" text="Remove all the dealer's animals and replenish the stock with new animals"/>
 		<text name="rl_settings_resetDealer_text" text="Reset Animal Dealer"/>
 
+		<text name="rl_settings_dealerSale_label" text="Choose Animals For Sale"/>
+		<text name="rl_settings_dealerSale_tooltip" text="Choose which animals and age groups the dealer offers for sale. Changing this restocks the dealer."/>
+		<text name="rl_settings_dealerSale_text" text="Choose Animals For Sale"/>
+
 		<text name="rl_settings_resetAIAnimals_label" text="Reset AI Animals"/>
 		<text name="rl_settings_resetAIAnimals_tooltip" text="Remove all AI animals available for artificial insemination and replenish with new randomly generated animals"/>
 		<text name="rl_settings_resetAIAnimals_text" text="Reset AI Animals"/>

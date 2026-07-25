@@ -697,6 +697,10 @@
         <text name="rl_settings_resetAIAnimals_tooltip" text="Alle für künstliche Befruchtung verfügbaren KI-Tiere entfernen und mit neuen zufällig generierten Tieren auffüllen"/>
         <text name="rl_settings_resetDealer_label" text="Tierhändler zurücksetzen"/>
         <text name="rl_settings_resetDealer_text" text="Tierhändler zurücksetzen"/>
+
+        <text name="rl_settings_dealerSale_label" text="Choose Animals For Sale"/>
+        <text name="rl_settings_dealerSale_tooltip" text="Choose which animals and age groups the dealer offers for sale. Changing this restocks the dealer."/>
+        <text name="rl_settings_dealerSale_text" text="Choose Animals For Sale"/>
         <text name="rl_settings_resetDealer_tooltip" text="Entfernen Sie alle Tiere des Händlers und füllen Sie den Bestand mit neuen Tieren auf"/>
         <text name="rl_ui_genetics_highest" text="Maximum"/>
         <text name="rl_ui_meat_github" text="Fleischqualität"/>

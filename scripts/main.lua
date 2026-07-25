@@ -198,6 +198,10 @@ source(modDirectory .. "scripts/dealer/RLDealerSaleCatalog.lua")
 -- buildResult) the sale-availability selector dialog (B2) wraps. Env-free data-in/data-out;
 -- sourced here in the dealer group, before the GUI dialog that consumes it (SECTION 13).
 source(modDirectory .. "scripts/dealer/RLDealerSaleSelectorModel.lua")
+-- Reconcile helper: pure result-vs-catalog diff that resolves the selector's committed
+-- set into registry set/clear ops against each stage's shipped default. Env-free
+-- data-in/data-out; reaches no sibling dealer module at load or call time.
+source(modDirectory .. "scripts/dealer/RLDealerSaleReconcile.lua")
 
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")

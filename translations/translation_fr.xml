@@ -520,6 +520,10 @@
 <text name="rl_settings_resetDealer_tooltip" text="Supprimer tous les animaux du marchand et régénérer un nouveau stock"/>
 <text name="rl_settings_resetDealer_text" text="Réinitialiser le marchand d'animaux"/>
 
+<text name="rl_settings_dealerSale_label" text="Choose Animals For Sale"/>
+<text name="rl_settings_dealerSale_tooltip" text="Choose which animals and age groups the dealer offers for sale. Changing this restocks the dealer."/>
+<text name="rl_settings_dealerSale_text" text="Choose Animals For Sale"/>
+
 <text name="rl_settings_resetAIAnimals_label" text="Réinitialiser les animaux IA"/>
 <text name="rl_settings_resetAIAnimals_tooltip" text="Supprimer tous les animaux IA disponibles pour l'insémination artificielle et en générer de nouveaux aléatoirement"/>
 <text name="rl_settings_resetAIAnimals_text" text="Réinitialiser les animaux IA"/>

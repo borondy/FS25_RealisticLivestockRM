@@ -693,6 +693,10 @@
         <text name="rl_settings_resetAIAnimals_tooltip" text="Fjern alle AI-dyr tilgængelige til kunstig befrugtning og genopfyld med nye tilfældigt genererede dyr"/>
         <text name="rl_settings_resetDealer_label" text="Nulstil Dyrhandlen"/>
         <text name="rl_settings_resetDealer_text" text="Nulstil Dyrhandlen"/>
+
+        <text name="rl_settings_dealerSale_label" text="Choose Animals For Sale"/>
+        <text name="rl_settings_dealerSale_tooltip" text="Choose which animals and age groups the dealer offers for sale. Changing this restocks the dealer."/>
+        <text name="rl_settings_dealerSale_text" text="Choose Animals For Sale"/>
         <text name="rl_settings_resetDealer_tooltip" text="Fjern alle forhandlerens dyr og genopfyld lageret med nye dyr"/>
         <text name="rl_ui_genetics_highest" text="Højest"/>
         <text name="rl_ui_meat_github" text="Kødkvalitet"/>

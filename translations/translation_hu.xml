@@ -520,6 +520,10 @@
 		<text name="rl_settings_resetDealer_tooltip" text="A kereskedő összes állatának eltávolítása és a készlet feltöltése új állatokkal"/>
 		<text name="rl_settings_resetDealer_text" text="Állatkereskedő frissítése"/>
 
+		<text name="rl_settings_dealerSale_label" text="Choose Animals For Sale"/>
+		<text name="rl_settings_dealerSale_tooltip" text="Choose which animals and age groups the dealer offers for sale. Changing this restocks the dealer."/>
+		<text name="rl_settings_dealerSale_text" text="Choose Animals For Sale"/>
+
 		<text name="rl_settings_resetAIAnimals_label" text="Mesterséges apaállatok frissítése"/>
 		<text name="rl_settings_resetAIAnimals_tooltip" text="A mesterséges megtermékenyítéshez elérhető apaállatok törlése és új, véletlenszerűen generált állatokkal való pótlása"/>
 		<text name="rl_settings_resetAIAnimals_text" text="Mesterséges apaállatok frissítése"/>

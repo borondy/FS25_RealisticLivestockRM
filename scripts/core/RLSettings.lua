@@ -48,6 +48,116 @@ function RLSettings.onClickVisualAnimals()
 end
 
 
+--- Open the dealer sale-availability selector from the General-tab action row
+--- (mirrors the onClickVisualAnimals opener). The freshly enumerated catalog is
+--- passed twice - once as the dialog's data, once as the opaque callback target -
+--- so the Confirm handler reconciles against exactly the catalog the player saw,
+--- with no module-level state a second open could stomp.
+---
+--- A plain INSTANCE read is correct here, unlike the VisualAnimalsDialog rawget
+--- carve-out: RLDealerSaleSelectorDialog is a Class() of MessageDialog, whose base
+--- carries no INSTANCE to inherit, so a nil read genuinely means the eager
+--- registration failed rather than falling through to a wrong dialog.
+function RLSettings.onClickDealerSale()
+
+	if RLDealerSaleSelectorDialog.INSTANCE == nil then
+		Log:error("RLSettings.onClickDealerSale: RLDealerSaleSelectorDialog.INSTANCE is nil (eager registration failed?); cannot open dialog")
+		return
+	end
+
+	local catalog = RLDealerSaleCatalog.enumerate()
+
+	Log:debug("RLSettings.onClickDealerSale: opening selector over %d catalog entr(ies)", #catalog)
+	RLDealerSaleSelectorDialog.show(RLSettings.onDealerSaleConfirmed, catalog, catalog)
+
+end
+
+
+--- Confirm handler for the dealer sale-availability selector: reconcile the
+--- committed set into the override registry, then regenerate the dealer stock.
+---
+--- `result` is nil on Back/cancel. Otherwise the pure diff turns it into the
+--- minimal set/clear ops against each stage's shipped default, so a stage toggled
+--- back to its default is UNMANAGED (override cleared) rather than pinned, and
+--- keeps tracking future default changes. Every emitted op is a real effective
+--- change, so the dealer re-roll is gated on at least one op actually landing -
+--- an unchanged Confirm costs the player nothing.
+---
+--- Server-authoritative interim: both the registry write and the re-roll are
+--- server state and no client request path exists yet, so a non-server peer warns
+--- and returns rather than triggering a misleading server-wide regeneration.
+---@param catalog table the catalog the dialog was opened over (round-tripped as the callback target)
+---@param result table|nil checked in-scope rows { { subTypeName=, minAge= }, ... }, or nil on cancel
+function RLSettings.onDealerSaleConfirmed(catalog, result)
+
+	if result == nil then
+		Log:debug("RLSettings.onDealerSaleConfirmed: cancelled; no change")
+		return
+	end
+
+	if g_currentMission == nil or not g_currentMission:getIsServer() then
+		Log:warning("RLSettings.onDealerSaleConfirmed: dealer sale-availability editing is server-only until the multiplayer sync lands; ignoring %d committed row(s)", #result)
+		return
+	end
+
+	if g_rlDealerSaleRegistry == nil then
+		Log:warning("RLSettings.onDealerSaleConfirmed: g_rlDealerSaleRegistry is nil; ignoring the committed set")
+		return
+	end
+
+	local baseline = RLDealerSaleApply.sessionBaseline
+	if type(baseline) ~= "table" then baseline = {} end
+
+	local ops = RLDealerSaleReconcile.diff(result, catalog, baseline)
+	local applied = 0
+
+	for _, op in ipairs(ops) do
+
+		if op.action == "clear" then
+
+			-- Count the removal, not the call: clear returns false for an absent or invalid key,
+			-- and a clear that removed nothing changed nothing - counting it would re-roll the
+			-- whole dealer for no effective change. Symmetric with the set branch below.
+			if g_rlDealerSaleRegistry:clear(op.subTypeName, op.minAge) then
+				applied = applied + 1
+				Log:trace("RLSettings.onDealerSaleConfirmed: cleared override %s @%s (back to its shipped default)",
+					op.subTypeName, tostring(op.minAge))
+			else
+				Log:trace("RLSettings.onDealerSaleConfirmed: clear removed nothing for %s @%s; not counted as applied",
+					tostring(op.subTypeName), tostring(op.minAge))
+			end
+
+		elseif op.action == "set" then
+
+			if g_rlDealerSaleRegistry:set(op.subTypeName, op.minAge, op.canBeBought) then
+				applied = applied + 1
+				Log:trace("RLSettings.onDealerSaleConfirmed: set override %s @%s -> %s",
+					op.subTypeName, tostring(op.minAge), tostring(op.canBeBought))
+			else
+				Log:trace("RLSettings.onDealerSaleConfirmed: registry rejected set %s @%s; not counted as applied",
+					tostring(op.subTypeName), tostring(op.minAge))
+			end
+
+		else
+
+			Log:warning("RLSettings.onDealerSaleConfirmed: unknown reconcile action '%s' for %s @%s; skipped",
+				tostring(op.action), tostring(op.subTypeName), tostring(op.minAge))
+
+		end
+
+	end
+
+	if applied == 0 then
+		Log:debug("RLSettings.onDealerSaleConfirmed: no changes (%d op(s) emitted, none applied); dealer left as-is", #ops)
+		return
+	end
+
+	Log:debug("RLSettings.onDealerSaleConfirmed: %d change(s) applied; folding onto the live flags and regenerating the dealer", applied)
+	RLDealerSaleApply.applyAndRepopulate()
+
+end
+
+
 function RLSettings.onClickExportCSV()
 
 	local file = io.open(modSettingsDirectory .. "animals.csv", "w")
@@ -134,11 +244,15 @@ function RLSettings.onFileExplorerCallback(path)
 end
 
 
--- Render order is set by setting.index; the RL Tabbed Menu Settings ->
--- General subtab walks this table in index order. Sections (1..19):
+-- Render order comes from the authored row order in gui/rlmenu/settingsFrame.xml,
+-- NOT from this table: populateGeneralSubtab walks SETTINGS with pairs() and binds
+-- each row by its rlmenuSetting_<name> element id. setting.index is consumed by
+-- RLDebugUtils.dumpSettings, which prints state rows in index order (it skips
+-- ignore==true rows), so index must stay a faithful mirror of the XML order below.
+-- Keep the two in step when adding or moving a row. Sections (1..20):
 -- Mortality (1-2), Health & Disease (3-4), Husbandry & Economy (5-7),
 -- Custom Animals (8-9), Message Log (10-11), Display Preferences (12-15),
--- Tools & Admin (16-18), Visual Animals (19, client-local, no admin gate).
+-- Tools & Admin (16-19), Visual Animals (20, client-local, no admin gate).
 RLSettings.SETTINGS = {
 
 	["deathEnabled"] = {
@@ -326,8 +440,19 @@ RLSettings.SETTINGS = {
 		["callback"] = AnimalSystem.onClickResetDealer
 	},
 
-	["resetAIAnimals"] = {
+	-- Opens the sale-availability selector: which subTypes / age stages the animal
+	-- dealer offers. Server-authoritative (the Confirm handler writes the override
+	-- registry and regenerates the dealer), hence the admin gate.
+	["dealerSale"] = {
 		["index"] = 18,
+		["type"] = "Button",
+		["ignore"] = true,
+		["adminOnly"] = true,
+		["callback"] = RLSettings.onClickDealerSale
+	},
+
+	["resetAIAnimals"] = {
+		["index"] = 19,
 		["type"] = "Button",
 		["ignore"] = true,
 		["adminOnly"] = true,
@@ -340,7 +465,7 @@ RLSettings.SETTINGS = {
 	-- and out of rm_RlSettings.xml. The dialog persists the value per peer to
 	-- modSettings/Settings.xml.
 	["maxVisualAnimals"] = {
-		["index"] = 19,
+		["index"] = 20,
 		["type"] = "Button",
 		["ignore"] = true,
 		["callback"] = RLSettings.onClickVisualAnimals

@@ -520,6 +520,10 @@
 		<text name="rl_settings_resetDealer_tooltip" text="Satıcının tüm hayvanlarını çıkarın ve stoğu yeni hayvanlarla doldurun"/>
 		<text name="rl_settings_resetDealer_text" text="Hayvan Bayisini Sıfırla"/>
 
+		<text name="rl_settings_dealerSale_label" text="Choose Animals For Sale"/>
+		<text name="rl_settings_dealerSale_tooltip" text="Choose which animals and age groups the dealer offers for sale. Changing this restocks the dealer."/>
+		<text name="rl_settings_dealerSale_text" text="Choose Animals For Sale"/>
+
         <text name="rl_settings_resetAIAnimals_label" text="Yapay Zeka Hayvanlarını Sıfırla"/>
         <text name="rl_settings_resetAIAnimals_tooltip" text="Suni tohumlama için mevcut tüm AI (yapay zeka) hayvanlarını kaldırın ve rastgele oluşturulmuş yeni hayvanlarla yenileyin"/>
         <text name="rl_settings_resetAIAnimals_text" text="Yapay Zeka Hayvanlarını Sıfırla"/>

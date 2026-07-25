@@ -677,6 +677,10 @@
         <text name="rl_settings_resetAIAnimals_tooltip" text="Видалити всіх ШІ-тварин, доступних для штучного запліднення, та поповнити новими випадково згенерованими тваринами"/>
         <text name="rl_settings_resetDealer_label" text="Скинути торговця тваринами"/>
         <text name="rl_settings_resetDealer_text" text="Скинути торговця тваринами"/>
+
+        <text name="rl_settings_dealerSale_label" text="Choose Animals For Sale"/>
+        <text name="rl_settings_dealerSale_tooltip" text="Choose which animals and age groups the dealer offers for sale. Changing this restocks the dealer."/>
+        <text name="rl_settings_dealerSale_text" text="Choose Animals For Sale"/>
         <text name="rl_settings_resetDealer_tooltip" text="Видалити всіх тварин у торговця та поповнити запас новими тваринами"/>
         <text name="rl_ui_genetics_highest" text="Найвищий"/>
         <text name="rl_ui_meat_github" text="Якість м'яса"/>

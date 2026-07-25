@@ -695,6 +695,10 @@
         <text name="rl_settings_resetAIAnimals_tooltip" text="Удалить всех ИИ-животных, доступных для искусственного осеменения, и пополнить новыми случайно сгенерированными животными"/>
         <text name="rl_settings_resetDealer_label" text="Сбросить торговца животными"/>
         <text name="rl_settings_resetDealer_text" text="Сбросить торговца животными"/>
+
+        <text name="rl_settings_dealerSale_label" text="Choose Animals For Sale"/>
+        <text name="rl_settings_dealerSale_tooltip" text="Choose which animals and age groups the dealer offers for sale. Changing this restocks the dealer."/>
+        <text name="rl_settings_dealerSale_text" text="Choose Animals For Sale"/>
         <text name="rl_settings_resetDealer_tooltip" text="Удалить всех животных у торговца и пополнить запас новыми животными"/>
         <text name="rl_ui_genetics_highest" text="Высочайший"/>
         <text name="rl_ui_meat_github" text="Качество мяса"/>
