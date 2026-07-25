@@ -448,14 +448,16 @@ function RLSettings.loadFromXMLFile()
 end
 
 
---- Deferred filter-load entry point. Called from AnimalSystem:loadFromXMLFile
---- after the savegame's animal/aiAnimals data has loaded, which is the
---- earliest point at which the AnimalType registry is populated and
---- RLFilterSerialization.animalTypeNameToIndex can resolve filter scope
---- strings ("CHICKEN" / "COW" / ...) to indices. If we load filters at
---- RLSettings.initialize time (loadMapData), every filter falls through to
---- global scope and the cycle pulls every saved filter regardless of the
---- active animal type. Server-only - matches the saveToXMLFile gate.
+--- Deferred filter-load entry point. Called from AnimalSystem:loadFromXMLFile,
+--- ahead of the animal-data early-return, so it runs regardless of whether
+--- rm_RlAnimalSystem.xml exists. Filter scope resolution
+--- (RLFilterSerialization.animalTypeNameToIndex) needs the AnimalType registry
+--- to turn scope strings ("CHICKEN" / "COW" / ...) into indices; that registry
+--- is built at loadMapData, which completes before this hook runs. Do NOT move
+--- this to RLSettings.initialize (also loadMapData, but earlier than the
+--- registry build): loading filters before the registry exists drops every
+--- filter to global scope, so the cycle pulls every saved filter regardless of
+--- the active animal type. Server-only - matches the saveToXMLFile gate.
 function RLSettings.loadFiltersFromXMLFile()
 
 	if g_currentMission.missionInfo == nil or g_currentMission.missionInfo.savegameDirectory == nil then return end

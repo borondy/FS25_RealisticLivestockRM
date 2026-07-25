@@ -1025,6 +1025,19 @@ function AnimalSystem:loadFromXMLFile()
         rootKey = "animalSystem"
     end
 
+    -- RLRM settings registries own rm_RlSettings.xml and re-open it themselves.
+    -- They run (and reset) regardless of the animal-data file: deleting
+    -- rm_RlAnimalSystem.xml is a supported dealer-reroll workaround, and the
+    -- registries must still restore (filters/rules/dealer) and reset (the
+    -- or-persisted dealer registry) so nothing leaks or gets wiped. The
+    -- AnimalType/subTypes registry they resolve against is built at loadMapData,
+    -- not from the savegame parse below, so this position is timing-safe.
+    RLSettings.loadFiltersFromXMLFile()
+    RLSettings.loadRulesFromXMLFile()
+    RLSettings.loadDealerSaleFromXMLFile()
+    RLDealerSaleApply.resetBaseline()
+    RLDealerSaleApply.applyToLiveSubTypes()
+
     if xmlFile == nil then return false end
 
 
@@ -1122,35 +1135,6 @@ function AnimalSystem:loadFromXMLFile()
 
 
     xmlFile:delete()
-
-    -- Saveable filters live in rm_RlSettings.xml but their on-load
-    -- resolution of animalType=string -> index relies on the
-    -- AnimalType registry being populated, which only completes after
-    -- AnimalSystem savegame load. Calling RLSettings.loadFiltersFromXMLFile
-    -- from here guarantees the AnimalType lookups succeed; calling it
-    -- from RLSettings.loadFromXMLFile (which runs at loadMapData time)
-    -- silently dropped scope to global on every filter.
-    RLSettings.loadFiltersFromXMLFile()
-
-    -- Herdsman rules share rm_RlSettings.xml with the filters (their own
-    -- subtree). Loaded here for the same reason filters are: this is RLRM's
-    -- GUI-free, server-side, once-per-load savegame hook. Each registry owns its
-    -- own error boundary (separate re-open), so a corrupt filters subtree cannot
-    -- abort rule load, or vice versa.
-    RLSettings.loadRulesFromXMLFile()
-
-    -- Dealer sale-availability overrides share rm_RlSettings.xml with the filters
-    -- and rules (their own subtree). Loaded here for the same reason: RLRM's
-    -- GUI-free, server-side, once-per-load savegame hook, with its own re-open +
-    -- error boundary. Reconstructs the registry singleton before repopulating.
-    RLSettings.loadDealerSaleFromXMLFile()
-
-    -- Fold the freshly-loaded dealer overrides onto the live store flags: reset the
-    -- per-session baseline so it re-derives from the reloaded values, then apply.
-    -- Adjacent to the loaders above so all three move together when the shared
-    -- early-return above them is hoisted.
-    RLDealerSaleApply.resetBaseline()
-    RLDealerSaleApply.applyToLiveSubTypes()
 
     return hasData
 
