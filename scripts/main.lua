@@ -189,6 +189,11 @@ source(modDirectory .. "scripts/dealer/RLDealerSaleSerialization.lua")
 -- (Model A). References RLDealerSaleRegistry (above) at load; RL_ResetDealerEvent
 -- only at call time inside applyAndRepopulate, so its later source order is safe.
 source(modDirectory .. "scripts/dealer/RLDealerSaleApply.lua")
+-- Catalog: live per-open view-model (type/subType/age-stage + buyability) for the
+-- sale-availability selector. Pure build(types, deps) + in-game enumerate() shell;
+-- reads the live store.canBeBought (no mutation). Binds the RLAnimalUtil +
+-- RLFilterFieldDisplay label seams (both sourced earlier) only inside the shell.
+source(modDirectory .. "scripts/dealer/RLDealerSaleCatalog.lua")
 
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")
