@@ -35,6 +35,7 @@ Most settings are saved per-savegame and synced in multiplayer, and in multiplay
 |---------|---------|---------|-------------|
 | **Max Dealer Animals** | 50 | 20-200 (10 steps) | Maximum number of animals per species available in the animal dealer. Higher values give more choice when buying. |
 | **Reset Animal Dealer** | - | Button | Restocks the dealer with a fresh set of randomised animals. Use this if you want different genetics or breeds available. Admin only in multiplayer. |
+| **Choose Animals For Sale** | - | Button | Opens a checklist of every animal the dealer can offer, grouped into sections - one per breed *and sex*, so "Holstein" and "Holstein Bull" are separate sections. Each section lists one row per age group. A row is ticked when the dealer currently offers it. Untick one and the dealer stops stocking it; tick it back and it returns. Pressing **OK** after a change restocks the dealer for **every** animal type, exactly like Reset Animal Dealer; **Back** discards. Admin only in multiplayer. |
 | **Reset AI Animals** | - | Button | Refreshes the artificial insemination animal pool. Use this if the current AI pool has poor genetics. Admin only in multiplayer. |
 
 ---
@@ -101,6 +102,8 @@ Most settings are saved per-savegame and synced in multiplayer, and in multiplay
 | **Set Animals XML Path** | - | Button | Opens a file picker to select the path to your custom animals.xml. Only available when Custom Animals is enabled. |
 
 *Custom animals is for advanced users who want to tweak animal statistics. The default animals.xml is located in the mod's xml/ folder and can be used as a template.*
+
+*This is a different mechanism from **Choose Animals For Sale** (under Dealer & AI) and neither replaces the other: the selector hides breeds and age groups from what the dealer stocks, while Custom Animals swaps the entire animal definition file for one of your own.*
 
 ---
 

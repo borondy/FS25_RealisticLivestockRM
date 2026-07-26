@@ -77,7 +77,7 @@ Try new packs in a test save first, especially breed packs. If something goes wr
 - RLRM scans all enabled mods at game start, looking for packs
 - Packs are loaded in **alphabetical order** by mod name
 - If two packs change the same property on the same breed, the alphabetically later mod name wins (for example, `FS25_RLRM_B` loads after `FS25_RLRM_A`)
-- Packs can add new breeds and override existing properties, but **cannot remove** existing breeds from the game
+- Packs can add new breeds and override existing properties, but **cannot remove** existing breeds from the game. That is a limit on packs rather than on the player - the **Choose Animals For Sale** setting hides any breed or age group from the dealer, whether it came from a pack or the base game (admin only in multiplayer)
 
 ---
 
@@ -88,7 +88,7 @@ Check the game log for messages like:
 - `MapBridge: Animal pack 'Pack Name' v1.0 by Author DETECTED (FS25_ModName)` -- a DETECTED line naming the pack, its version, and author
 - `Animal pack 'Pack Name' activated` -- the pack loaded successfully
 
-If the pack adds new breeds, they should appear in the animal dealer. Balance changes (prices, food consumption, etc.) take effect immediately with no visual indication -- check the animal details screen to verify values match what you expect.
+If the pack adds new breeds, they should appear in the animal dealer - unless you have hidden them with the **Choose Animals For Sale** setting, which applies to pack breeds exactly as it does to built-in ones. Open that selector to check before assuming a pack failed to load. Balance changes (prices, food consumption, etc.) take effect immediately with no visual indication -- check the animal details screen to verify values match what you expect.
 
 ---
 
