@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.3.1.0-dev.1
+
+### Added
+- "Choose Animals For Sale" in RL Menu > Settings > General: pick which animals and age groups the animal dealer offers, and the dealer restocks to match. Admins can change it in multiplayer, and every player's dealer updates to match.
+
+### Fixed
+- Saved filters and herdsman rules being lost (and overwritten on the next save) when loading a save that has no Realistic Livestock animal data.
+
+### Documentation
+- User-guide coverage for choosing which animals the dealer offers.
+
 ## v1.3.0.1
 
 ### Changed

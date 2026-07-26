@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <!--
     RLDealerSaleSelectorDialog.xml
-    Dealer sale-availability selector (B2/RLRM-545): a sectioned, single-line checkbox list.
+    Dealer sale-availability selector (B2): a sectioned, single-line checkbox list.
     One SECTION header per subType; each ROW is one age stage: a small icon + age-range text
     ("N-M months") + checkbox (checked = currently buyable). OK returns the checked in-scope
     for-sale set; Back returns nil. Selection-out only - the dialog never mutates the

@@ -1,5 +1,5 @@
 -- RLDealerSaleSelectorDialog.lua
--- Dealer sale-availability selector (B2/RLRM-545): a sectioned icon + age-range checkbox
+-- Dealer sale-availability selector (B2): a sectioned icon + age-range checkbox
 -- list. One SECTION per catalog subType, one ROW per age stage (icon + age-range text +
 -- checkbox, checked = currently buyable). A plain SELECTION-OUT control:
 -- OK returns the checked in-scope for-sale set, Back returns nil. It never mutates the
@@ -120,7 +120,7 @@ end
 --- the RL_SELECT action event (only with rows to toggle - keyboard routing needs an explicit
 --- registerActionEvent in this dialog context), refresh the section-local select-all label,
 --- reload, then emit a PER-OPEN screen-space geometry log so the sectioned-list-in-a-modal
---- layout is provable from the log (the RLRM-545 S12 spike verification).
+--- layout is provable from the log (the S12 spike verification).
 function RLDealerSaleSelectorDialog:onOpen()
     RLDealerSaleSelectorDialog:superClass().onOpen(self)
 
