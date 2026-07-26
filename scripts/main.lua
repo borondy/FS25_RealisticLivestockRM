@@ -180,7 +180,8 @@ source(modDirectory .. "scripts/herdsman/RLHerdsmanDayTick.lua")
 -- SECTION 11l: Dealer sale-availability - headless registry. Pure override map
 -- (canBeBought per subTypeName+minAge stage) + effective-state resolver; no game
 -- state at load. Sourced here so the global class table exists for the in-game
--- rlTest suite; persistence, apply, and MP wiring are separate downstream modules.
+-- rlTest suite; persistence, apply, the selector chain and the MP wire + events
+-- follow below in dependency order.
 source(modDirectory .. "scripts/dealer/RLDealerSaleRegistry.lua")
 -- Flat XML codec for the override map + the shared g_rlDealerSaleRegistry
 -- singleton bootstrap. Loads after the registry class it references.
@@ -202,6 +203,17 @@ source(modDirectory .. "scripts/dealer/RLDealerSaleSelectorModel.lua")
 -- set into registry set/clear ops against each stage's shipped default. Env-free
 -- data-in/data-out; reaches no sibling dealer module at load or call time.
 source(modDirectory .. "scripts/dealer/RLDealerSaleReconcile.lua")
+-- Wire codec: one four-field record shape (subTypeName / minAge / isSet / canBeBought)
+-- shared by both dealer sale MP events, carrying its own count-prefix framing so the
+-- two events cannot drift apart. Pure stream IO; no sibling dealer module at load time.
+source(modDirectory .. "scripts/dealer/RLDealerSaleWire.lua")
+-- MP events. Both reference the wire codec (above) at load; the State event reaches
+-- RLDealerSaleRegistry + RLDealerSaleApply (both above) and the Set event reaches
+-- RL_ResetDealerEvent (via applyAndRepopulate) only at CALL time, so its later source
+-- order is safe. The Set event's executeOnServer references the State event's
+-- broadcaster at call time, so State-before-Set is not required either.
+source(modDirectory .. "scripts/events/RLDealerSaleStateEvent.lua")
+source(modDirectory .. "scripts/events/RLDealerSaleSetEvent.lua")
 
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")

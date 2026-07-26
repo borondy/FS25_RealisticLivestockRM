@@ -397,6 +397,44 @@ function RealisticLivestock_FSBaseMission:sendInitialClientState(connection, _, 
         Log:warning("RealisticLivestock_FSBaseMission:sendInitialClientState: g_rlHerdsmanRuleService is nil; new client will have empty herdsman rule state")
     end
 
+    -- Push the authoritative dealer sale-availability override set to the new
+    -- client. Its own loader is server-only and its apply runs only under
+    -- getIsServer(), so a client never rebuilds this registry on its own - without
+    -- this push its live store.canBeBought flags stay at the shipped defaults.
+    -- Empty-set (count=0) still sends, giving a deterministic "clear-to-empty".
+    --
+    -- Routes through the static `RLDealerSaleStateEvent.sendEvent` dispatcher (not
+    -- `connection:sendEvent(...new(...))` directly) so the server + nil-connection
+    -- guards live on a single code path, matching the two blocks above.
+    --
+    -- Same ordering note as those blocks: the whole function is
+    -- `Utils.prependedFunction`-registered below, so it runs BEFORE the wrapped body.
+    -- That is fine today because the receiver's `run` touches only
+    -- `RLDealerSaleRegistry` / `RLDealerSaleApply` (both source-time modules) and
+    -- `g_currentMission.animalSystem.subTypes`. Note what does NOT establish that last
+    -- one: the AnimalSystemStateEvent pushed near the top of this function carries only
+    -- countries + animals + aiAnimals, never subTypes. `subTypes` is built by the
+    -- receiving peer's OWN map load (`loadMapData` -> `loadSubTypes`), which has
+    -- completed before this runs - a joining client finishes loading the map before
+    -- the server sends it any initial state, and the sim is paused for that handshake.
+    -- If a future phase makes the receiver depend on state that IS established by an
+    -- event in this function, switch to `Utils.appendedFunction`.
+    --
+    -- Note the resulting order: on JOIN the dealer flags arrive AFTER the stock,
+    -- the reverse of the change path, which broadcasts flags BEFORE re-rolling.
+    -- Harmless here - join stock was authored by the server from its own
+    -- already-applied flags, so it is already consistent; the change path is the
+    -- one that must not let a client render freshly generated stock against the
+    -- old flags.
+    if g_rlDealerSaleRegistry ~= nil then
+        local overrides = g_rlDealerSaleRegistry:enumerate()
+        RLDealerSaleStateEvent.sendEvent(overrides, connection)
+        Log:debug("RealisticLivestock_FSBaseMission:sendInitialClientState: sent RLDealerSaleStateEvent with %d dealer override(s) to new client",
+            #overrides)
+    else
+        Log:warning("RealisticLivestock_FSBaseMission:sendInitialClientState: g_rlDealerSaleRegistry is nil; new client will have empty dealer override state")
+    end
+
 end
 
 FSBaseMission.sendInitialClientState = Utils.prependedFunction(FSBaseMission.sendInitialClientState, RealisticLivestock_FSBaseMission.sendInitialClientState)

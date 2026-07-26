@@ -16,9 +16,11 @@
 --
 -- Key contract: (subTypeName, minAge) uniquely identifies one override.
 -- `subTypeName` is a non-empty string used VERBATIM (no case/whitespace
--- normalization) - callers pass the canonical `subType.name`. `minAge` is a
--- finite integer >= 0. Both are validated identically on set/get/clear, so an
--- invalid key never reaches key-encoding.
+-- normalization) - callers pass the canonical `subType.name`. `minAge` is an
+-- integer in [0, MAX_MIN_AGE]. Both are validated identically on set/get/clear,
+-- so an invalid key never reaches key-encoding. The upper bound is the MP wire's
+-- transportable ceiling, published here as MAX_MIN_AGE so storage and transport
+-- cannot disagree about which keys exist.
 --
 -- Data in / data out only: this layer stores and resolves overrides. It does
 -- NOT persist them, apply them to any live store, validate whether a subtype is
@@ -40,11 +42,23 @@ local RLDealerSaleRegistry_mt = { __index = RLDealerSaleRegistry }
 --- "-0"; `%d` renders those distinctly and `-0.0` as "0".
 local KEY_SEPARATOR = "@"
 
---- True when `minAge` is a finite integer >= 0. Rejects NaN (`v ~= v`), +/-inf
---- (explicit: `math.floor(inf) == inf` passes the integer check and `inf >= 0`
---- is true, so the range/integer checks alone would let it through), negatives,
---- and fractionals. A NaN key would additionally break `enumerate`'s
---- `table.sort`, so it is refused at the boundary.
+--- Widest `minAge` this registry will store. It is the MP wire's UInt16 ceiling,
+--- and it lives here rather than in the codec so that storage and transport share
+--- ONE domain: a key the registry accepts but the wire cannot carry would be held
+--- and applied on the server while every client snapshot silently dropped it,
+--- diverging the two permanently with only a server-side warning. The codec reads
+--- this constant, so the bound cannot drift between the two layers.
+---
+--- Well above any real animal stage (the dealer's own ceiling is `maxBuyAge or 60`),
+--- so this refuses only values that were never valid stage keys to begin with.
+RLDealerSaleRegistry.MAX_MIN_AGE = 65535
+
+--- True when `minAge` is an integer in [0, MAX_MIN_AGE]. Rejects NaN (`v ~= v`),
+--- +/-inf (explicit: `math.floor(inf) == inf` passes the integer check and
+--- `inf >= 0` is true, so the range/integer checks alone would let it through),
+--- negatives, fractionals, and anything past the transportable ceiling. A NaN key
+--- would additionally break `enumerate`'s `table.sort`, so it is refused at the
+--- boundary.
 ---@param minAge any
 ---@return boolean
 local function isValidMinAge(minAge)
@@ -53,6 +67,7 @@ local function isValidMinAge(minAge)
         and minAge ~= math.huge
         and minAge ~= -math.huge
         and minAge >= 0
+        and minAge <= RLDealerSaleRegistry.MAX_MIN_AGE
         and math.floor(minAge) == minAge
 end
 

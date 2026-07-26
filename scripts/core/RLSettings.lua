@@ -74,29 +74,24 @@ end
 
 
 --- Confirm handler for the dealer sale-availability selector: reconcile the
---- committed set into the override registry, then regenerate the dealer stock.
+--- committed set into a minimal op list and hand it to the server.
 ---
 --- `result` is nil on Back/cancel. Otherwise the pure diff turns it into the
 --- minimal set/clear ops against each stage's shipped default, so a stage toggled
 --- back to its default is UNMANAGED (override cleared) rather than pinned, and
---- keeps tracking future default changes. Every emitted op is a real effective
---- change, so the dealer re-roll is gated on at least one op actually landing -
---- an unchanged Confirm costs the player nothing.
+--- keeps tracking future default changes. Only CHANGED rows produce an op, so an
+--- unchanged Confirm dispatches nothing and costs the player nothing.
 ---
---- Server-authoritative interim: both the registry write and the re-roll are
---- server state and no client request path exists yet, so a non-server peer warns
---- and returns rather than triggering a misleading server-wide regeneration.
+--- Dispatch only: the ops travel to the server through `RLDealerSaleSetEvent`,
+--- which owns the registry write, the state broadcast and the dealer re-roll. This
+--- shell mutates nothing on any peer, so singleplayer, host and pure client all
+--- funnel through one server entry point.
 ---@param catalog table the catalog the dialog was opened over (round-tripped as the callback target)
 ---@param result table|nil checked in-scope rows { { subTypeName=, minAge= }, ... }, or nil on cancel
 function RLSettings.onDealerSaleConfirmed(catalog, result)
 
 	if result == nil then
 		Log:debug("RLSettings.onDealerSaleConfirmed: cancelled; no change")
-		return
-	end
-
-	if g_currentMission == nil or not g_currentMission:getIsServer() then
-		Log:warning("RLSettings.onDealerSaleConfirmed: dealer sale-availability editing is server-only until the multiplayer sync lands; ignoring %d committed row(s)", #result)
 		return
 	end
 
@@ -109,51 +104,14 @@ function RLSettings.onDealerSaleConfirmed(catalog, result)
 	if type(baseline) ~= "table" then baseline = {} end
 
 	local ops = RLDealerSaleReconcile.diff(result, catalog, baseline)
-	local applied = 0
 
-	for _, op in ipairs(ops) do
-
-		if op.action == "clear" then
-
-			-- Count the removal, not the call: clear returns false for an absent or invalid key,
-			-- and a clear that removed nothing changed nothing - counting it would re-roll the
-			-- whole dealer for no effective change. Symmetric with the set branch below.
-			if g_rlDealerSaleRegistry:clear(op.subTypeName, op.minAge) then
-				applied = applied + 1
-				Log:trace("RLSettings.onDealerSaleConfirmed: cleared override %s @%s (back to its shipped default)",
-					op.subTypeName, tostring(op.minAge))
-			else
-				Log:trace("RLSettings.onDealerSaleConfirmed: clear removed nothing for %s @%s; not counted as applied",
-					tostring(op.subTypeName), tostring(op.minAge))
-			end
-
-		elseif op.action == "set" then
-
-			if g_rlDealerSaleRegistry:set(op.subTypeName, op.minAge, op.canBeBought) then
-				applied = applied + 1
-				Log:trace("RLSettings.onDealerSaleConfirmed: set override %s @%s -> %s",
-					op.subTypeName, tostring(op.minAge), tostring(op.canBeBought))
-			else
-				Log:trace("RLSettings.onDealerSaleConfirmed: registry rejected set %s @%s; not counted as applied",
-					tostring(op.subTypeName), tostring(op.minAge))
-			end
-
-		else
-
-			Log:warning("RLSettings.onDealerSaleConfirmed: unknown reconcile action '%s' for %s @%s; skipped",
-				tostring(op.action), tostring(op.subTypeName), tostring(op.minAge))
-
-		end
-
-	end
-
-	if applied == 0 then
-		Log:debug("RLSettings.onDealerSaleConfirmed: no changes (%d op(s) emitted, none applied); dealer left as-is", #ops)
+	if #ops == 0 then
+		Log:debug("RLSettings.onDealerSaleConfirmed: no changes; nothing dispatched and the dealer is left as-is")
 		return
 	end
 
-	Log:debug("RLSettings.onDealerSaleConfirmed: %d change(s) applied; folding onto the live flags and regenerating the dealer", applied)
-	RLDealerSaleApply.applyAndRepopulate()
+	Log:debug("RLSettings.onDealerSaleConfirmed: dispatching %d reconcile op(s) to the server", #ops)
+	RLDealerSaleSetEvent.sendEvent(ops)
 
 end
 
