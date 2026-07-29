@@ -42,7 +42,6 @@ AnimalSystem.BREED_TO_NAME = {
     ["ANGUS"] = "Angus",
     ["LIMOUSIN"] = "Limousin",
     ["HEREFORD"] = "Hereford",
-    ["HIGHLAND"] = "Highland",
     ["WATER_BUFFALO"] = "Water Buffalo",
     ["LANDRACE"] = "Landrace",
     ["BLACK_PIED"] = "Black Pied",
