@@ -1,7 +1,7 @@
 --[[
     RLTrailerWorldService.lua
     The WORLD trailer-placement mechanics for the RL Tabbed Menu Transfer frame
-    (Phase 8 M4). When a livestock/horse trailer is triggered standalone (no pen,
+    When a livestock/horse trailer is triggered standalone (no pen,
     no dealer), the Transfer frame's "other side" is the free rideables in the
     trailer's trigger zone. This service owns the parity-critical world mechanics
     behind the RLTransferWorldAdapter seam:

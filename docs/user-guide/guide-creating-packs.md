@@ -166,6 +166,7 @@ Override specific properties on existing breeds. Only the properties you specify
 | Milk output | `<output><milk fillType="MILK">` | AnimCurve (with fill type) |
 | Pallet output | `<output><pallets fillType="...">` | AnimCurve (with fill type) |
 | Visual stages | `<visuals><visual>` | Override or insert by `minAge` match (see [Visual Overrides](#visual-overrides)) |
+| Rideable vehicle | `<rideable filename="..."/>` | Horse rideable vehicle XML, path relative to the pack root |
 
 #### Overridable type-level properties
 
@@ -265,7 +266,7 @@ To add a new breed, define a full subtype within the appropriate animal type. Ne
 </animals>
 ```
 
-New subtypes are loaded through the game engine's own `loadSubTypes` function -- the same one the base game uses. This means subtypes added by packs behave identically to built-in breeds.
+New subtypes are loaded through the same `loadSubTypes` path RLRM's own breeds use, so pack subtypes behave identically to built-in breeds.
 
 ### Visual Overrides
 
@@ -285,6 +286,10 @@ Visual stages define how an animal looks at different ages (calf, juvenile, adul
 
 Overridable visual properties: `visualAnimalIndex`, `image`, `canBeBought`, `description`.
 
+> **`description` format asymmetry.** In an override or insert block, `description` is read as a single **attribute** (`description="$l10n_..."`), not as the `<description>` **child** elements used when defining a brand-new subtype. If you copy the child-element form into an override block, the descriptions are silently ignored.
+
+> **`canBeBought` is a shipped default, not the final word.** The RL Menu's Settings tab has a **Choose Animals For Sale** button that lists every breed and age stage and writes the same `canBeBought` flag at runtime. A player's selection takes precedence over what your pack shipped and is saved with their game, so ship the default you think is right but do not rely on it staying that way. Clearing a selection back to your shipped value stops overriding it, so a later pack update is picked up again.
+
 #### Texture Filtering
 
 When multiple breeds share the same 3D model but use different texture rows from a texture atlas, use `textureIndexes` to restrict which variations a breed displays:
@@ -299,6 +304,8 @@ When multiple breeds share the same 3D model but use different texture rows from
 ```
 
 This tells the engine to only use texture variations 3 and 4 from the model's variation list for this breed, rather than randomly picking from all available textures. This is essential when multiple breeds share one model config but need distinct appearances.
+
+> **Caveat:** `textureIndexes` applies when defining a new subtype and when overriding an **existing** visual stage, but it is **ignored when an override inserts a new stage** (a new `minAge`) on an existing breed. Insert the stage first, then override it if you need texture filtering on it.
 
 ### Config Overrides
 
@@ -391,7 +398,7 @@ translations/
 └── ...
 ```
 
-RLRM tries the player's game language first, then falls back to English.
+RLRM tries the player's game language first, then falls back to English, then to German. Only the first matching file loads - there is no per-key merging across languages, so each translation file must be complete on its own.
 
 ### File format
 
@@ -504,8 +511,8 @@ Mention the RLRM dependency in the description so players know the pack requires
 
 ## Limitations
 
-- **Cannot remove breeds.** Packs can add new breeds and override properties on existing ones, but cannot remove a breed that RLRM or another pack defines.
+- **Cannot remove breeds.** Packs can add new breeds and override properties on existing ones, but cannot remove a breed that RLRM or another pack defines. This is a limit on what a *pack* can do, not on the player: the **Choose Animals For Sale** setting lets them hide any breed or age stage from the dealer, which stops it being stocked without removing its definition.
 - **Cannot add new animal types.** Packs can only add subtypes within existing types (COW, PIG, SHEEP, HORSE, CHICKEN, and any types added by the map). Creating an entirely new animal type requires map-level support.
 - **Cannot modify diseases.** The disease system is not exposed to packs.
-- **One config override per animal type.** If two packs both override the model config for the same animal type, only the last one loaded takes effect and the other pack's visuals will break. See [Config Overrides](#config-overrides).
+- **One config override per animal type.** If two packs both override the model config for the same animal type, only the last one loaded takes effect and the other pack's visuals will break. RLRM detects this collision and warns the player - a startup dialog plus a log warning naming the packs involved. See [Config Overrides](#config-overrides).
 - **No explicit priority system.** Load order is strictly alphabetical by mod name. There's no way to declare "load after pack X" -- use naming conventions to manage order.

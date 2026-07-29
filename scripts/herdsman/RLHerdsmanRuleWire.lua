@@ -1,5 +1,5 @@
 -- RLHerdsmanRuleWire.lua
--- Byte-level wire codec shared by the Herdsman rule MP events (M-Service S3).
+-- Byte-level wire codec shared by the Herdsman rule MP events.
 --
 -- Stream layout (writeRule):
 --   streamWriteString  rule.id
@@ -112,7 +112,11 @@ local PARAMS_WIRE_CODECS = {
             local hasDest = p.destinationHusbandry ~= nil
             streamWriteBool(streamId, hasDest)
             if hasDest then
-                local placeable = RLHusbandryTargetKey.resolve(p.destinationHusbandry)
+                -- Move-DESTINATION site: resolve via the EPP-admitting opt-in (resolveDestination),
+                -- NOT the husbandry-only `resolve` the targets leg uses. A butcher (EPP)
+                -- dest must resolve on a pure client too, or a client editing the rule would fail-close
+                -- the record; the targets read/write legs keep `resolve`/`keyFor` unchanged.
+                local placeable = RLHusbandryTargetKey.resolveDestination(p.destinationHusbandry)
                 if placeable ~= nil then
                     NetworkUtil.writeNodeObject(streamId, placeable)
                     Log:trace("RLHerdsmanRuleWire move.write: maxAnimals=%s dest key '%s' -> node-object",
@@ -122,7 +126,7 @@ local PARAMS_WIRE_CODECS = {
                     -- node-id (id 0). A single-record event cannot skip mid-stream without desync,
                     -- so the receiver reads getObject(0)==nil and drops the whole record.
                     NetworkUtil.writeNodeObjectId(streamId, 0)
-                    Log:warning("RLHerdsmanRuleWire move.write: dest key '%s' does not resolve to a live husbandry placeable; writing a null node-id (receiver fail-closes the record)",
+                    Log:warning("RLHerdsmanRuleWire move.write: dest key '%s' does not resolve to a live placeable; writing a null node-id (receiver fail-closes the record)",
                         tostring(p.destinationHusbandry))
                 end
             end

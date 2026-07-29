@@ -2,8 +2,8 @@
 -- Canonical 0-99 genetics scale for the RLRM mod.
 --
 -- Extracted from AnimalScreenBase.lua for reuse outside of shop UI.
--- Consumers: AnimalScreenBase (name tag), RLGeneticsFormatter (Info frame),
--- RLFilterFieldCatalog (Phase 0 saveable filters).
+-- Consumers: RLAnimalDisplayHelper (name tag), RLGeneticsFormatter (Info frame),
+-- RLFilterFieldCatalog (saveable filters).
 --
 -- Do NOT duplicate this math - always call RLScaleHelper.scaleToNinetyNine.
 

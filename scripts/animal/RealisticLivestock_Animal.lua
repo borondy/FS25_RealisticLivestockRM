@@ -1172,12 +1172,30 @@ function Animal:updateWeight(foodFactor)
         self.health - (((minWeightForAge - self.weight) / minWeightForAge) * 0.2), 0, 100) end
 end
 
-function Animal:onPeriodChanged()
+--- Advance post-birth recovery by one period: bump monthsSinceLastBirth and,
+--- once it reaches the lactation cutoff, stop lactating. Pure and deterministic
+--- -- reads/writes only these two fields, touches no game state and sets no
+--- dirty flag -- so MP clients can run it locally in lockstep with the server,
+--- the same property that lets aging run client-side. The isLactating flip is
+--- one-directional at >= 10; re-enabling lactation is AnimalBirthEvent's job.
+--- @see RealisticLivestock_PlaceableHusbandryAnimals.onPeriodChanged (client branch)
+function Animal:advanceRecoveryPeriod()
+    -- A legacy/corrupt savegame may carry a nil counter (Animal.new coerces it to
+    -- 0); guard so the +1 cannot throw on a peer that bypassed those defaults.
+    if self.monthsSinceLastBirth == nil then self.monthsSinceLastBirth = 0 end
+
     self.monthsSinceLastBirth = self.monthsSinceLastBirth + 1
 
     if self.isLactating and self.monthsSinceLastBirth >= 10 then
         self.isLactating = false
     end
+
+    Log:trace("advanceRecoveryPeriod: uniqueId=%s monthsSinceLastBirth=%d isLactating=%s",
+        tostring(self.uniqueId), self.monthsSinceLastBirth, tostring(self.isLactating))
+end
+
+function Animal:onPeriodChanged()
+    self:advanceRecoveryPeriod()
 
     local totalTreatmentCost = 0
 
@@ -1324,7 +1342,7 @@ function Animal:getNumberOfImpregnatableFemalesForMale()
     local subType = self:getSubType()
     local animalType = self.animalTypeIndex
 
-    if (subType.reproductionMinAgeMonth ~= nil and subType.reproductionMinAgeMonth > self.age) or ((animalType == AnimalType.COW and self.age >= 132) or (animalType == AnimalType.SHEEP and self.age >= 72) or (animalType == AnimalType.HORSE and self.age >= 300) or (animalType == AnimalType.PIG and self.age >= 48)) then return 0 end
+    if (subType.reproductionMinAgeMonth ~= nil and subType.reproductionMinAgeMonth > self.age) or ((animalType == AnimalType.COW and self.age >= 132) or (animalType == AnimalType.SHEEP and self.age >= 72) or (animalType == AnimalType.HORSE and self.age >= 300) or (animalType == AnimalType.CHICKEN and self.age >= 72) or (animalType == AnimalType.PIG and self.age >= 48)) then return 0 end
 
     local i = 0
     local id = self:getIdentifiers()
@@ -1460,10 +1478,19 @@ function Animal:updateOutput(temp)
             litersPerDay = litersPerDay * productivity
         end
 
-        if fillType == "milk" then
+        -- Milk diagnostics: capture the milk gate breakdown here, but defer the
+        -- logging until AFTER the disease modifier below - a sick cow is zeroed by
+        -- disease:modifyOutput, not by the lactation gate, and the two are
+        -- indistinguishable from the husbandry side (both read 0). Carrying these in
+        -- loop-body locals lets the post-disease log split "gate failure" from "disease".
+        local isMilk = fillType == "milk"
+        local milkCurve, milkFactor, milkProductivity, milkPreDisease
+
+        if isMilk then
             local monthsSinceLastBirth = self.monthsSinceLastBirth or 12
             local factor = 0.8
             local productivity = self.genetics.productivity or 1
+            local curveLitersPerDay = litersPerDay
 
             if monthsSinceLastBirth >= 10 or not self.isLactating or not self.isParent then
                 factor = 0
@@ -1474,8 +1501,39 @@ function Animal:updateOutput(temp)
             end
 
             litersPerDay = litersPerDay * factor * productivity
+
+            milkCurve, milkFactor, milkProductivity, milkPreDisease = curveLitersPerDay, factor, productivity, litersPerDay
         end
+
         for _, disease in pairs(self.diseases) do litersPerDay = disease:modifyOutput(fillType, litersPerDay) end
+
+        if isMilk then
+            -- litersPerDay is now the FINAL value (post lactation gate AND disease).
+            -- TRACE the full breakdown for every cow every recompute; there is no
+            -- debugger, so this is the only way to see why a lactating cow yields no milk.
+            Log:trace("updateOutput[milk]: animal=%s/%s subType=%s age=%d curve(l/day)=%.3f isLactating=%s isParent=%s months=%s factor=%.3f productivity=%.3f diseases=%d -> preDisease l/h=%.4f final l/h=%.4f",
+                tostring(self.farmId), tostring(self.uniqueId), tostring(subType.name), self.age or -1,
+                milkCurve, tostring(self.isLactating), tostring(self.isParent),
+                tostring(self.monthsSinceLastBirth), milkFactor, milkProductivity, #self.diseases,
+                milkPreDisease / 24, litersPerDay / 24)
+
+            -- Smoking-gun DEBUG: client shows "lactating" but the FINAL server output is 0.
+            -- reason= attributes it - "disease" (gate produced milk, a disease zeroed it)
+            -- vs a specific gate term. Surfaces at the default dev level.
+            if self.isLactating and litersPerDay <= 0 then
+                local reason = (milkPreDisease > 0 and "disease")
+                    or (milkCurve <= 0 and "curve=0(age?)")
+                    or (not self.isParent and "notParent")
+                    or ((self.monthsSinceLastBirth or 12) >= 10 and "months>=10")
+                    or (milkProductivity <= 0 and "productivity=0")
+                    or (milkFactor <= 0 and "factor=0")
+                    or "unknown"
+                Log:debug("updateOutput[milk]: animal=%s/%s is LACTATING but produces 0 milk (age=%d curve=%.3f isParent=%s months=%s productivity=%.3f diseases=%d preDisease l/h=%.4f) reason=%s",
+                    tostring(self.farmId), tostring(self.uniqueId), self.age or -1, milkCurve,
+                    tostring(self.isParent), tostring(self.monthsSinceLastBirth), milkProductivity,
+                    #self.diseases, milkPreDisease / 24, reason)
+            end
+        end
 
         self.output[fillType] = litersPerDay / 24
     end

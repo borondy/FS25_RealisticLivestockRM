@@ -393,11 +393,19 @@ function RLFilterConditionDialog:refreshCmpPicker()
     if self.cmpPicker == nil then return end
     local field = RLFilterFieldCatalog.get(self.workingField)
     self.cmpOptions = editableCmpsFor(field)
-    self.cmpPicker:setTexts(self.cmpOptions)
+    -- Parallel label array: the picker shows plain-English labels while
+    -- self.cmpOptions stays the raw symbols. onCmpChanged / indexOfCmpOption
+    -- key on the symbol, so feeding labels into cmpOptions would corrupt the
+    -- stored cmp on the next OK. Mirrors refreshFieldPicker's labels array.
+    local cmpLabels = {}
+    for i, cmp in ipairs(self.cmpOptions) do
+        cmpLabels[i] = RLFilterFieldDisplay.getCmpDisplayName(cmp)
+    end
+    self.cmpPicker:setTexts(cmpLabels)
     local idx = indexOfCmpOption(self, self.workingCmp) or 1
     self.cmpPicker:setState(idx, false)
-    Log:trace("RLFilterConditionDialog:refreshCmpPicker: %d cmps, selected=%d (%s)",
-        #self.cmpOptions, idx, tostring(self.workingCmp))
+    Log:trace("RLFilterConditionDialog:refreshCmpPicker: %d cmps, %d labels, selected=%d (%s)",
+        #self.cmpOptions, #cmpLabels, idx, tostring(self.workingCmp))
 end
 
 --- Hide every value widget. Helper for the widget swap in refreshValueWidget

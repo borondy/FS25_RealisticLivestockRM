@@ -48,7 +48,7 @@ Horse sell prices use a unique system heavily influenced by the animal's conditi
 | **Riding** | Very important | Ride your horses regularly for higher value |
 | **Fitness** | Important | Exercise improves value |
 | **Dirt** | Penalty | Dirty horses lose value |
-| Quality genetics | Multiplier | Better genetics → higher base value |
+| Quality genetics | Multiplier | Better genetics -> higher base value |
 | Weight | Multiplier | Over/underweight affects price |
 
 A well-maintained horse (healthy, ridden, fit, clean) with good genetics can sell for significantly more than typical price. A neglected horse can be worth very little.
@@ -84,7 +84,7 @@ All breeds and both genders consume the same amount.
 | Newborn | 13-88 |
 | 18+ mo (adult) | **100-700** |
 
-*Genetics cause large variation between individual animals. Most horses eat near the middle of these ranges. Horses do not have a lactation food bonus. The Food Scale setting also adjusts consumption.*
+*Genetics cause large variation between individual animals. Most horses eat near the middle of these ranges. Pregnant mares eat and drink somewhat more. The Food Scale setting also adjusts consumption.*
 
 ### Water & Straw (L/day)
 
@@ -100,7 +100,7 @@ All breeds and both genders consume the same amount.
 | Parameter | Value |
 |-----------|-------|
 | Mare breeding age | 22+ months |
-| Stallion breeding age | 36+ months |
+| Stallion breeding age | 24+ months |
 | Stallion max breeding age | 300 months (25 years) |
 | Mare fertility ends | 264 months (22 years) |
 | Gestation | 11 months (longest of all species) |
@@ -110,27 +110,21 @@ All breeds and both genders consume the same amount.
 
 ### Offspring per Birth
 
-Horses almost always produce a single foal. Multiple births are rare:
+Horses almost always produce a single foal. Twins are an occasional surprise and triplets are rare:
 
 | Outcome | Likelihood |
 |---------|------------|
-| 1 foal | Almost always |
-| Twins | Rare |
-| Triplets | Very rare |
+| 1 foal | Most likely |
+| Twins | Occasional |
+| Triplets | Rare |
+
+*Litter size does not depend on age - twins come from mares with high fertility genetics, not old age.*
 
 ### Fertility by Age
 
-Horses have a very long fertile period but fertility declines gradually:
+A mare stays fertile across her whole breeding life. With average genetics her chance of conceiving each cycle stays high from 22 months, then tapers off in her final years and reaches zero at 264 months (22 years). Only mares with poor fertility genetics start declining noticeably earlier.
 
-| Mare Age | Breeding Success |
-|----------|-----------------|
-| 22-48 mo | High |
-| 48-108 mo | Good |
-| 108-180 mo | Moderate, declining |
-| 180-264 mo | Low |
-| 264+ mo | Infertile |
-
-*With 11 months of gestation, a mare can produce roughly one foal per year during her prime.*
+*With 11 months of gestation plus recovery between pregnancies, a mare can produce roughly one foal every 14 months during her prime.*
 
 ---
 
@@ -155,7 +149,7 @@ Horses have a very long fertile period but fertility declines gradually:
 
 ## Tips
 
-1. **Ride and exercise your horses.** Health, riding, and fitness together are far more important to sell price than genetics. A well-maintained horse is worth far more than a neglected one.
+1. **Ride and exercise your horses.** The condition you control day to day - health, riding, fitness, and cleanliness - usually matters more to sell price than genetics, though genetics still multiply the final value. A well-maintained horse is worth far more than a neglected one.
 
 2. **Keep them clean.** Dirty horses lose noticeable value. Clean horses regularly.
 
@@ -163,4 +157,4 @@ Horses have a very long fertile period but fertility declines gradually:
 
 4. **Colour is cosmetic.** Don't pay extra for a specific colour - all 8 variants have identical stats. Pick whichever you like.
 
-5. **Stallions hold value longer.** Stallions can breed until 25 years and their sell price peaks later. They're worth keeping longer than mares.
+5. **Stallions hold value longer.** Stallions can breed until 25 years (mares stop at 22) and sell for more than mares at every age. They're worth keeping longer.

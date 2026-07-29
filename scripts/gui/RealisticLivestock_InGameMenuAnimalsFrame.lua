@@ -175,7 +175,7 @@ function RealisticLivestock_InGameMenuAnimalsFrame:displayCluster(superFunc, ani
             local name = animal:getName()
             name = name ~= "" and (" (" .. name .. ")") or ""
 
-            local displayName = RL_AnimalScreenBase.formatDisplayName(animal.uniqueId .. name, animal)
+            local displayName = RLAnimalDisplayHelper.formatDisplayName(animal.uniqueId .. name, animal)
             self.animalDetailTypeNameText:setText(displayName)
             self.animalDetailTypeImage:setImageFilename(visual.store.imageFilename)
 
@@ -213,7 +213,7 @@ function RealisticLivestock_InGameMenuAnimalsFrame:populateCellForItemInSection(
 
     if g_currentMission.animalSystem:getVisualByAge(subType, animal:getAge()) ~= nil then
         local baseName = animal.uniqueId .. (animal:getName() == "" and "" or (" (" .. animal:getName() .. ")"))
-        cell:getAttribute("name"):setText(RL_AnimalScreenBase.formatDisplayName(baseName, animal))
+        cell:getAttribute("name"):setText(RLAnimalDisplayHelper.formatDisplayName(baseName, animal))
         cell:getAttribute("count"):setVisible(false)
     end
 end
@@ -257,9 +257,16 @@ function RealisticLivestock_InGameMenuAnimalsFrame:onUpdateMenuButtons()
         inputAction = InputAction.RL_OPEN_ANIMAL_SCREEN,
         text = g_i18n:getText("rl_ui_openAnimalScreen"),
         callback = function()
-            AnimalScreen.show(selectedHusbandry, nil, false)
-            g_animalScreen.openedFromInGameMenu = true
-            g_animalScreen:onClickInfoMode()
+            -- Open the standalone RLMenu in MODE_FULL, anchored to this pen (page 4,
+            -- the own-pen landing). Call openFromBridge DIRECTLY (not via the
+            -- AnimalScreen.show parity seam) so this in-game-menu-originated open can
+            -- carry the one-shot fromInGameMenu flag: it makes Esc/Back return to the
+            -- in-game menu (Animals page) instead of closing to gameplay, restoring the
+            -- affordance the vanilla animal screen had. The flag is consumed on Back and
+            -- cleared on every other open path, so no other RLMenu open is affected.
+            Log:debug("AnimalsFrame: opening RLMenu from in-game menu (fromInGameMenu=true, husbandry=%s)",
+                tostring(selectedHusbandry))
+            RLMenu.openFromBridge(4, RLMenu.MODE_FULL, { husbandry = selectedHusbandry, fromInGameMenu = true })
         end
     })
 end

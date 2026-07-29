@@ -57,7 +57,7 @@ To maintain a top-tier herd:
 
 This is more work than the old model, but it's what real livestock farmers do - and it makes the breeding game genuinely interesting as a long-term strategy rather than a one-time setup.
 
-See the [Genetics Guide](guide-genetics.md#breeding--inheritance) for practical breeding strategies.
+See the [Genetics Guide](guide-genetics.md#breeding-inheritance) for practical breeding strategies.
 
 ### Further reading
 
@@ -174,9 +174,31 @@ Before the pack system existed, the only way to add breeds was by manually mergi
 
 If you previously used this method, consider migrating to an animal pack instead.
 
+Don't confuse this with **Choose Animals For Sale**, which is a separate mechanism and neither replaces the other. Custom Animals swaps the whole animal definition file; the selector only decides which of the breeds you already have get stocked by the dealer.
+
 ### A note on unauthorized breed packs
 
 Some breed packs floating around online are stolen copies of other mods with minor texture swaps. These are not supported and may cause conflicts. Stick to breed packs from known sources like the official [Farming Simulator mod hub](https://www.farming-simulator.com/mods.php?title=fs2025).
+
+---
+
+## How do I stop the dealer offering a breed or age group?
+
+**Short answer:** RL Menu -> **Settings** -> **Choose Animals For Sale**. Untick whatever you don't want, press **OK**, and the dealer restocks without it.
+
+The selector is grouped into sections - **one per breed and sex**, so "Holstein" and "Holstein Bull" are two separate sections. Each section lists one row per age group, labelled in months. Holstein cows, for example, show four: `0-5 months`, `6-11 months`, `12-17 months` and `18-72 months`. How many groups an animal has, and where they split, varies. A row is ticked when the dealer currently offers that group: on a clean install everything starts ticked, and once you start making changes the ticks reflect your own choices.
+
+Handy while you are in there: the **Select All / Select None** button applies to the section you are currently on, not the whole list, and you can toggle the highlighted row with **A**.
+
+A few things worth knowing:
+
+- **It only affects new dealer stock.** Animals you already own are untouched, keep producing, and keep breeding normally. Nothing is deleted, and artificial insemination is unaffected.
+- **OK restocks the WHOLE dealer.** Not just what you changed - every animal type is re-rolled, exactly as if you had pressed Reset Animal Dealer, so your pig, sheep, horse and chicken stock is replaced too. **Back** discards your changes. Pressing OK without having actually changed anything leaves the stock alone - as does re-making a change another admin already made.
+- **Tick it back to undo.** Setting a row back to the value it originally shipped with stops overriding it, so a later mod update to that default will be followed again.
+- **It is saved with your game**, and in multiplayer it is server-wide and admin-only - other players see the setting but cannot change it.
+- **Pack breeds work the same way.** Breeds added by an [animal pack](guide-animal-packs.md) appear in the selector alongside the built-in ones, and pack breeds may ship with some age groups already switched off. A row you unticked is remembered even if you remove the pack and add it back - as long as the pack still uses the same age groups. If a pack update shifts its age groups, the old entry is orphaned.
+
+Hiding every age group in a section removes that section's animals from the dealer. Remember the sex split: to drop a breed completely, untick every group in **both** of its sections. Hiding every buyable animal of a type leaves that type's dealer list empty - which is allowed, if that is what you want.
 
 ---
 

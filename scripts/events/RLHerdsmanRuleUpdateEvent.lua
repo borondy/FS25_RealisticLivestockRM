@@ -1,6 +1,6 @@
 --[[
     RLHerdsmanRuleUpdateEvent.lua
-    Network event for whole-object replacement of a Herdsman rule record (M-Service S4).
+    Network event for whole-object replacement of a Herdsman rule record.
 
     Pattern A (caller-mutates-first + rebroadcast-from-run with ignoreConnection=sender).
     The caller (RLHerdsmanRuleService:update) MUST mutate local state BEFORE calling

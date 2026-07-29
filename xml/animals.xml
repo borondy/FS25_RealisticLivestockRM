@@ -1874,7 +1874,7 @@
 					<description>$l10n_animal_descriptionSheepYoung</description>
 					<description>$l10n_rl_descriptionGoatReproduction</description>
 				</visual>
-				<visual minAge="12" visualAnimalIndex="15" image="$dataS/character/animals/domesticated/goat/store_goat.png" canBeBought="true">
+				<visual minAge="8" visualAnimalIndex="15" image="$dataS/character/animals/domesticated/goat/store_goat.png" canBeBought="true" monitor="0|0|0|0|0|0|0|0|0|1|0|1" earTagLeft="0|0|0|0|0|0|0|0|0|1|0|0" earTagRight="0|0|0|0|0|0|0|0|0|2|0|0">
 					<description>$l10n_animal_descriptionGoatProfit</description>
 					<description>$l10n_animal_descriptionGoatFeed</description>
 					<description>$l10n_animal_descriptionWater</description>
@@ -1882,7 +1882,7 @@
 					<description>$l10n_rl_descriptionGoatReproduction</description>
 				</visual>
 			</visuals>
-			<reproduction minAgeMonth="16" durationMonth="5" minHealthFactor="0.75"/>
+			<reproduction minAgeMonth="8" durationMonth="5" minHealthFactor="0.75"/>
 			<buyPrice>
 				<key ageMonth="0" value="200"/>
 				<key ageMonth="36" value="1500"/>
@@ -1938,7 +1938,7 @@
 					<description>$l10n_animal_descriptionRamYoung</description>
 					<description>$l10n_animal_descriptionRamReproduction</description>
 				</visual>
-				<visual minAge="12" visualAnimalIndex="15" image="$dataS/character/animals/domesticated/goat/store_goat.png" canBeBought="true">
+				<visual minAge="8" visualAnimalIndex="15" image="$dataS/character/animals/domesticated/goat/store_goat.png" canBeBought="true" monitor="0|0|0|0|0|0|0|0|0|1|0|1" earTagLeft="0|0|0|0|0|0|0|0|0|1|0|0" earTagRight="0|0|0|0|0|0|0|0|0|2|0|0">
 					<description>$l10n_animal_descriptionRamFeed</description>
 					<description>$l10n_animal_descriptionWater</description>
 					<description>$l10n_animal_descriptionMature</description>
@@ -2055,7 +2055,7 @@
 					<description>$l10n_animal_descriptionStallionReproduction</description>
 				</visual>
 			</visuals>
-			<reproduction minAgeMonth="36" supported="false"/>
+			<reproduction minAgeMonth="24" supported="false"/>
 			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
@@ -2149,7 +2149,7 @@
 					<description>$l10n_animal_descriptionStallionReproduction</description>
 				</visual>
 			</visuals>
-			<reproduction minAgeMonth="36" supported="false"/>
+			<reproduction minAgeMonth="24" supported="false"/>
 			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
@@ -2243,7 +2243,7 @@
 					<description>$l10n_animal_descriptionStallionReproduction</description>
 				</visual>
 			</visuals>
-			<reproduction minAgeMonth="36" supported="false"/>
+			<reproduction minAgeMonth="24" supported="false"/>
 			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
@@ -2337,7 +2337,7 @@
 					<description>$l10n_animal_descriptionStallionReproduction</description>
 				</visual>
 			</visuals>
-			<reproduction minAgeMonth="36" supported="false"/>
+			<reproduction minAgeMonth="24" supported="false"/>
 			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
@@ -2431,7 +2431,7 @@
 					<description>$l10n_animal_descriptionStallionReproduction</description>
 				</visual>
 			</visuals>
-			<reproduction minAgeMonth="36" supported="false"/>
+			<reproduction minAgeMonth="24" supported="false"/>
 			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
@@ -2525,7 +2525,7 @@
 					<description>$l10n_animal_descriptionStallionReproduction</description>
 				</visual>
 			</visuals>
-			<reproduction minAgeMonth="36" supported="false"/>
+			<reproduction minAgeMonth="24" supported="false"/>
 			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
@@ -2619,7 +2619,7 @@
 					<description>$l10n_animal_descriptionStallionReproduction</description>
 				</visual>
 			</visuals>
-			<reproduction minAgeMonth="36" supported="false"/>
+			<reproduction minAgeMonth="24" supported="false"/>
 			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
@@ -2713,7 +2713,7 @@
 					<description>$l10n_animal_descriptionStallionReproduction</description>
 				</visual>
 			</visuals>
-			<reproduction minAgeMonth="36" supported="false"/>
+			<reproduction minAgeMonth="24" supported="false"/>
 			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
@@ -2763,10 +2763,9 @@
 			<key ageMonth="12" value="560"/>
 			<key ageMonth="24" value="500"/>
 			<key ageMonth="36" value="420"/>
-			<key ageMonth="60" value="300"/>
-			<key ageMonth="84" value="160"/>
-			<key ageMonth="120" value="400"/>
-			<key ageMonth="120" value="0"/>
+			<key ageMonth="54" value="330"/>
+			<key ageMonth="60" value="100"/>
+			<key ageMonth="60" value="0"/>
 		</fertility>
 		<subType subType="CHICKEN" fillTypeName="CHICKEN" gender="female" minWeight="0.04" targetWeight="3.25" maxWeight="4.5" breed="CHICKEN">
 			<visuals>

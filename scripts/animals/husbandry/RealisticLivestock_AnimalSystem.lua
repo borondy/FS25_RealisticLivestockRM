@@ -498,8 +498,16 @@ function RealisticLivestock_AnimalSystem:loadSubTypes(_, animalType, xmlFile, ke
 
 		local rawName = xmlFile:getString(subTypeKey .. "#subType")
         local requiredDLC = xmlFile:getString(subTypeKey .. "#requiredDLC")
+        local dlcModName = requiredDLC ~= nil and (g_uniqueDlcNamePrefix .. requiredDLC) or nil
 
-        if requiredDLC == nil or g_modNameToDirectory[g_uniqueDlcNamePrefix .. requiredDLC] ~= nil then
+        -- Register a requiredDLC subtype only when its DLC is ACTIVE in the session
+        -- (g_modIsLoaded), not merely installed on disk (g_modNameToDirectory). Install
+        -- state is not synchronized across MP peers, so gating on it let a server register
+        -- a DLC subtype while its session had the DLC inactive; peers without the DLC then
+        -- mis-resolved the streamed subtype and corrupted animals on write-back.
+        -- Gating on the active set keeps the registry identical across peers; when the DLC
+        -- is inactive the subtype is skipped and its saved animals are dropped on load.
+        if requiredDLC == nil or g_modIsLoaded[dlcModName] ~= nil then
 
 		    if rawName == nil then
 			    Logging.xmlError(xmlFile, "Missing animal subtype. \'%s\'", subTypeKey)
@@ -557,6 +565,9 @@ function RealisticLivestock_AnimalSystem:loadSubTypes(_, animalType, xmlFile, ke
                     name, animalType.name)
 		    end
 
+        else
+            Log:debug("loadSubTypes: skipping subType '%s' - required DLC '%s' not active (installed=%s)",
+                tostring(rawName), tostring(requiredDLC), tostring(g_modNameToDirectory[dlcModName] ~= nil))
         end
 
 	end
@@ -1013,6 +1024,19 @@ function AnimalSystem:loadFromXMLFile()
         rootKey = "animalSystem"
     end
 
+    -- RLRM settings registries own rm_RlSettings.xml and re-open it themselves.
+    -- They run (and reset) regardless of the animal-data file: deleting
+    -- rm_RlAnimalSystem.xml is a supported dealer-reroll workaround, and the
+    -- registries must still restore (filters/rules/dealer) and reset (the
+    -- or-persisted dealer registry) so nothing leaks or gets wiped. The
+    -- AnimalType/subTypes registry they resolve against is built at loadMapData,
+    -- not from the savegame parse below, so this position is timing-safe.
+    RLSettings.loadFiltersFromXMLFile()
+    RLSettings.loadRulesFromXMLFile()
+    RLSettings.loadDealerSaleFromXMLFile()
+    RLDealerSaleApply.resetBaseline()
+    RLDealerSaleApply.applyToLiveSubTypes()
+
     if xmlFile == nil then return false end
 
 
@@ -1110,22 +1134,6 @@ function AnimalSystem:loadFromXMLFile()
 
 
     xmlFile:delete()
-
-    -- Saveable filters live in rm_RlSettings.xml but their on-load
-    -- resolution of animalType=string -> index relies on the
-    -- AnimalType registry being populated, which only completes after
-    -- AnimalSystem savegame load. Calling RLSettings.loadFiltersFromXMLFile
-    -- from here guarantees the AnimalType lookups succeed; calling it
-    -- from RLSettings.loadFromXMLFile (which runs at loadMapData time)
-    -- silently dropped scope to global on every filter.
-    RLSettings.loadFiltersFromXMLFile()
-
-    -- Herdsman rules share rm_RlSettings.xml with the filters (their own subtree,
-    -- M-Service S2). Loaded here for the same reason filters are: this is RLRM's
-    -- GUI-free, server-side, once-per-load savegame hook. Each registry owns its
-    -- own error boundary (separate re-open), so a corrupt filters subtree cannot
-    -- abort rule load, or vice versa.
-    RLSettings.loadRulesFromXMLFile()
 
     return hasData
 
@@ -1450,9 +1458,11 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
         if #attemptedCountryIndexes == #self.countries then return nil end
 
         local countryIndex
+        local wasMapPick = false
 
         if #attemptedCountryIndexes == 0 and math.random() >= 0.12 then
             countryIndex = RealisticLivestock.getMapCountryIndex()
+            wasMapPick = true
         else
             countryIndex = math.random(1, #self.countries)
             while table.find(attemptedCountryIndexes, countryIndex) ~= nil do
@@ -1473,7 +1483,12 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
 
         end
 
-        if #validFarms == 0 then continue end
+        if #validFarms == 0 then
+            if wasMapPick then
+                Log:debug("createNewSaleAnimal: map/override country %d has no valid farms for animalTypeIndex=%d; cycling random countries", countryIndex, animalTypeIndex)
+            end
+            continue
+        end
 
         local farmIndex = validFarms[math.random(1, #validFarms)]
         local farm = country.farms[farmIndex]
@@ -2109,6 +2124,11 @@ function AnimalSystem:getBreedsByAnimalTypeIndex(animalTypeIndex)
 end
 
 
+--- Build a new AI-stock sire of the given animal type.
+--- Male subtypes only; the source farm must carry the animal type and a farm
+--- quality of at least 1.35, so AI sires skew toward high-genetics origins.
+--- @param animalTypeIndex number Index into the animal-type registry
+--- @return table|nil animal Newly built AI animal, or nil if no male subtype or source farm resolves
 function AnimalSystem:createNewAIAnimal(animalTypeIndex)
 
      local animalType = self:getTypeByIndex(animalTypeIndex)
@@ -2141,9 +2161,11 @@ function AnimalSystem:createNewAIAnimal(animalTypeIndex)
         if #attemptedCountryIndexes == #self.countries then return nil end
 
         local countryIndex
+        local wasMapPick = false
 
         if #attemptedCountryIndexes == 0 and math.random() >= 0.12 then
             countryIndex = RealisticLivestock.getMapCountryIndex()
+            wasMapPick = true
         else
             countryIndex = math.random(1, #self.countries)
             while table.find(attemptedCountryIndexes, countryIndex) ~= nil do
@@ -2164,7 +2186,12 @@ function AnimalSystem:createNewAIAnimal(animalTypeIndex)
 
         end
 
-        if #validFarms == 0 then continue end
+        if #validFarms == 0 then
+            if wasMapPick then
+                Log:debug("createNewAIAnimal: map/override country %d has no valid farms for animalTypeIndex=%d; cycling random countries", countryIndex, animalTypeIndex)
+            end
+            continue
+        end
 
         local farmIndex = validFarms[math.random(1, #validFarms)]
         local farm = country.farms[farmIndex]

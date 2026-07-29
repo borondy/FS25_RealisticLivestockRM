@@ -71,16 +71,22 @@ function RLHusbandryTargetKey.keyFor(placeable)
     return key
 end
 
---- Resolve a stored target key back to its live husbandry placeable, branched on network authority.
---- Server/host/dedi look the uniqueId up in the placeable system; a pure client tonumber-guards the
---- net-id key, resolves it via the node-object registry, then confirms the resolved object is
---- actually a husbandry placeable (a reused/stale net-id could land on something else). A MALFORMED
---- key (non-numeric client key, or a resolved non-husbandry object) is a fail-CLOSED :warning + nil;
---- a key that simply resolves to nothing right now returns nil QUIETLY, so the caller chooses the
---- loudness (a display fallback stays quiet; a flush that drops a target shouts - see RLHerdsmanRuleWire).
+--- Resolve a stored target key back to its live placeable, branched on network authority. Server/
+--- host/dedi look the uniqueId up in the placeable system (no shape gate - a server target key is
+--- authored only from live picker candidates); a pure client tonumber-guards the net-id key,
+--- resolves it via the node-object registry, then confirms the resolved object has a SHAPE the
+--- caller admits (a reused/stale net-id could land on something else). The admitted shape is the
+--- ONLY husbandry-vs-EPP gate on the pure-client path: `allowEPP` false keeps it husbandry-only (the
+--- rule-TARGETS wire leg, where an EPP must never enter targetHusbandries); `allowEPP` true also
+--- admits an EPP-shaped placeable (`spec_extendedProductionPoint ~= nil`) for the move-DESTINATION
+--- sites. A MALFORMED key (non-numeric client key, or a resolved shape the caller rejects) is a
+--- fail-CLOSED :warning + nil; a key that simply resolves to nothing right now returns nil QUIETLY,
+--- so the caller chooses the loudness (a display fallback stays quiet; a flush that drops a target
+--- shouts - see RLHerdsmanRuleWire).
 ---@param key string|nil the stored target key (uniqueId on server, net-object-id on client)
----@return table|nil placeable the live husbandry placeable, or nil if it does not resolve
-function RLHusbandryTargetKey.resolve(key)
+---@param allowEPP boolean|nil admit an EPP-shaped placeable on the pure-client path (move-dest sites only)
+---@return table|nil placeable the live placeable, or nil if it does not resolve to an admitted shape
+local function resolveInternal(key, allowEPP)
     if type(key) ~= "string" or key == "" then
         return nil
     end
@@ -92,7 +98,8 @@ function RLHusbandryTargetKey.resolve(key)
             return nil
         end
         local placeable = ps:getPlaceableByUniqueId(key)
-        Log:trace("RLHusbandryTargetKey.resolve: server key=%s -> resolved=%s", key, tostring(placeable ~= nil))
+        Log:trace("RLHusbandryTargetKey.resolve: server key=%s allowEPP=%s -> resolved=%s",
+            key, tostring(allowEPP == true), tostring(placeable ~= nil))
         return placeable
     end
 
@@ -107,7 +114,7 @@ function RLHusbandryTargetKey.resolve(key)
     -- so it is a run of digits. Anything else is malformed (the key space crossed, or a crafted /
     -- corrupt key); fail closed loudly. The digit-run guard also rejects tonumber-accepted forms
     -- ("1e3", "0x64", " 12 ") that could alias a different net-id. A numeric id that resolves to a
-    -- non-husbandry object (stale/reused net-id) is caught further down.
+    -- shape the caller rejects (stale/reused net-id) is caught further down.
     if key:match("^%d+$") == nil then
         Log:warning("RLHusbandryTargetKey.resolve: client key '%s' is not a numeric net-object-id; skipping", tostring(key))
         return nil
@@ -118,12 +125,36 @@ function RLHusbandryTargetKey.resolve(key)
         Log:trace("RLHusbandryTargetKey.resolve: client key=%s -> no live object (transient/deleted)", key)
         return nil
     end
-    if object.spec_husbandryAnimals == nil then
-        Log:warning("RLHusbandryTargetKey.resolve: client key=%s resolved a non-husbandry object; skipping", key)
+    -- Shape gate: a husbandry always admits; an EPP-shaped placeable admits ONLY for the move-dest
+    -- opt-in. A stale/reused net-id landing on any other object type is rejected either way.
+    local isHusbandry = object.spec_husbandryAnimals ~= nil
+    local isEPP = object.spec_extendedProductionPoint ~= nil
+    if not isHusbandry and not (allowEPP == true and isEPP) then
+        Log:warning("RLHusbandryTargetKey.resolve: client key=%s resolved a non-admitted object (husbandry=%s epp=%s allowEPP=%s); skipping",
+            key, tostring(isHusbandry), tostring(isEPP), tostring(allowEPP == true))
         return nil
     end
-    Log:trace("RLHusbandryTargetKey.resolve: client key=%s -> husbandry placeable", key)
+    Log:trace("RLHusbandryTargetKey.resolve: client key=%s -> placeable (husbandry=%s epp=%s)",
+        key, tostring(isHusbandry), tostring(isEPP))
     return object
+end
+
+--- Resolve a stored TARGET key to its live husbandry placeable (the rule-targets wire leg + the
+--- targets name display). Husbandry-only on the pure client: this is the shape gate that keeps an
+--- EPP out of targetHusbandries. @see resolveInternal.
+---@param key string|nil the stored target key (uniqueId on server, net-object-id on client)
+---@return table|nil placeable the live husbandry placeable, or nil if it does not resolve
+function RLHusbandryTargetKey.resolve(key)
+    return resolveInternal(key, false)
+end
+
+--- Resolve a stored move-DESTINATION key to its live placeable, admitting an EPP butcher in addition
+--- to a husbandry on the pure client (the explicit opt-in that widens the shape gate for move-dest
+--- sites ONLY - the targets leg keeps `resolve`'s husbandry-only gate). @see resolveInternal.
+---@param key string|nil the stored destination key (uniqueId on server, net-object-id on client)
+---@return table|nil placeable the live husbandry or EPP placeable, or nil if it does not resolve
+function RLHusbandryTargetKey.resolveDestination(key)
+    return resolveInternal(key, true)
 end
 
 Log:trace("RLHusbandryTargetKey: loaded")

@@ -1,6 +1,6 @@
 --[[
     RLTransferWorldAdapter.lua
-    The WORLD counterpart adapter behind the RLTransferAdapter seam (Phase 8 M4).
+    The WORLD counterpart adapter behind the RLTransferAdapter seam.
 
     When a livestock/horse trailer is triggered standalone (no pen, no dealer - the
     LivestockTrailerActivatable walk-up), the Transfer frame's "other side" is the free

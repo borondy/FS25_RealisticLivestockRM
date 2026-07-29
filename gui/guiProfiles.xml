@@ -176,4 +176,25 @@
 		<textBold value="true"/>
 	</Profile>
 
+	<!-- Pen feed-forecast: orange variant of fs25_animalSmallStatusBar used by
+	     RLDetailPaneHelper.updatePenDisplay in the warning band (< WARNING_DAYS,
+	     >= DANGER_DAYS real days of feed). $preset_colorOrange (0.8 0.4 0 1)
+	     matches the Fresh mod's WARNING colour. -->
+	<Profile name="rl_animalSmallStatusBarWarning" extends="fs25_animalSmallStatusBar">
+		<imageColor value="$preset_colorOrange"/>
+		<imageFocusedColor value="$preset_colorOrange"/>
+		<startImageColor value="$preset_colorOrange"/>
+		<startImageFocusedColor value="$preset_colorOrange"/>
+		<endImageColor value="$preset_colorOrange"/>
+		<endImageFocusedColor value="$preset_colorOrange"/>
+	</Profile>
+
+	<!-- Pen feed-forecast: orange variant of fs25_animalRequirementsValue (the
+	     Total Capacity text) for the warning band. Same $preset_colorOrange as
+	     the bar so the row reads as one alert. -->
+	<Profile name="rl_animalRequirementsValueWarning" extends="fs25_animalRequirementsValue">
+		<textColor value="$preset_colorOrange"/>
+		<textBold value="true"/>
+	</Profile>
+
 </GUIProfiles>

@@ -130,6 +130,10 @@ function RealisticLivestock.loadMap()
     -- consumers find a live registry; this assignment is an idempotent
     -- fallback that re-creates the global if it was ever nilled.
     g_rlFilterService = g_rlFilterService or RLFilterService.new()
+    -- Same belt-and-suspenders for the dealer sale-availability registry: the
+    -- save-side append in RLSettings.saveToXMLFile reads this global, so an
+    -- accidental nilling must not leave persistence without a live registry.
+    g_rlDealerSaleRegistry = g_rlDealerSaleRegistry or RLDealerSaleRegistry.new()
 
     MoneyType.HERDSMAN_WAGES = MoneyType.register("herdsmanWages", "rl_ui_herdsmanWages")
     MoneyType.LAST_ID = MoneyType.LAST_ID + 1
@@ -147,16 +151,18 @@ end
 addModEventListener(RealisticLivestock)
 
 
+--- Two-letter RL area code new animals are registered with. Thin delegate:
+--- RLMapCountry evaluates the per-savegame mapCountry override on every call.
+--- @return string code RL area code (RL-internal space: "CH" is China, "SW" Sweden); "UK" fallback
 function RealisticLivestock.getMapCountryCode()
-    local areaCode = RLConstants.AREA_CODES[RealisticLivestock.mapAreaCode]
-
-    if areaCode ~= nil then return areaCode.code end
-
-    return "UK"
+    return RLMapCountry.resolveCode(RealisticLivestock.mapAreaCode)
 end
 
+--- AREA_CODES index new animals are registered with. Thin delegate:
+--- RLMapCountry evaluates the per-savegame mapCountry override on every call.
+--- @return number index Index into RLConstants.AREA_CODES; 1 fallback
 function RealisticLivestock.getMapCountryIndex()
-    return RealisticLivestock.mapAreaCode or 1
+    return RLMapCountry.resolveIndex(RealisticLivestock.mapAreaCode)
 end
 
 function RealisticLivestock.formatAge(age)
@@ -181,6 +187,12 @@ end
 
 
 function RealisticLivestock:updateReproduction(spec, cluster, numNewAnimals, freeSlots, isServer)
+    -- Tripwire: this per-cluster reproduction path is believed unreachable - its only
+    -- caller, RealisticLivestock.onPeriodChanged, is never installed as a hook, and live
+    -- reproduction runs through Animal:onDayChanged. If this ERROR ever fires, the path is
+    -- live after all (e.g. reached via a base-game callback) and must NOT be retired.
+    Log:error("updateReproduction (legacy per-cluster path) executed - believed unreachable; it is LIVE, do not retire. numNewAnimals=%s", tostring(numNewAnimals))
+
     local totalOffspring = 0
     local totalParents = cluster.numAnimals
     local parentAge = cluster.age
@@ -930,8 +942,10 @@ function RealisticLivestock.hasMaleAnimalInPen(spec, subT, female)
                 else
                     eligible = (animalType == AnimalType.COW and animal.age < 132) or
                         (animalType == AnimalType.SHEEP and animal.age < 72) or
-                        (animalType == AnimalType.HORSE and animal.age < 300) or animalType == AnimalType.CHICKEN or
-                        (animalType == AnimalType.PIG and animal.age < 48) or animal.age < 120
+                        (animalType == AnimalType.HORSE and animal.age < 300) or
+                        (animalType == AnimalType.CHICKEN and animal.age < 72) or
+                        (animalType == AnimalType.PIG and animal.age < 48) or
+                        (animalType ~= AnimalType.CHICKEN and animal.age < 120)
                 end
 
                 if eligible then

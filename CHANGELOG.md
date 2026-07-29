@@ -1,5 +1,72 @@
 # Changelog
 
+## v1.3.1.0-dev.1
+
+### Added
+- "Choose Animals For Sale" in RL Menu > Settings > General: pick which animals and age groups the animal dealer offers, and the dealer restocks to match. Admins can change it in multiplayer, and every player's dealer updates to match.
+
+### Fixed
+- Saved filters and herdsman rules being lost (and overwritten on the next save) when loading a save that has no Realistic Livestock animal data.
+
+### Documentation
+- User-guide coverage for choosing which animals the dealer offers.
+
+## v1.3.0.1
+
+### Changed
+- The saved-filter editor now shows comparison operators in plain English ("is at least", "is one of", "does not contain", ...) in the Compare dropdown and each condition row, instead of programmer symbols.
+
+### Fixed
+- The saved-filter editor no longer shows the Gender, Breed, and Name fields as raw internal names - the field picker and condition rows now use their proper labels.
+
+## v1.3.0.0
+
+### Heads up before you update
+Things that affect existing saves:
+- The old herdsman automation no longer runs. Set up your automation again in the new Herdsman menu.
+- The old animal screen is removed: your pens, on-foot dealers, the R key, and trailer-to-butcher deliveries all open the new RL Menu now.
+- All mod settings moved into the RL Menu's Settings tab; the in-game Settings page is now a single button that opens it.
+- Breeding ages were adjusted (goats from 8 months, horse stallions from 24, hens stop hatching by ~5 years, roosters retire at 6), so existing herds breed on a slightly different schedule.
+- The "max visible animals" control moved to RL Menu > Settings > General (the Shift+T key was removed).
+
+### New livestock menu
+The RL Menu is now the mod's main animal-management interface - a standalone tabbed menu.
+- Open it from anywhere with your own key (default Right Shift + O, set in Controls), plus from your pens, on-foot dealers, the R key, and trailers.
+- Remembers your selected pen and animal as you switch tabs; husbandry list sorted alphabetically.
+- Status icons on every animal card: pregnancy, recovering, infertile or castrated, lactating, producing wool, and laying eggs.
+- Manage tab: animal list with a detail pane - pedigree, genetics, diseases, inputs and outputs - plus per-animal actions: Mark, Monitor, Rename, Diseases, Inseminate, Castrate. Genetics shown as a 0-99 score next to each trait.
+- Messages tab: chronological feed with single and bulk delete.
+- Move tab: move animals between pens or deliver them to a butcher, one or many at a time; a feed-runway estimate shows how many months the current feed lasts.
+- Sell tab: shopping-cart summary (count, price, fee, total).
+- Buy tab: browse dealer animals with per-row prices and a running cart total; buy one or many via a destination picker.
+- AI tab: browse dealer bulls by species, pick a straw quantity with live price preview, favourite bulls, and buy straws without leaving the menu.
+- Saveable Filters: build reusable filters in-game (Settings > Filters) on age, gender, pregnancy, lactation, genetics, subtype, weight, health, marks, and name; multi-value "in / not in" via a Select Values dialog; cross-species matching when Animal type = ANY.
+- Press F on the Manage/Buy/Sell/Move tabs to cycle filters (shown as a chip); a per-filter "Show on" axis (All / Owned herd / Dealer) keeps the cycle tidy. Save the current Quick Filter as a reusable filter in one click.
+- Settings tab: all mod settings now live here instead of on the in-game settings page. New "Animal Country of Origin" setting: choose the country new animals are registered in (ear tags, identifiers) or keep the default. New animals only.
+- Trailers: load and unload animals in the menu - move between a pen and a parked trailer, buy into or sell from a trailer at the dealer, and load or unload horses from a standalone trailer out in the world.
+- Herdsman tab: create, duplicate, and delete named automation tasks; each runs one action - sell, buy, castrate, naming, AI insemination, or move - on the animals matched by a saved filter across the pens you choose. A move task can target a butcher (Extended Production Point); animals outside its age range are skipped and reported.
+- Task editor: name, enable or disable, per-action options (animals per day, budget, naming convention, AI semen choice), and a choice to mark matching animals for review or perform the action outright, with per-row help tooltips.
+- Tasks run automatically on each day-change, server-side, in order (sell, buy, castrate, naming, AI, move), respecting each task's cap, budget, and the destination's free space; a herdsman wage applies per farm. The herdsman reports what it did in the Messages tab (folded into daily counts when message summary mode is on).
+- Multiplayer: everything in the new menu is server-authoritative and syncs to all players; open menus refresh live, and late-joining players receive the full filter and rule set.
+- New user guides for Saved Filters and Herdsman automation; the user guide site can now be downloaded as a PDF.
+
+### Multiplayer fixes
+- Husbandry log messages (animal buy/sell/move, births, deaths, and daily summaries) now appear live for connected players instead of only after rejoining.
+- Inseminating a female from the menu now works on dedicated servers and clients (previously it silently did nothing - no pregnancy, and a straw was wasted); straw counts stay in sync across all players.
+- A mother's post-birth recovery now counts down live instead of appearing stuck as "recovering", which had wrongly blocked inseminating her again until a relog.
+- Rapidly triggering two animal trades of the same kind (buy, sell, or move) no longer risks affecting the wrong animals or leaving the menu stuck - trades now run one at a time with a "trade in progress" notice and timeout recovery.
+- Animals from a DLC that's installed but not active in the session are no longer loaded, preventing them from showing as the wrong breed or gender, or being corrupted when bought, for players without the DLC.
+
+### Fixed
+- Cows on Hof Bergmann v1.4 cow pastures produce milk again (all cow breeds produce milk cans).
+- Pen feed forecast now reflects the real days of feed remaining and no longer under-estimates the months-of-feed range at higher days-per-month settings.
+- A declined semen purchase (e.g. not enough money) no longer uses up dealer spawn space, so repeated declined attempts can't eventually make valid purchases fail with a "no space" message.
+- Fixed an FPS stutter when switching the active implement (G): the animal-visibility settings dialog now loads once per session instead of on every switch.
+- Pressing Esc in an animal pen's menu opened from the in-game menu (Animals page) now returns to the in-game menu instead of closing straight to the game.
+
+### Compatibility
+- LSFM Animal Transport Pack: the pack's animal herding/driving feature does not work with RLRM (it opens the animal screen through the pack's custom transport object, which the new menu does not recognise); the rest of the pack is unaffected. Hof Bergmann bundles this pack - see the mod-compatibility guide.
+
 ## v1.2.6.0
 
 ### RL Menu (preview - work in progress)

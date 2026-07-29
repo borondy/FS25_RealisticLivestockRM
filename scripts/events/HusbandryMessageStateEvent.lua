@@ -3,6 +3,8 @@ HusbandryMessageStateEvent = {}
 local HusbandryMessageStateEvent_mt = Class(HusbandryMessageStateEvent, Event)
 InitEventClass(HusbandryMessageStateEvent, "HusbandryMessageStateEvent")
 
+local Log = RmLogging.getLogger("RLRM")
+
 
 function HusbandryMessageStateEvent.emptyNew()
 
@@ -72,13 +74,20 @@ end
 
 function HusbandryMessageStateEvent:writeStream(streamId, connection)
 
+	Log:trace("HusbandryMessageStateEvent:writeStream: %d husbandr(ies)", #self.husbandries)
+
 	streamWriteUInt8(streamId, #self.husbandries)
 
 	for _, husbandry in pairs(self.husbandries) do
 
 		NetworkUtil.writeNodeObject(streamId, husbandry)
 		streamWriteBool(streamId, husbandry:getHasUnreadRLMessages())
-		streamWriteUInt16(streamId, husbandry:getNextRLMessageUniqueId())
+
+		-- Non-mutating counter read: the join snapshot must REPORT the next-uid counter,
+		-- not ADVANCE it. getNextRLMessageUniqueId increments, burning a server uid on every join and
+		-- drifting the server<->client namespace; read spec.rlMessageUniqueId directly, as
+		-- saveToXMLFile does.
+		streamWriteUInt16(streamId, husbandry.spec_husbandryAnimals.rlMessageUniqueId or 0)
 
 		local messages = husbandry:getRLMessages()
 		streamWriteUInt16(streamId, #messages)

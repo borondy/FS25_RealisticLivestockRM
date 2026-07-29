@@ -35,11 +35,13 @@ RLMenuTabPolicy.MODE_DEALER = "dealer"
 RLMenuTabPolicy.MODE_TRAILER = "trailer"
 
 -- Trailer counterparts (where the trailer is parked). PEN = husbandry pen,
--- DEALER = animal dealer, WORLD = walk-up / activatable. Re-exported by RLMenu
--- as TRAILER_PEN / TRAILER_DEALER / TRAILER_WORLD.
+-- DEALER = animal dealer, WORLD = walk-up / activatable, EPP = butcher (extended
+-- production point) direct-open sink. Re-exported by RLMenu as
+-- TRAILER_PEN / TRAILER_DEALER / TRAILER_WORLD / TRAILER_EPP.
 RLMenuTabPolicy.PEN = "pen"
 RLMenuTabPolicy.DEALER = "dealer"
 RLMenuTabPolicy.WORLD = "world"
+RLMenuTabPolicy.EPP = "epp"
 
 -- Collapsed visible-tab anchor indices used by RLMenu.restorePageIndex. In the
 -- trailer-dealer placement the visible set is exactly {Buy, Sell} (Info/AI are
@@ -66,9 +68,10 @@ local DEALER_VISIBLE = {
 }
 
 --- Trailer-mode visibility, split by counterpart.
----   dealer    -> {Buy, Sell} only (Decision 7a hides Info/AI; in-tab detail
----                panes carry Info parity for the dealer placement).
----   pen/world -> {Transfer} only (the Transfer tab).
+---   dealer        -> {Buy, Sell} only (Decision 7a hides Info/AI; in-tab detail
+---                    panes carry Info parity for the dealer placement).
+---   pen/world/epp -> {Transfer} only (the Transfer tab). EPP (butcher sink) shares
+---                    the pen/world Transfer branch; its adapter just enumerates {}.
 --- Any other (or nil) counterpart -> nothing visible (totality default).
 ---@param pageKey string
 ---@param counterpart string|nil
@@ -76,7 +79,9 @@ local DEALER_VISIBLE = {
 local function trailerVisible(pageKey, counterpart)
     if counterpart == RLMenuTabPolicy.DEALER then
         return pageKey == "buy" or pageKey == "sell"
-    elseif counterpart == RLMenuTabPolicy.PEN or counterpart == RLMenuTabPolicy.WORLD then
+    elseif counterpart == RLMenuTabPolicy.PEN
+        or counterpart == RLMenuTabPolicy.WORLD
+        or counterpart == RLMenuTabPolicy.EPP then
         return pageKey == "transfer"
     end
     return false

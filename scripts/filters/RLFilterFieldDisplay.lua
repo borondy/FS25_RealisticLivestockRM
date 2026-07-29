@@ -269,6 +269,52 @@ local function resolveFieldLabel(key)
 end
 
 -- =============================================================================
+-- Comparator display-name resolution
+-- =============================================================================
+
+-- Raw comparator symbol -> i18n key suffix. XML l10n key names cannot contain
+-- < > = ! characters, so each symbol maps to an ASCII suffix and the localized
+-- label lives at "rl_menu_filters_cmp_<suffix>". This map is display-only: the
+-- stored / serialized / wire / evaluated cmp stays the raw symbol.
+local CMP_KEY_SUFFIX = {
+    ["<"]           = "lt",
+    ["<="]          = "le",
+    ["=="]          = "eq",
+    ["!="]          = "ne",
+    [">="]          = "ge",
+    [">"]           = "gt",
+    ["in"]          = "in",
+    ["notin"]       = "notin",
+    ["contains"]    = "contains",
+    ["notcontains"] = "notcontains",
+}
+
+--- Resolve a plain-English display label for a raw comparator symbol. Guards
+--- g_i18n exactly like resolveFieldLabel; a nil-OR-empty getText result counts
+--- as a miss and falls back to the raw symbol so a label is never blank. An
+--- unknown symbol passes through via tostring; a nil cmp preserves the "?"
+--- sentinel the row formatter used before this resolver existed. Display-only:
+--- callers keep the raw symbol for storage / serialization / wire / evaluation.
+---@param cmp string|nil raw comparator symbol
+---@return string display label (raw symbol on l10n miss, "?" for nil)
+function RLFilterFieldDisplay.getCmpDisplayName(cmp)
+    if cmp == nil then return "?" end
+    local suffix = CMP_KEY_SUFFIX[cmp]
+    if suffix ~= nil and g_i18n ~= nil and g_i18n.hasText ~= nil then
+        local lookup = "rl_menu_filters_cmp_" .. suffix
+        if g_i18n:hasText(lookup) then
+            local label = g_i18n:getText(lookup)
+            if label ~= nil and label ~= "" then
+                return label
+            end
+        end
+    end
+    Log:trace("RLFilterFieldDisplay.getCmpDisplayName: no label resolved for cmp=%s (unmapped symbol or absent/empty key); using raw-symbol fallback",
+        tostring(cmp))
+    return tostring(cmp)
+end
+
+-- =============================================================================
 -- Condition row display formatting
 -- =============================================================================
 
@@ -293,7 +339,7 @@ end
 function RLFilterFieldDisplay.formatConditionDisplay(condition, fieldEntry, animalTypeIndex)
     if condition == nil or fieldEntry == nil then return "(invalid)" end
     local fieldLabel = resolveFieldLabel(condition.field)
-    local cmpDisplay = tostring(condition.cmp or "?")
+    local cmpDisplay = RLFilterFieldDisplay.getCmpDisplayName(condition.cmp)
     local valueDisplay
     -- List-shaped values (cmp = in/notin) render as "[Lab1, Lab2, ...]"
     -- with each element passed through the enum label resolver. Only enum
@@ -327,6 +373,16 @@ function RLFilterFieldDisplay.formatConditionDisplay(condition, fieldEntry, anim
         valueDisplay = tostring(condition.value or "")
     else
         valueDisplay = tostring(condition.value or "")
+    end
+    -- Bool rows drop the operator segment when (and only when) cmp == "==" -
+    -- bool's sole valid comparator - so the row reads "Pregnant No" instead of
+    -- "Pregnant is No". Gating on cmp (not just type == "bool") keeps a
+    -- malformed non-"==" bool visible as the 3-part form ("Pregnant is not No")
+    -- rather than silently reading as its opposite.
+    if fieldEntry.type == "bool" and condition.cmp == "==" then
+        Log:trace("RLFilterFieldDisplay.formatConditionDisplay: bool operator-drop field=%s value=%s",
+            tostring(condition.field), tostring(valueDisplay))
+        return string.format("%s %s", fieldLabel, valueDisplay)
     end
     return string.format("%s %s %s", fieldLabel, cmpDisplay, valueDisplay)
 end

@@ -198,7 +198,7 @@ function RLMenuSettingsFrame.new()
         callback = function() self:onDeleteConditionClicked() end,
     }
     -- Add group: Tier 3 only. MENU_EXTRA_2 slot. v2 stub - callback logs
-    -- and no-ops; Phase 2 wires the actual sibling-group insertion.
+    -- and no-ops; the group-editing follow-up wires the actual sibling-group insertion.
     self.addGroupButtonInfo = {
         inputAction = InputAction.MENU_EXTRA_2,
         text = g_i18n:getText("rl_menu_filters_add_group_button"),
@@ -210,9 +210,10 @@ function RLMenuSettingsFrame.new()
     -- value is the BinaryOption/MultiTextOption/Button widget. Tooltip
     -- child Text refs live in self.tooltips[name]. Both populated by
     -- populateGeneralSubtab() during initialize() (per-clone, one-shot).
-    -- The new page deliberately does NOT touch RLSettings.SETTINGS[*].element
-    -- - that ref belongs to the legacy in-game settings page and the
-    -- RL_BroadcastSettingsEvent path. Each page owns its own widget refs.
+    -- The page deliberately does NOT touch RLSettings.SETTINGS[*].element
+    -- - that ref stays nil (no pause-menu rows are built anymore); the
+    -- RL_BroadcastSettingsEvent path nil-guards it. Each page owns its
+    -- own widget refs.
     self.controls          = {}
     self.tooltips          = {}
     self.didMeasureGeneralPane = false
@@ -419,7 +420,7 @@ function RLMenuSettingsFrame:onFrameOpen()
 
     -- Push current RLSettings state into General subtab widgets and run
     -- the per-row admin gate + dependency cascade. State may have changed
-    -- between opens (legacy page edit, MP broadcast); re-read every time.
+    -- between opens (MP broadcast); re-read every time.
     self:refreshGeneralSubtab()
 
     -- One-shot first-visibility measure log for the General layout. Mirrors
@@ -1080,11 +1081,15 @@ function RLMenuSettingsFrame:updateButtonVisibility()
         if hasSelection then
             table.insert(self.menuButtonInfo, self.editConditionButtonInfo)
             table.insert(self.menuButtonInfo, self.addConditionButtonInfo)
-            table.insert(self.menuButtonInfo, self.addGroupButtonInfo)
+            -- "Add group" hidden until group editing is implemented.
+            -- addGroupButtonInfo / onAddGroupClicked / addGroupAtSelection stay
+            -- defined; re-enable by restoring these two inserts. The stub still
+            -- surfaces an InfoDialog if ever invoked directly.
+            -- table.insert(self.menuButtonInfo, self.addGroupButtonInfo)
             table.insert(self.menuButtonInfo, self.deleteConditionButtonInfo)
             table.insert(appended, "Edit")
             table.insert(appended, "AddCondition")
-            table.insert(appended, "AddGroup")
+            -- table.insert(appended, "AddGroup")
             table.insert(appended, "DeleteCondition")
         end
     end
@@ -1371,7 +1376,7 @@ local function overlayPending(stored, overlay)
     end
     if overlay.op ~= nil then
         -- Build a fresh root group with the new op; preserve any nested
-        -- children so a filter authored with sub-groups (Phase 2 / API /
+        -- children so a filter authored with sub-groups (group editing / API /
         -- peer) keeps its structure when the user flips the root match
         -- mode in the UI.
         local stored_children = (stored.expression and stored.expression.children) or {}
@@ -1811,7 +1816,7 @@ end
 --- editor can render plus a verbatim list of preserved (unsupported) child
 --- nodes. Preserved nodes round-trip through flush unchanged so saving
 --- supported edits cannot destroy nested groups or enum/string conditions
---- authored elsewhere (hand-edited XML, peer client, future Phase 2 UI).
+--- authored elsewhere (hand-edited XML, peer client, future group-editing UI).
 ---
 --- Returned tables are shallow-cloned at the top level; supported rows are
 --- fresh `{ field, cmp, value }` tables so editing one does not mutate the
@@ -2374,7 +2379,7 @@ end
 --- 1-based index within that parent's children. v2 ships a flat root (no
 --- nested groups), so the helper either returns `(expression, k)` for a
 --- matching leaf condition in expression.children or `(nil, nil)` when
---- the node isn't present. Phase 2 will recurse through nested groups.
+--- the node isn't present. Group editing will recurse through nested groups.
 ---
 --- Signature takes `expression` explicitly so callers can pass whichever
 --- AST they are operating on (stored filter, pending overlay, or
@@ -2422,7 +2427,7 @@ end
 --- Selection-aware insertion. For v2 with flat data, "selection" means the
 --- 1-based index of the focused row in filterConditionsList. No selection
 --- (or empty list) -> append to end. Selected row k -> insert at k+1 (next
---- sibling). Phase 2 group rows will route through getParentGroupAndIndex
+--- sibling). Future group rows will route through getParentGroupAndIndex
 --- to insert as child of a focused group; v2 always inserts at the root.
 function RLMenuSettingsFrame:addConditionAtSelection(newCond)
     if self.selectedFilterId == nil then return end
@@ -2462,14 +2467,14 @@ function RLMenuSettingsFrame:addConditionAtSelection(newCond)
     reloadConditionsList(self, insertAt)
 end
 
---- Phase 2 stub. v2 binding: enabled callback that logs + warns + surfaces
+--- Group-editing stub. v2 binding: enabled callback that logs + warns + surfaces
 --- an InfoDialog so the user gets visible feedback instead of a silent
 --- no-op. Verifies the action-bar context-switching plumbing without
---- committing Phase 2 group semantics. InfoDialog.show gives the action
+--- committing group semantics. InfoDialog.show gives the action
 --- closed-loop feedback that grouping is intentionally unimplemented in
 --- this version.
 function RLMenuSettingsFrame:addGroupAtSelection(_newGroup)
-    Log:warning("RLMenuSettingsFrame:addGroupAtSelection: Add group: placeholder (Phase 2) - no state change")
+    Log:warning("RLMenuSettingsFrame:addGroupAtSelection: Add group: placeholder (group editing not implemented) - no state change")
     if InfoDialog ~= nil and InfoDialog.show ~= nil and g_i18n ~= nil then
         Log:debug("RLMenuSettingsFrame:addGroupAtSelection: showing not-yet-implemented InfoDialog")
         InfoDialog.show(g_i18n:getText("rl_menu_filters_add_group_not_implemented"))
@@ -2534,7 +2539,7 @@ function RLMenuSettingsFrame:onDeleteConditionClicked()
     reloadConditionsList(self, idx)
 end
 
---- Action-bar Add group stub (Tier 3, MENU_EXTRA_2 after step 5). Phase 2
+--- Action-bar Add group stub (Tier 3, MENU_EXTRA_2 slot). The group-editing follow-up
 --- replaces this body with selection-aware sibling-group insertion. The
 --- v2 binding is enabled-but-no-op; this callback's existence verifies
 --- the action-bar context-switching plumbing.
@@ -2855,9 +2860,9 @@ function RLMenuSettingsFrame:onClickDuplicate()
     local merged = overlayPending(stored, self.pendingChanges[self.selectedFilterId])
     local dupName = self:computeDuplicateName(merged.name)
 
-    -- _cloneFilter deep-clones the expression (P2 carryover ownership
+    -- _cloneFilter deep-clones the expression (carryover ownership
     -- contract). The service ALSO deep-clones internally; double-clone is
-    -- a correctness belt-and-suspenders honoured throughout Phase 0.
+    -- a correctness belt-and-suspenders honoured throughout the filter code.
     -- Preserve the source filter's scope. A global filter (farmId == nil)
     -- stays global; a farm-scoped filter keeps its farmId. Using
     -- self.farmId here would narrow a global copy down to the active
@@ -3175,7 +3180,7 @@ function RLMenuSettingsFrame:populateCellForItemInSection(list, _section, index,
     -- Indent: depth-aware left position. v2 ships flat (depth=0 for every
     -- row), so the static XML position="20px -10px" already produces the
     -- correct layout and this branch is a no-op. The depth-aware override
-    -- is wired NOW so Phase 2 just needs to populate self.conditionRowDepths
+    -- is wired NOW so group editing just needs to populate self.conditionRowDepths
     -- alongside its partition pass.
     --
     -- setPosition takes NORMALIZED coordinates; GuiUtils.getNormalizedXValue
@@ -3207,15 +3212,20 @@ end
 -- =============================================================================
 
 --- Build the per-row option-text arrays a state-row widget needs:
+---   setting.getTexts -> the registry entry's own builder (runtime-composed texts)
 ---   binaryType=offOn -> {"Off", "On"} (localized)
 ---   valueType=int    -> { "20", "30", "40", ... }
 ---   valueType=float  -> { "0%", "10%", "20%", ... }
 ---   else             -> l10n keys "rl_settings_<name>_texts_<i>"
---- Mirrors RLSettings.initialize - same source of truth.
+--- RLSettings.SETTINGS is the single source of truth for values and types.
 --- @param name string Setting key in RLSettings.SETTINGS
 --- @param setting table The setting entry
 --- @return table The texts array indexed by state
 local function buildSettingTexts(name, setting)
+    if setting.getTexts ~= nil then
+        return setting.getTexts()
+    end
+
     local texts = {}
     local prefix = "rl_settings_" .. name .. "_"
 
@@ -3284,8 +3294,7 @@ function RLMenuSettingsFrame:populateGeneralSubtab()
             -- Static tooltip text: write once at populate so action rows
             -- (which refreshGeneralSubtab skips) get tooltip text too. Dynamic
             -- tooltips for state rows seed at the default state here and are
-            -- updated per-state in refreshGeneralSubtab. Mirrors the legacy
-            -- RLSettings.initialize ordering.
+            -- updated per-state in refreshGeneralSubtab.
             if tooltip ~= nil then
                 local tooltipKey
                 if setting.dynamicTooltip then
@@ -3348,7 +3357,7 @@ function RLMenuSettingsFrame:refreshGeneralSubtab()
 end
 
 --- Per-row admin gate + dependency cascade. Operates on self.controls
---- (this frame's element registry), not on the legacy setting.element ref.
+--- (this frame's element registry), never on RLSettings.SETTINGS[*].element.
 --- Per-row admin gating, not blanket non-admin disable: only rows flagged
 --- setting.adminOnly==true are disabled for non-admins; the rest stay
 --- enabled with their dependency cascade applied.
@@ -3380,10 +3389,10 @@ function RLMenuSettingsFrame:updateReadonlyState()
 end
 
 --- Refresh the General subtab if the frame is open. Called from
---- RL_BroadcastSettingsEvent:run after the legacy element sync so the new
---- page reflects MP-synced state changes without requiring frame reopen.
---- No-op when the frame is closed - matches the refreshIfOpen convention
---- used by the filter-event hooks elsewhere on this branch.
+--- RL_BroadcastSettingsEvent:run so the page reflects MP-synced state
+--- changes without requiring frame reopen. No-op when the frame is
+--- closed - matches the refreshIfOpen convention used by the
+--- filter-event hooks elsewhere on this branch.
 function RLMenuSettingsFrame:refreshIfGeneralOpen()
     if not self.isFrameOpen then
         Log:trace("RLMenuSettingsFrame:refreshIfGeneralOpen: frame closed, skipping")
@@ -3395,9 +3404,9 @@ end
 
 --- XML onClick handler for state rows (BinaryOption / MultiTextOption).
 --- Extracts the setting name from the widget's id (rlmenuSetting_<name>),
---- delegates to RLSettings.applyChange (single write path shared with the
---- legacy in-game settings page), then refreshes our widgets so the cascade
---- and dynamic-tooltip state stay current.
+--- delegates to RLSettings.applyChange (the single write path for stateful
+--- settings), then refreshes our widgets so the cascade and dynamic-tooltip
+--- state stay current.
 ---
 --- The colon syntax binds `self` implicitly; the GUI loader's raiseCallback
 --- chain raises onClickCallback for state-row widgets with
@@ -3405,10 +3414,10 @@ end
 --- here. So the explicit args are (state, widget) - state is the post-click
 --- state index, widget is the BinaryOption/MultiTextOption that was clicked.
 ---
---- Defensive `widget == nil then widget = state` mirrors RLSettings.onSettingChanged
---- so an accidental cross-wire from a Button (which raises with only
---- (target, widget)) still resolves to a sensible widget reference for
---- the early-return guard below; the ignore-flag check then redirects.
+--- Defensive `widget == nil then widget = state` keeps an accidental
+--- cross-wire from a Button (which raises with only (target, widget))
+--- resolving to a sensible widget reference for the early-return guard
+--- below; the ignore-flag check then redirects.
 --- @param state number 1-based new state from the widget post-click
 --- @param widget table The widget that was clicked
 function RLMenuSettingsFrame:onClickGeneralSetting(state, widget)
@@ -3443,12 +3452,10 @@ function RLMenuSettingsFrame:onClickGeneralSetting(state, widget)
 
     RLSettings.applyChange(name, newState)
 
-    -- Sync the change off this client. Broadcast the single setting via the same
-    -- event the legacy GAME SETTINGS page uses on close (InGameMenuSettingsFrame
-    -- onFrameClose -> RL_BroadcastSettingsEvent.sendEvent()), here in its
+    -- Sync the change off this client via RL_BroadcastSettingsEvent in its
     -- single-setting form. The server validates the sender (master-user),
     -- persists, and relays to other clients. Without this the RLMenu
-    -- change stayed local and the server reverted it on save/reload.
+    -- change stays local and the server reverts it on save/reload.
     Log:debug("RLMenuSettingsFrame:onClickGeneralSetting: broadcasting '%s' via RL_BroadcastSettingsEvent.sendEvent", name)
     RL_BroadcastSettingsEvent.sendEvent(name)
 
@@ -3456,10 +3463,8 @@ function RLMenuSettingsFrame:onClickGeneralSetting(state, widget)
 end
 
 --- XML onClick handler for action rows (Button). Resolves the setting name
---- from the button's id and invokes its setting.callback - same handler
---- the legacy in-game page wires for the same buttons (RLSettings.initialize
---- registers RLSettings.onSettingChanged which routes ignored buttons to
---- setting.callback() with no args).
+--- from the button's id and invokes its setting.callback with no args -
+--- action rows are self-contained (dialog / export / reset handlers).
 ---
 --- ButtonElement.raiseCallback delivers two args (`target, button`), so
 --- the colon-bound `self` absorbs the target and the explicit `button`

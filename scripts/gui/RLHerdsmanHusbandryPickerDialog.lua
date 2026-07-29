@@ -13,8 +13,8 @@
 -- Its OWN show signature carries a DYNAMIC uniqueId domain (live husbandries) with
 -- live-getName() labels, and - critically - its OWN drift policy: where the value-set
 -- dialog DRIFT-STRIPS keys outside the resolved domain on commit, this dialog PRESERVES
--- checked-but-out-of-scope and unresolvable targets (H2: protects the (missing) repair
--- affordance + MP transient-divergence). Only nil / empty uniqueIds are dropped (CR1).
+-- checked-but-out-of-scope and unresolvable targets (protects the (missing) repair
+-- affordance + MP transient-divergence). Only nil / empty uniqueIds are dropped.
 
 local Log = RmLogging.getLogger("RLRM")
 
@@ -344,8 +344,8 @@ end
 --- Commit the current selection. PRESERVE-on-commit (the deliberate divergence from the
 --- value-set dialog's drift-strip): emit checked CANDIDATES in domain order FIRST, then
 --- APPEND any checked uniqueId that is NOT in the candidate domain - a checked-but-out-of-
---- scope or unresolvable target - in its original currentTargets order (H2). Only nil / empty
---- uniqueIds are dropped (CR1: the commit yields non-empty strings only). An empty result is
+--- scope or unresolvable target - in its original currentTargets order. Only nil / empty
+--- uniqueIds are dropped (the commit yields non-empty strings only). An empty result is
 --- rejected (showHint, dialog stays open - distinct from the empty-candidate OK-disabled state).
 function RLHerdsmanHusbandryPickerDialog:onClickOk()
     RmSafeUtils.safeCall("RLHerdsmanHusbandryPickerDialog:onClickOk", function()
@@ -364,7 +364,7 @@ function RLHerdsmanHusbandryPickerDialog:onClickOk()
         end
 
         -- Preserved: checked targets outside the candidate domain (out-of-scope / unresolvable),
-        -- in original currentTargets order. NEVER drift-stripped (H2).
+        -- in original currentTargets order. NEVER drift-stripped.
         local preserved = 0
         for _, uid in ipairs(self.currentTargets) do
             if self.selected[uid] == true and not candidateSet[uid]

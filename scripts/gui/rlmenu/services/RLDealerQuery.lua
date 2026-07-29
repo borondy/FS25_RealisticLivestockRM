@@ -106,13 +106,13 @@ function RLDealerQuery.listDealerAnimalsForType(typeIndex)
     -- Reuse RLRM's shared animal sort comparator so Buy matches Sell / Move /
     -- Info behavior exactly: disease-first, then subtype ascending, then
     -- (optional) genetics descending when RLSettings.sortByGenetics is
-    -- enabled, then age ascending (see RL_AnimalScreenBase.sortAnimals).
+    -- enabled, then age ascending (see RLAnimalDisplayHelper.sortAnimals).
     -- AnimalItemStock.new (overridden by RealisticLivestock_AnimalItemStock)
     -- already populates `cachedAvgGenetics` on each item.
-    if RL_AnimalScreenBase ~= nil and RL_AnimalScreenBase.sortAnimals ~= nil then
-        table.sort(items, RL_AnimalScreenBase.sortAnimals)
+    if RLAnimalDisplayHelper ~= nil and RLAnimalDisplayHelper.sortAnimals ~= nil then
+        table.sort(items, RLAnimalDisplayHelper.sortAnimals)
     else
-        Log:warning("RLDealerQuery.listDealerAnimalsForType: RL_AnimalScreenBase.sortAnimals unavailable; returning unsorted")
+        Log:warning("RLDealerQuery.listDealerAnimalsForType: RLAnimalDisplayHelper.sortAnimals unavailable; returning unsorted")
     end
 
     Log:debug("RLDealerQuery.listDealerAnimalsForType: typeIndex=%s items=%d",

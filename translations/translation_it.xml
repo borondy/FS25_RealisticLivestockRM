@@ -70,7 +70,6 @@
 
         <!-- UI -->
 
-        <text name="input_VisualAnimalsDialog" text="Cambia il numero di animali visibili"/>
         <text name="input_RL_OPEN_ANIMAL_SCREEN" text="Apri schermata animali"/>
         <text name="input_RL_MARK" text="Segna/Deseleziona animale"/>
         <text name="input_RL_MONITOR" text="Applica/Rimuovi monitor"/>
@@ -180,6 +179,8 @@
         <text name="rl_ui_moveErrorNoPermission" text="Non hai il permesso di spostare animali qui."/>
         <text name="rl_ui_moveErrorNotSupported" text="Questa destinazione non supporta questo tipo di animale."/>
         <text name="rl_ui_moveErrorNoSpace" text="Spazio insufficiente nella destinazione."/>
+        <text name="rl_ui_tradeRequestInProgress" text="Una transazione è già in corso. Attendere."/>
+        <text name="rl_ui_tradeRequestTimeout" text="Il server non ha risposto. Riprova."/>
 
         <text name="rl_ui_monitor" text="Monitor"/>
         <text name="rl_ui_monitorSubscriptions" text="Sottoscrizioni monitor"/>
@@ -464,6 +465,8 @@
         <!-- SETTINGS -->
 
         <text name="rl_settings" text="Realistic Livestock"/>
+        <text name="rl_settings_openMenu_button" text="Apri impostazioni"/>
+        <text name="rl_settings_openMenu_label" text="Apri le impostazioni Realistic Livestock"/>
 
         <text name="rl_settings_off" text="Disattivato"/>
         <text name="rl_settings_on" text="Attivato"/>
@@ -485,9 +488,17 @@
         <text name="rl_settings_maxDealerAnimals_label" text="Numero massimo di animali del rivenditore"/>
         <text name="rl_settings_maxDealerAnimals_tooltip" text="Modifica il numero massimo di animali che il rivenditore di animali avrà in stock per ogni tipo di animale"/>
 
+        <text name="rl_settings_mapCountry_label" text="Paese di origine degli animali"/>
+        <text name="rl_settings_mapCountry_tooltip" text="Sostituisce il paese in cui vengono registrati i nuovi animali (marche auricolari, identificativi). Si applica solo ai nuovi animali; gli animali esistenti mantengono il loro paese."/>
+        <text name="rl_settings_mapCountry_texts_1" text="Predefinito della mappa"/>
+
         <text name="rl_settings_resetDealer_label" text="Reimposta rivenditore animali"/>
         <text name="rl_settings_resetDealer_tooltip" text="Rimuovi tutti gli animali del rivenditore e rifornisci lo stock con nuovi animali"/>
         <text name="rl_settings_resetDealer_text" text="Reimposta rivenditore animali"/>
+
+        <text name="rl_settings_dealerSale_label" text="Choose Animals For Sale"/>
+        <text name="rl_settings_dealerSale_tooltip" text="Choose which animals and age groups the dealer offers for sale. Changing this restocks the dealer."/>
+        <text name="rl_settings_dealerSale_text" text="Choose Animals For Sale"/>
 
         <text name="rl_settings_resetAIAnimals_label" text="Reimposta animali IA"/>
         <text name="rl_settings_resetAIAnimals_tooltip" text="Rimuovi tutti gli animali IA disponibili per l'inseminazione artificiale e rimpiazzali con nuovi animali generati casualmente"/>
@@ -496,6 +507,9 @@
         <text name="rl_settings_tagColour_label" text="Cambia colore targhetta"/>
         <text name="rl_settings_tagColour_tooltip" text="Modifica il colore delle targhette auricolari"/>
         <text name="rl_settings_tagColour_text" text="Cambia colore targhetta"/>
+        <text name="rl_settings_maxVisualAnimals_label" text="Set Maximum Visual Animals"/>
+        <text name="rl_settings_maxVisualAnimals_text" text="Set Maximum Visual Animals"/>
+        <text name="rl_settings_maxVisualAnimals_tooltip" text="Set the maximum number of animals rendered per pen. Per-machine display setting; not synced in multiplayer."/>
 
         <text name="rl_settings_exportCSV_label" text="Esporta in CSV"/>
         <text name="rl_settings_exportCSV_tooltip" text="Esporta statistiche in CSV"/>
@@ -651,6 +665,8 @@
         <text name="rl_message_aiManager_movedAnimals_multiple" text="Il mandriano ha spostato %s animali"/>
         <text name="rl_message_aiManager_mark_move_single" text="Il mandriano ha contrassegnato 1 animale per lo spostamento"/>
         <text name="rl_message_aiManager_mark_move_multiple" text="Il mandriano ha contrassegnato %s animali per lo spostamento"/>
+        <text name="rl_message_aiManager_moveSkippedAge_single" text="Herdsman skipped 1 animal (wrong age for the butcher)"/>
+        <text name="rl_message_aiManager_moveSkippedAge_multiple" text="Herdsman skipped %s animals (wrong age for the butcher)"/>
 
         <!-- Daily summary messages -->
         <text name="rl_message_dailyBirthsSummary" text="%s animali sono nati presso %s"/>
@@ -706,7 +722,7 @@
 
 
         <!-- Missing keys (English fallback) -->
-        <text name="input_RL_MENU" text="Apri menu RL (nuovo)"/>
+        <text name="input_RL_MENU" text="Apri menu RL"/>
         <text name="input_RL_RENAME" text="Rinomina"/>
         <text name="input_RL_CYCLE_FILTER" text="Cambia filtro salvato"/>
         <text name="rl_menu_info_children" text="Figli"/>
@@ -742,6 +758,7 @@
         <text name="rl_menu_transfer_empty_no_animals" text="No animals on this side"/>
         <text name="rl_menu_transfer_counterpart" text="Destination"/>
         <text name="rl_menu_transfer_world" text="Nearby Animals"/>
+        <text name="rl_menu_transfer_deliver" text="Deliver"/>
         <text name="rl_menu_sell_title" text="Vendi"/>
         <text name="rl_menu_sell_cart_header" text="Riepilogo vendita"/>
         <text name="rl_menu_sell_cart_selected" text="Selezionati"/>
@@ -800,11 +817,14 @@
         <text name="rl_menu_herdsman_husbandry_count" text="%d selezionati"/>
         <text name="rl_menu_herdsman_husbandry_picker_title" text="Seleziona allevamenti"/>
         <text name="rl_menu_herdsman_husbandry_picker_empty" text="Nessun allevamento disponibile per questa regola."/>
+        <text name="rl_menu_dealerSale_title" text="Animals for Sale"/>
+        <text name="rl_menu_dealerSale_empty" text="No animals available at this dealer."/>
         <text name="rl_menu_herdsman_husbandry_emptyRejected" text="Seleziona almeno un allevamento."/>
         <text name="rl_menu_herdsman_filter_picker_currentUnavailable" text="Il filtro corrente non è disponibile per questa operazione."/>
 			<text name="rl_menu_herdsman_section_move" text="Spostamento"/>
 			<text name="rl_menu_herdsman_detail_destination" text="Destinazione"/>
 			<text name="rl_menu_herdsman_destination_select" text="Seleziona destinazione"/>
+			<text name="rl_menu_herdsman_destination_butcher_suffix" text="(butcher)"/>
 			<text name="rl_menu_herdsman_destination_picker_title" text="Seleziona destinazione"/>
 			<text name="rl_menu_herdsman_destination_picker_empty" text="Nessun allevamento di destinazione disponibile per questa regola."/>
 			<text name="rl_menu_herdsman_destination_picker_currentUnavailable" text="La destinazione corrente non è disponibile per questa regola."/>
@@ -872,6 +892,16 @@
 		<text name="rl_menu_filters_dialog_title" text="Modifica condizione"/>
 		<text name="rl_menu_filters_field_label" text="Campo"/>
 		<text name="rl_menu_filters_cmp_label" text="Confronta"/>
+		<text name="rl_menu_filters_cmp_lt" text="is less than"/>
+		<text name="rl_menu_filters_cmp_le" text="is at most"/>
+		<text name="rl_menu_filters_cmp_eq" text="is"/>
+		<text name="rl_menu_filters_cmp_ne" text="is not"/>
+		<text name="rl_menu_filters_cmp_ge" text="is at least"/>
+		<text name="rl_menu_filters_cmp_gt" text="is more than"/>
+		<text name="rl_menu_filters_cmp_in" text="is one of"/>
+		<text name="rl_menu_filters_cmp_notin" text="is none of"/>
+		<text name="rl_menu_filters_cmp_contains" text="contains"/>
+		<text name="rl_menu_filters_cmp_notcontains" text="does not contain"/>
 		<text name="rl_menu_filters_value_label" text="Valore"/>
 		<text name="rl_menu_filters_value_invalid_number" text="Numero non valido"/>
 		<text name="rl_menu_filters_preserved_banner" text="%d condizione/i nascoste - modificabili in una fase successiva. Salvate alla chiusura."/>
@@ -890,6 +920,9 @@
 		<text name="rl_menu_filters_field_genetics_quality" text="Genetica: qualità"/>
 		<text name="rl_menu_filters_field_genetics_productivity" text="Genetica: produttività"/>
 		<text name="rl_menu_filters_field_genetics_overall" text="Genetica complessiva"/>
+		<text name="rl_menu_filters_field_gender" text="Gender"/>
+		<text name="rl_menu_filters_field_subType" text="Breed"/>
+		<text name="rl_menu_filters_field_name" text="Name"/>
 		<text name="rl_menu_filters_gender_male" text="Maschio"/>
 		<text name="rl_menu_filters_gender_female" text="Femmina"/>
 		<text name="rl_menu_filters_emptyValueRejected" text="Il valore non può essere vuoto"/>

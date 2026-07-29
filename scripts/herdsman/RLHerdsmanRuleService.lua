@@ -1,5 +1,5 @@
 -- RLHerdsmanRuleService.lua
--- Singleton CRUD service for the Herdsman rule registry (M-Service S1-S5).
+-- Singleton CRUD service for the Herdsman rule registry.
 --
 -- Owns the in-memory rule registry `self.rulesById` and assigns stable ids on
 -- create via `Utils.getUniqueId`. A rule binds at most one saved filter (nil = an

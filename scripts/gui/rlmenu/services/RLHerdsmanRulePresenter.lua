@@ -710,7 +710,7 @@ end
 -- AnimalType compatibility + husbandry targeting (F6)
 -- =============================================================================
 
---- The ONE operation x animalType compatibility predicate (M1). The single locked rule:
+--- The ONE operation x animalType compatibility predicate. The single locked rule:
 --- `castrate` cannot target CHICKEN (legacy AIAnimalManager skips chicken castration in its
 --- castrate branch). Every other operation is valid for every type, and an ANY-type
 --- (`animalTypeIndex == nil`) candidate is always compatible. The CHICKEN index is resolved
@@ -732,10 +732,10 @@ function RLHerdsmanRulePresenter.isOperationAnimalTypeCompatible(operation, anim
 end
 
 --- Husbandry keep-gate shared by selectTargetableHusbandries (descriptors) AND
---- revalidateTargets (resolvable targets) - M1's single source of truth so open-time listing
+--- revalidateTargets (resolvable targets) - the single source of truth so open-time listing
 --- and rebind cleanup cannot diverge. Keep a husbandry when its animalType is KNOWN (a
---- nil-type husbandry is EXCLUDED from typed lists and never matches the castrate exclusion -
---- H6), matches the filter's animalType (or the filter is ANY/nil = every type), AND the
+--- nil-type husbandry is EXCLUDED from typed lists and never matches the castrate exclusion),
+--- matches the filter's animalType (or the filter is ANY/nil = every type), AND the
 --- operation is animalType-compatible.
 ---@param animalTypeIndex any husbandry animalType index
 ---@param filterAnimalType any filter scope animalType, or nil for ANY (all types)
@@ -748,8 +748,29 @@ local function keepHusbandryType(animalTypeIndex, filterAnimalType, operation, c
     return RLHerdsmanRulePresenter.isOperationAnimalTypeCompatible(operation, animalTypeIndex, chickenTypeIndex)
 end
 
---- Comparator for husbandry descriptors: case-insensitive name then uniqueId tie-break
---- (M2/L3). The frame applies the "Husbandry N" fallback label before projecting each
+--- Set-aware DESTINATION type gate: `typeSpec` is a scalar animalType index (a
+--- husbandry dest) OR an array of type indices (an EPP butcher that accepts several types). Admits
+--- when the scalar keepHusbandryType gate passes for the scalar, or for ANY member of the set; a nil
+--- scalar / nil-or-empty set is excluded. Used ONLY on the destination axis
+--- (selectDestinationHusbandries + revalidateDestination) - keepHusbandryType stays scalar so the
+--- source picker + target revalidation are untouched.
+---@param typeSpec any scalar animalType index, or an array of type indices (EPP)
+---@param filterAnimalType any filter scope animalType, or nil for ANY
+---@param operation any rule operation key (always "move" on the dest axis)
+---@param chickenTypeIndex any resolved CHICKEN index, or nil
+---@return boolean
+local function keepDestinationType(typeSpec, filterAnimalType, operation, chickenTypeIndex)
+    if type(typeSpec) == "table" then
+        for _, at in ipairs(typeSpec) do
+            if keepHusbandryType(at, filterAnimalType, operation, chickenTypeIndex) then return true end
+        end
+        return false
+    end
+    return keepHusbandryType(typeSpec, filterAnimalType, operation, chickenTypeIndex)
+end
+
+--- Comparator for husbandry descriptors: case-insensitive name then uniqueId tie-break.
+--- The frame applies the "Husbandry N" fallback label before projecting each
 --- descriptor, so `name` is never empty; the uniqueId tie-break keeps duplicate display
 --- names in a deterministic, stable order (saved target-array order + pre-check matching).
 ---@param a table descriptor { uniqueId, animalType, name }
@@ -762,8 +783,7 @@ local function compareHusbandriesByName(a, b)
     return tostring(a.uniqueId) < tostring(b.uniqueId)
 end
 
---- Retrofit the F5 filter-picker candidate list for the operation's animalType scope (M4
---- companion): drop a typed filter whose animalType is incompatible with the operation
+--- Retrofit the filter-picker candidate list for the operation's animalType scope: drop a typed filter whose animalType is incompatible with the operation
 --- (castrate x chicken), KEEP every ANY-type filter (`f.animalType == nil`, admits all
 --- types). Returns a NEW array (input never mutated; the caller owns the service-cloned
 --- list). Ordering stays the caller's job (sortFiltersByName).
@@ -791,8 +811,8 @@ end
 
 --- Gate + order the husbandry picker candidate list for a rule (D8). From a list of live
 --- husbandry descriptors `{ uniqueId, animalType, name }`, keep those the operation + filter
---- scope admit (keepHusbandryType: nil-type excluded H6, filter-type match or ANY,
---- castrate-chicken excluded), then sort case-insensitive name + uniqueId tie-break (M2).
+--- scope admit (keepHusbandryType: nil-type excluded, filter-type match or ANY,
+--- castrate-chicken excluded), then sort case-insensitive name + uniqueId tie-break.
 --- Returns a NEW sorted array; the input is never mutated.
 ---@param husbandries table[]|nil descriptors { uniqueId, animalType, name }
 ---@param filterAnimalType any filter scope animalType, or nil for ANY (all types)
@@ -818,19 +838,35 @@ function RLHerdsmanRulePresenter.selectTargetableHusbandries(husbandries, filter
     return out
 end
 
---- Gate + order the SINGLE-select destination candidate list for a MOVE rule (decision 3b). Reuses
---- selectTargetableHusbandries with operation "move" (type-compatible with every type) for the
---- animalType-gated, name-sorted owner-farm candidate set, then DROPS any descriptor whose
---- `uniqueId` is in `excludeUids` (the rule's own source targetHusbandries): a source pen is never a
---- valid destination, which also keeps every offered dest resolvable in the executor's DI-pure
---- per-farm ctx map (source==dest would be bad data). Returns a NEW array; inputs never mutated.
----@param husbandries table[]|nil descriptors { uniqueId, animalType, name }
+--- Gate + order the SINGLE-select destination candidate list for a MOVE rule (decision 3b). Gates
+--- each descriptor with the SET-AWARE keepDestinationType (operation "move", type-compatible with
+--- every type) so a husbandry dest (scalar `animalType`) AND an EPP butcher (set `animalTypes`) both
+--- survive the animalType scope, sorts by name, then DROPS any descriptor whose `uniqueId` is in
+--- `excludeUids` (the rule's own source targetHusbandries): a source pen is never a valid
+--- destination, which also keeps every offered dest resolvable in the executor's per-farm ctx maps
+--- (source==dest would be bad data). Cannot reuse selectTargetableHusbandries here - that path is the
+--- scalar source gate and would drop every EPP (nil scalar animalType). Returns a NEW array;
+--- inputs never mutated.
+---@param husbandries table[]|nil descriptors { uniqueId, animalType|animalTypes, name, isEPP? }
 ---@param filterAnimalType any filter scope animalType, or nil for ANY (all types)
 ---@param chickenTypeIndex any resolved CHICKEN index, or nil
 ---@param excludeUids table|nil array of source uniqueId strings to exclude from the dest candidates
 ---@return table[] sorted candidate descriptors (sources removed)
 function RLHerdsmanRulePresenter.selectDestinationHusbandries(husbandries, filterAnimalType, chickenTypeIndex, excludeUids)
-    local gated = RLHerdsmanRulePresenter.selectTargetableHusbandries(husbandries, filterAnimalType, "move", chickenTypeIndex)
+    local gated = {}
+    local typeGated = 0
+    if type(husbandries) == "table" then
+        for _, h in ipairs(husbandries) do
+            local typeSpec = type(h) == "table" and (h.animalTypes or h.animalType) or nil
+            if type(h) == "table" and keepDestinationType(typeSpec, filterAnimalType, "move", chickenTypeIndex) then
+                gated[#gated + 1] = h
+            else
+                typeGated = typeGated + 1
+            end
+        end
+    end
+    table.sort(gated, compareHusbandriesByName)
+
     local excluded = {}
     if type(excludeUids) == "table" then
         for _, uid in ipairs(excludeUids) do excluded[uid] = true end
@@ -838,19 +874,19 @@ function RLHerdsmanRulePresenter.selectDestinationHusbandries(husbandries, filte
     local out = {}
     local removed = 0
     for _, h in ipairs(gated) do
-        if type(h) == "table" and excluded[h.uniqueId] then
+        if excluded[h.uniqueId] then
             removed = removed + 1
         else
             out[#out + 1] = h
         end
     end
-    Log:trace("RLHerdsmanRulePresenter.selectDestinationHusbandries: filterType=%s -> %d candidate(s), %d source(s) excluded",
-        tostring(filterAnimalType), #out, removed)
+    Log:trace("RLHerdsmanRulePresenter.selectDestinationHusbandries: filterType=%s -> %d candidate(s), %d type-gated, %d source(s) excluded",
+        tostring(filterAnimalType), #out, typeGated, removed)
     return out
 end
 
 --- Revalidate a rule's stored target uniqueIds after a filter rebind OR an operation change
---- (H2/H4). For each uid: if it is ABSENT from `typeByUid` it is UNRESOLVABLE (a deleted /
+---. For each uid: if it is ABSENT from `typeByUid` it is UNRESOLVABLE (a deleted /
 --- transiently-unloaded placeable, or a nil-type one the frame did not map) and is PRESERVED
 --- - protecting the `(missing)` repair affordance + MP transient-divergence; only a
 --- type-incompatible RESOLVABLE target drops (same keepHusbandryType gate as the picker, so
@@ -873,7 +909,7 @@ function RLHerdsmanRulePresenter.revalidateTargets(targetHusbandries, typeByUid,
         for _, uid in ipairs(targetHusbandries) do
             local at = types[uid]
             if at == nil then
-                -- Unresolvable (deleted / transient / nil-type): PRESERVE (H2).
+                -- Unresolvable (deleted / transient / nil-type): PRESERVE.
                 kept[#kept + 1] = uid
                 preserved = preserved + 1
             elseif keepHusbandryType(at, filterAnimalType, operation, chickenTypeIndex) then
@@ -892,11 +928,14 @@ end
 --- change - the single-key twin of revalidateTargets, durable against BOTH gate axes. A nil
 --- dest stays nil. A dest ABSENT from `typeByUid` is UNRESOLVABLE (deleted / transient / nil-type)
 --- and is PRESERVED - protecting the `(missing)` repair affordance + MP transient-divergence. A
---- RESOLVABLE dest drops to nil when EITHER its type is no longer keepHusbandryType-admitted (the
+--- RESOLVABLE dest drops to nil when EITHER its type is no longer keepDestinationType-admitted (the
 --- picker's gate, operation "move") OR its `uniqueId` is now a member of `sourceUids` (a post-pick
---- source edit turned the dest into a source - the executor treats source==dest as bad data).
+--- source edit turned the dest into a source - the executor treats source==dest as bad data). The
+--- `typeByUid` value is a scalar animalType (husbandry dest) OR a type-index SET (an EPP butcher
+--- dest), gated set-aware; an EPP dest that maps to a set is type-gated instead of preserved
+--- forever.
 ---@param destinationHusbandry any the stored dest uniqueId string, or nil
----@param typeByUid table|nil map uniqueId -> animalType index for LIVE husbandries (non-nil types only)
+---@param typeByUid table|nil map uniqueId -> animalType index (husbandry) or type-index set (EPP) for LIVE dests
 ---@param filterAnimalType any filter scope animalType, or nil for ANY
 ---@param chickenTypeIndex any resolved CHICKEN index, or nil
 ---@param sourceUids table|nil array of the rule's source target uniqueId strings
@@ -913,7 +952,7 @@ function RLHerdsmanRulePresenter.revalidateDestination(destinationHusbandry, typ
         Log:trace("RLHerdsmanRulePresenter.revalidateDestination: dest %s unresolvable -> preserved", tostring(destinationHusbandry))
         return destinationHusbandry
     end
-    if not keepHusbandryType(at, filterAnimalType, "move", chickenTypeIndex) then
+    if not keepDestinationType(at, filterAnimalType, "move", chickenTypeIndex) then
         Log:trace("RLHerdsmanRulePresenter.revalidateDestination: dest %s now type-incompatible -> dropped", tostring(destinationHusbandry))
         return nil
     end
@@ -965,7 +1004,7 @@ function RLHerdsmanRulePresenter.getHusbandrySummary(targetHusbandries, resolveN
     return table.concat(names, ", ")
 end
 
---- Count-form label for the detail-pane husbandries BUTTON (H5) - replaces the old full
+--- Count-form label for the detail-pane husbandries BUTTON - replaces the old full
 --- name-join (which overflowed a single-line button). 0 targets -> `labels.none` (the
 --- "select husbandries" CTA, mirroring the filter button's empty CTA); exactly 1 -> that
 --- husbandry's resolved name via the injected `resolveName(uid)` (unresolvable -> the
@@ -1168,7 +1207,7 @@ function RLHerdsmanRulePresenter.validateEdit(draft)
     return { valid = valid, nameOk = nameOk, operationOk = operationOk, filterOk = filterOk, filterRequired = filterRequired, husbandriesOk = husbandriesOk, paramsOk = paramsOk, destinationOk = destinationOk, destinationRequired = destinationRequired }
 end
 
---- The detail-pane FLUSH gate (H3/1a) - the enabled-conditional refinement of validateEdit.
+--- The detail-pane FLUSH gate - the enabled-conditional refinement of validateEdit.
 --- Builds on validateEdit but makes the husbandry requirement ENABLED-CONDITIONAL: a rule
 --- needs >= 1 target ONLY when it is `enabled`. A disabled / incomplete rule therefore stays
 --- fully editable and persists with 0 targets (= a no-op rule, the empty=no-op contract);

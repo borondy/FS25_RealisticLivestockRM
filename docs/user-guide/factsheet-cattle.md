@@ -93,9 +93,9 @@ Bulls consistently sell for more than cows at all ages. Beef breeds (Angus, Limo
 | Quality genetics | Better genetics -> noticeably higher price |
 | Weight | Well-fed animals near target weight are worth more |
 | Health | Healthy animals sell for significantly more |
-| Lactating | Moderate price bonus |
+| Lactating | Small price bonus |
 | Pregnant | Moderate price bonus |
-| Castrated | Moderate price bonus |
+| Castrated | Small price bonus |
 | Diseases | Can substantially reduce price |
 
 ---
@@ -211,14 +211,15 @@ All cattle breeds share the same reproduction rules:
 
 ### Offspring per Birth
 
-| Age of Cow | No Birth | 1 Calf | Twins | Triplets |
-|------------|----------|--------|-------|----------|
-| 12-28 mo | Moderate | Most likely | Rare | Very rare |
-| 29-48 mo (prime) | Low | Most likely | Rare | Very rare |
-| 49-84 mo | Increasing | Most likely | Rare | Very rare |
-| 85-132 mo (old) | Very common | Less likely | Very rare | Extremely rare |
+Cattle almost always produce a single calf. Twins and triplets can happen, more often from cows with high fertility genetics than from age.
 
-*Healthy cows are much more likely to produce offspring. Low health increases the chance of no birth and complications.*
+| Outcome | Likelihood |
+|---------|------------|
+| 1 calf | Most likely |
+| Twins | Uncommon |
+| Triplets | Rare |
+
+*Litter size does not depend on age - a cow's chance of conceiving each cycle does. Fertility stays steady through the prime years and tapers to zero by 132 months. A cow must be at 75% health or above to conceive.*
 
 ### Breeding Restrictions
 

@@ -43,7 +43,7 @@ function RLHerdsmanFilterPickerDialog.new(target, customMt)
 end
 
 --- Static entry point. The frame passes the already-scoped, already-sorted candidate list and
---- the rule's current filterId for preselection. `currentUnavailable` (M4) is true when the
+--- the rule's current filterId for preselection. `currentUnavailable` is true when the
 --- rule HAS a current filter that the operation scope dropped from the list (e.g. a chicken
 --- filter on a castrate rule): the dialog then refuses to silently preselect row 1, shows a
 --- hint, and requires an explicit pick before OK commits.
@@ -51,7 +51,7 @@ end
 ---@param target table callback target (the Herdsman frame)
 ---@param filters table[] candidate filter records (each with id + name), scoped + sorted by the frame
 ---@param currentFilterId string|nil the rule's current filter id, preselected when present in the list
----@param currentUnavailable boolean|nil true when the current binding was dropped by the scope (M4)
+---@param currentUnavailable boolean|nil true when the current binding was dropped by the scope
 function RLHerdsmanFilterPickerDialog.show(callback, target, filters, currentFilterId, currentUnavailable)
     if RLHerdsmanFilterPickerDialog.INSTANCE == nil then
         RLHerdsmanFilterPickerDialog.register()
@@ -103,7 +103,7 @@ function RLHerdsmanFilterPickerDialog:onGuiSetupFinished()
 end
 
 -- =============================================================================
--- Hint surface (M4 current-binding-unavailable; mirrors RLFilterValueSetDialog)
+-- Hint surface (current-binding-unavailable; mirrors RLFilterValueSetDialog)
 -- =============================================================================
 
 function RLHerdsmanFilterPickerDialog:showHint(l10nKey)

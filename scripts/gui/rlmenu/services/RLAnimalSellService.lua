@@ -152,10 +152,13 @@ end
 --- @param totalFee number Sum of transportation fees (positive)
 --- @param callback function Callback function(target, errorCode)
 --- @param target table Callback target (typically the frame)
-function RLAnimalSellService.sellAnimals(husbandry, animals, totalPrice, totalFee, callback, target)
+--- @param deps table|nil Optional RLAnimalEventRequest injection seam (in-game recorder test); nil -> real g_*
+--- @return boolean accepted True when the request was armed + dispatched; false when nothing was dispatched
+---   (no animals, or a same-class request already in flight). The caller keeps its selection + releases its lock on false.
+function RLAnimalSellService.sellAnimals(husbandry, animals, totalPrice, totalFee, callback, target, deps)
     if animals == nil or #animals == 0 then
         Log:debug("RLAnimalSellService.sellAnimals: no animals, skipping")
-        return
+        return false
     end
 
     Log:debug("RLAnimalSellService.sellAnimals: %d animals from '%s' (price=%.0f fee=%.0f)",
@@ -163,15 +166,15 @@ function RLAnimalSellService.sellAnimals(husbandry, animals, totalPrice, totalFe
         tostring(husbandry and husbandry.getName and husbandry:getName()),
         totalPrice, totalFee)
 
-    -- Subscription handler: unsubscribe immediately on response, then fire caller's callback.
-    -- Uses a unique table as subscription identity to avoid cross-fire with other subscribers.
-    local subscriptionId = {}
-    local function onSellResponse(_self, errorCode)
+    -- Route the subscribe + dispatch through the shared request helper: one in-flight
+    -- request per event CLASS, a cancellable watchdog, and a single-consume completion.
+    -- The helper owns unsubscribe + cleanup; onSellResponse keeps the caller-callback shape.
+    -- errorCode may be RLAnimalEventRequest.TIMEOUT_CODE on watchdog expiry (!= SELL_SUCCESS,
+    -- so it surfaces as a failure and getErrorText maps it to the timeout text).
+    local function onSellResponse(errorCode)
         Log:trace("RLAnimalSellService.onSellResponse: errorCode=%s", tostring(errorCode))
-        g_messageCenter:unsubscribe(AnimalSellEvent, subscriptionId)
-
         if errorCode ~= AnimalSellEvent.SELL_SUCCESS then
-            Log:debug("RLAnimalSellService.onSellResponse: sell failed, errorCode=%d", errorCode)
+            Log:debug("RLAnimalSellService.onSellResponse: sell failed, errorCode=%s", tostring(errorCode))
         else
             Log:info("RLAnimalSellService.onSellResponse: sell succeeded (%d animals)", #animals)
         end
@@ -185,14 +188,15 @@ function RLAnimalSellService.sellAnimals(husbandry, animals, totalPrice, totalFe
         end
     end
 
-    g_messageCenter:subscribe(AnimalSellEvent, onSellResponse, subscriptionId)
-    Log:trace("RLAnimalSellService.sellAnimals: subscribed to AnimalSellEvent, sending event")
-
-    -- AnimalSellEvent expects transportPrice as NEGATIVE (fee sign convention)
-    g_client:getServerConnection():sendEvent(
-        AnimalSellEvent.new(husbandry, animals, totalPrice, -totalFee)
-    )
-    Log:trace("RLAnimalSellService.sellAnimals: sendEvent returned")
+    -- AnimalSellEvent expects transportPrice as NEGATIVE (fee sign convention).
+    local accepted = RLAnimalEventRequest.dispatch(
+        AnimalSellEvent,
+        AnimalSellEvent.new(husbandry, animals, totalPrice, -totalFee),
+        onSellResponse, nil, deps)
+    if not accepted then
+        Log:debug("RLAnimalSellService.sellAnimals: dispatch rejected (same-class request in flight)")
+    end
+    return accepted
 end
 
 
@@ -253,6 +257,10 @@ end
 --- @param errorCode number The error code from AnimalSellEvent
 --- @return string Localized error text, or a generic fallback for unknown codes
 function RLAnimalSellService.getErrorText(errorCode)
+    if errorCode == RLAnimalEventRequest.TIMEOUT_CODE then
+        Log:trace("RLAnimalSellService.getErrorText: synthetic timeout code -> rl_ui_tradeRequestTimeout")
+        return g_i18n:getText("rl_ui_tradeRequestTimeout")
+    end
     local mapping = AnimalScreenDealerFarm.SELL_ERROR_CODE_MAPPING[errorCode]
     if mapping ~= nil and mapping.text ~= nil then
         Log:trace("RLAnimalSellService.getErrorText: code=%d -> key='%s'", errorCode, mapping.text)

@@ -2,6 +2,16 @@ AIAnimalManager = {}
 
 local AIAnimalManager_mt = Class(AIAnimalManager)
 
+--- Master freeze for the legacy per-pen herdsman day-tick. The legacy AnimalScreen tab that
+--- used to view and edit these ops is retired, so an enabled op would otherwise run invisible,
+--- unstoppable automation (buy/sell/castrate/name/AI) and keep charging a daily wage with no
+--- in-game way to see or disable it. While this is true the RLRM-authored call sites skip the
+--- legacy day-change execution and its wage, and the herdsman frame hides the legacy-active
+--- banner. Only the call sites are gated; onDayChanged, the op bodies, and save/load stay
+--- byte-identical and reversible. Read at RUNTIME only: this module sources after its placeable
+--- consumer, so a load-time read of the flag would see nil and silently fail to freeze.
+AIAnimalManager.FREEZE_LEGACY_HERDSMAN = true
+
 
 function AIAnimalManager.new(husbandry, isServer)
 
@@ -409,7 +419,6 @@ function AIAnimalManager:onDayChanged()
 	local animalSystem = g_currentMission.animalSystem
 	local animalTypeIndex = self.husbandry:getAnimalTypeIndex()
 	local animalTypeToWage = self.ANIMAL_TYPE_TO_WAGE[animalTypeIndex] or 5
-	local messages = {}
 
 
 	-- ####################### SELL #######################
@@ -486,10 +495,8 @@ function AIAnimalManager:onDayChanged()
 
 				if #soldAnimals == 1 then
 					self.husbandry:addRLMessage("AI_MANAGER_SOLD_SINGLE", nil, { g_i18n:formatMoney(amountGained, 2, true, true) })
-					table.insert(messages, { ["id"] = "AI_MANAGER_SOLD_SINGLE", ["args"] = { g_i18n:formatMoney(amountGained, 2, true, true) } })
 				else
 					self.husbandry:addRLMessage("AI_MANAGER_SOLD_MULTIPLE", nil, { #soldAnimals, g_i18n:formatMoney(amountGained, 2, true, true) })
-					table.insert(messages, { ["id"] = "AI_MANAGER_SOLD_MULTIPLE", ["args"] = { #soldAnimals, g_i18n:formatMoney(amountGained, 2, true, true) } })
 				end
 
 			end
@@ -498,10 +505,8 @@ function AIAnimalManager:onDayChanged()
 
 			if #soldAnimals == 1 then
 				self.husbandry:addRLMessage("AI_MANAGER_MARK_SELL_SINGLE")
-				table.insert(messages, { ["id"] = "AI_MANAGER_MARK_SELL_SINGLE" })
 			else
 				self.husbandry:addRLMessage("AI_MANAGER_MARK_SELL_MULTIPLE", nil, { #soldAnimals })
-				table.insert(messages, { ["id"] = "AI_MANAGER_MARK_SELL_MULTIPLE", ["args"] = { #soldAnimals }})
 			end
 
 		end
@@ -583,10 +588,8 @@ function AIAnimalManager:onDayChanged()
 
 					if #boughtAnimals == 1 then
 						self.husbandry:addRLMessage("AI_MANAGER_BOUGHT_SINGLE", nil, { g_i18n:formatMoney(amountSpent, 2, true, true) })
-						table.insert(messages, { ["id"] = "AI_MANAGER_BOUGHT_SINGLE", ["args"] = { g_i18n:formatMoney(amountSpent, 2, true, true) } })
 					else
 						self.husbandry:addRLMessage("AI_MANAGER_BOUGHT_MULTIPLE", nil, { #boughtAnimals, g_i18n:formatMoney(amountSpent, 2, true, true) })
-						table.insert(messages, { ["id"] = "AI_MANAGER_BOUGHT_MULTIPLE", ["args"] = { #boughtAnimals, g_i18n:formatMoney(amountSpent, 2, true, true) } })
 					end
 
 				end
@@ -649,18 +652,14 @@ function AIAnimalManager:onDayChanged()
 		if castrate.mark then
 			if numCastrated == 1 then
 				self.husbandry:addRLMessage("AI_MANAGER_MARK_CASTRATE_SINGLE")
-				table.insert(messages, { ["id"] = "AI_MANAGER_MARK_CASTRATE_SINGLE" })
 			elseif numCastrated > 0 then
 				self.husbandry:addRLMessage("AI_MANAGER_MARK_CASTRATE_MULTIPLE", nil, { numCastrated })
-				table.insert(messages, { ["id"] = "AI_MANAGER_MARK_CASTRATE_MULTIPLE", ["args"] = { numCastrated } })
 			end
 		else
 			if numCastrated == 1 then
 				self.husbandry:addRLMessage("AI_MANAGER_CASTRATED_SINGLE")
-				table.insert(messages, { ["id"] = "AI_MANAGER_CASTRATED_SINGLE" })
 			elseif numCastrated > 0 then
 				self.husbandry:addRLMessage("AI_MANAGER_CASTRATED_MULTIPLE", nil, { numCastrated })
-				table.insert(messages, { ["id"] = "AI_MANAGER_CASTRATED_MULTIPLE", ["args"] = { numCastrated } })
 			end
 		end
 
@@ -718,10 +717,8 @@ function AIAnimalManager:onDayChanged()
 
 		if numNamed == 1 then
 			self.husbandry:addRLMessage("AI_MANAGER_NAMED_SINGLE")
-			table.insert(messages, { ["id"] = "AI_MANAGER_NAMED_SINGLE" })
 		elseif numNamed > 0 then
 			self.husbandry:addRLMessage("AI_MANAGER_NAMED_MULTIPLE", nil, { numNamed })
-			table.insert(messages, { ["id"] = "AI_MANAGER_NAMED_MULTIPLE", ["args"] = { numNamed } })
 		end
 
 	end
@@ -818,7 +815,10 @@ function AIAnimalManager:onDayChanged()
 
 			if #inseminatedAnimals >= ai.maxAnimals then break end
 
-			table.insert(inseminatedAnimals, { ["animal"] = item.animal, ["dewar"] = item.dewar:getUniqueId() })
+			-- Pass the live dewar object: AIAnimalInseminationEvent wires the dewar as a network
+			-- node object. (This legacy tick is frozen via
+			-- AIAnimalManager.FREEZE_LEGACY_HERDSMAN; kept wire-correct in case it is ever unfrozen.)
+			table.insert(inseminatedAnimals, { ["animal"] = item.animal, ["dewar"] = item.dewar })
 
 			if mark then item.animal:setMarked("AI_MANAGER_INSEMINATE", true) end
 
@@ -834,28 +834,22 @@ function AIAnimalManager:onDayChanged()
 
 			if #inseminatedAnimals == 1 then
 				self.husbandry:addRLMessage("AI_MANAGER_INSEMINATED_SINGLE")
-				table.insert(messages, { ["id"] = "AI_MANAGER_INSEMINATED_SINGLE" })
 			else
 				self.husbandry:addRLMessage("AI_MANAGER_INSEMINATED_MULTIPLE", nil, { #inseminatedAnimals })
-				table.insert(messages, { ["id"] = "AI_MANAGER_INSEMINATED_MULTIPLE", ["args"] = { #inseminatedAnimals } })
 			end
 
 		elseif #inseminatedAnimals > 0 then
 
 			if #inseminatedAnimals == 1 then
 				self.husbandry:addRLMessage("AI_MANAGER_MARK_INSEMINATED_SINGLE")
-				table.insert(messages, { ["id"] = "AI_MANAGER_MARK_INSEMINATED_SINGLE" })
 			else
 				self.husbandry:addRLMessage("AI_MANAGER_MARK_INSEMINATED_MULTIPLE", nil, { #inseminatedAnimals })
-				table.insert(messages, { ["id"] = "AI_MANAGER_MARK_INSEMINATED_MULTIPLE", ["args"] = { #inseminatedAnimals } })
 			end
 
 		end
 
 	end
 
-
-	if #messages > 0 and g_server.netIsRunning then g_server:broadcastEvent(AIBulkMessageEvent.new(self.husbandry, messages)) end
 
 
 end

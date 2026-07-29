@@ -1,6 +1,6 @@
 --[[
     RLTransferPenAdapter.lua
-    The PEN counterpart adapter behind the RLTransferAdapter seam (Phase 8 M2).
+    The PEN counterpart adapter behind the RLTransferAdapter seam.
 
     When a livestock trailer is triggered at an animal pen, the Transfer frame's
     "other side" is that pen. This adapter reads the pen husbandry from the open
@@ -119,14 +119,21 @@ function RLTransferPenAdapter:dispatch(direction, animals, context)
     -- preserved - this still routes to moveAnimals; only the result space is adapted.
     -- moveAnimals fires the callback with MOVE_SUCCESS / an error code (incl. the
     -- all-rejected firstErrorCode), never nil, so the nil success branch is defensive.
-    RLAnimalMoveService.moveAnimals(source, target, animals, plan.moveType, function(errorCode)
+    -- Propagate the move service's accept/reject boolean instead of an
+    -- unconditional true: a false return (a same-class move already in flight) must reach
+    -- RLMenuTransferFrame:dispatchTransfer so it releases movePending + keeps the selection
+    -- rather than stranding the lock waiting on a completion that will never fire.
+    local accepted = RLAnimalMoveService.moveAnimals(source, target, animals, plan.moveType, function(errorCode)
         local success = (errorCode == nil or errorCode == AnimalMoveEvent.MOVE_SUCCESS)
         local errorText = (not success) and RLAnimalMoveService.getErrorText(errorCode) or nil
         if context.onComplete ~= nil then
             context.onComplete(success, errorText)
         end
     end)
-    return true
+    if not accepted then
+        Log:debug("RLTransferPenAdapter:dispatch: move service rejected the dispatch (returning false so the frame releases movePending)")
+    end
+    return accepted
 end
 
 -- Register at load so forCounterpart("pen") resolves this adapter in-game. The

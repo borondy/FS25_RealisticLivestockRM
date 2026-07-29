@@ -1,5 +1,5 @@
 -- RLHerdsmanRuleSerialization.lua
--- Flat-record XML writer/reader for Herdsman rule records (M-Service S2).
+-- Flat-record XML writer/reader for Herdsman rule records.
 --
 -- Canonical XML key contract (under RLHerdsmanRuleService.XML_BASE_KEY =
 -- "rm_RlSettings.herdsmanRules"):

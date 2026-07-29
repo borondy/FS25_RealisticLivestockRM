@@ -112,18 +112,6 @@ function PlayerInputComponent:onFinishedLoadStraw(handTool, loadingState, args)
 end
 
 
-function RealisticLivestock_PlayerInputComponent:registerGlobalPlayerActionEvents()
-
-    VisualAnimalsDialog.register()
-
-    g_inputBinding:registerActionEvent(InputAction.VisualAnimalsDialog, VisualAnimalsDialog, VisualAnimalsDialog.show, false, true, false, true, nil, true)
-
-end
-
-
-PlayerInputComponent.registerGlobalPlayerActionEvents = Utils.appendedFunction(PlayerInputComponent.registerGlobalPlayerActionEvents, RealisticLivestock_PlayerInputComponent.registerGlobalPlayerActionEvents)
-
-
 function RealisticLivestock_PlayerInputComponent.onFinishedRideBlending(superFunc, _, args)
     local placeable = args[1]
     placeable:startRiding(RLAnimalUtil.toShortKey(args[2].farmId, args[2].uniqueId), args[3])

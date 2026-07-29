@@ -554,7 +554,7 @@ end
 
 --- Wipe the in-memory filter registry. Does NOT touch the save file; the
 --- next save cycle will persist the cleared state. SP-only by the outer
---- registration guard (P2 has no MP events yet).
+--- registration guard.
 ---@return string user-facing result
 function RLConsoleCommandManager:clearFilters()
 

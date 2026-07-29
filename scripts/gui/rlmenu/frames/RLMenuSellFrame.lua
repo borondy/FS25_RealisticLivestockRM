@@ -1,15 +1,13 @@
 --[[
     RLMenuSellFrame.lua
-    RL Tabbed Menu - Sell tab (Phase 4, shell).
+    RL Tabbed Menu - Sell tab.
 
     Left-sidebar husbandry picker with dot indicators, multi-section
     SmoothList of animal cards with checkboxes for multi-select, and
     right-hand detail pane (pen column + animal column via RLDetailPaneHelper).
 
-    Phase 1 (shell): browsable frame with shared selection, canBeSold filter,
-    and disabled Sell/Sell Selected placeholder buttons.
-    Phase 2 adds cart display in pen column.
-    Phase 3 wires actual sell logic via RLAnimalSellService.
+    Shared selection, canBeSold filter, cart display in the pen column;
+    sell logic via RLAnimalSellService.
 ]]
 
 RLMenuSellFrame = {}
@@ -41,6 +39,11 @@ function RLMenuSellFrame.new()
 
     self.isFrameOpen = false
     self.hasCustomMenuButtons = true
+
+    -- In-flight UI lock for a dispatched sale (mirrors RLMenuTransferFrame.movePending):
+    -- set before dispatch, released on the service's false return or on completion, and
+    -- reset on frame open so a stranded lock self-heals.
+    self.sellPending = false
 
     self.activeAnimalTypeIndex = nil
 
@@ -135,6 +138,8 @@ end
 function RLMenuSellFrame:onFrameOpen()
     RLMenuSellFrame:superClass().onFrameOpen(self)
     self.isFrameOpen = true
+    -- Self-heal a lock stranded by a sale whose completion never fired (frame closed mid-flight).
+    self.sellPending = false
     Log:debug("RLMenuSellFrame:onFrameOpen")
 
     -- Import shared selection from sibling frame (Info <-> Move <-> Sell)
@@ -297,6 +302,17 @@ function RLMenuSellFrame:refreshHusbandries()
     Log:debug("RLMenuSellFrame:refreshHusbandries: farmId=%s husbandries=%d",
         tostring(farmId), #self.sortedHusbandries)
 
+    -- Capture-and-consume the one-shot MODE_FULL husbandry anchor into a local and
+    -- clear the shared field NOW - before the empty-list guard below - so every path
+    -- (empty, selector-nil, populated) consumes it exactly once and none leaks it to
+    -- a later open. The trailer-dealer early-return above never reaches here, and the
+    -- anchor is already nil in trailer mode, so that branch stays untouched.
+    local anchorHusbandry = nil
+    if g_rlMenu ~= nil then
+        anchorHusbandry = g_rlMenu.anchoredHusbandry
+        g_rlMenu.anchoredHusbandry = nil
+    end
+
     if self.subCategoryDotBox ~= nil then
         for i, dot in pairs(self.subCategoryDotBox.elements) do
             dot:delete()
@@ -348,18 +364,22 @@ function RLMenuSellFrame:refreshHusbandries()
         self.subCategoryDotBox:setVisible(1 < #names)
     end
 
-    -- Resolve initial husbandry: match shared selection by placeable reference,
-    -- fall back to state 1 if not found or no shared state.
-    local initialState = 1
-    if g_rlMenu ~= nil and g_rlMenu.sharedSelection ~= nil
-        and g_rlMenu.sharedSelection.husbandry ~= nil then
-        for i, h in ipairs(self.sortedHusbandries) do
-            if h == g_rlMenu.sharedSelection.husbandry then
-                initialState = i
-                break
-            end
+    -- Resolve initial husbandry: prefer the one-shot anchor, then the persistent
+    -- shared selection, then the first pen (all matched by placeable identity).
+    local sharedHusbandry = nil
+    if g_rlMenu ~= nil and g_rlMenu.sharedSelection ~= nil then
+        sharedHusbandry = g_rlMenu.sharedSelection.husbandry
+    end
+    local initialState, anchorMatched =
+        RLMenuHusbandryAnchor.resolveIndex(self.sortedHusbandries, anchorHusbandry, sharedHusbandry)
+    if anchorHusbandry ~= nil then
+        if anchorMatched then
+            Log:debug("RLMenuSellFrame:refreshHusbandries: anchor resolved to state=%d", initialState)
+        else
+            Log:debug("RLMenuSellFrame:refreshHusbandries: anchor not in current farm list, unanchored (state=%d)", initialState)
         end
-        Log:trace("RLMenuSellFrame:refreshHusbandries: shared husbandry resolved to state=%d", initialState)
+    else
+        Log:trace("RLMenuSellFrame:refreshHusbandries: husbandry resolved to state=%d (no anchor)", initialState)
     end
 
     if self.subCategorySelector ~= nil then
@@ -489,8 +509,8 @@ function RLMenuSellFrame:reloadAnimalList()
         -- listAnimalsForHusbandry (RLAnimalQuery.lua), so the Quick filter still
         -- narrows the trailer list and section grouping order matches.
         self.items = self:buildTrailerSellItems()
-        if RL_AnimalScreenBase ~= nil and RL_AnimalScreenBase.sortAnimals ~= nil then
-            table.sort(self.items, RL_AnimalScreenBase.sortAnimals)
+        if RLAnimalDisplayHelper ~= nil and RLAnimalDisplayHelper.sortAnimals ~= nil then
+            table.sort(self.items, RLAnimalDisplayHelper.sortAnimals)
         end
         if next(self.filters) ~= nil
             and AnimalFilterDialog ~= nil and AnimalFilterDialog.applyFilters ~= nil then
@@ -761,9 +781,9 @@ function RLMenuSellFrame:computeCartTotals()
             for _, item in ipairs(items) do
                 if item.cluster ~= nil then
                     local cluster = item.cluster
-                    local identityKey = RLAnimalUtil.toKey(cluster.farmId, cluster.uniqueId,
-                        cluster.birthday and cluster.birthday.country or "")
-                    if self.selectedAnimals[identityKey] then
+                    local identityKey = RLSelectionKey.build(cluster.farmId, cluster.uniqueId,
+                        cluster.birthday and cluster.birthday.country)
+                    if identityKey ~= nil and self.selectedAnimals[identityKey] then
                         totalPrice = totalPrice + (cluster:getSellPrice() or 0)
                         totalFee = totalFee + (cluster:getTranportationFee(1) or 0)
                         count = count + 1
@@ -814,14 +834,22 @@ end
 
 --- Toggle the focused animal's checkbox.
 function RLMenuSellFrame:onClickSelect()
+    if not self.isFrameOpen then
+        Log:trace("RLMenuSellFrame:onClickSelect: frame closed, ignoring")
+        return
+    end
     local animal = self:getSelectedAnimal()
     if animal == nil then
         Log:trace("RLMenuSellFrame:onClickSelect: no animal focused")
         return
     end
 
-    local key = RLAnimalUtil.toKey(animal.farmId, animal.uniqueId,
-        animal.birthday and animal.birthday.country or "")
+    local key = RLSelectionKey.build(animal.farmId, animal.uniqueId,
+        animal.birthday and animal.birthday.country)
+    if key == nil then
+        Log:trace("RLMenuSellFrame:onClickSelect: nil selection key, skipping")
+        return
+    end
     self.selectedAnimals[key] = not self.selectedAnimals[key]
     Log:trace("RLMenuSellFrame:onClickSelect: key=%s -> %s", key, tostring(self.selectedAnimals[key]))
 
@@ -838,6 +866,10 @@ end
 
 --- Toggle all animals: if any are checked, uncheck all; otherwise check all.
 function RLMenuSellFrame:onClickSelectAll()
+    if not self.isFrameOpen then
+        Log:trace("RLMenuSellFrame:onClickSelectAll: frame closed, ignoring")
+        return
+    end
     local hasSelection = self:getSelectedCount() > 0
 
     if hasSelection then
@@ -852,9 +884,13 @@ function RLMenuSellFrame:onClickSelectAll()
                 for _, item in ipairs(items) do
                     if item.cluster ~= nil then
                         local cluster = item.cluster
-                        local identityKey = RLAnimalUtil.toKey(cluster.farmId, cluster.uniqueId,
-                            cluster.birthday and cluster.birthday.country or "")
-                        self.selectedAnimals[identityKey] = true
+                        local identityKey = RLSelectionKey.build(cluster.farmId, cluster.uniqueId,
+                            cluster.birthday and cluster.birthday.country)
+                        if identityKey ~= nil then
+                            self.selectedAnimals[identityKey] = true
+                        else
+                            Log:trace("RLMenuSellFrame:onClickSelectAll: nil key for a cluster, skipping")
+                        end
                     end
                 end
             end
@@ -1047,10 +1083,18 @@ function RLMenuSellFrame:populateCellForItemInSection(list, section, index, cell
     if checkbox ~= nil then
         checkbox:setVisible(true)
         if check ~= nil then
-            local identityKey = RLAnimalUtil.toKey(row.farmId, row.uniqueId, row.country)
-            check:setVisible(self.selectedAnimals[identityKey] == true)
+            local identityKey = RLSelectionKey.build(row.farmId, row.uniqueId, row.country)
+            check:setVisible(identityKey ~= nil and self.selectedAnimals[identityKey] == true)
 
             checkbox.onClickCallback = function()
+                if not self.isFrameOpen then
+                    Log:trace("RLMenuSellFrame checkbox click: frame closed, ignoring")
+                    return
+                end
+                if identityKey == nil then
+                    Log:trace("RLMenuSellFrame checkbox click: nil selection key, skipping")
+                    return
+                end
                 self.selectedAnimals[identityKey] = not self.selectedAnimals[identityKey]
                 check:setVisible(self.selectedAnimals[identityKey] == true)
                 self:updateButtonVisibility()
@@ -1326,9 +1370,9 @@ function RLMenuSellFrame:onClickSellSelected()
             for _, item in ipairs(items) do
                 if item.cluster ~= nil then
                     local cluster = item.cluster
-                    local identityKey = RLAnimalUtil.toKey(cluster.farmId, cluster.uniqueId,
-                        cluster.birthday and cluster.birthday.country or "")
-                    if self.selectedAnimals[identityKey] then
+                    local identityKey = RLSelectionKey.build(cluster.farmId, cluster.uniqueId,
+                        cluster.birthday and cluster.birthday.country)
+                    if identityKey ~= nil and self.selectedAnimals[identityKey] then
                         table.insert(animals, cluster)
                     end
                 end
@@ -1383,6 +1427,14 @@ function RLMenuSellFrame:onSellConfirmed(clickYes)
         return
     end
 
+    -- In-flight guard: a sale is already awaiting a server reply. Keep the selection +
+    -- surface "in progress"; do NOT dispatch a second same-class request.
+    if self.sellPending then
+        Log:debug("RLMenuSellFrame:onSellConfirmed: a sale is already in flight, ignoring (selection kept)")
+        InfoDialog.show(g_i18n:getText("rl_ui_tradeRequestInProgress"))
+        return
+    end
+
     local animals  = self.pendingSellAnimals
     local price    = self.pendingSellPrice
     local fee      = self.pendingSellFee
@@ -1406,19 +1458,11 @@ function RLMenuSellFrame:onSellConfirmed(clickYes)
         self.dispatchedTrailer = nil
     end
 
-    -- Clear selections at confirm: a bulk-origin sale clears all (so rejected,
-    -- still-checked animals do not linger and re-sell); a single removes only the
-    -- sold animal. Trailer keys off the ORIGINAL bulk flag (survivors may be 1).
+    -- Selection-clear plan, APPLIED ONLY on an accepted dispatch below so a rejected
+    -- same-class sale keeps its selection: a bulk-origin sale clears all (so rejected,
+    -- still-checked animals do not linger and re-sell); a single removes only the sold
+    -- animal. Trailer keys off the ORIGINAL bulk flag (survivors may be 1).
     local clearAll = isTrailer and wasBulk or (not isTrailer and #animals > 1)
-    if clearAll then
-        self.selectedAnimals = {}
-    else
-        for _, animal in ipairs(animals) do
-            local key = RLAnimalUtil.toKey(animal.farmId, animal.uniqueId,
-                animal.birthday and animal.birthday.country or "")
-            self.selectedAnimals[key] = nil
-        end
-    end
 
     self:clearPendingSellState()
 
@@ -1430,9 +1474,39 @@ function RLMenuSellFrame:onSellConfirmed(clickYes)
             tostring(source.getName and source:getName()), #animals)
     end
 
-    RLAnimalSellService.sellAnimals(
+    -- Set the in-flight lock BEFORE dispatch (SP fires onSellComplete synchronously inside
+    -- sellAnimals, clearing the lock). Read the service's accept/reject: a false return means
+    -- no request is pending - release the lock and KEEP the selection so the player can retry.
+    self.sellPending = true
+    local accepted = RLAnimalSellService.sellAnimals(
         source, animals, price, fee,
         self.onSellComplete, self)
+
+    if not accepted then
+        self.sellPending = false
+        Log:debug("RLMenuSellFrame:onSellConfirmed: dispatch rejected/not-dispatched, keeping selection")
+        InfoDialog.show(g_i18n:getText("rl_ui_tradeRequestInProgress"))
+        return
+    end
+
+    -- Accepted: apply the selection-clear plan.
+    if clearAll then
+        self.selectedAnimals = {}
+    else
+        for _, animal in ipairs(animals) do
+            local key = RLSelectionKey.build(animal.farmId, animal.uniqueId,
+                animal.birthday and animal.birthday.country)
+            if key ~= nil then
+                self.selectedAnimals[key] = nil
+            end
+        end
+    end
+
+    -- Re-run the selection-derived refresh AFTER the clear: in SP the completion (onSellComplete)
+    -- already fired synchronously inside sellAnimals and repainted the cart/buttons from the
+    -- pre-clear selection, so recompute them against the now-cleared set.
+    self:updateCartDisplay()
+    self:updateButtonVisibility()
 end
 
 
@@ -1444,6 +1518,10 @@ end
 --- husbandry context) - mirrors the onTransferComplete identity guard.
 --- @param errorCode number
 function RLMenuSellFrame:onSellComplete(errorCode)
+    -- The dispatched request has completed (reply or watchdog timeout) - always release
+    -- the in-flight lock so the frame isn't stranded, even when a stale-guard skips the refresh.
+    self.sellPending = false
+
     if not self.isFrameOpen or self.selectedHusbandry == nil then
         Log:trace("RLMenuSellFrame:onSellComplete: stale frame (isFrameOpen=%s husbandry=%s), ignoring",
             tostring(self.isFrameOpen), tostring(self.selectedHusbandry ~= nil))
@@ -1465,7 +1543,7 @@ function RLMenuSellFrame:onSellComplete(errorCode)
 
     if errorCode ~= AnimalSellEvent.SELL_SUCCESS then
         InfoDialog.show(RLAnimalSellService.getErrorText(errorCode))
-        Log:debug("RLMenuSellFrame:onSellComplete: sell failed, errorCode=%d", errorCode)
+        Log:debug("RLMenuSellFrame:onSellComplete: sell failed, errorCode=%s", tostring(errorCode))
     else
         Log:info("RLMenuSellFrame:onSellComplete: sell succeeded")
     end
