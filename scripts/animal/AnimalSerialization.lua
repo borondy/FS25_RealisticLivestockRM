@@ -149,6 +149,9 @@ function AnimalSerialization.writeStream(animal, streamId, connection)
 
     streamWriteUInt8(streamId, #animal.diseases)
 
+    -- INDEXED walk, never `pairs`. The reader rebuilds with `table.insert`, so this loop's order
+    -- IS the client's array order - which is what makes every peer's per-animal disease fold
+    -- run over the same records in the same sequence. See the reader for the failure mode.
     for i = 1, #animal.diseases do
         animal.diseases[i]:writeStream(streamId, connection)
     end
@@ -334,18 +337,33 @@ function AnimalSerialization.readStream(animal, streamId, connection)
     local numDiseases = streamReadUInt8(streamId)
     local diseases = {}
 
+    -- POSITIONAL ROUND TRIP. The writer walks `1 .. #animal.diseases` and this rebuilds with
+    -- `table.insert` in the same order, so a client's array is a positional copy of the
+    -- server's. That is what makes both peers fold the same records in the same sequence, and
+    -- it is the property a rewrite loses silently - rebuild from a title-keyed map, a set,
+    -- per-state buckets or a re-sorted query and the arrays still hold the same records while
+    -- the fold's last bit stops agreeing. Nothing raises and no assert reddens.
     for i = 1, numDiseases do
         local diseaseTitle = streamReadString(streamId)
-        local diseaseType = g_diseaseManager ~= nil and g_diseaseManager:getDiseaseByTitle(diseaseTitle) or nil
+        -- Both identifiers are read off the wire well before this block, so they name the animal
+        -- this record belongs to rather than whatever the target shell held. tostring on the way
+        -- in keeps the key present even when a field is absent, so a grep cannot under-count.
+        --
+        -- NO nil tolerance on either half, and both halves are unreachable rather than
+        -- unguarded. A title the registry cannot answer for needs the two peers to hold
+        -- different definition files, which the join's mod check forbids; a nil manager needs
+        -- the mod not to have loaded, since it is assigned unconditionally at map load. So the
+        -- read resolves unconditionally and lets an impossible title raise, rather than carrying
+        -- a tolerance branch whose only producer is a state the join already refuses.
+        local diseaseType = g_diseaseManager:resolveRecordType(diseaseTitle,
+            { farmId = tostring(animal.farmId), uniqueId = tostring(animal.uniqueId),
+              context = "stream" })
+
         local disease = Disease.new(diseaseType)
 
         disease:readStream(streamId, connection)
 
         table.insert(diseases, disease)
-    end
-
-    if g_diseaseManager == nil and numDiseases > 0 then
-        Log:warning("g_diseaseManager unavailable during readStream, %d disease(s) loaded without type", numDiseases)
     end
 
     animal.diseases = diseases
@@ -421,6 +439,7 @@ function AnimalSerialization.writeStreamUnborn(animal, streamId, connection)
 
     streamWriteUInt8(streamId, #animal.diseases)
 
+    -- INDEXED walk, never `pairs` - the same positional contract as the animal path above.
     for i = 1, #animal.diseases do
         animal.diseases[i]:writeStream(streamId, connection)
     end
@@ -460,19 +479,23 @@ function AnimalSerialization.readStreamUnborn(animal, streamId, connection)
     local numDiseases = streamReadUInt8(streamId)
     local diseases = {}
 
+    -- POSITIONAL ROUND TRIP, exactly as in `readStream` - see the note there for what a rewrite
+    -- loses and why nothing catches it.
     for i = 1, numDiseases do
         local diseaseTitle = streamReadString(streamId)
-        local diseaseType = g_diseaseManager ~= nil and g_diseaseManager:getDiseaseByTitle(diseaseTitle) or nil
+        -- subTypeIndex is the only identifier this path holds: an unborn animal is assigned
+        -- neither uniqueId nor farmId, so naming either would put a nil in every warning.
+        --
+        -- No nil tolerance on either half, for the same two unreachability reasons as the
+        -- animal path above.
+        local diseaseType = g_diseaseManager:resolveRecordType(diseaseTitle,
+            { subTypeIndex = tostring(animal.subTypeIndex), context = "streamUnborn" })
+
         local disease = Disease.new(diseaseType)
 
         disease:readStream(streamId, connection)
 
         table.insert(diseases, disease)
-    end
-
-    if g_diseaseManager == nil and numDiseases > 0 then
-        Log:warning("g_diseaseManager unavailable during readStreamUnborn, %d disease(s) loaded without type",
-            numDiseases)
     end
 
     animal.diseases = diseases

@@ -31,16 +31,12 @@
 --     streamWriteUInt16 f.version      (widened from UInt8 to survive long-lived filters)
 --     writeGroup(streamId, f.expression)
 --
--- Sentinel -1 for optional ints avoids an extra bool per field.
--- A malformed condition is emitted as two empty strings (empty field is the
--- reader's sentinel marker; the reader skips and moves on).
+-- Sentinel -1 for an optional int avoids an extra bool per field. A malformed condition is
+-- emitted as two empty strings, the empty field being the reader's sentinel.
 --
--- Fail-closed behavior on read:
---   * Unknown catalog field -> log :warning, return nil. Caller's group
---     reader will likely desync thereafter; this is the acceptable Pattern A
---     failure mode (server rejects event, logs :warning).
---   * cmp not whitelisted in field.cmps -> log :warning, drain the scalar or
---     listN elements so the stream stays aligned, return nil.
+-- FAIL-CLOSED on read: an unknown catalog field warns and returns nil, and the group reader
+-- will likely desync from there - accepted, since the receiver then drops the event. An
+-- out-of-set cmp warns, DRAINS its elements so the stream stays aligned, and returns nil.
 
 local Log = RmLogging.getLogger("RLRM")
 
@@ -93,9 +89,8 @@ end
 -- Count / cmp helpers
 -- =============================================================================
 
---- Clamp + warn when a count exceeds UInt8 range. Writer-side only; keeps the
---- stream aligned by silently truncating to 255 with a :warning rather than
---- passing an out-of-range value to streamWriteUInt8 (undefined behavior).
+--- Clamp + warn when a count exceeds UInt8 range. Writer-side only: truncating to 255
+--- keeps the stream aligned, where an out-of-range streamWriteUInt8 is undefined.
 ---@param n integer
 ---@param what string descriptor for log
 ---@return integer clamped
@@ -111,10 +106,8 @@ local function clampU8(n, what)
     return n
 end
 
---- TRACE-log helper: serialize a list of scalar values (numbers / bools /
---- strings / enums) into a comma-joined string. `tostring` per element so
---- booleans render as `true`/`false` rather than triggering a `table.concat`
---- type error on mixed-type or bool lists.
+--- TRACE-log helper: comma-join a list of scalars. `tostring` per element, since
+--- `table.concat` raises on a bool or mixed-type list.
 ---@param list table
 ---@param n integer number of elements to serialize
 ---@return string
@@ -151,11 +144,8 @@ end
 -- Condition (leaf) IO
 -- =============================================================================
 
---- Write a single condition. Trusts caller validation of catalog/cmp/value
---- shape -- the service rejects malformed conditions before dispatch.
----
---- Malformed-input sentinel: writes two empty strings (empty field marks
---- the sentinel for the reader) and no payload bytes.
+--- Write a single condition, trusting the service's pre-dispatch validation. A malformed
+--- input writes the two-empty-string sentinel and no payload bytes.
 ---@param streamId number
 ---@param cond table { field, cmp, value }
 ---@return boolean wrote true on success
@@ -207,9 +197,8 @@ local function writeCondition(streamId, cond)
         if cond.value == nil then
             Log:warning("RLFilterWire.writeCondition: nil scalar value on field '%s' cmp='%s'; writing type default",
                 cond.field, cond.cmp)
-            -- Emit a type default so the stream stays aligned. Service-layer
-            -- validation should reject nil-scalar conditions before dispatch;
-            -- this is a belt-and-braces guard.
+            -- A type default keeps the stream aligned; the service layer already rejects
+            -- nil-scalar conditions before dispatch, so this is defence in depth.
             if field.type == "number" then
                 streamWriteFloat32(streamId, 0)
             elseif field.type == "bool" then
@@ -229,10 +218,8 @@ local function writeCondition(streamId, cond)
     return true
 end
 
---- Read a single condition. Returns a condition table on success, nil on
---- sentinel / unknown field / rejected cmp. On rejected cmp the reader
---- drains the scalar or listN payload so the surrounding group stream
---- stays aligned.
+--- Read a single condition, or nil on sentinel, unknown field or rejected cmp. A rejected
+--- cmp still DRAINS its payload so the surrounding group stream stays aligned.
 ---@param streamId number
 ---@return table|nil cond
 local function readCondition(streamId)
@@ -249,10 +236,8 @@ local function readCondition(streamId)
     if field == nil then
         Log:warning("RLFilterWire.readCondition: unknown field '%s' (catalog drift); stream may desync, dropping condition",
             tostring(fieldKey))
-        -- Cannot drain safely without field.type (catalog lookup is required
-        -- to decode the value). Pattern A acceptable failure mode: calling
-        -- group reader will misinterpret subsequent bytes, the event will be
-        -- dropped at receiver, server logs :warning.
+        -- Draining needs field.type to decode the value, so it is impossible here. The group
+        -- reader will misinterpret the following bytes and the receiver drops the event.
         return nil
     end
 
@@ -390,11 +375,9 @@ function RLFilterWire.writeFilter(streamId, filter)
     -- filters if a future cycle ever bumps the version.
     streamWriteUInt16(streamId, filter.version or 1)
 
-    -- 1-byte usage scope axis (#15: 0=ANY, 1=OWNED, 2=DEALER; reserved 3-255).
-    -- `or 0` fallback is defensive against an un-normalised in-memory filter
-    -- with nil usage (should not occur post-service-create/update normalisation
-    -- + serialization coerce). Defaulting to byte 0 (ANY) keeps the receiver's
-    -- decode path on a safe path even if a future caller bypasses normalisation.
+    -- 1-byte usage scope axis. The `or 0` fallback defends against an un-normalised in-memory
+    -- filter, which service create/update and the serializer should already have coerced;
+    -- defaulting to ANY keeps the receiver's decode safe if a caller ever bypasses that.
     streamWriteUInt8(streamId, RLFilterUsage.BYTE[filter.usage] or 0)
 
     local expression = filter.expression
@@ -432,11 +415,9 @@ function RLFilterWire.readFilter(streamId)
 
     local version = streamReadUInt16(streamId)
 
-    -- 1-byte usage scope axis (#15 / #14): known bytes 0/1/2 decode via the
-    -- FROM_BYTE map; reserved 3-255 coerce to ANY + WARN per the inbound-
-    -- boundary policy. The decoded canonical string lands in the returned
-    -- filter table so downstream `service:applyIncoming*` callers see a
-    -- pre-normalised value.
+    -- Known usage bytes decode via FROM_BYTE; a reserved byte coerces to ANY with a warning.
+    -- The canonical string lands in the returned table, so `service:applyIncoming*` callers
+    -- see a pre-normalised value.
     local usageByte = streamReadUInt8(streamId)
     local usage = RLFilterUsage.FROM_BYTE[usageByte]
     if usage == nil then

@@ -1,20 +1,16 @@
 --[[
     RLPenFeedForecast.lua
-    Read-only pen feed forecast: month-by-month simulation of the current
-    herd's feed consumption to estimate how many full game-months a pen's
-    food stock will last before depletion.
+    Read-only pen feed forecast: a month-by-month simulation of the current herd's feed
+    consumption, estimating how many full game-months a pen's food stock lasts.
 
-    Single source of truth for the daily-food formula is Animal._computeDailyFood;
-    this module operates only on scratch state and never mutates live Animal
-    entities. Scheduled births during the projection respect free pen slots
-    (excess offspring auto-sell and contribute zero feed demand).
-    Newborn metabolism is the deterministic midparent value so re-rendering
-    the same pen yields the same monthsRemaining.
+    The daily-food formula's single source of truth is Animal._computeDailyFood; this
+    module works only on scratch state and never mutates live Animal entities. Scheduled
+    births respect free pen slots (excess offspring auto-sell and add no feed demand), and
+    newborn metabolism is the deterministic midparent value, so re-rendering the same pen
+    yields the same monthsRemaining.
 
-    Bounds: returns integer in [0, MAX_MONTHS]. The UI renders the value as a
-    range "~M-(M+1)m" to express forecast uncertainty (the sim proves M full
-    months survive and busts mid-(M+1)). Edge cases: M=0 -> "<1m"; M=MAX_MONTHS
-    -> "~12+m".
+    Returns an integer in [0, MAX_MONTHS], rendered by the UI as a range "~M-(M+1)m" since
+    the sim proves M full months survive and busts mid-(M+1); 0 renders "<1m", MAX "~12+m".
 ]]
 
 RLPenFeedForecast = {}
@@ -100,11 +96,9 @@ local function sumDailyFood(scratch, foodScale)
 end
 
 
---- Per-tick state advance: age, monthsSinceLastBirth, lactation cutoff, and
---- (for pregnant animals) reproduction counter toward 100. Mirrors
---- Animal:onPeriodChanged for the lactation flip, Animal:onDayChanged
---- (collapsed to one age increment per simulated game-month), and the live
---- reproduction tick AnimalReproduction.getReproductionDelta * daysPerPeriod.
+--- Per-tick state advance: age, months since last birth, the lactation cutoff, and a
+--- pregnant animal's reproduction counter. Age collapses to one increment per simulated
+--- game-month.
 --- @param scratch table
 --- @param daysPerPeriod number game-days per game-month (>=1)
 local function tickStateAdvance(scratch, daysPerPeriod)
@@ -116,12 +110,8 @@ local function tickStateAdvance(scratch, daysPerPeriod)
             s.isLactating = false
         end
 
-        -- Advance gestation. Live formula (from AnimalReproduction): per-day
-        -- delta = floor((100 / duration) / daysPerPeriod).
-        -- Accumulated over daysPerPeriod days per simulated game-month, clamped
-        -- at 100. Without this, the food formula's gestation surge factor
-        -- (1 + reproduction/100/5)^N stays at the snapshot value and late-term
-        -- mothers undercount feed draw.
+        -- Advance gestation, clamped at 100. Without it the food formula's gestation
+        -- surge factor stays at its snapshot value and late-term mothers undercount draw.
         if s.isPregnant and s.pregnancy ~= nil then
             local duration = s.pregnancy.duration
             if duration == nil and s.subTypeRef ~= nil then
@@ -239,16 +229,17 @@ function RLPenFeedForecast.getMonthsRemaining(husbandry, foodTotalLiters)
     -- Environment snapshot used for calendar-keyed birth firing.
     local environment      = (g_currentMission ~= nil) and g_currentMission.environment or nil
     local daysPerPeriod    = (environment ~= nil and environment.daysPerPeriod) or 3
-    local currentPeriod    = (environment ~= nil and environment.currentPeriod) or 0
-    local currentYear      = (environment ~= nil and environment.currentYear) or 0
     local foodScale        = (RealisticLivestock_PlaceableHusbandryFood ~= nil)
         and RealisticLivestock_PlaceableHusbandryFood.foodScale or 1
     local maxNumAnimals    = clusterSystem.maxNumAnimals
 
-    -- Match the in-game "month" formula used elsewhere: currentPeriod + 2 (wrap > 12).
-    local simMonth = currentPeriod + 2
-    local simYear  = currentYear
-    if simMonth > 12 then simMonth = simMonth - 12 end
+    -- The start is a calendar date; the loop below advances it a month at a time.
+    local simMonth, simYear = 2, 0
+    if environment ~= nil then
+        simMonth, simYear = RLCalendar.getMonthAndYear(environment)
+    end
+
+    Log:trace("RLPenFeedForecast.getMonthsRemaining: projection starts %s/%s", tostring(simMonth), tostring(simYear))
 
     -- Build scratch state. Live Animal entities are never mutated below.
     local scratch = {}
@@ -272,11 +263,8 @@ function RLPenFeedForecast.getMonthsRemaining(husbandry, foodTotalLiters)
         end
 
         local daily = sumDailyFood(scratch, foodScale)
-        -- Per-period drain: `daily` (the food-curve sum) is ALREADY a per-PERIOD
-        -- ration, invariant to daysPerPeriod. The engine draws
-        -- litersPerHour * timeAdjustment per game-hour (timeAdjustment =
-        -- 1/daysPerPeriod) over 24*daysPerPeriod ticks = `daily` liters/period.
-        -- Mirrors the getDaysRemaining unit note; must NOT multiply by daysPerPeriod.
+        -- `daily` is ALREADY a per-PERIOD ration, invariant to daysPerPeriod, so it must
+        -- NOT be multiplied by it. See the unit note on getDaysRemaining.
         local drain = daily
 
         Log:trace("RLPenFeedForecast: m=%d herd=%d daily=%.2f drain=%.2f daysPerPeriod=%d litersBefore=%.1f",
@@ -307,22 +295,14 @@ function RLPenFeedForecast.getMonthsRemaining(husbandry, foodTotalLiters)
 end
 
 
---- Estimate how many real game-DAYS the pen's current food covers at the herd's
---- current daily draw. This is the stable basis for the low-feed colour alert
---- because it is measured in real days the player experiences, not a month/period
---- count (a "month" is daysPerPeriod real days, so a month-count threshold fired
---- far too early at 3/5+ days-per-period).
+--- How many real game-DAYS the pen's food covers at the herd's current draw - the basis
+--- for the low-feed alert, in days the player experiences rather than periods, since a
+--- period-count threshold fires far too early at high days-per-period.
 ---
---- Unit note (verified in-game + engine source): the food-curve value summed by
---- sumDailyFood is consumed PER PERIOD, not per real day. The engine draws
---- litersPerHour * timeAdjustment once per game-hour, timeAdjustment = 1/daysPerPeriod
---- (Environment.lua), so per-period consumption is invariant to daysPerPeriod and
---- the real per-day draw is dailyFood / daysPerPeriod. Real-days runway is therefore
---- foodTotalLiters / (dailyFood / daysPerPeriod) = foodTotalLiters * daysPerPeriod / dailyFood.
----
---- Uses the current herd's rate only (no birth/aging projection): over the 1-2 day
---- alert horizon herd composition does not change, so it is accurate and
---- deterministic. Never mutates live Animal entities.
+--- UNIT NOTE: the summed food-curve value is consumed PER PERIOD, not per real day, so
+--- the real per-day draw is that value over daysPerPeriod and the runway is
+--- foodTotalLiters * daysPerPeriod / dailyFood. Uses the CURRENT herd only: over a
+--- one-to-two-day horizon its composition does not change.
 --- @param husbandry table placeable husbandry instance
 --- @param foodTotalLiters number current pen food (sum across mixes)
 --- @return number daysRemaining >= 0; math.huge when there is no draw (empty

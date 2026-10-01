@@ -16,7 +16,6 @@ function RealisticLivestock_PlaceableHusbandryAnimals.registerFunctions(placeabl
 	SpecializationUtil.registerFunction(placeable, "deleteRLMessage", PlaceableHusbandryAnimals.deleteRLMessage)
 	SpecializationUtil.registerFunction(placeable, "getNextRLMessageUniqueId", PlaceableHusbandryAnimals.getNextRLMessageUniqueId)
 	SpecializationUtil.registerFunction(placeable, "setNextRLMessageUniqueId", PlaceableHusbandryAnimals.setNextRLMessageUniqueId)
-	SpecializationUtil.registerFunction(placeable, "getAIManager", PlaceableHusbandryAnimals.getAIManager)
 	SpecializationUtil.registerFunction(placeable, "_flushPenDayChange", PlaceableHusbandryAnimals._flushPenDayChange)
 end
 
@@ -44,7 +43,13 @@ function PlaceableHusbandryAnimals:getRLMessages()
 end
 
 
--- Direct message insertion, bypassing the aggregator
+--- Insert a message directly, bypassing the aggregator; a nil date is stamped with today's calendar date.
+---@param id string message id
+---@param animal table|nil animal identifiers the message names
+---@param args table|nil message arguments, stringified in place
+---@param date string|nil "d/m/yyyy" date, or nil to stamp today
+---@param uniqueId number|nil message uniqueId, or nil to mint the next one
+---@param isLoading boolean true when restoring from the savegame
 function PlaceableHusbandryAnimals:addRLMessageDirect(id, animal, args, date, uniqueId, isLoading)
 
     local spec = self.spec_husbandryAnimals
@@ -54,16 +59,12 @@ function PlaceableHusbandryAnimals:addRLMessageDirect(id, animal, args, date, un
     if date == nil then
 
         local environment = g_currentMission.environment
-        local month = environment.currentPeriod + 2
-        local currentDayInPeriod = environment.currentDayInPeriod
-
-        if month > 12 then month = month - 12 end
-
-        local daysPerPeriod = environment.daysPerPeriod
-        local day = 1 + math.floor((currentDayInPeriod - 1) * (RLConstants.DAYS_PER_MONTH[month] / daysPerPeriod))
-        local year = environment.currentYear
+        local day, month, year = RLCalendar.getDate(environment)
 
         date = string.format("%s/%s/%s", day, month, year + RLConstants.START_YEAR.FULL)
+
+        Log:trace("addRLMessageDirect: stamped id='%s' date=%s (day=%s month=%s year=%s)",
+            tostring(id), tostring(date), tostring(day), tostring(month), tostring(year))
 
     end
 
@@ -180,8 +181,6 @@ function RealisticLivestock_PlaceableHusbandryAnimals:saveToXMLFile(xmlFile, key
 
     end
 
-    spec.aiAnimalManager:saveToXMLFile(xmlFile, key)
-
 end
 
 PlaceableHusbandryAnimals.saveToXMLFile = Utils.prependedFunction(PlaceableHusbandryAnimals.saveToXMLFile, RealisticLivestock_PlaceableHusbandryAnimals.saveToXMLFile)
@@ -217,27 +216,13 @@ function RealisticLivestock_PlaceableHusbandryAnimals:loadFromXMLFile(xmlFile, k
 
     spec.unreadMessages = xmlFile:getBool(key .. ".messages#unreadMessages", false)
 
-    spec.aiAnimalManager:loadFromXMLFile(xmlFile, key)
-
 end
 
 PlaceableHusbandryAnimals.loadFromXMLFile = Utils.prependedFunction(PlaceableHusbandryAnimals.loadFromXMLFile, RealisticLivestock_PlaceableHusbandryAnimals.loadFromXMLFile)
 
 
-function PlaceableHusbandryAnimals:getAIManager()
-
-    local spec = self.spec_husbandryAnimals
-
-    if spec.aiAnimalManager == nil then spec.aiAnimalManager = AIAnimalManager.new(self) end
-
-    return spec.aiAnimalManager
-
-end
-
-
 function RealisticLivestock_PlaceableHusbandryAnimals:onLoad()
 
-    self.spec_husbandryAnimals.aiAnimalManager = AIAnimalManager.new(self, self.isServer)
     RLMapBridge.onHusbandryLoad(self)
 
 end
@@ -353,7 +338,7 @@ PlaceableHusbandryAnimals.addAnimals = Utils.overwrittenFunction(PlaceableHusban
 ---
 --- @param spec table The husbandryAnimals spec (provides `clusterSystem`)
 --- @param totalChildren number Count of newborns kept in the pen (excludes auto-sold)
---- @param totalDeaths number `randomDeaths + oldAgeDeaths + lowHealthDeaths + deadParents`
+--- @param totalDeaths number `randomDeaths + oldAgeDeaths + lowHealthDeaths + deadParents + diseaseDeaths`
 --- @return boolean okFlush True if `updateNow` succeeded (or no-deltas no-op); false on pcall failure
 function PlaceableHusbandryAnimals:_flushPenDayChange(spec, totalChildren, totalDeaths)
     if totalChildren == 0 and totalDeaths == 0 then return true end
@@ -375,28 +360,60 @@ function PlaceableHusbandryAnimals:_flushPenDayChange(spec, totalChildren, total
 end
 
 
--- Module-scope latch so the legacy-herdsman freeze announces itself once per session
--- (resets each map load = each source()). See AIAnimalManager.FREEZE_LEGACY_HERDSMAN.
-local freezeAnnounced = false
-
-
+--- The pen's day tick: ages, breeds and ticks disease for every animal on today's calendar date.
 function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
     RmSafeUtils.safeCall("PlaceableHusbandryAnimals:onDayChanged", function()
 
         local minTemp = math.floor(g_currentMission.environment.weather.temperatureUpdater.currentMin)
 
         local environment = g_currentMission.environment
-        local month = environment.currentPeriod + 2
         local currentDayInPeriod = environment.currentDayInPeriod
-
-        if month > 12 then month = month - 12 end
-
         local daysPerPeriod = environment.daysPerPeriod
-        local day = 1 + math.floor((currentDayInPeriod - 1) * (RLConstants.DAYS_PER_MONTH[month] / daysPerPeriod))
-        local year = environment.currentYear
+        local day, month, year = RLCalendar.getDate(environment)
 
         local spec = self.spec_husbandryAnimals
         local animals = spec.clusterSystem:getAnimals()
+        local penName = tostring(self.getName and self:getName() or self)
+
+        Log:trace("onDayChanged [%s]: calendar date %s/%s/%s", penName, tostring(day), tostring(month), tostring(year))
+
+        -- Every disease caller carries its OWN copy of this gate - the sale/AI pool block is
+        -- the other - because the pen's day loop is deliberately ungated so aging stays in
+        -- lockstep on clients. An unowned pen is skipped exactly as evaluateDaily skips it.
+        local diseasesOn = self.isServer and g_diseaseManager ~= nil
+            and g_diseaseManager.diseasesEnabled == true
+            and spec:getOwnerFarmId() ~= FarmManager.INVALID_FARM_ID
+
+        local totalTreatmentCost, diseaseDeaths = 0, 0
+
+        -- The spread plan, held across the loop. nil means the compute did not run or raised.
+        local transmissionPlan = nil
+
+        if diseasesOn then
+            -- The pass READS above the per-animal loop, and that placement is the contract: an animal
+            -- contagious during this tick sheds to its pen mates before its own record advances. It
+            -- WRITES below the loop, so a new record is neither advanced nor rolled on the tick that built it.
+            if RealisticLivestock.testAnimalPrefix == nil then
+                Log:trace("onDayChanged [%s]: pre-progression transmission pass", penName)
+
+                local computed = RmSafeUtils.safeCall("calculateTransmission [" .. penName .. "]", function()
+                    transmissionPlan = g_diseaseManager:calculateTransmission(animals, penName,
+                        { ["daysPerPeriod"] = daysPerPeriod })
+                end)
+
+                if not computed then
+                    Log:warning("onDayChanged [%s]: the transmission pass raised - transmission is skipped "
+                        .. "for this tick", penName)
+                end
+            else
+                Log:trace("onDayChanged [%s]: test-prefix run - skipping disease transmission", penName)
+            end
+        else
+            Log:trace("onDayChanged [%s]: disease block skipped (server=%s manager=%s enabled=%s farmId=%s)",
+                penName, tostring(self.isServer), tostring(g_diseaseManager ~= nil),
+                tostring(g_diseaseManager ~= nil and g_diseaseManager.diseasesEnabled),
+                tostring(spec:getOwnerFarmId()))
+        end
 
         -- Per-pen, per-day-change gate for the overcap WARNING in
         -- AnimalReproduction.reproduce. Reset here so successive mothers in
@@ -465,10 +482,104 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
             randomDeaths = randomDeaths + (g or 0)
             randomDeathsMoney = randomDeathsMoney + (h or 0)
 
+            -- AFTER onDayChanged in the same iteration: evaluateDaily runs inside it, so the
+            -- vulnerability factor reads the post-increment age and a record cannot roll
+            -- fatality on an animal another cause already killed this tick. The skip mirrors
+            -- all three shipped evaluators rather than testing isDead alone.
+            if diseasesOn and animal.numAnimals > 0 and not animal.isDead then
+
+                local diseaseDied, diseaseCost = RmSafeUtils.safeAnimalCall(animal, "onDiseaseTick", function()
+                    return animal:onDiseaseTick(daysPerPeriod)
+                end, {false, 0})
+
+                totalTreatmentCost = totalTreatmentCost + (diseaseCost or 0)
+
+                if diseaseDied then
+                    diseaseDeaths = diseaseDeaths + 1
+
+                    Log:debug("onDayChanged [%s]: disease death (farmId=%s uniqueId=%s)",
+                        penName, tostring(animal.farmId), tostring(animal.uniqueId))
+
+                    -- Guarded like evaluateDaily's identical broadcast: a raise here sits inside
+                    -- the tick's single safeCall and would truncate the rest of the pen's day.
+                    if g_server ~= nil then
+                        g_server:broadcastEvent(AnimalDeathEvent.new(
+                            animal.clusterSystem ~= nil and animal.clusterSystem.owner or nil, animal))
+                    end
+                end
+
+                -- LAST, and after progression in the same iteration: a record this roll creates is
+                -- not advanced on the tick that built it - a seeded one keeps its hidden tick, a
+                -- born-INFECTIOUS one gets no fatality roll or month. The isDead re-read is fresh, not the outer one.
+                if not animal.isDead then
+                    RmSafeUtils.safeAnimalCall(animal, "diseaseRoll", function()
+                        g_diseaseManager:onDayChanged(animal, { ["daysPerPeriod"] = daysPerPeriod })
+                    end)
+                end
+
+            end
+
         end
 
         local tLoopMs = (getTimeSec() - tLoopStart) * 1000
         local tPostStart = getTimeSec()
+
+        -- After progression, so a new record is neither advanced nor rolled on the tick that built
+        -- it; before the flush, so the array still holds this tick's corpses for the revalidation.
+        if transmissionPlan ~= nil then
+
+            local applied, refused, failed = 0, 0, 0
+
+            for _, entry in ipairs(transmissionPlan) do
+
+                local outcome = RmSafeUtils.safeAnimalCall(entry.animal, "transmissionApply", function()
+
+                    local animal = entry.animal
+                    local model = g_diseaseManager:getDiseaseByTitle(entry.title)
+
+                    -- The plan was read above the loop, which can since have killed the
+                    -- recipient or given it this title through the roll.
+                    if animal.numAnimals <= 0 or animal.isDead then
+                        Log:trace("onDayChanged [%s]: transmission apply refused title=%s reason=NOT_LIVE "
+                            .. "(farmId=%s uniqueId=%s)", penName, tostring(entry.title),
+                            tostring(animal.farmId), tostring(animal.uniqueId))
+                        return "NOT_LIVE"
+                    end
+
+                    local eligible, reason = RLDiseaseSpread.isEligible(animal, entry.title, model)
+
+                    if not eligible then
+                        Log:trace("onDayChanged [%s]: transmission apply refused title=%s reason=%s "
+                            .. "(farmId=%s uniqueId=%s)", penName, tostring(entry.title), tostring(reason),
+                            tostring(animal.farmId), tostring(animal.uniqueId))
+                        return tostring(reason)
+                    end
+
+                    g_diseaseManager:contractDisease(animal, model)
+
+                    Log:debug("onDayChanged [%s]: transmission applied title=%s (farmId=%s uniqueId=%s)",
+                        penName, tostring(entry.title), tostring(animal.farmId), tostring(animal.uniqueId))
+
+                    return "APPLIED"
+
+                end, { "FAILED" })
+
+                if outcome == "APPLIED" then
+                    applied = applied + 1
+                elseif outcome == "FAILED" then
+                    failed = failed + 1
+                else
+                    refused = refused + 1
+                end
+
+            end
+
+            if #transmissionPlan > 0 then
+                Log:debug("onDayChanged [%s]: transmission apply planned=%s applied=%s refused=%s failed=%s",
+                    penName, tostring(#transmissionPlan), tostring(applied), tostring(refused), tostring(failed))
+            end
+
+        end
 
         if self.isServer then
 
@@ -500,21 +611,11 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
 
             end
 
-            if not AIAnimalManager.FREEZE_LEGACY_HERDSMAN then
-                spec.aiAnimalManager:onDayChanged()
-            else
-                if not freezeAnnounced then
-                    freezeAnnounced = true
-                    Log:debug("legacy-herdsman-freeze: AIAnimalManager legacy day-tick frozen; skipping legacy buy/sell/castrate/name/AI and wage on all pens this session")
-                end
-                Log:trace("legacy-herdsman-freeze: skipped legacy onDayChanged for pen '%s'", tostring(self.getName and self:getName() or self))
-            end
-
         end
 
         spec.minTemp = minTemp
 
-        local totalDeaths = randomDeaths + oldAgeDeaths + lowHealthDeaths + deadParents
+        local totalDeaths = randomDeaths + oldAgeDeaths + lowHealthDeaths + deadParents + diseaseDeaths
         local okFlush = self:_flushPenDayChange(spec, totalChildren, totalDeaths)
 
         if okFlush and (totalChildren > 0 or totalDeaths > 0) then spec.clusterHusbandry:updateVisuals() end
@@ -525,6 +626,32 @@ function RealisticLivestock_PlaceableHusbandryAnimals:onDayChanged()
 
             g_currentMission:addIngameNotification(FSBaseMission.INGAME_NOTIFICATION_CRITICAL, string.format(g_i18n:getText("rl_ui_unreadMessages"), self:getName()))
 
+        end
+
+        -- LAST in the server section, and the position is the contract: the whole tick sits
+        -- inside one safeCall, so a raise in the money path above would be swallowed and the
+        -- pen's queued births and deaths, the visual refresh and raiseActive would silently
+        -- not happen. Aggregated per pen per day, which the DEBUG line reconciles.
+        if self.isServer and totalTreatmentCost > 0 then
+
+            local ownerFarmId = spec:getOwnerFarmId()
+
+            -- The test is on the ID, not the lookup: resolving farm 0 returns the spectator
+            -- farm OBJECT, and addMoney refuses it with an error plus a callstack.
+            if type(ownerFarmId) ~= "number" or ownerFarmId <= 0 or ownerFarmId > FarmManager.MAX_NUM_FARMS then
+                Log:warning("onDayChanged [%s]: skipping treatment charge of %s - owner farm id %s is not a real farm",
+                    penName, tostring(totalTreatmentCost), tostring(ownerFarmId))
+            else
+                -- addMoney moves the balance; addMoneyChange only paints the HUD. NEGATED
+                -- because the amount is signed and a positive one renders a cost as income.
+                g_currentMission:addMoney(0 - totalTreatmentCost, ownerFarmId, MoneyType.MEDICINE, true, true)
+
+                Log:debug("onDayChanged [%s]: charged treatment fee %s to farmId=%s",
+                    penName, tostring(totalTreatmentCost), tostring(ownerFarmId))
+            end
+
+        elseif self.isServer then
+            Log:trace("onDayChanged [%s]: no treatment fee accrued today", penName)
         end
 
         local tPostMs = (getTimeSec() - tPostStart) * 1000
@@ -547,56 +674,28 @@ end
 PlaceableHusbandryAnimals.onDayChanged = Utils.overwrittenFunction(PlaceableHusbandryAnimals.onDayChanged, RealisticLivestock_PlaceableHusbandryAnimals.onDayChanged)
 
 
+-- Wired by `Utils.overwrittenFunction` and never calls its base: the per-animal model owns
+-- ageing and reproduction, so the cluster-level tick must not also run. UNBRANCHED because
+-- recovery is deterministic from synced state - server-gating it with no dirty flag is what
+-- froze this counter on clients. Disease moved to the pen's DAILY path.
+--- Advance every animal in this pen by one month: recovery only.
+---@param _ function Overwritten-function predecessor; deliberately unused.
 function RealisticLivestock_PlaceableHusbandryAnimals:onPeriodChanged(_)
     RmSafeUtils.safeCall("PlaceableHusbandryAnimals:onPeriodChanged", function()
 
-        if self.isServer then
+        local penName = tostring(self.getName and self:getName() or self)
+        local animals = self.spec_husbandryAnimals.clusterSystem:getClusters()
+        local nAdvanced = 0
 
-            local animals = self.spec_husbandryAnimals.clusterSystem:getClusters()
-            local totalTreatmentCost = 0
-
-            for _, animal in pairs(animals) do
-                if RealisticLivestock.testAnimalPrefix ~= nil then
-                    if not string.startsWith(animal.uniqueId, RealisticLivestock.testAnimalPrefix) then
-                        continue
-                    end
-                end
-                local treatmentCost = RmSafeUtils.safeAnimalCall(animal, "onPeriodChanged", function()
-                    return animal:onPeriodChanged()
-                end, {0})
-                totalTreatmentCost = totalTreatmentCost + (treatmentCost or 0)
-            end
-
-            if totalTreatmentCost > 0 then g_currentMission:addMoneyChange(totalTreatmentCost, self.spec_husbandryAnimals:getOwnerFarmId(), MoneyType.MEDICINE, true) end
-
-            if RealisticLivestock.testAnimalPrefix == nil then
-                g_diseaseManager:calculateTransmission(animals)
-            end
-
-        else
-
-            -- MP client branch: recovery (monthsSinceLastBirth) is
-            -- deterministic and unsynced, so a client advances it locally in
-            -- lockstep with the server -- the same reason aging runs client-side
-            -- in onDayChanged (no server guard around its per-animal loop).
-            -- Recovery ONLY: disease progression, treatment-cost money, and
-            -- disease transmission stay server-authoritative in the branch above.
-            -- No testAnimalPrefix filter (nil on clients; mirrors onDayChanged,
-            -- which gates that filter on self.isServer).
-            local animals = self.spec_husbandryAnimals.clusterSystem:getClusters()
-            local nAdvanced = 0
-
-            for _, animal in pairs(animals) do
-                RmSafeUtils.safeAnimalCall(animal, "advanceRecoveryPeriod", function()
-                    animal:advanceRecoveryPeriod()
-                end)
-                nAdvanced = nAdvanced + 1
-            end
-
-            Log:debug("onPeriodChanged client recovery [%s]: advanced monthsSinceLastBirth for %d animal(s)",
-                tostring(self.getName and self:getName() or self), nAdvanced)
-
+        for _, animal in pairs(animals) do
+            RmSafeUtils.safeAnimalCall(animal, "advanceRecoveryPeriod", function()
+                animal:advanceRecoveryPeriod()
+            end)
+            nAdvanced = nAdvanced + 1
         end
+
+        Log:debug("onPeriodChanged [%s]: advanced monthsSinceLastBirth for %d animal(s)",
+            penName, nAdvanced)
 
     end)
 end

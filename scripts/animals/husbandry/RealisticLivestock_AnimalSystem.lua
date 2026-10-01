@@ -4,6 +4,99 @@ local Log = RmLogging.getLogger("RLRM")
 local modName = g_currentModName
 local modDirectory = g_currentModDirectory
 
+-- One-shot warning latch for the dealer-quality reshape, matching the per-site
+-- latches RLDealerQualityModel carries. The warn site sits inside the per-animal
+-- generation loop, so an unlatched WARNING would fire once per animal per type on
+-- every hourly restock and on every dealer reset. Lifetime is the MAP LOAD: FS25
+-- re-sources every mod file on each load, so this resets to false then.
+local warnedReshapeReturnedNil = false
+
+-- Absolute upper bound, in game days, on how long one animal may sit on the
+-- dealer's shelf. It backstops the genetics retention roll in onHourChanged,
+-- whose threshold can reach or exceed 1.0 and then never rotates that listing
+-- again for the rest of the playthrough.
+--
+-- Why 2 and not some other number: `animal.sale.day` is a whole-day counter, so
+-- nothing below 1 day is expressible without adding a persisted field. 1 day
+-- wipes and regenerates the entire shelf daily, and 7/14/30 leave the runaway
+-- essentially unbounded - which leaves 2 and 3 as the only usable values, with 2
+-- measuring the flatter shelf at a generation rate the mod already sustains.
+--
+-- What the constant actually bounds is the FROZEN tail, not ordinary stock: a
+-- healthy listing at a mean around 1.0 is rotated by the roll long before it
+-- reaches either candidate value, so 2-vs-3 is nearly inert for it. The cap
+-- earns its place only where the roll cannot act at all.
+local SALE_LISTING_MAX_AGE_DAYS = 2
+
+-- Published so tests pin the boundary against the real value instead of a magic
+-- offset, and so raising it does not turn every age fixture into a silent lie.
+AnimalSystem.SALE_LISTING_MAX_AGE_DAYS = SALE_LISTING_MAX_AGE_DAYS
+
+-- One-shot warning latches for the hourly sale-pool rotation. ONE flag PER
+-- DETECTION SITE, never one shared flag: these causes are independent, and a
+-- fired warning must not silence a different diagnostic. The sites sit inside
+-- the per-listing loop, so an unlatched WARNING would fire once per bad listing
+-- per type every game hour. Lifetime is the MAP LOAD: FS25 re-sources every mod
+-- file on each load, so every flag resets then.
+--
+-- Grouped in one table only so the suite can restore them after driving a
+-- deliberately-malformed fixture through the real tick; each key is still its
+-- own independent latch.
+local saleRotationWarnLatches = {
+    badDay = false,
+    saleDay = false,
+    age = false,
+    band = false,
+    genetics = false,
+    geneticsEmpty = false,
+    geneticsMean = false,
+}
+
+
+-- One-shot latches for the reasons sale-animal GENERATION declines to produce an
+-- animal. Keyed "<site>:<animalTypeIndex>" rather than by site alone: one type
+-- being unable to generate must not silence the notice for a different type.
+-- Same MAP LOAD lifetime as the rotation latches above (re-sourced on each load).
+--
+-- Why this exists: the restock loop calls createNewSaleAnimal up to
+-- math.random(10, maxDealerAnimals) times an hour and only checks for nil, so
+-- every decline looked identical from the log. The hourly summary reports
+-- "restocked 0 of N attempted", which says generation produced nothing but not
+-- WHICH of the three declines fired - and that distinction is the whole
+-- diagnosis.
+local saleGenerationBailLatches = {}
+
+
+--- Name the reason a sale-animal generation attempt produced nothing, ONCE per
+--- (site, animal type) per map load.
+---
+--- Level is the caller's to choose because the audiences differ: an owner having
+--- switched a whole animal type off is a PLAYER-facing answer to "why does the
+--- dealer never stock cows", so it goes out at INFO where it is visible without
+--- turning on debug logging. The other declines are maintainer-facing and stay at
+--- DEBUG. None of them is a WARNING - every one is a legitimate configuration,
+--- not a defect.
+---
+--- The latch is set AFTER the log call returns, matching warnMalformedSaleListing:
+--- setting it first means a diagnostic that raises leaves the latch burnt, having
+--- silenced every later attempt while never producing the message it consumed.
+---@param site string Detection-site key - one per decline branch
+---@param animalTypeIndex number The type that could not be generated
+---@param level string "info" for the player-facing decline, "debug" otherwise
+---@param message string Fully-formatted message
+local function noteSaleGenerationBail(site, animalTypeIndex, level, message)
+    local latchKey = site .. ":" .. tostring(animalTypeIndex)
+    if saleGenerationBailLatches[latchKey] then return end
+
+    if level == "info" then
+        Log:info(message)
+    else
+        Log:debug(message)
+    end
+
+    saleGenerationBailLatches[latchKey] = true
+end
+
 
 local function getDaysInMonth(month)
     -- Nil-guard retained as defensive pattern for load-order safety
@@ -1008,9 +1101,14 @@ function AnimalSystem:loadColourConfigurations()
 end
 
 
+--- Load the savegame's dealer farms and sale animals, running the RLRM settings-registry loaders first.
+---@return boolean|nil false when neither animal-system file exists, nil with no savegame directory
 function AnimalSystem:loadFromXMLFile()
 
-    if g_currentMission.missionInfo == nil or g_currentMission.missionInfo.savegameDirectory == nil then return end
+    if g_currentMission.missionInfo == nil or g_currentMission.missionInfo.savegameDirectory == nil then
+        Log:trace("AnimalSystem:loadFromXMLFile: no savegame directory; nothing loaded")
+        return
+    end
 
     local savegameDir = g_currentMission.missionInfo.savegameDirectory
 
@@ -1034,10 +1132,14 @@ function AnimalSystem:loadFromXMLFile()
     RLSettings.loadFiltersFromXMLFile()
     RLSettings.loadRulesFromXMLFile()
     RLSettings.loadDealerSaleFromXMLFile()
+    RLSettings.loadDiseaseOverridesFromXMLFile()
     RLDealerSaleApply.resetBaseline()
     RLDealerSaleApply.applyToLiveSubTypes()
 
-    if xmlFile == nil then return false end
+    if xmlFile == nil then
+        Log:trace("AnimalSystem:loadFromXMLFile: no rm_RlAnimalSystem.xml or animalSystem.xml; registries loaded, no animal data")
+        return false
+    end
 
 
     local hasData = false
@@ -1422,13 +1524,21 @@ end
 --- isPregnant + reproduction) - mirrors the in-game pen-side cleanup so the
 --- invariant `isPregnant <=> pregnancy ~= nil` holds for sale animals too.
 --- Age picker honours per-visual `canBeBought` via `_pickSaleAnimalAge`.
+--- Genetics come from `RLGeneticsDraw.draw`, which is called before `Animal.new`
+--- so stored health, genetic diseases and offspring all derive from them.
 --- @param animalTypeIndex number Index into the animal-type registry
 --- @return table|nil animal Newly built sale animal, or nil if the animal-type lookup fails
 function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
 
     local animalType = self:getTypeByIndex(animalTypeIndex)
 
-    if animalType == nil then return nil end
+    if animalType == nil then
+        noteSaleGenerationBail("noAnimalType", animalTypeIndex, "debug", string.format(
+            "createNewSaleAnimal: no animal type is registered at index %d, so the dealer cannot "
+            .. "generate stock for it. Further attempts this map load are silent.",
+            animalTypeIndex))
+        return nil
+    end
 
     -- Filter to subtypes with at least one buyable visual (respects bridge canBeBought overrides)
     local buyableSubTypes = {}
@@ -1444,18 +1554,36 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
         end
     end
 
-    if #buyableSubTypes == 0 then return nil end
+    -- Player-facing (INFO): this is the answer to "why does the dealer never have
+    -- any cows". Every subtype of the type is marked not-buyable - by the dealer
+    -- sale-availability settings, or by a map/bridge canBeBought override - so the
+    -- hourly restock will keep attempting and keep producing nothing.
+    if #buyableSubTypes == 0 then
+        noteSaleGenerationBail("noBuyableSubTypes", animalTypeIndex, "info", string.format(
+            "The animal dealer will not stock %s: every subtype is currently set to not buyable "
+            .. "(dealer sale-availability settings, or a map/mod override). Change it in the "
+            .. "Realistic Livestock settings if that was not intended. Said once per map load.",
+            RLAnimalUtil.getAnimalTypeDisplayName(animalType)))
+        return nil
+    end
 
     local subTypeIndex = buyableSubTypes[math.random(1, #buyableSubTypes)]
     local subType = self:getSubTypeByIndex(subTypeIndex)
-    
+
     local farmId, farmQuality, farmCountryIndex, lastAnimalId
     local attemptedCountryIndexes = {}
 
-    
+
     while farmId == nil do
 
-        if #attemptedCountryIndexes == #self.countries then return nil end
+        if #attemptedCountryIndexes == #self.countries then
+            noteSaleGenerationBail("noValidFarms", animalTypeIndex, "debug", string.format(
+                "createNewSaleAnimal: no country has a source farm that keeps %s (%d attempted), "
+                .. "so generation produces nothing until the country/farm data changes. "
+                .. "Further attempts this map load are silent.",
+                RLAnimalUtil.getAnimalTypeDisplayName(animalType), #attemptedCountryIndexes))
+            return nil
+        end
 
         local countryIndex
         local wasMapPick = false
@@ -1533,25 +1661,72 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
     local uniqueId = RLAnimalUtil.generateUniqueId(farmId, lastAnimalId)
 
 
-    local geneticsModifier = farmQuality * 1000
-    local genetics = {
-        ["metabolism"] = math.clamp(math.random(geneticsModifier - 300, geneticsModifier + 300) / 1000, 0.25, 1.75),
-        ["quality"] = math.clamp(math.random(geneticsModifier - 300, geneticsModifier + 300) / 1000, 0.25, 1.75),
-        ["fertility"] = math.clamp(math.random(geneticsModifier - 300, geneticsModifier + 300) / 1000, 0.25, 1.75),
-        ["health"] = math.clamp(math.random(geneticsModifier - 300, geneticsModifier + 300) / 1000, 0.25, 1.75)
-    }
+    -- Genetics come from the shared bell draw, which centres every sale animal
+    -- on its own base quality rather than on the source farm's. Productivity is
+    -- drawn only for the types that carry it.
+    local traitKeys = (animalTypeIndex == AnimalType.COW or animalTypeIndex == AnimalType.SHEEP
+        or animalTypeIndex == AnimalType.CHICKEN)
+        and RLGeneticsDraw.TRAITS_WITH_PRODUCTIVITY or RLGeneticsDraw.TRAITS_BASE
 
-    if animalTypeIndex == AnimalType.COW or animalTypeIndex == AnimalType.SHEEP or animalTypeIndex == AnimalType.CHICKEN then genetics.productivity = math.clamp(math.random(geneticsModifier - 300, geneticsModifier + 300) / 1000, 0.25, 1.75) end
+    local genetics = RLGeneticsDraw.draw(traitKeys)
 
-  
+    -- Reshape the base draw into the active dealer-quality preset's band. This
+    -- MUST sit before Animal.new: the stored health argument, the targetWeight
+    -- derivation in the constructor, the disease pass and the pregnant-offspring
+    -- bands all read this table, so reshaping afterwards would leave them on the
+    -- unreshaped values. It must also stay BEFORE the name draw below: under a
+    -- non-default preset the reshape consumes an outlier draw from the SHARED
+    -- math.random stream, so moving it past the name draw would change which
+    -- animals get names. Standard is the identity preset - it returns the table
+    -- unchanged and consumes no draw at all.
+    local presetIndex = RLDealerQualityResolver.getActiveIndex()
+    local reshaped, wasOutlier = RLDealerQualityModel.reshapeGenetics(genetics, presetIndex)
+
+    if reshaped ~= nil then
+        genetics = reshaped                     -- MUST reassign: reshapeGenetics is non-mutating
+    elseif not warnedReshapeReturnedNil then
+        warnedReshapeReturnedNil = true
+        Log:warning("createNewSaleAnimal: reshapeGenetics returned nil (preset=%s); keeping raw genetics",
+            tostring(presetIndex))
+    end
+
+
     local name
-    
+
     if math.random() >= 0.85 then name = g_currentMission.animalNameSystem:getRandomName(animalGender) end
+
+
+    -- Bound to a local so the value handed to the constructor can be logged beside
+    -- the genetics it derives from - the two numbers whose ratio shows whether the
+    -- reshape preceded construction. Its position is load-bearing in THREE ways and
+    -- each has a different failure mode:
+    --   AFTER the reshape above  - otherwise stored health derives from unreshaped
+    --                              genetics, which IS the post-hoc dealer-quality
+    --                              defect this whole seam exists to prevent.
+    --   AFTER the name draw      - the name gate directly above draws from the same
+    --                              math.random stream, so lifting this roll over it
+    --                              swaps the two draws and silently changes WHICH
+    --                              animals get names for a given seed.
+    --   BEFORE Animal.new        - the constructor consumes the value.
+    local storedHealth = math.clamp((math.random(650, 1000) / 10) * genetics.health, 0, 100)
+
+    -- Level-guarded: Lua evaluates call arguments before the logger can check its
+    -- level, so the getPreset lookup and the string.format below would be paid on
+    -- every generated animal even at ERROR. Exactly ONE line per generated animal,
+    -- carrying the health as it was BEFORE the disease pass. Triage aid, not a
+    -- pass/fail surface - the values are rounded, and the ratio only discriminates
+    -- on rows below the 100 clamp.
+    if Log.level >= RmLogging.LOG_LEVEL.DEBUG then
+        Log:debug("createNewSaleAnimal: reshaped genetics preset=%d(%s) outlier=%s met=%.3f qua=%.3f fer=%.3f hea=%.3f health=%.2f prd=%s",
+            presetIndex, RLDealerQualityModel.getPreset(presetIndex).key, tostring(wasOutlier),
+            genetics.metabolism, genetics.quality, genetics.fertility, genetics.health, storedHealth,
+            genetics.productivity ~= nil and string.format("%.3f", genetics.productivity) or "-")
+    end
 
 
     local animal = Animal.new({
         age = age,
-        health = math.clamp((math.random(650, 1000) / 10) * genetics.health, 0, 100),
+        health = storedHealth,
         monthsSinceLastBirth = monthsSinceLastBirth,
         gender = animalGender,
         subTypeIndex = subTypeIndex,
@@ -1575,17 +1750,17 @@ function AnimalSystem:createNewSaleAnimal(animalTypeIndex)
     animal.variation = variationIndex
 
     local environment = g_currentMission.environment
-    local month = environment.currentPeriod + 2
+    local month, year = RLCalendar.getMonthAndYear(environment)
 
-    if month > 12 then month = month - 12 end
-
-    local day = 1 + math.floor((environment.currentDayInPeriod - 1) * (getDaysInMonth(month) / environment.daysPerPeriod))
-    local year = environment.currentYear
+    Log:trace("createNewSaleAnimal: calendar month=%s year=%s (animalTypeIndex=%s)",
+        tostring(month), tostring(year), tostring(animalTypeIndex))
 
 
     animal.diseases = {}
 
-    g_diseaseManager:onDayChanged(animal)
+    -- No spontaneous roll here: dealer stock sits in `self.animals`, which the DAY tick already
+    -- rolls once per animal per day. A generation roll would convert the same monthly chance
+    -- through `perTick` a second time, and an animal generated late in the day would draw twice.
     g_diseaseManager:setGeneticDiseasesForSaleAnimal(animal)
 
 
@@ -1857,39 +2032,333 @@ function AnimalSystem:removeAIAnimal(animalTypeIndex, countryIndex, farmId, uniq
 end
 
 
+--- Read an animal's birth country without ever raising. A listing corrupt enough
+--- to reach a malformed branch may carry a `birthday` that is not a table at all,
+--- and `tostring` protects the RESULT of an index, not the index itself - so a
+--- bare `birthday.country` in a diagnostic would raise on exactly the animals the
+--- diagnostic exists to describe.
+---@param animal table The listing
+---@return any country The birth country, or nil when it cannot be read
+local function safeBirthCountry(animal)
+    local birthday = animal.birthday
+    if type(birthday) ~= "table" then return nil end
+    return birthday.country
+end
+
+
+--- Name a listing whose rotation inputs could not be evaluated, ONCE per map load
+--- per detection site.
+---
+--- The latch is set AFTER the log call returns, not before: setting it first means
+--- a diagnostic that raises leaves the latch burnt, silencing every later listing
+--- that hits the same site while never having produced the message it consumed.
+---@param latchKey string Key into `saleRotationWarnLatches` - one per detection site
+---@param animal table The listing being rotated
+---@param detail string What specifically could not be read
+local function warnMalformedSaleListing(latchKey, animal, detail)
+    if saleRotationWarnLatches[latchKey] then return end
+
+    Log:warning("Dealer listing could not be evaluated and was rotated off the shelf (%s): "
+        .. "farmId=%s uniqueId=%s country=%s. Further listings failing the same check "
+        .. "this map load rotate silently.",
+        tostring(detail), tostring(animal.farmId), tostring(animal.uniqueId),
+        tostring(safeBirthCountry(animal)))
+
+    saleRotationWarnLatches[latchKey] = true
+end
+
+
+--- Reset every rotation warning latch. Test-only seam: the wiring suite drives a
+--- deliberately-malformed fixture through the real tick, which would otherwise
+--- consume a production latch and silence the first genuine corrupt listing of the
+--- session.
+function AnimalSystem._resetSaleRotationWarnLatches()
+    for key in pairs(saleRotationWarnLatches) do
+        saleRotationWarnLatches[key] = false
+    end
+end
+
+
+--- Reset every sale-generation bail latch. Test-only seam, and the keys are DYNAMIC
+--- ("<site>:<typeIndex>"), so this clears the table rather than setting known keys
+--- false - a suite that drove type 5 must not leave a latch that silences the first
+--- genuine decline for type 5 later in the session.
+function AnimalSystem._resetSaleGenerationBailLatches()
+    for key in pairs(saleGenerationBailLatches) do
+        saleGenerationBailLatches[key] = nil
+    end
+end
+
+
+--- Whether a sale-generation bail latch has already fired. Test-only seam: the
+--- latch is invisible from outside, and a suite proving "said once" needs to read
+--- the flag rather than spy the logger.
+---@param site string Detection-site key
+---@param animalTypeIndex number
+---@return boolean fired
+function AnimalSystem._hasSaleGenerationBailLatch(site, animalTypeIndex)
+    return saleGenerationBailLatches[site .. ":" .. tostring(animalTypeIndex)] == true
+end
+
+
+--- Per-listing rotation decision at TRACE. Every argument is passed raw and
+--- formatted only past the level check, so below TRACE the loop pays the call and
+--- not the formatting.
+---
+--- `listed-today` is deliberately NOT traced. It is by far the most common reason
+--- on a healthy shelf and the least informative, and at a large `maxDealerAnimals`
+--- across five types tracing it would put five figures of lines per game day into
+--- the log a maintainer just enabled to investigate something else.
+---@param animal table The listing being decided
+---@param reason string The decision reason
+---@param age number|nil Listing age in days, when it could be computed
+---@param averageGenetics number|nil Mean genetics, when it could be read
+---@param threshold number|nil Retention threshold, when the roll was reached
+---@param roll number|nil The value drawn, when the roll was reached
+local function traceSaleDecision(animal, reason, age, averageGenetics, threshold, roll)
+    if reason == "listed-today" then return end
+    if Log.level < RmLogging.LOG_LEVEL.TRACE then return end
+
+    Log:trace("Dealer rotation: reason=%s farmId=%s uniqueId=%s country=%s age=%s genetics=%s threshold=%s roll=%s",
+        reason, tostring(animal.farmId), tostring(animal.uniqueId),
+        tostring(safeBirthCountry(animal)),
+        tostring(age), tostring(averageGenetics), tostring(threshold), tostring(roll))
+end
+
+
+--- Decide whether one dealer sale listing rotates off the shelf this tick.
+---
+--- TOTAL over every listing the caller hands it, the same-day case included, so
+--- there is exactly one decision site. Reasons, in the order they are tested:
+---
+---   `bad-day`      keep. The tick's own day counter is unusable. That is a
+---                  whole-tick condition rather than this animal's fault, so it
+---                  carries its own latch rather than spending a per-listing one.
+---   `malformed`    rotate. This listing's own inputs cannot be evaluated -
+---                  absent sale day, age running backwards, unreadable genetics,
+---                  or an unusable band. Rotating it is what unsticks it; the
+---                  latched WARNING is what makes it visible instead of being
+---                  silently absorbed by the age cap below.
+---   `listed-today` keep. Reads no genetics and consumes no roll.
+---   `age`          rotate. At or over the absolute cap, whatever the genetics
+---                  say. Consumes no roll.
+---   `genetics`     the inherited retention roll, arithmetic unchanged.
+---
+--- Malformed is tested BEFORE the AGE CAP on purpose: the cap alone would evict
+--- an unevaluable listing after two days with no diagnostic at all, which is
+--- precisely the silent freeze this branch exists to surface. It is NOT tested
+--- before `listed-today` - a listing made today reads no genetics at all, so an
+--- unevaluable one is classified on the next day's tick rather than this one.
+---
+---@param animal table Sale listing; the caller has already proven `animal.sale` exists
+---@param day number Current monotonic day
+---@param bandMidpoint number Midpoint of the active dealer-quality band
+---@param randomFn function|nil Zero-arg, returning a float in `[0, 1)`; defaults to
+---       `math.random`. This is NOT the `_pickSaleAnimalAge` seam, which is
+---       `function(lo, hi) -> int` - injecting that shape here compares an integer
+---       against a fraction and rotates every listing.
+---@return boolean shouldRotate
+---@return string reason One of `bad-day`, `malformed`, `listed-today`, `age`, `genetics`
+function AnimalSystem._shouldRotateSaleAnimal(animal, day, bandMidpoint, randomFn)
+
+    -- A whole-tick condition, so it gets its own latch rather than spending a
+    -- per-listing one. It still WARNS: without that, an unusable day counter keeps
+    -- every listing every hour forever with nothing above TRACE ever saying so -
+    -- the same silent freeze this predicate exists to end, merely relocated.
+    -- `not (day > 0)` also rejects a NaN day.
+    if type(day) ~= "number" or not (day > 0) then
+        if not saleRotationWarnLatches.badDay then
+            Log:warning("Dealer rotation is halted: the current day is %s, so no listing age can be "
+                .. "computed and nothing will rotate off the shelf until it is usable again.",
+                tostring(day))
+            saleRotationWarnLatches.badDay = true
+        end
+        traceSaleDecision(animal, "bad-day")
+        return false, "bad-day"
+    end
+
+    local saleDay = animal.sale.day
+
+    -- The caller's `animal.sale ~= nil` guard proves the TABLE exists, not the
+    -- field; the savegame writer tests `sale.day ~= nil` separately for the same
+    -- reason. `day - nil` would raise.
+    if type(saleDay) ~= "number" then
+        warnMalformedSaleListing("saleDay", animal, "sale day is " .. type(saleDay))
+        traceSaleDecision(animal, "malformed")
+        return true, "malformed"
+    end
+
+    local age = day - saleDay
+
+    -- `not (age >= 0)` rather than `age < 0`, because this test also has to catch a
+    -- NaN age - and every comparison against NaN is false, so `age < 0` would wave
+    -- it through. A NaN age then fails `== 0` and `>= the cap` too, reaching the
+    -- roll where `roll >= NaN` is false as well: a listing that never rotates for
+    -- any reason and never warns. That is precisely the permanent freeze this
+    -- predicate exists to bound, so the cap must not be the only thing guarding it.
+    --
+    -- A negative age is reachable from a dealer pool carried into a save whose day
+    -- counter is lower than the one the listing was stamped under.
+    if not (age >= 0) then
+        warnMalformedSaleListing("age", animal,
+            string.format("listing age is unusable (saleDay=%s, day=%s, age=%s)",
+                tostring(saleDay), tostring(day), tostring(age)))
+        traceSaleDecision(animal, "malformed", age)
+        return true, "malformed"
+    end
+
+    if age == 0 then
+        traceSaleDecision(animal, "listed-today", age)
+        return false, "listed-today"
+    end
+
+    -- Band before genetics: it divides the threshold, so an unusable one would
+    -- otherwise reach the arithmetic as a nil operand or a division by zero.
+    if type(bandMidpoint) ~= "number" or not (bandMidpoint > 0) then
+        warnMalformedSaleListing("band", animal, "dealer band midpoint is " .. tostring(bandMidpoint))
+        traceSaleDecision(animal, "malformed", age)
+        return true, "malformed"
+    end
+
+    -- Checked before `pairs`, which raises on a nil table.
+    if type(animal.genetics) ~= "table" then
+        warnMalformedSaleListing("genetics", animal, "genetics is " .. type(animal.genetics))
+        traceSaleDecision(animal, "malformed", age)
+        return true, "malformed"
+    end
+
+    -- Numeric traits only. The inherited loop tested `value ~= nil`, which `pairs`
+    -- can never falsify, so it admitted anything - and a string or table trait then
+    -- raised inside the arithmetic. Skipping non-numbers keeps a corrupt entry from
+    -- taking the tick down, at the cost of computing the mean over the survivors; a
+    -- table with NO numeric trait still lands in the malformed branch below.
+    local geneticQuality = 0
+    local totalGenetics = 0
+
+    for _, value in pairs(animal.genetics) do
+        if type(value) == "number" then
+            totalGenetics = totalGenetics + 1
+            geneticQuality = geneticQuality + value
+        end
+    end
+
+    if totalGenetics == 0 then
+        warnMalformedSaleListing("geneticsEmpty", animal, "genetics carries no readable traits")
+        traceSaleDecision(animal, "malformed", age)
+        return true, "malformed"
+    end
+
+    local averageGenetics = geneticQuality / totalGenetics
+
+    -- `not (x > 0)` rather than `x == 0`, to catch three separate bad means in one
+    -- test. Zero and NaN (one NaN trait poisons the sum) both drive the threshold
+    -- somewhere no roll can reach, freezing the listing. A NEGATIVE mean does the
+    -- opposite - the threshold goes negative and every roll clears it, so the
+    -- listing would churn out on its first tick while being reported as an ordinary
+    -- `genetics` rotation. Neither outcome should be silent, so all three are
+    -- malformed. Never math.min/math.max to tame this - LuaJIT's are argument-order
+    -- dependent on NaN and would hide it rather than catch it.
+    if not (averageGenetics > 0) then
+        warnMalformedSaleListing("geneticsMean", animal, "genetics mean is " .. tostring(averageGenetics))
+        traceSaleDecision(animal, "malformed", age, averageGenetics)
+        return true, "malformed"
+    end
+
+    if age >= SALE_LISTING_MAX_AGE_DAYS then
+        traceSaleDecision(animal, "age", age, averageGenetics)
+        return true, "age"
+    end
+
+    -- Inherited retention roll, arithmetic deliberately untouched. The 1.45 factor
+    -- is exactly the premium band's midpoint, which makes the expression a double
+    -- normalisation under that preset; that is inherited too, and retuning it is not
+    -- what bounds the runaway - the cap above is.
+    local threshold = (saleDay / day) / ((averageGenetics / bandMidpoint) * 1.45)
+    local roll = (randomFn or math.random)()
+    local shouldRotate = roll >= threshold
+
+    traceSaleDecision(animal, "genetics", age, averageGenetics, threshold, roll)
+
+    return shouldRotate, "genetics"
+
+end
+
+
 function AnimalSystem:onHourChanged()
     RmSafeUtils.safeCall("AnimalSystem:onHourChanged", function()
 
         local day = g_currentMission.environment.currentMonotonicDay
         local hasChanges = false
 
+        -- Retention below divides by the animal's mean genetics, so reshaping the
+        -- generated genetics into a preset band would silently reprogram how fast the
+        -- dealer rotates: budget pushes the threshold to or past 1.0, which makes the
+        -- removal branch unreachable and freezes the shelf, and premium roughly halves
+        -- shelf life. Normalising by the band midpoint keeps the rotation rate matched
+        -- to the identity preset under every preset, while an animal that is better
+        -- than its own preset's peers still turns over faster. The identity band's
+        -- midpoint is exactly 1.0, so standard saves are unchanged.
+        -- The pool is regenerated whenever the preset changes, so the active preset is
+        -- the one this stock was generated under.
+        local activePreset = RLDealerQualityModel.getPreset(RLDealerQualityResolver.getActiveIndex())
+        local bandMidpoint = (activePreset.lo + activePreset.hi) / 2
+
         for animalTypeIndex, animals in pairs(self.animals) do
 
             local indexesToRemove = {}
+
+            -- Pool size counts entries carrying a sale block, which is exactly the
+            -- set the loop below decides on - so the reported size and the number
+            -- of decisions can never disagree.
+            local poolBefore = 0
+            local rotatedByAge, rotatedByGenetics, rotatedMalformed = 0, 0, 0
+            local rotatedUnclassified = 0
 
             for i, animal in pairs(animals) do
 
                 if animal.sale ~= nil then
 
-                    local saleDay = animal.sale.day
+                    poolBefore = poolBefore + 1
 
-                    if saleDay == day then continue end
+                    -- Per-listing containment. This handler's whole body is one
+                    -- safeCall xpcall, so an unguarded raise here would abort
+                    -- rotation, restock AND the broadcast for every animal type -
+                    -- a harder freeze than the one being fixed, and a silent one.
+                    -- Two defaults, not one: the failure branch returns them
+                    -- positionally, so a single-element default would hand the
+                    -- summary below a nil reason to special-case. The failure
+                    -- branch also logs an error and a callstack per animal per
+                    -- tick; that is loud by design, and the malformed guards
+                    -- inside the predicate exist so it never fires for the
+                    -- known-bad shapes. A recurring one is a real defect signal.
+                    local shouldRotate, reason = RmSafeUtils.safeAnimalCall(animal, "AnimalSystem:onHourChanged", function()
+                        return AnimalSystem._shouldRotateSaleAnimal(animal, day, bandMidpoint)
+                    end, { false, "error" })
 
-                    local geneticQuality = 0
-                    local totalGenetics = 0
+                    if shouldRotate then
 
-                    for _, value in pairs(animal.genetics) do
-                        if value ~= nil then
-                            totalGenetics = totalGenetics + 1
-                            geneticQuality = geneticQuality + value
-                        end
-                    end
-
-                    local averageGenetics = geneticQuality / totalGenetics
-
-                    if math.random() >= (saleDay / day) / (averageGenetics * 1.45) then
                         table.insert(indexesToRemove, i)
+
+                        -- Every rotation reason sets this: it is what triggers the
+                        -- state broadcast, and an age or malformed eviction that
+                        -- skipped it would leave clients showing listings the
+                        -- server has already removed.
                         hasChanges = true
+
+                        -- Explicit on every reason rather than an `else` catch-all:
+                        -- a catch-all silently files any future reason under
+                        -- genetics, which is invisible in the summary below and
+                        -- exactly the kind of drift a counter is supposed to expose.
+                        if reason == "age" then
+                            rotatedByAge = rotatedByAge + 1
+                        elseif reason == "malformed" then
+                            rotatedMalformed = rotatedMalformed + 1
+                        elseif reason == "genetics" then
+                            rotatedByGenetics = rotatedByGenetics + 1
+                        else
+                            rotatedUnclassified = rotatedUnclassified + 1
+                        end
+
                     end
 
                 end
@@ -1901,18 +2370,66 @@ function AnimalSystem:onHourChanged()
             end
 
             local threshold = math.random(10, self.maxDealerAnimals)
+            local creationsAttempted, creationsSucceeded = 0, 0
 
             if #animals < threshold then
 
                 for i = #animals + 1, threshold do
 
+                    creationsAttempted = creationsAttempted + 1
+
                     local animal = self:createNewSaleAnimal(animalTypeIndex)
 
                     if animal ~= nil then
                         table.insert(animals, animal)
+                        creationsSucceeded = creationsSucceeded + 1
                         hasChanges = true
                     end
 
+                end
+
+            end
+
+            local rotatedTotal = rotatedByAge + rotatedByGenetics + rotatedMalformed + rotatedUnclassified
+
+            -- Never expected: every reason the predicate can return is counted
+            -- above. Reaching this means a reason was added without updating the
+            -- summary, so say it out loud rather than let the numbers quietly
+            -- stop adding up.
+            if rotatedUnclassified > 0 then
+                Log:warning("Dealer rotation type=%d: %d listings rotated for an unrecognised reason - "
+                    .. "the per-reason counters no longer cover every branch",
+                    animalTypeIndex, rotatedUnclassified)
+            end
+
+            -- Suppressed on a quiet tick: without this the summary alone is five
+            -- lines an hour, 120 a game day, at the dev DEBUG default.
+            if rotatedTotal > 0 or creationsAttempted > 0 then
+
+                local poolAfter = 0
+
+                for _, animal in pairs(animals) do
+                    if animal.sale ~= nil then poolAfter = poolAfter + 1 end
+                end
+
+                -- Attempted and succeeded diverge when createNewSaleAnimal returns
+                -- nil - a legitimate outcome when an owner has disabled every
+                -- buyable subtype for this type - and that divergence is the thing
+                -- a reader is diagnosing, so report both rather than one "created".
+                Log:debug("Dealer rotation type=%d: pool %d -> %d, rotated %d (age=%d genetics=%d malformed=%d), restocked %d of %d attempted",
+                    animalTypeIndex, poolBefore, poolAfter, rotatedTotal,
+                    rotatedByAge, rotatedByGenetics, rotatedMalformed,
+                    creationsSucceeded, creationsAttempted)
+
+                -- A tick that clears more than half the shelf is worth finding by
+                -- grep rather than inferring from the counters above: it is what a
+                -- silted or pre-cap save does on its first tick. DEBUG, not INFO -
+                -- nothing here is actionable by a player or an admin, and in steady
+                -- state a day-granular cap makes this fire more often than "rare"
+                -- would suggest.
+                if poolBefore > 0 and rotatedTotal * 2 > poolBefore then
+                    Log:debug("Dealer shelf turnover: type=%d evicted %d of %d listings in a single tick",
+                        animalTypeIndex, rotatedTotal, poolBefore)
                 end
 
             end
@@ -1944,18 +2461,55 @@ function AnimalSystem:onHourChanged()
 end
 
 
+--- The sale and AI pools' day tick: ages, breeds and ticks disease for pool animals on today's calendar date.
 function AnimalSystem:onDayChanged()
     RmSafeUtils.safeCall("AnimalSystem:onDayChanged", function()
 
         local environment = g_currentMission.environment
-        local month = environment.currentPeriod + 2
         local currentDayInPeriod = environment.currentDayInPeriod
-
-        if month > 12 then month = month - 12 end
-
         local daysPerPeriod = environment.daysPerPeriod
-        local day = 1 + math.floor((currentDayInPeriod - 1) * (getDaysInMonth(month) / daysPerPeriod))
-        local year = environment.currentYear
+        local day, month, year = RLCalendar.getDate(environment)
+
+        Log:trace("AnimalSystem:onDayChanged: calendar date %s/%s/%s", tostring(day), tostring(month), tostring(year))
+
+        -- The pen block carries the other copy of this gate. Guarding only one of the two
+        -- would let dealer stock progress with the feature switched off.
+        local diseasesOn = self.isServer and g_diseaseManager ~= nil
+            and g_diseaseManager.diseasesEnabled == true
+
+        -- NO fee and NO death broadcast: these pools have no pen, so no payer and no cluster
+        -- system to address an event to.
+        ---@param animal table The pool animal to advance.
+        ---@param poolName string Which pool, for log attribution only.
+        local function tickDisease(animal, poolName)
+            if not diseasesOn or animal.numAnimals <= 0 or animal.isDead then
+                Log:trace("AnimalSystem:onDayChanged: skipped the %s disease tick (enabled=%s dead=%s farmId=%s uniqueId=%s)",
+                    poolName, tostring(diseasesOn), tostring(animal.isDead),
+                    tostring(animal.farmId), tostring(animal.uniqueId))
+                return
+            end
+
+            RmSafeUtils.safeAnimalCall(animal, "onDiseaseTick", function()
+                return animal:onDiseaseTick(daysPerPeriod)
+            end, {false, 0})
+
+            Log:trace("AnimalSystem:onDayChanged: ticked disease for a %s animal (farmId=%s uniqueId=%s)",
+                poolName, tostring(animal.farmId), tostring(animal.uniqueId))
+        end
+
+        -- Sale stock only. The AI stud catalogue's exemption IS the absence of this call: the
+        -- player owns straws rather than studs, so a sick stud carries no agency and a fatality
+        -- would silently delete it from the catalogue.
+        ---@param animal table the sale animal to roll.
+        local function rollInfection(animal)
+            -- `diseasesOn` owns the manager-nil half of the guard; the body owns the
+            -- `g_server` half. Both are needed, and neither covers the other.
+            if not diseasesOn then return end
+
+            RmSafeUtils.safeAnimalCall(animal, "diseaseRoll", function()
+                g_diseaseManager:onDayChanged(animal, { ["daysPerPeriod"] = daysPerPeriod })
+            end)
+        end
 
         for _, animals in pairs(self.animals) do
 
@@ -1967,6 +2521,11 @@ function AnimalSystem:onDayChanged()
                     animal:onDayChanged(nil, self.isServer, day, month, year, currentDayInPeriod, daysPerPeriod, true)
                 end)
 
+                tickDisease(animal, "sale")
+
+                -- AFTER progression, exactly as the pen orders it.
+                rollInfection(animal)
+
             end
 
         end
@@ -1977,6 +2536,8 @@ function AnimalSystem:onDayChanged()
                 RmSafeUtils.safeAnimalCall(animal, "AnimalSystem:onDayChanged(ai)", function()
                     animal:onDayChanged(nil, self.isServer, day, month, year, currentDayInPeriod, daysPerPeriod, true)
                 end)
+
+                tickDisease(animal, "AI")
             end
 
         end
@@ -2103,6 +2664,179 @@ end
 function AnimalSystem.onSettingChanged(name, state)
 
     g_currentMission.animalSystem[name] = state
+
+end
+
+
+--- Settings callback for the dealer-quality preset row.
+---
+--- Genetics are BAKED into each sale animal at construction, so a preset change
+--- only becomes visible once the pool is regenerated - the markup follows the
+--- preset live, the stock does not. This callback owns that regeneration and
+--- nothing else: persistence rides the generic RLSettings scalar codec and the
+--- broadcast is already sent by RLMenuSettingsFrame:onClickGeneralSetting, so
+--- doing either here would double up.
+---
+--- Invoked on EVERY peer and on several non-change paths (applyDefaultSettings
+--- at mission start, the full-set push on join, the relay to other clients).
+--- The guard chain below reduces that to exactly one server-side regeneration
+--- per real preset transition.
+---
+--- The regeneration enters RL_ResetDealerEvent.executeOnServer directly, NOT
+--- sendEvent / onClickResetDealer: those are the client-side REQUEST
+--- dispatchers, and from a path that has already passed the g_server gate a
+--- request would fan out one repopulate per peer and race the settings commit.
+---
+---@param name string  settings key ("dealerQuality")
+---@param value number|nil resolved option value; the preset index, or nil when
+---                       the committed state is out of range
+function AnimalSystem.onDealerQualityChanged(name, value)
+
+    local animalSystem = g_currentMission ~= nil and g_currentMission.animalSystem or nil
+
+    -- Logging rule for this function: resolve an index through getPreset ONLY
+    -- where it is already known valid - i.e. on the change path below, after the
+    -- range bail, where both indices are guaranteed in range. `previous` must be
+    -- formatted bare (tostring) on the entry line, because it is nil on every
+    -- seed - mission start and every client join - and getPreset latches a
+    -- one-shot WARNING on an invalid index. Resolving it there would warn on a
+    -- perfectly healthy install AND spend the latch, swallowing a later genuine
+    -- invalid-index warning. Log lines must not change program-visible state.
+    if animalSystem == nil then
+
+        if g_server ~= nil then
+            Log:warning("AnimalSystem.onDealerQualityChanged: animalSystem unreachable on the server (load-order regression); the preset was not applied to the stock - run Reset Animal Dealer once after the change")
+        else
+            -- Pure client: the join full-set landing before animalSystem is
+            -- built is routine timing, not a defect.
+            Log:debug("AnimalSystem.onDealerQualityChanged: animalSystem not built yet (client join timing), skipping")
+        end
+
+        return
+
+    end
+
+    -- Nil-guarded because every caller invokes this from inside an unprotected
+    -- `for name, setting in pairs(SETTINGS)` loop: raising here would abort the
+    -- REST of that loop, so every setting later in pairs() order would silently
+    -- lose its callback. Matches the nil-guard applyChange and
+    -- onClickGeneralSetting already use on the same lookup.
+    local setting = RLSettings.SETTINGS[name]
+    if setting == nil then
+        Log:warning("AnimalSystem.onDealerQualityChanged: no settings row named '%s'; ignoring", tostring(name))
+        return
+    end
+
+    -- (0) Validity bail. RL_BroadcastSettingsEvent commits the raw wire byte with
+    -- no range check, so a master client can put 0 or 4..255 into state, and the
+    -- caller then resolves values[state] to nil. Bailing here keeps that nil out
+    -- of the early commit below, where the next full-set streamWriteUInt8 could
+    -- not serialise it.
+    --
+    -- isValidIndex rather than a hand-rolled range test: it also rejects
+    -- non-numbers (a bare `value < 1` RAISES on a string) and non-integers (2.5
+    -- passes any 1..#values test, then poisons state with a value
+    -- streamWriteUInt8 truncates, and spends RLDealerQualityModel's one-shot
+    -- invalid-index warning latch from inside a log argument). It is also the
+    -- predicate the preset table itself uses, so row and model cannot disagree.
+    if not RLDealerQualityModel.isValidIndex(value) then
+
+        -- Deliberately does NOT claim "nothing was committed": on the wire path
+        -- RL_BroadcastSettingsEvent has already written the raw byte into
+        -- setting.state before this callback runs. What this bail guarantees is
+        -- that the callback does not commit it a second time (which is how a nil
+        -- would reach state and break the next full-set serialise) and does not
+        -- seed the tracker or regenerate from it.
+        Log:warning("AnimalSystem.onDealerQualityChanged: invalid preset index %s (want an integer 1..%d); not applied and the tracker was not seeded, so the NEXT preset change will be treated as a seed and will not restock either - correct the preset in Settings, then run Reset Animal Dealer",
+            tostring(value), RLDealerQualityModel.PRESET_COUNT)
+
+        return
+
+    end
+
+    local previous = animalSystem.dealerQualityApplied
+
+    Log:debug("AnimalSystem.onDealerQualityChanged: name='%s' value=%d previous=%s isServer=%s",
+        name, value, tostring(previous), tostring(g_server ~= nil))
+
+    -- (1) Seed. The first callback on any peer is not a change: on the server it
+    -- is applyDefaultSettings at mission start, on a client the join full-set
+    -- push. Regenerating here would discard the saved dealer pool on every load.
+    if previous == nil then
+
+        animalSystem.dealerQualityApplied = value
+        Log:debug("AnimalSystem.onDealerQualityChanged: seeding tracker to %d (%s); no repopulate",
+            value, RLDealerQualityModel.getPreset(value).key)
+
+        return
+
+    end
+
+    -- (2) No-op. A full-set rebroadcast re-fires every callback unchanged, and a
+    -- local click can land back on the already-applied index.
+    if previous == value then
+
+        Log:debug("AnimalSystem.onDealerQualityChanged: preset unchanged at %d (%s); no repopulate",
+            value, RLDealerQualityModel.getPreset(value).key)
+
+        return
+
+    end
+
+    -- (3) Server gate. Clients never generate - they receive the new pool via
+    -- AnimalSystemStateEvent. The tracker still advances so the DEBUG trail on
+    -- that peer stays truthful.
+    if g_server == nil then
+
+        animalSystem.dealerQualityApplied = value
+        Log:debug("AnimalSystem.onDealerQualityChanged: client defers regeneration to the server; tracker %s -> %d (%s)",
+            tostring(previous), value, RLDealerQualityModel.getPreset(value).key)
+
+        return
+
+    end
+
+    Log:debug("AnimalSystem.onDealerQualityChanged: preset %d(%s) -> %d(%s); repopulating the dealer",
+        previous, RLDealerQualityModel.getPreset(previous).key,
+        value, RLDealerQualityModel.getPreset(value).key)
+
+    -- (4) Early commit, BEFORE the reset. RLSettings.applyChange runs this
+    -- callback and only then writes setting.state, but the regeneration resolves
+    -- the active preset FROM that state - so without this a local click would
+    -- rebuild the pool under the OLD preset. applyChange writes the identical
+    -- value immediately afterwards, and on the wire path the state is already
+    -- committed, so this is a no-op everywhere except the local click path. It
+    -- is correct only because values[i] == i; a test pins that.
+    -- Separate concern from the tracker advance below - do not collapse them.
+    setting.state = value
+
+    -- Persistence is deliberately NOT triggered here: the index is written by
+    -- the generic scalar codec, driven by the savegame save or by the settings
+    -- event when the change arrived from a remote client.
+    Log:debug("AnimalSystem.onDealerQualityChanged: state committed to %d; persistence rides the RLSettings scalar codec, no explicit save here",
+        value)
+    Log:debug("AnimalSystem.onDealerQualityChanged: dispatching RL_ResetDealerEvent.executeOnServer(TYPE_DEALER)")
+
+    local ok = RmSafeUtils.safeCall("AnimalSystem.onDealerQualityChanged: repopulate", function()
+        RL_ResetDealerEvent.executeOnServer(RL_ResetDealerEvent.TYPE_DEALER)
+    end)
+
+    -- (5) Failure exit. safeCall has already logged the ERROR and callstack, so
+    -- this adds only the player-facing recovery.
+    if not ok then
+
+        Log:warning("AnimalSystem.onDealerQualityChanged: repopulate failed; the preset moved to %d (%s) but the stock did not - run Reset Animal Dealer, or re-select the same preset to retry",
+            value, RLDealerQualityModel.getPreset(value).key)
+
+        return
+
+    end
+
+    -- (6) Advance only AFTER the reset returned. A failed or partial reset
+    -- therefore leaves the tracker at the OLD preset, so re-selecting the same
+    -- preset takes the real-transition path and RETRIES instead of being
+    -- swallowed by guard (2). Safe because executeOnServer is synchronous.
+    animalSystem.dealerQualityApplied = value
 
 end
 

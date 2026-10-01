@@ -44,7 +44,7 @@ block as a sibling of the settings entries:
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <rm_RlSettings version="1">
     <deathEnabled value="2"/>
-    <diseasesEnabled value="2"/>
+    <diseaseDifficulty value="3"/>
     <!-- ... other settings ... -->
     <filters>
         <filter id="my_first_filter" name="My first filter" animalType="COW" farmId="1" version="1">
@@ -159,7 +159,7 @@ comparator's expected shape.
 | `isPregnant` | bool | `==` | all | `true` / `false`. |
 | `isLactating` | bool | `==` | **COW only** | Other species ignore this field. Goats (a SHEEP subtype, `subType="GOAT"`) do track lactation internally, but this filter field is scoped to COW, so an `isLactating` condition always evaluates false for goats. |
 | `hasName` | bool | `==` | all | True if the animal has a non-empty player-set name. |
-| `hasAnyDisease` | bool | `==` | all | True if at least one disease is currently active. |
+| `hasAnyDisease` | bool | `==` | all | True if at least one disease is showing symptoms. A cured disease (still counting down its immunity), a genetic carrier state (CVM) and a disease still in its hidden phase on **Hard** or **Very hard** do NOT count - those animals match `hasAnyDisease == false`, the same "Healthy" the quick filter offers. This also steers herdsman rules built on this field: a rule on it never selects cured animals, hidden cases or CVM carriers, and because a sick animal cannot be sold, a herdsman sell rule on it sells and marks nothing. |
 | `hasAnyMark` | bool | `==` | all | True if any mark is active (player-set or AI-manager). |
 | `name` | string | `contains` `notcontains` | all | Case-insensitive substring match. Unnamed animals are treated as empty string, so `notcontains anything` is true for them. |
 | `weight` | number | `<` `<=` `==` `!=` `>=` `>` `in` `notin` | all | **Monitor-gated.** Returns no value when the animal's monitor is not active; the condition then evaluates to false. |

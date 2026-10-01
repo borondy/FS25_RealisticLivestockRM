@@ -31,7 +31,26 @@ local Log = RmLogging.getLogger("RLRM")
 --- @param key string XML path key
 --- @param clusterSystem table|nil Cluster system (nil for pregnancy children)
 --- @param isLegacy boolean Whether this is a legacy-format save
+---
+--- THE DISEASE ARRAY IS REBUILT IN DOCUMENT ORDER, and that is a contract rather than an
+--- incidental property of `iterate`. The save half writes each record at an INDEXED key taken
+--- from its position in the array, so document order IS array order, and every peer folds the
+--- same records in the same sequence. Rebuilding it from a title-keyed map, a set, per-state
+--- buckets or a re-sorted query loses that with no raise, no red assert and no log line.
+---
 --- @return table|nil animal New Animal instance, or nil if subType not found
+--- @return number droppedLegacyDiseaseRecords How many disease records THIS animal lost to the
+---         shape discriminator. Zero on every save this build wrote. Exposed because a suite
+---         has no other way to assert it - the emission is a WARNING, and neither a logger spy
+---         nor the error-line pin can see one.
+---
+---         SCOPED TO THIS ANIMAL'S OWN RECORDS. An unborn child is loaded by a recursive call
+---         and is a different animal: it counts, warns and reports for itself, and its total is
+---         deliberately NOT folded in here, because a number documented as one animal's loss
+---         must not silently include another's. The consequence to know when reading a log: a
+---         pregnant mother's returned figure does not cover her children, and a child's own
+---         warning renders `farmId=nil uniqueId=nil`, because the pregnancy key it loads from
+---         carries neither - a pre-existing property of that path, inherited rather than added.
 function AnimalPersistence.loadFromXMLFile(xmlFile, key, clusterSystem, isLegacy)
 
     local subTypeIndex
@@ -53,7 +72,11 @@ function AnimalPersistence.loadFromXMLFile(xmlFile, key, clusterSystem, isLegacy
             local rawName = xmlFile:getString(key .. "#subType", "?")
             Log:warning("loadAnimal: subType '%s' not found in registry - animal will be dropped (key=%s)", rawName, key)
         end
-        return nil
+        -- Both values, so the second return is a number on EVERY path the doc block declares it
+        -- on. A bare `return nil` here hands the caller nil in that slot, and the first caller
+        -- to write `total = total + dropped` would get `number + nil` on exactly the drop path -
+        -- the one that is hardest to reach in a test and easiest to miss in review.
+        return nil, 0
     end
 
     local age = xmlFile:getInt(key .. "#age")
@@ -198,21 +221,145 @@ function AnimalPersistence.loadFromXMLFile(xmlFile, key, clusterSystem, isLegacy
 
     local diseases = {}
 
+    -- Counts ONE drop reason: a record written in the pre-switchover shape. The other two
+    -- skips below keep their own per-record warnings and are not counted here, because this
+    -- number is an ORACLE - a suite asserts it, a logger spy is banned portfolio-wide, and a
+    -- WARNING moves neither the error pin nor a sequence pin - so folding three reasons into
+    -- one figure would make it unassertable for any of them.
+    local droppedLegacyDiseaseRecords = 0
+
+    -- Resolved ONCE: constant for the animal, where the loop below is per-record. A nil
+    -- SKIPS the type check rather than failing closed, which would drop every record on
+    -- every animal - so every step here takes NO default and yields nil instead.
+    --
+    -- Re-read rather than reusing `subTypeIndex`: that one defaults to COW_HOLSTEIN, and
+    -- inheriting the default would type an unlabelled animal COW and drop a sheep's or a
+    -- pig's records under a rule that is meant to skip when it cannot tell.
+    local animalTypeName
+    local typedSubType = isLegacy and subTypeIndex
+        or g_currentMission.animalSystem:getSubTypeIndexByName(xmlFile:getString(key .. "#subType"))
+    local animalSubType = typedSubType ~= nil
+        and g_currentMission.animalSystem:getSubTypeByIndex(typedSubType) or nil
+    local typeIndexToName = g_currentMission.animalSystem.typeIndexToName
+
+    if animalSubType ~= nil and typeIndexToName ~= nil then
+        animalTypeName = typeIndexToName[animalSubType.typeIndex]
+    end
+
+    if animalTypeName == nil then
+        -- Not a WARNING: the type check is designed to skip here. But a permanently broken
+        -- resolution and "nothing to drop" are otherwise indistinguishable in a log.
+        Log:debug("loadAnimal: no animal type resolved, the record-adherence type check is "
+            .. "skipped for this animal (farmId=%s uniqueId=%s)", tostring(farmId), tostring(id))
+    end
+
+    -- SEPARATE from the legacy counter above, never folded in: that one is an oracle scoped
+    -- to a single reason, and a combined figure would be unassertable for either.
+    local droppedNonAdherent = {}
+    local droppedNonAdherentTotal = 0
+
+    -- Every skip below is a BARE return, never `return false`. Returning exactly false from an
+    -- iterate callback ends the walk, so it would drop every REMAINING disease on this animal
+    -- rather than just the one that could not be resolved. Returning nothing continues it.
     xmlFile:iterate(key .. ".diseases.disease", function (_, diseaseKey)
 
         if g_diseaseManager == nil then
-            Log:warning("Skipping disease load: g_diseaseManager unavailable")
+            Log:warning("loadAnimal: dropping a disease record, reason=no disease manager (farmId=%s uniqueId=%s)",
+                tostring(farmId), tostring(id))
             return
         end
 
-        local diseaseType = g_diseaseManager:getDiseaseByTitle(xmlFile:getString(diseaseKey .. "#title"))
+        -- tostring on the way IN, not inside the renderer: an absent field would otherwise not be
+        -- a key at all, so the warning would silently omit it rather than render it as nil - and a
+        -- grep for `uniqueId=` would under-count exactly the records that lost their identity. An
+        -- unborn child loaded through the pregnancy recursion is the reachable case: it reads its
+        -- id and farm off a key that carries neither.
+        local diseaseType = g_diseaseManager:resolveRecordType(xmlFile:getString(diseaseKey .. "#title"),
+            { farmId = tostring(farmId), uniqueId = tostring(id), context = "savegame" })
+
+        if diseaseType == nil then return end
+
+        -- THE SHAPE DISCRIMINATOR, and it must sit exactly here - after the title resolves and
+        -- before anything is constructed. Both shapes carry a title, and every attribute read
+        -- in the codec supplies a default, so without this an old record is accepted with
+        -- default values for fields it never had: a record at EXPOSED with zeroed counters
+        -- that no guard refuses and nothing can ever advance. Silent, permanent, and
+        -- indistinguishable from a fresh infection.
+        --
+        -- Absent reads as 1 - the legacy shape wrote no version - so the default is what
+        -- actually does the work here, not the comparison.
+        if xmlFile:getInt(diseaseKey .. "#version", 1) < Disease.RECORD_VERSION then
+
+            droppedLegacyDiseaseRecords = droppedLegacyDiseaseRecords + 1
+
+            return
+
+        end
+
         local disease = Disease.new(diseaseType)
 
         disease:loadFromXMLFile(xmlFile, diseaseKey)
 
+        -- Read at CALL time: main.lua sources this file well before the disease modules, so a
+        -- file-scope alias would be nil in-game and populated headless.
+        local adherent, reason = RLDiseaseRecord.isAdherent(disease, diseaseType, animalTypeName)
+
+        if not adherent then
+
+            -- Never index the tally with the raw return: a renamed reason constant makes
+            -- `reason` nil, and `t[nil] = v` RAISES inside an iterate callback on the load
+            -- path, turning a designed drop into a failed animal load.
+            local reasonKey = reason or "UNSPECIFIED"
+
+            droppedNonAdherent[reasonKey] = (droppedNonAdherent[reasonKey] or 0) + 1
+            droppedNonAdherentTotal = droppedNonAdherentTotal + 1
+
+            Log:trace("loadAnimal: dropping a disease record, reason=%s (title=%s state=%s farmId=%s uniqueId=%s)",
+                tostring(reason), tostring(diseaseType.title), tostring(disease.state),
+                tostring(farmId), tostring(id))
+
+            return
+
+        end
+
         table.insert(diseases, disease)
 
     end)
+
+    -- ONE line per animal, for the reason the legacy warning above carries one: a herd that
+    -- meets a re-authored definition file drops together. INFO, not WARNING - this is the rule
+    -- working as designed, and nothing asks the player to act.
+    if droppedNonAdherentTotal > 0 then
+
+        -- Sorted, so the rendered order does not depend on hash order and cannot differ
+        -- between the two runners.
+        -- The RAW keys, never a `tostring` copy: re-keying the lookup would read nil for
+        -- any non-string key and hand that nil straight to `%d`.
+        local reasons = {}
+
+        for reason in pairs(droppedNonAdherent) do reasons[#reasons + 1] = reason end
+
+        table.sort(reasons, function(a, b) return tostring(a) < tostring(b) end)
+
+        local rendered = {}
+
+        for i = 1, #reasons do
+            rendered[i] = string.format("%s=%d", tostring(reasons[i]), droppedNonAdherent[reasons[i]])
+        end
+
+        Log:info("loadAnimal: dropped %s disease record(s) that no longer fit their definition, %s (farmId=%s uniqueId=%s)",
+            tostring(droppedNonAdherentTotal), table.concat(rendered, " "),
+            tostring(farmId), tostring(id))
+
+    end
+
+    -- ONE line per animal, never one per record: a herd carrying the old shape is the normal
+    -- case on the first load of this build, so per-record lines would bury the load log in
+    -- exactly the situation a reader most needs to follow it.
+    if droppedLegacyDiseaseRecords > 0 then
+        Log:warning("loadAnimal: dropped %s pre-switchover disease record(s), reason=record shape predates the current one and carries no state to migrate (farmId=%s uniqueId=%s)",
+            tostring(droppedLegacyDiseaseRecords), tostring(farmId), tostring(id))
+    end
 
 
     local insemination
@@ -265,9 +412,11 @@ function AnimalPersistence.loadFromXMLFile(xmlFile, key, clusterSystem, isLegacy
 
             if childNum > 0 then
 
-                local month = g_currentMission.environment.currentPeriod + 2
-                if month > 12 then month = month - 12 end
-                local year = g_currentMission.environment.currentYear
+                local month, year = RLCalendar.getMonthAndYear(g_currentMission.environment)
+
+                Log:trace("AnimalPersistence.loadFromXMLFile: pregnancy from reproduction=%s at %s/%s"
+                    .. " (farmId=%s uniqueId=%s)",
+                    tostring(reproduction), tostring(month), tostring(year), tostring(farmId), tostring(id))
 
                 animal:createPregnancy(childNum, month, year)
 
@@ -287,7 +436,7 @@ function AnimalPersistence.loadFromXMLFile(xmlFile, key, clusterSystem, isLegacy
 
     end
 
-    return animal
+    return animal, droppedLegacyDiseaseRecords
 
 end
 
@@ -433,9 +582,15 @@ function AnimalPersistence.saveToXMLFile(animal, xmlFile, key)
     if animal.isCastrated then xmlFile:setBool(key .. "#isCastrated", true) end
     if animal.canBeSold == false then xmlFile:setBool(key .. "#canBeSold", false) end
 
-    for i, disease in pairs(animal.diseases) do
+    -- INDEXED walk, never `pairs`, and this is the site that MATERIALISES the positional
+    -- contract the loader and both stream halves are written against. The element index is
+    -- derived from the loop variable, so with `pairs` the document's order was whatever the
+    -- iterator happened to hand back - order-preserving for a dense array under this VM, and
+    -- not a guarantee. Writing the index from a counted loop makes the contract true by
+    -- construction instead of by luck, and matches the two stream write halves exactly.
+    for i = 1, #animal.diseases do
 
-        disease:saveToXMLFile(xmlFile, key .. ".diseases.disease(" .. (i - 1) .. ")")
+        animal.diseases[i]:saveToXMLFile(xmlFile, key .. ".diseases.disease(" .. (i - 1) .. ")")
 
     end
 

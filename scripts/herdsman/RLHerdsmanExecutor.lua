@@ -1,65 +1,54 @@
 -- RLHerdsmanExecutor.lua
--- M-Tick T3 - the in-game executor wall. Turns the pure plan from
--- RLHerdsmanPlanner.planActions (T1/T2) into the SAME mutations legacy
--- AIAnimalManager:onDayChanged performs (MUTATION PARITY): it dispatches the SAME
--- events (AIAnimalSellEvent / AIAnimalBuyEvent / AIAnimalInseminationEvent), applies
--- castrate + naming as direct server-side field writes AND broadcasts AnimalCastrateEvent /
--- AnimalNameChangeEvent per animal (caller-mutates-first, no sendLocal) so those writes sync
--- to clients, sets the AI_MANAGER_* mark for mark-mode actions (broadcasting AnimalMarkEvent
--- per animal, caller-mutates-first, no sendLocal, so marks sync to clients too) instead of
--- executing, persists the naming cursor, and deducts the herdsman wage once per farm
--- via MoneyType.HERDSMAN_WAGES.
+-- The in-game executor wall: turns the pure plan from RLHerdsmanPlanner.planActions into
+-- mutations. It dispatches AIAnimalSellEvent / AIAnimalBuyEvent / AIAnimalInseminationEvent /
+-- AIAnimalMoveEvent, applies castrate + naming + horse care as direct server-side field writes and
+-- broadcasts the matching per-animal event (caller-mutates-first, no sendLocal) so those writes
+-- sync to clients, sets the AI_MANAGER_* mark for mark-mode actions, persists the naming cursor,
+-- and deducts the herdsman wage once per farm via MoneyType.HERDSMAN_WAGES.
 --
--- Membership backstop: before each DIRECT mutation (castrate exec, naming random/alphabetical,
--- mark-mode setMarkOnAll) the executor resolves the action's animal in the husbandry's LIVE
--- cluster (placeable:getClusterSystem().animals) by three-field identity and mutates/broadcasts
--- the RESOLVED object - the same membership check AnimalCastrateEvent:run performs. An animal not
--- in the cluster at execute time is skipped (no field write, no broadcast, one WARNING); siblings
--- proceed. This keeps any plan/execute divergence from ever mutating a dealer-pool / foreign
--- animal. The event-dispatched legs (sell / buy / ai exec) carry no such guard - their events
--- resolve membership themselves.
+-- Membership backstop: before each DIRECT mutation the executor resolves the action's animal in the
+-- husbandry's LIVE cluster by three-field identity - the same check AnimalCastrateEvent:run performs
+-- - and mutates the RESOLVED object. An animal not in the cluster at execute time is skipped with
+-- one warning while its siblings proceed, so a plan/execute divergence can never mutate a
+-- dealer-pool or foreign animal. The event-dispatched legs carry no such guard: their events resolve
+-- membership themselves.
 --
--- T3 makes NO candidate decisions: the plan is authoritative. The executor obeys
--- action.mark / action.wage / action.animals verbatim; it never selects, caps, sorts,
--- computes wage, or reorders. It also does NOT clear stale marks (that is T4, the
--- clear-before-execute ordering) and emits NO player notifications (that is T5 -
--- the returned summary carries the per-action data T5 needs).
+-- The executor makes NO candidate decisions - the plan is authoritative, and it obeys action.mark /
+-- action.wage / action.animals verbatim without selecting, capping, sorting or reordering. It does
+-- not clear stale marks (the day-tick does that, before execute) and emits no player notifications
+-- (RLHerdsmanMessages does, from the summary this returns).
 --
--- Dependency injection (Rule C), no g_* reads. The dispatch boundary arrives through
--- `ctx`, so the executor's DECISIONS are dual-run (the suite injects fakes/spies; T4 wires
--- the real globals - the calls are byte-identical to legacy):
+-- No g_* reads: the dispatch boundary arrives through `ctx`, so the DECISIONS are dual-run.
 --   ctx = {
 --     server                  = g_server,                        -- broadcastEvent(event, true)
 --     mission                 = g_currentMission,                -- addMoney (wage)
 --     husbandryPlaceablesById = { [uniqueId] = <placeable> },    -- event object, getOwnerFarmId, getNumOfFreeAnimalSlots
 --     ruleService             = <RLHerdsmanRuleService>,         -- setNamingCursor(id, previous)
---     animalNameSystem        = <real AnimalNameSystem>,         -- getRandomName(gender) (reused from T2)
+--     animalNameSystem        = <real AnimalNameSystem>,         -- getRandomName(gender)
+--     defer                   = function(fn) ... end,            -- run fn after the current day-change chain
 --   }
--- T3 does NOT read ctx.husbandries (clear-stale-marks is T4, decision 1b).
 --
--- summary (return value, consumed by T4 wage readout + T5 messages):
+-- `defer` is a STRUCTURAL dep rather than a defaulted one: horse care is the one deferred leg, and a
+-- missing seam would leave it silently never writing while the wage is still charged. It is checked
+-- for CALLABILITY, so a non-callable cannot pass, and the client guard runs first so the fail-loud
+-- binds server-side only.
+--
+-- summary (return value):
 --   summary = {
 --     wageByFarm = { [farmId] = number },         -- one deduction per farm with > 0
 --     results    = { <one row per plan action, in plan order> },
 --   }
--- A result row: { ruleId, husbandryId, farmId, operation, count, skippedCount, mark,
---   amountGained, amountSpent, dispatched, skipReason }. `dispatched` is true iff the event
---   broadcast / direct mutation was applied; `skipReason` is nil when dispatched, else one of
---   "no-space" | "no-money" | "mark-mode" | "missing-placeable" | "missing-dest" | "bad-data" | "not-in-husbandry".
---   On a guarded direct-mutation leg (castrate exec / naming / mark-mode) `count` is the count
---   ACTUALLY mutated/marked and `skippedCount` is the membership-skip count (planned - actual);
---   the unguarded legs (sell / buy / ai exec) report the planned count with skippedCount 0. An exec
---   leg whose animals ALL skip membership reports skipReason="not-in-husbandry" (count 0); a mark
---   leg whose animals all skip keeps skipReason="mark-mode" (its identity is load-bearing for T5).
---
--- Parity anchors in AIAnimalManager:onDayChanged: Sell broadcast / Buy broadcast /
--- Castrate field writes + event / Naming walk + event / AI broadcast; wage in
--- RealisticLivestock_FSBaseMission:onDayChanged. T3 SETS marks for mark-mode; clear-stale
--- is T4.
---
--- T3 ships DORMANT: it wires NO MessageCenter subscription and NO day-tick hook (T4). The
--- legacy AIAnimalManager tick is still live, so a live T3 tick would double-dispatch +
--- double-charge HERDSMAN_WAGES. Until T4 lands, in-game verification is via rlTest only.
+-- A result row: { ruleId, husbandryId, farmId, operation, count, skippedCount, mark, amountGained,
+--   amountSpent, dispatched, skipReason }. `dispatched` is true iff the broadcast or direct mutation
+--   was applied; `skipReason` is nil when dispatched, else one of "no-space" | "no-money" |
+--   "mark-mode" | "missing-placeable" | "missing-dest" | "bad-data" | "not-in-husbandry" |
+--   "defer-failed" | "all-age-ineligible" | "all-sick". The wage follows each leg's chargeWage, not
+--   the reason: "missing-dest" and "defer-failed" never charge, "bad-data" and "missing-placeable"
+--   charge only where the leg says so (a validate rejection does, a data-skip does not), and every other
+--   reason charges. On a guarded direct-mutation leg `count` is the count ACTUALLY mutated or marked and
+--   `skippedCount` the membership-skip count; the unguarded legs report the planned count with
+--   skippedCount 0. An exec leg whose animals ALL skip membership reports "not-in-husbandry"; a mark
+--   leg whose animals all skip keeps "mark-mode", whose identity the message layer depends on.
 
 local Log = RmLogging.getLogger("RLRM")
 
@@ -82,16 +71,16 @@ local MARK_BY_OPERATION = {
 -- Internal helpers
 -- =============================================================================
 
---- Finite-number guard: rejects nil / non-number / NaN / +-inf. Used to fail closed on
---- amounts that would crash the event's validate arithmetic and on a malformed wage.
+--- Finite-number guard: rejects nil / non-number / NaN / +-inf, so an amount that would crash an
+--- event's validate arithmetic fails closed instead.
 ---@param v any
 ---@return boolean
 local function isFiniteNumber(v)
     return type(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge
 end
 
---- Resolve the herdsman wage contribution for an action, failing closed: a non-finite /
---- non-number wage is treated as 0 (with a WARNING), never raising.
+--- Resolve the herdsman wage contribution for an action, failing closed: a non-finite wage is
+--- treated as 0 with a warning, never raising.
 ---@param action table
 ---@return number
 local function resolveWage(action)
@@ -101,10 +90,9 @@ local function resolveWage(action)
     return 0
 end
 
---- Resolve the action's husbandry cluster animal list ONCE per action, failing closed without
---- raising: a missing getClusterSystem method, a nil / non-table cluster system, or a nil /
---- non-table .animals all return nil so the caller whole-action skips (skipReason="bad-data", no
---- wage, no prefix mutation). @see AnimalCastrateEvent.run for the canonical resolve.
+--- Resolve the action's husbandry cluster animal list ONCE per action, without raising: a missing
+--- method or a non-table cluster / .animals returns nil, so the caller whole-action skips as
+--- bad-data with no wage and no prefix mutation. @see AnimalCastrateEvent.run.
 ---@param placeable table husbandry placeable owning the cluster
 ---@return table|nil animals the live cluster animal array, or nil when unavailable
 local function resolveClusterAnimals(placeable)
@@ -118,19 +106,18 @@ local function resolveClusterAnimals(placeable)
     return clusterSystem.animals
 end
 
---- Membership guard: resolve `probe` (an action animal reference) to the LIVE cluster object by
---- three-field identity - the same check AnimalCastrateEvent:run performs. Logs ONE WARNING and
---- returns nil when the probe is malformed (nil farmId / uniqueId / birthday.country) OR is not a
---- current member; the caller then skips THAT animal (no field write, no broadcast) and siblings
---- proceed. Present -> returns the RESOLVED cluster object to mutate + broadcast (never the probe).
+--- Membership guard: resolve `probe` to the LIVE cluster object by three-field identity. Logs one
+--- warning and returns nil when the probe is malformed or is not a current member, so the caller
+--- skips THAT animal and siblings proceed. Returns the RESOLVED cluster object to mutate and
+--- broadcast, never the probe.
 ---@param clusterAnimals table the cluster animal list from resolveClusterAnimals
 ---@param probe table the action's animal reference
----@param action table for the WARNING row (ruleId / operation / husbandryId)
----@param farmId number for the WARNING row
+---@param action table for the warning row (ruleId / operation / husbandryId)
+---@param farmId number for the warning row
 ---@return table|nil resolved the live cluster animal, or nil to skip this animal
 local function resolveMember(clusterAnimals, probe, action, farmId)
-    -- A non-table probe (a corrupt action.animals entry) is malformed; guard before indexing so the
-    -- "never raises" contract holds for any junk entry, not only nil-field animals.
+    -- Guard before indexing, so the never-raises contract holds for any junk entry rather than only
+    -- for nil-field animals.
     if type(probe) ~= "table" then
         Log:warning("%s rule=%s op=%s husbandry=%s farm=%s: non-table animal entry (%s) - skipped (malformed)",
             LOG_PREFIX, tostring(action.ruleId), tostring(action.operation), tostring(action.husbandryId),
@@ -153,18 +140,15 @@ local function resolveMember(clusterAnimals, probe, action, farmId)
     return resolved
 end
 
---- Mark-mode leg (shared by sell / castrate / ai): set the AI_MANAGER_* mark on every RESOLVED
---- cluster member of the action AND broadcast AnimalMarkEvent per animal (caller-mutates-first, no
---- sendLocal) so the mark syncs to MP clients - the same shape the player path (@see
---- RLAnimalInfoService.markAnimal) and the castrate / naming exec legs use. Each animal is
---- membership-resolved first (@see resolveMember): an absent animal is skipped (no setMarked, no
---- broadcast, one WARNING). setMarked is fully real headless (the visual-marker call self-no-ops
---- with no visual instance). Returns the leg outcome tuple: a mark row ALWAYS reports
---- dispatched=false + skipReason="mark-mode" (its identity is load-bearing for T5) regardless of how
---- many resolved, and `actualMarked` drives _executeOne's count / skippedCount / actual-over-planned
---- wage. Fails CLOSED two ways: a nil markKey (AnimalMarkEvent treats key=nil as a destructive
---- clear-ALL-marks, @see AnimalMarkEvent.new) skips the whole action keeping the legacy mark-mode
---- wage; a nil / non-table cluster whole-action skips as bad-data (no wage).
+--- Mark-mode leg, shared by sell / castrate / ai / move: set the AI_MANAGER_* mark on every RESOLVED
+--- cluster member and broadcast AnimalMarkEvent per animal so the mark syncs to MP clients.
+--- A mark row ALWAYS reports dispatched=false with skipReason="mark-mode" regardless of how many
+--- resolved, because the message layer keys off that identity. Fails CLOSED two ways: a nil markKey
+--- skips the whole action while keeping the mark-mode wage, because AnimalMarkEvent treats a nil key
+--- as a destructive clear-ALL; an unavailable cluster skips as bad-data with no wage.
+---@see resolveMember
+---@see AnimalMarkEvent.new
+---@see RLAnimalInfoService.markAnimal
 ---@param ctx table dispatch context (ctx.server:broadcastEvent)
 ---@param placeable table husbandry placeable owning the animals' cluster system (the event object)
 ---@param action table the mark-mode action (animals + ruleId / operation / husbandryId for the log row)
@@ -194,9 +178,8 @@ local function setMarkOnAll(ctx, placeable, action, markKey, farmId)
         local animal = resolveMember(clusterAnimals, probe, action, farmId)
         if animal ~= nil then
             animal:setMarked(markKey, true)
-            -- MP sync: broadcast WITHOUT sendLocal. AnimalMarkEvent:run applies setMarked on server AND
-            -- client, so the server already marked above; sendLocal would re-run run() locally (redundant
-            -- re-mark, possible double broadcast). @see RLAnimalInfoService.markAnimal.
+            -- Broadcast WITHOUT sendLocal: AnimalMarkEvent:run applies setMarked on server AND
+            -- client, and the server already marked above. @see RLAnimalInfoService.markAnimal.
             ctx.server:broadcastEvent(AnimalMarkEvent.new(placeable, animal, markKey, true))
             Log:debug("%s rule=%s op=%s husbandry=%s farm=%s: broadcast AnimalMarkEvent uniqueId=%s key=%s",
                 LOG_PREFIX, tostring(action.ruleId), tostring(action.operation), tostring(action.husbandryId),
@@ -209,8 +192,8 @@ local function setMarkOnAll(ctx, placeable, action, markKey, farmId)
     return true, false, "mark-mode", marked, skipped
 end
 
---- Emit the single uniform greppable per-action trace row, read from the result table so EVERY
---- exit path (including the early fail-closed skips) logs exactly one identical DEBUG row.
+--- Emit the single uniform greppable per-action trace row, read from the result table so every exit
+--- path - the early fail-closed skips included - logs exactly one identical DEBUG row.
 ---@param result table
 local function logActionRow(result)
     Log:debug("%s rule=%s op=%s husbandry=%s farm=%s count=%d skippedCount=%d mark=%s dispatched=%s amountGained=%s amountSpent=%s skipReason=%s",
@@ -223,36 +206,34 @@ end
 -- Public API
 -- =============================================================================
 
---- Apply the planned actions in-game (server-only), mirroring legacy
---- AIAnimalManager:onDayChanged. Per action: dispatch the SAME event legacy does (sell /
---- buy / ai), apply castrate + naming directly THEN broadcast AnimalCastrateEvent /
---- AnimalNameChangeEvent per animal so clients sync, OR set the AI_MANAGER_* mark for
---- a mark-mode action AND broadcast AnimalMarkEvent per animal so the mark syncs to clients;
---- accumulate the herdsman wage per farm and deduct it once per farm at
---- the end. Fails LOUD on a missing STRUCTURAL ctx dep (a T4-wiring bug), fails CLOSED
---- (skip + WARNING, never raise) on a per-action data problem. Reads no g_*; the dispatch
---- boundary is injected via ctx.
+--- Apply the planned actions in-game, server-only: per action dispatch the event or apply the direct
+--- mutation, or set the mark for a mark-mode action; accumulate the herdsman wage per farm and
+--- deduct it once per farm at the end. Fails LOUD on a missing STRUCTURAL ctx dep (a day-tick wiring
+--- bug) and fails CLOSED - skip plus a warning, never raising - on a per-action data problem.
 ---@param plan table|nil ordered action records from RLHerdsmanPlanner.planActions
 ---@param ctx table dispatch context (server, mission, husbandryPlaceablesById, ruleService, animalNameSystem)
 ---@return table summary { wageByFarm = { [farmId]=number }, results = { <row per action> } }
 function RLHerdsmanExecutor.executeActions(plan, ctx)
     local summary = { wageByFarm = {}, results = {} }
 
-    -- Server-only: a dedicated server has g_server ~= nil, so guarding on ctx.server (= g_server)
-    -- correctly includes dedis. T4 only ticks server-side; the executor still guards.
+    -- A dedicated server has g_server ~= nil, so guarding on ctx.server correctly includes dedis.
     if ctx == nil or ctx.server == nil then
         Log:debug("%s not server (ctx.server==nil) - no dispatch / mutation / money; empty summary", LOG_PREFIX)
         return summary
     end
 
-    -- Fail LOUD on a missing STRUCTURAL dep the executor unconditionally needs: a missing one
-    -- is a T4-wiring bug, never a silent no-op that would hide a broken day-tick.
+    -- A missing structural dep is a day-tick wiring bug, never a silent no-op that would hide a
+    -- broken tick. `defer` is checked for CALLABILITY: a `== nil` check would let a non-callable
+    -- through to the horse-care arm, where calling it raises far from the cause.
     if ctx.mission == nil or ctx.ruleService == nil or ctx.animalNameSystem == nil
-        or ctx.husbandryPlaceablesById == nil then
+        or ctx.husbandryPlaceablesById == nil or type(ctx.defer) ~= "function" then
+        -- One convention for all five: present-and-usable as a boolean, so the reader does not have
+        -- to work out which field uses which format.
         error(string.format(
-            "%s missing structural ctx dep (T4 wiring bug): mission=%s ruleService=%s animalNameSystem=%s husbandryPlaceablesById=%s",
+            "%s missing structural ctx dep (T4 wiring bug): mission=%s ruleService=%s animalNameSystem=%s husbandryPlaceablesById=%s defer=%s",
             LOG_PREFIX, tostring(ctx.mission ~= nil), tostring(ctx.ruleService ~= nil),
-            tostring(ctx.animalNameSystem ~= nil), tostring(ctx.husbandryPlaceablesById ~= nil)))
+            tostring(ctx.animalNameSystem ~= nil), tostring(ctx.husbandryPlaceablesById ~= nil),
+            tostring(type(ctx.defer) == "function")))
     end
 
     if plan == nil then
@@ -260,8 +241,7 @@ function RLHerdsmanExecutor.executeActions(plan, ctx)
         return summary
     end
 
-    -- First-seen farm order so the per-farm wage deduction is deterministic across runners
-    -- (pairs() order is undefined); per-farm deductions are otherwise independent.
+    -- First-seen farm order, so the per-farm wage deduction is deterministic across runners.
     local wageFarmOrder = {}
 
     for _, action in ipairs(plan) do
@@ -269,8 +249,7 @@ function RLHerdsmanExecutor.executeActions(plan, ctx)
         summary.results[#summary.results + 1] = result
     end
 
-    -- One HERDSMAN_WAGES deduction per farm with a positive accrued wage (parity with
-    -- RealisticLivestock_FSBaseMission:onDayChanged), in first-seen plan order.
+    -- One HERDSMAN_WAGES deduction per farm with a positive accrued wage, in first-seen plan order.
     for _, farmId in ipairs(wageFarmOrder) do
         local wage = summary.wageByFarm[farmId]
         if wage ~= nil and wage > 0 then
@@ -286,8 +265,8 @@ end
 -- Per-action execution
 -- =============================================================================
 
---- Resolve one action and apply it, accumulating any farm-attributed wage into
---- summary.wageByFarm. Returns the result row. Never raises (per-action problems fail closed).
+--- Resolve one action and apply it, accumulating any farm-attributed wage into summary.wageByFarm.
+--- Never raises: per-action problems fail closed.
 ---@param action table
 ---@param ctx table
 ---@param summary table
@@ -308,7 +287,7 @@ function RLHerdsmanExecutor._executeOne(action, ctx, summary, wageFarmOrder)
         skipReason   = nil,
     }
 
-    -- Per-action resolution: the records carry only husbandryId (never farmId).
+    -- The records carry only husbandryId, never farmId.
     local placeable = ctx.husbandryPlaceablesById[action.husbandryId]
     if placeable == nil then
         result.skipReason = "missing-placeable"
@@ -339,17 +318,14 @@ function RLHerdsmanExecutor._executeOne(action, ctx, summary, wageFarmOrder)
         return result
     end
 
-    -- Dispatch by operation. Each branch returns (chargeWage, dispatched, skipReason); a
-    -- data-skip returns chargeWage=false (the action is dropped). chargeWage=true charges the
-    -- wage regardless of dispatch outcome (mark, exec, OR validate-rejected) - legacy charges
-    -- self.wage before/independent of dispatch.
-    -- Guarded direct-mutation legs return a 4th value (the count ACTUALLY mutated/marked) and a 5th
-    -- (their own membership-skip count) - both nil from the unguarded sell / buy / ai exec legs. They
-    -- re-derive the row's count + skippedCount and scale the wage below.
+    -- Each branch returns (chargeWage, dispatched, skipReason). A data-skip returns chargeWage=false
+    -- and the action is dropped; chargeWage=true charges regardless of the dispatch outcome, because
+    -- the wage is charged independently of dispatch. A guarded direct-mutation leg adds a 4th value
+    -- (the count ACTUALLY mutated or marked) and a 5th (its own membership-skip count), both nil from
+    -- the unguarded legs. `extra` is the SCALING-FREE row channel: only the move EPP leg returns it,
+    -- a { movedCount, skippedAge, skippedSick } table merged onto the row without touching
+    -- actualCount, so its wage stays planned.
     local op = action.operation
-    -- `extra` (6th return) is the SCALING-FREE row channel: only the move EPP leg returns it, a
-    -- { movedCount, skippedAge } table merged onto the row below WITHOUT touching actualCount (so the
-    -- wage stays planned). Every other leg leaves it nil.
     local chargeWage, dispatched, skipReason, actualCount, skippedCount, extra
     if op == "sell" then
         chargeWage, dispatched, skipReason, actualCount, skippedCount = RLHerdsmanExecutor._doSell(action, ctx, placeable, farmId, count)
@@ -363,6 +339,8 @@ function RLHerdsmanExecutor._executeOne(action, ctx, summary, wageFarmOrder)
         chargeWage, dispatched, skipReason, actualCount, skippedCount = RLHerdsmanExecutor._doAi(action, ctx, placeable, farmId, count)
     elseif op == "move" then
         chargeWage, dispatched, skipReason, actualCount, skippedCount, extra = RLHerdsmanExecutor._doMove(action, ctx, placeable, farmId, count)
+    elseif op == "horseCare" then
+        chargeWage, dispatched, skipReason, actualCount, skippedCount = RLHerdsmanExecutor._doHorseCare(action, ctx, placeable, farmId, count)
     else
         chargeWage, dispatched, skipReason = false, false, "bad-data"
         Log:warning("%s rule=%s husbandry=%s farm=%s: unknown operation '%s' - skipped (no wage)",
@@ -372,30 +350,26 @@ function RLHerdsmanExecutor._executeOne(action, ctx, summary, wageFarmOrder)
     result.dispatched = dispatched
     result.skipReason = skipReason
 
-    -- A guarded leg reports the count it ACTUALLY mutated/marked AND its OWN membership-skip count
-    -- (NOT count - actualCount, which would fabricate skips for a planner cardinality anomaly such as
-    -- an empty-assignments alphabetical action). Unguarded legs (actualCount nil) keep the planned
-    -- count + skippedCount 0.
+    -- A guarded leg reports its OWN membership-skip count, not `count - actualCount`, which would
+    -- fabricate skips for a planner cardinality anomaly such as an empty-assignments naming action.
     if actualCount ~= nil then
         result.count = actualCount
         result.skippedCount = skippedCount or 0
     end
 
-    -- EPP move counts ride the SCALING-FREE `extra` channel: the move EPP leg keeps actualCount
-    -- nil (so the wage stays planned above/below) and returns { movedCount, skippedAge } merged here.
-    -- movedCount = animals dispatched to the butcher (drives the moved message, falling back to count
-    -- for husbandry rows); skippedAge = animals filtered out for age (drives the skipped-age message).
-    -- Husbandry-move + non-move rows carry no extra (nil), so those rows are byte-identical.
+    -- movedCount = animals dispatched to the butcher, falling back to count for husbandry rows;
+    -- skippedAge / skippedSick = animals filtered out for age / for showing symptoms. Husbandry-move
+    -- and non-move rows carry no extra.
     if type(extra) == "table" then
         result.movedCount = extra.movedCount
         result.skippedAge = extra.skippedAge
+        result.skippedSick = extra.skippedSick
     end
 
     if chargeWage then
-        -- Wage follows the ACTUAL acted-on count on a guarded leg: a membership skip is never paid
-        -- for (all-skipped -> 0). Exact for the linear castrate/naming formulas; an accepted
-        -- approximation for the mark-mode min(S, n*5) component. count > 0 here (a zero-animal action
-        -- skipped before dispatch), so the divisor is safe.
+        -- Wage follows the ACTUAL acted-on count on a guarded leg, so a membership skip is never paid
+        -- for. Exact for the linear castrate/naming formulas, an accepted approximation for the
+        -- mark-mode component. count > 0 here, so the divisor is safe.
         local wage = resolveWage(action)
         if actualCount ~= nil then
             wage = wage * actualCount / count
@@ -411,8 +385,8 @@ function RLHerdsmanExecutor._executeOne(action, ctx, summary, wageFarmOrder)
     return result
 end
 
---- Sell: exec broadcasts AIAnimalSellEvent (the event deducts MoneyType.SOLD_ANIMALS on the
---- server's cluster-batch success); mark sets AI_MANAGER_SELL. Wage charged either way.
+--- Sell: exec broadcasts AIAnimalSellEvent, which deducts MoneyType.SOLD_ANIMALS on the server's
+--- cluster-batch success; mark sets AI_MANAGER_SELL. Wage charged either way.
 ---@param action table
 ---@param ctx table
 ---@param placeable table
@@ -434,8 +408,8 @@ function RLHerdsmanExecutor._doSell(action, ctx, placeable, farmId, count)
         return false, false, "bad-data"
     end
 
-    -- AIAnimalSellEvent.validate returns non-nil ONLY on object == nil, which the
-    -- missing-placeable guard already caught; this branch is defensive.
+    -- Defensive: AIAnimalSellEvent.validate returns non-nil only on object == nil, which the
+    -- missing-placeable guard already caught.
     local errorCode = AIAnimalSellEvent.validate(placeable, count, action.amountGained, farmId)
     if errorCode ~= nil then
         Log:warning("%s rule=%s op=sell husbandry=%s farm=%s: validate rejected (errorCode=%s) - dispatch skipped (wage charged)",
@@ -447,12 +421,10 @@ function RLHerdsmanExecutor._doSell(action, ctx, placeable, farmId, count)
     return true, true, nil
 end
 
---- Buy (no mark param): exec runs AIAnimalBuyEvent.validate (the REAL runtime gate - free
---- slots + money) then broadcasts AIAnimalBuyEvent (removeSaleAnimal + addAnimals + deducts
---- MoneyType.NEW_ANIMALS_COST). A validate rejection skips dispatch but STILL charges wage.
---- Note: validate's money check reads the GLOBAL g_currentMission:getMoney (not ctx.mission), so
---- in production ctx.mission MUST be g_currentMission - T4 cannot point ctx.mission elsewhere
---- without the buy money-gate silently diverging from the wage ledger.
+--- Buy (no mark param): exec runs AIAnimalBuyEvent.validate - the real runtime gate on free slots and
+--- money - then broadcasts the event. A validate rejection skips dispatch but still charges the wage.
+--- validate's money check reads the GLOBAL g_currentMission, so in production ctx.mission MUST be
+--- g_currentMission or the buy money-gate silently diverges from the wage ledger.
 ---@param action table
 ---@param ctx table
 ---@param placeable table
@@ -487,9 +459,8 @@ function RLHerdsmanExecutor._doBuy(action, ctx, placeable, farmId, count)
     return true, true, nil
 end
 
---- Castrate: exec sets isCastrated + zeroes genetics.fertility per animal AND broadcasts
---- AnimalCastrateEvent per animal (caller-mutates-first, no sendLocal) so clients sync; mark
---- sets AI_MANAGER_CASTRATE.
+--- Castrate: exec sets isCastrated and zeroes genetics.fertility per animal, then broadcasts
+--- AnimalCastrateEvent per animal so clients sync; mark sets AI_MANAGER_CASTRATE.
 ---@param action table
 ---@param ctx table
 ---@param placeable table
@@ -505,10 +476,9 @@ function RLHerdsmanExecutor._doCastrate(action, ctx, placeable, farmId, count)
         return setMarkOnAll(ctx, placeable, action, MARK_BY_OPERATION.castrate, farmId)
     end
 
-    -- Validate EVERY animal's genetics table BEFORE mutating, so a malformed animal drops the
-    -- whole action (fail closed) instead of castrating a prefix then raising on a nil index. The
-    -- planner already hard-skips nil-genetics castrate candidates; this guards a corrupt action.
-    -- Retained by design: corrupt action data fails the whole action regardless of membership.
+    -- Validate EVERY animal's genetics table BEFORE mutating, so a malformed animal drops the whole
+    -- action instead of castrating a prefix and then raising. Corrupt action data fails the whole
+    -- action regardless of membership.
     for _, animal in ipairs(action.animals) do
         if type(animal.genetics) ~= "table" then
             Log:warning("%s rule=%s op=castrate husbandry=%s farm=%s: animal has no genetics table - skipped (no wage)",
@@ -517,8 +487,6 @@ function RLHerdsmanExecutor._doCastrate(action, ctx, placeable, farmId, count)
         end
     end
 
-    -- Membership backstop: resolve the live cluster once, then mutate + broadcast only RESOLVED
-    -- members. A nil / non-table cluster fails the whole action closed (no wage).
     local clusterAnimals = resolveClusterAnimals(placeable)
     if clusterAnimals == nil then
         Log:warning("%s rule=%s op=castrate husbandry=%s farm=%s: cluster unavailable (getClusterSystem) - whole action skipped (no wage)",
@@ -530,16 +498,14 @@ function RLHerdsmanExecutor._doCastrate(action, ctx, placeable, farmId, count)
     for _, probe in ipairs(action.animals) do
         local animal = resolveMember(clusterAnimals, probe, action, farmId)
         if animal ~= nil then
-            -- Mirror AnimalCastrateEvent:run on the RESOLVED object: isCastrated always, fertility=0
-            -- only when its genetics is a TABLE (the type check, not merely ~= nil, never raises on a
-            -- divergent resolved object whose genetics is non-table junk - false / 0 / string).
+            -- Mirror AnimalCastrateEvent:run on the RESOLVED object. The genetics TYPE check, not
+            -- merely `~= nil`, keeps a divergent resolved object from raising.
             animal.isCastrated = true
             if type(animal.genetics) == "table" then
                 animal.genetics.fertility = 0
             end
-            -- MP sync: broadcast WITHOUT sendLocal. AnimalCastrateEvent:run applies the castrate on
-            -- server AND client, so the server already mutated above; sendLocal would re-run run()
-            -- locally (redundant re-mutation, possible double broadcast). @see RLAnimalInfoService.castrateAnimal.
+            -- Broadcast WITHOUT sendLocal: the event applies on server AND client, and the server
+            -- already mutated above. @see RLAnimalInfoService.castrateAnimal.
             ctx.server:broadcastEvent(AnimalCastrateEvent.new(placeable, animal))
             Log:debug("%s rule=%s op=castrate husbandry=%s farm=%s: broadcast AnimalCastrateEvent uniqueId=%s",
                 LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(animal.uniqueId))
@@ -549,18 +515,179 @@ function RLHerdsmanExecutor._doCastrate(action, ctx, placeable, farmId, count)
         end
     end
 
-    -- Every animal skipped membership -> a genuine all-skip exec row (count 0), distinct from the
-    -- mark-mode and bad-data skips; the wage scales to 0.
+    -- Every animal skipped membership: a genuine all-skip exec row, distinct from the mark-mode and
+    -- bad-data skips, and the wage scales to 0.
     if actual == 0 then
         return true, false, "not-in-husbandry", 0, skipped
     end
     return true, true, nil, actual, skipped
 end
 
---- Naming: alphabetical writes the planner-assigned names + advances the server-only cursor
---- via ruleService:setNamingCursor; random generates a fresh name per animal and never advances
---- the cursor. Each named animal broadcasts AnimalNameChangeEvent (caller-mutates-first, no
---- sendLocal) so clients sync. Naming has no mark param. Wage always charged.
+--- The full-care values. `riding` is written ABSOLUTE; dirt is cleared by a -100 DELTA, because
+--- changeDirt is the only mutator the Animal prototype exposes - so on a corrupt save carrying
+--- dirt > 100 the clear is PARTIAL, and the per-animal DEBUG row's before/after makes that visible.
+---
+--- 100 rather than a lower level because every care level has a `daysPerPeriod` above which its
+--- fitness gain floors to zero, and 100 is the only one that survives the season lengths players
+--- actually run. At the 0.4 default threshold care merely FREEZES fitness, and below it care
+--- actively DECAYS fitness while still billing the wage.
+local HORSE_CARE_RIDING = 100
+local HORSE_CARE_DIRT_DELTA = -100
+
+--- The DEFERRED half of the horse-care leg: re-validate membership, then write. It runs outside the
+--- day-tick's own safeCall, so it carries its own per-animal isolation - one malformed horse must
+--- not abort the loop and leave every sibling unwritten after the full wage was charged.
+---
+--- Membership is re-resolved rather than trusted: a horse can leave the pen between arming and
+--- firing (mounted, loaded into a trailer, sold). The row already reported it as acted-on, and
+--- writing to a non-member would be worse than the count being one optimistic.
+---@param action table the horse-care action (ruleId / husbandryId for the log rows)
+---@param placeable table husbandry placeable owning the cluster
+---@param planned table[] the INLINE-resolved live cluster animals
+---@param farmId number owning farm (log context)
+---@return nil the row and wage were committed when the action was armed; this half cannot retract them
+function RLHerdsmanExecutor._writeHorseCare(action, placeable, planned, farmId)
+    local clusterAnimals = resolveClusterAnimals(placeable)
+    -- An EMPTY list is the teardown signal and aborts ONCE; without this case every probe would fail
+    -- membership and emit its own warning for a husbandry that no longer exists. Base onDelete nils
+    -- clusterHusbandry but never clusterSystem, and AnimalClusterSystem:delete sets animals = {}, so
+    -- the torn-down shape is {} rather than nil.
+    if clusterAnimals == nil or #clusterAnimals == 0 then
+        -- Distinguish a cluster system that is GONE from a live pen that merely emptied during this
+        -- same day-change chain; reporting the second as "cluster gone" misdirects diagnosis.
+        local torn = type(placeable.getClusterSystem) ~= "function" or clusterAnimals == nil
+        Log:warning("%s rule=%s op=horseCare husbandry=%s farm=%s: %s when the deferred write fired - %d planned horse(s) unwritten (aborted once)",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId),
+            torn and "cluster gone (husbandry torn down)" or "pen emptied during this day-change chain",
+            #planned)
+        -- The summary row is emitted on this path too: the action row already reported these horses
+        -- as acted-on and the wage is committed, so applied/skipped must be explicit here.
+        Log:debug("%s rule=%s op=horseCare husbandry=%s farm=%s: deferred write complete applied=0 left-pen=%d failed=0 of %d planned (aborted: no live cluster)",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId),
+            #planned, #planned)
+        return
+    end
+
+    local applied, left, failed = 0, 0, 0
+    for _, probe in ipairs(planned) do
+        local animal = resolveMember(clusterAnimals, probe, action, farmId)
+        if animal == nil then
+            left = left + 1
+        else
+            local ok = RmSafeUtils.safeAnimalCall(animal, "RLHerdsmanExecutor:horseCareWrite", function()
+                local ridingBefore, dirtBefore = animal.riding, animal.dirt
+                -- The flag LEADS the two field writes, and that order is the contract: a raise
+                -- between the writes must not leave the horse mutated server-side but unflagged,
+                -- because under-flagging is a silent MP divergence while over-flagging costs one
+                -- extra cluster pass. This leg owns the flag - neither the AnimalHorse mutators nor
+                -- the base cluster class sets one - so do not assume a mutator flags on your behalf.
+                -- setDirty only marks: the placeable's own update flushes and broadcasts
+                -- AnimalClusterUpdateEvent, whose payload already carries dirt / fitness / riding.
+                -- Flag-first is safe only because nothing can flush in this window.
+                animal:setDirty()
+                animal:setRiding(HORSE_CARE_RIDING)
+                animal:changeDirt(HORSE_CARE_DIRT_DELTA)
+                Log:debug("%s rule=%s op=horseCare husbandry=%s farm=%s: cared uniqueId=%s riding %s->%s dirt %s->%s",
+                    LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId),
+                    tostring(animal.uniqueId), tostring(ridingBefore), tostring(animal.riding),
+                    tostring(dirtBefore), tostring(animal.dirt))
+                return true
+            end, { false })
+            if ok then applied = applied + 1 else failed = failed + 1 end
+        end
+    end
+
+    -- ruleId + husbandryId are load-bearing on this row: concurrent pens in one tick emit interleaved
+    -- callbacks, and without both there is no way to tell them apart in the log.
+    Log:debug("%s rule=%s op=horseCare husbandry=%s farm=%s: deferred write complete applied=%d left-pen=%d failed=%d of %d planned",
+        LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId),
+        applied, left, failed, #planned)
+end
+
+--- Horse care: write riding = 100 and clear dirt on every planned HORSE, DEFERRED to after the
+--- animal day tick - see the file header for why the ordering is the substance.
+---
+--- Membership resolves INLINE, before arming, so this returns the guarded-leg tuple in the same SHAPE
+--- as _doCastrate's. The SEMANTICS differ and a consumer must not confuse them: _doCastrate's `count`
+--- counts mutations that have already happened, while this leg's is PREDICTIVE - the writes land one
+--- or more frames later and the callback may drop some of them, so a horse sold or mounted between
+--- arming and firing is counted here and never written. Anything downstream reading `count` as "work
+--- done" is optimistic for this operation alone.
+---
+--- The leg performs NO animal-type check, by decision: the planner's pen gate is sufficient, because
+--- a pen cannot hold a foreign-type animal through any gated path, and a per-animal check here would
+--- be this module's first root-global read.
+---@param action table the horse-care action (animals + ruleId / husbandryId)
+---@param ctx table dispatch context (ctx.defer is the deferral seam this leg consumes)
+---@param placeable table husbandry placeable owning the animals' cluster system
+---@param farmId number owning farm (wage attribution + log context)
+---@param count number planned animal count (the wage scales actual/planned against it)
+---@return boolean chargeWage
+---@return boolean dispatched
+---@return string|nil skipReason
+---@return number|nil actualCount nil on a bad-data fail-closed; count armed otherwise
+---@return number|nil skippedCount membership-skip count (nil when actualCount is nil)
+function RLHerdsmanExecutor._doHorseCare(action, ctx, placeable, farmId, count)
+    -- The cluster resolve precedes arming, so the bad-data outcome stays reachable: no wage, no timer.
+    local clusterAnimals = resolveClusterAnimals(placeable)
+    if clusterAnimals == nil then
+        Log:warning("%s rule=%s op=horseCare husbandry=%s farm=%s: cluster unavailable (getClusterSystem) - whole action skipped (no wage, nothing armed)",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId))
+        return false, false, "bad-data"
+    end
+
+    local resolved, skipped = {}, 0
+    for _, probe in ipairs(action.animals) do
+        local animal = resolveMember(clusterAnimals, probe, action, farmId)
+        if animal ~= nil then
+            resolved[#resolved + 1] = animal
+        else
+            skipped = skipped + 1
+        end
+    end
+
+    local actual = #resolved
+    if actual == 0 then
+        -- Every planned horse skipped membership: the wage scales to 0, and a timer that would write
+        -- nothing is not worth scheduling.
+        Log:debug("%s rule=%s op=horseCare husbandry=%s farm=%s: all %d planned horse(s) absent from the cluster - nothing armed",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), count)
+        return true, false, "not-in-husbandry", 0, skipped
+    end
+
+    -- Arming is itself guarded: a raising ctx.defer must not take out the remaining actions or the
+    -- per-farm wage deduction. safeCall logs the failure, where a silent pcall would hide a broken
+    -- seam behind a wage that still gets charged.
+    local armed = RmSafeUtils.safeCall(
+        string.format("RLHerdsmanExecutor:armHorseCare rule=%s husbandry=%s", tostring(action.ruleId), tostring(action.husbandryId)),
+        function()
+            ctx.defer(function()
+                RmSafeUtils.safeCall(
+                    string.format("RLHerdsmanExecutor:horseCareDeferred rule=%s husbandry=%s", tostring(action.ruleId), tostring(action.husbandryId)),
+                    function()
+                        RLHerdsmanExecutor._writeHorseCare(action, placeable, resolved, farmId)
+                    end)
+            end)
+        end)
+
+    if not armed then
+        -- The seam raised, so nothing will ever write and nothing is charged. Its OWN skipReason, not
+        -- "bad-data": that reason already means "no wage" at every other exit, and reusing it for a
+        -- case with a live cluster and resolved members would make the two indistinguishable.
+        Log:warning("%s rule=%s op=horseCare husbandry=%s farm=%s: the defer seam raised - %d resolved horse(s) will never be written; no wage charged",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), actual)
+        return false, false, "defer-failed", 0, skipped
+    end
+
+    Log:debug("%s rule=%s op=horseCare husbandry=%s farm=%s: armed deferred care for %d horse(s) (%d skipped at membership)",
+        LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), actual, skipped)
+    return true, true, nil, actual, skipped
+end
+
+--- Naming: alphabetical writes the planner-assigned names and advances the server-only cursor via
+--- ruleService:setNamingCursor; random generates a fresh name per animal and never advances the
+--- cursor. Each named animal broadcasts AnimalNameChangeEvent so clients sync. Naming has no mark
+--- param, and the wage is always charged.
 ---@param action table
 ---@param ctx table
 ---@param placeable table
@@ -572,8 +699,6 @@ end
 ---@return number|nil actualCount nil on a bad-data fail-closed; count named otherwise
 ---@return number|nil skippedCount membership-skip count (nil when actualCount is nil)
 function RLHerdsmanExecutor._doNaming(action, ctx, placeable, farmId, count)
-    -- Membership backstop applies to both conventions: resolve the live cluster once, then write +
-    -- broadcast only RESOLVED members. A nil / non-table cluster fails the whole action closed.
     local clusterAnimals = resolveClusterAnimals(placeable)
     if clusterAnimals == nil then
         Log:warning("%s rule=%s op=naming husbandry=%s farm=%s: cluster unavailable (getClusterSystem) - whole action skipped (no wage)",
@@ -586,8 +711,8 @@ function RLHerdsmanExecutor._doNaming(action, ctx, placeable, farmId, count)
         for _, probe in ipairs(action.animals) do
             local animal = resolveMember(clusterAnimals, probe, action, farmId)
             if animal ~= nil then
-                -- Capture the generated name into a local so the field write and the broadcast carry
-                -- the SAME value (an empty name list -> getRandomName nil -> name cleared on both sides).
+                -- Capture the generated name so the field write and the broadcast carry the SAME
+                -- value: an empty name list yields nil and clears the name on both sides.
                 local name = ctx.animalNameSystem:getRandomName(animal.gender)
                 animal.name = name
                 ctx.server:broadcastEvent(AnimalNameChangeEvent.new(placeable, animal, name))
@@ -605,8 +730,8 @@ function RLHerdsmanExecutor._doNaming(action, ctx, placeable, farmId, count)
     end
 
     -- Alphabetical: the planner carries the resolved { animal, name } assignments. Validate EVERY
-    -- entry BEFORE writing any name, so a malformed entry drops the whole action (fail closed)
-    -- instead of naming a prefix then raising on the bad one (no partial mutation).
+    -- entry BEFORE writing any name, so a malformed entry drops the whole action rather than naming a
+    -- prefix and then raising.
     if type(action.assignments) ~= "table" then
         Log:warning("%s rule=%s op=naming husbandry=%s farm=%s: alphabetical action missing assignments - skipped (no wage)",
             LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId))
@@ -620,10 +745,9 @@ function RLHerdsmanExecutor._doNaming(action, ctx, placeable, farmId, count)
         end
     end
 
-    -- Write + broadcast only RESOLVED members (entry.animal resolved in the live cluster); an absent
-    -- assignment animal is a membershipSkip. count = named and skippedCount = membershipSkips both
-    -- derive from THIS loop (not count - named), so an empty/short assignments list - a planner
-    -- cardinality anomaly, never a membership miss - reports 0 membership skips, not #animals.
+    -- Both counts derive from THIS loop rather than from `count - named`, so an empty or short
+    -- assignments list - a planner cardinality anomaly, never a membership miss - reports 0
+    -- membership skips instead of #animals.
     local named = 0
     local membershipSkips = 0
     for _, entry in ipairs(action.assignments) do
@@ -639,17 +763,15 @@ function RLHerdsmanExecutor._doNaming(action, ctx, placeable, farmId, count)
         end
     end
 
-    -- Persist the advanced cursor once per rule (server-only, no broadcast - clients never run the
-    -- naming day-tick). The cursor persists whenever the action survives data validation - partial
-    -- AND all-skipped (the planner already consumed those names; sequence gaps are cosmetic and keep
-    -- the cursor planner-consistent). Only a bad-data drop returns before reaching here.
+    -- Persist the advanced cursor once per rule, server-only and unbroadcast. It persists whenever
+    -- the action survives data validation, partial and all-skipped alike: the planner already
+    -- consumed those names, so sequence gaps are cosmetic and the cursor stays planner-consistent.
     if action.previousOut ~= nil then
         ctx.ruleService:setNamingCursor(action.ruleId, action.previousOut)
     end
 
-    -- "not-in-husbandry" requires >= 1 membership skip AND zero writes; an empty-assignments planner
-    -- violation (named=0, membershipSkips=0) is NOT a membership skip - it dispatches with count 0 and
-    -- skippedCount 0 (membershipSkips carries the real skip count to the row).
+    -- "not-in-husbandry" requires at least one membership skip AND zero writes; an empty-assignments
+    -- planner violation dispatches with count 0 and skippedCount 0 instead.
     if named == 0 and membershipSkips > 0 then
         return true, false, "not-in-husbandry", 0, membershipSkips
     end
@@ -657,9 +779,8 @@ function RLHerdsmanExecutor._doNaming(action, ctx, placeable, farmId, count)
 end
 
 --- AI (insemination): exec zips the parallel animals + dewars arrays into the event's
---- { animal, dewar } items and broadcasts AIAnimalInseminationEvent (the event applies
---- setInsemination + dewar:changeStraws(-1) itself - T3 does NOT decrement straws). NO
---- validate (legacy has none). mark sets AI_MANAGER_INSEMINATE.
+--- { animal, dewar } items and broadcasts AIAnimalInseminationEvent, which applies setInsemination
+--- and decrements the straws itself. No validate. mark sets AI_MANAGER_INSEMINATE.
 ---@param action table
 ---@param ctx table
 ---@param placeable table
@@ -675,11 +796,9 @@ function RLHerdsmanExecutor._doAi(action, ctx, placeable, farmId, count)
         return setMarkOnAll(ctx, placeable, action, MARK_BY_OPERATION.ai, farmId)
     end
 
-    -- The planner emits plain-data uniqueId strings (RLHerdsmanPlanner stays data-only for headless
-    -- purity). The event wires the dewar as a network node object, so resolve each
-    -- string to the LIVE server-side dewar here (a server-side uniqueId lookup is fine). A nil/empty
-    -- string OR a string that resolves to no live dewar fails the WHOLE action bad-data (no wage, no
-    -- dispatch) - parity with the existing all-or-nothing early-returns, keeping #items == count.
+    -- The planner emits plain-data uniqueId strings, so resolve each to the LIVE server-side dewar
+    -- here. Any unresolvable entry fails the WHOLE action as bad-data - no wage, no dispatch - which
+    -- keeps #items == count.
     local dewars = action.dewars
     if type(dewars) ~= "table" or #dewars ~= count then
         Log:warning("%s rule=%s op=ai husbandry=%s farm=%s: animals/dewars length mismatch (%d vs %s) - skipped (no wage)",
@@ -699,8 +818,8 @@ function RLHerdsmanExecutor._doAi(action, ctx, placeable, farmId, count)
             return false, false, "bad-data"
         end
 
-        -- Resolve to the live dewar in the target animal's type bucket - the same match the event's
-        -- old server loop performed (getDewarsByFarm[animalTypeIndex] -> uniqueId compare).
+        -- Resolve in the target animal's type bucket - the same match the event's own server loop
+        -- performed.
         local animal = action.animals[i]
         local bucket = farmDewars and animal and farmDewars[animal.animalTypeIndex]
         local dewar
@@ -725,20 +844,16 @@ function RLHerdsmanExecutor._doAi(action, ctx, placeable, farmId, count)
     return true, true, nil
 end
 
---- Move: exec broadcasts AIAnimalMoveEvent (the event resolves the live source clusters + relocates
---- them to the dest husbandry on the server); mark sets AI_MANAGER_MOVE on the source-pen animals.
---- Unlike sell/buy/ai, move has NO legacy analog - it is a new server-authoritative AI event, NOT a
---- broadcast of the player AnimalMoveEvent (which is request/response and cannot be server-broadcast).
+--- Move: exec broadcasts AIAnimalMoveEvent, which resolves the live source clusters and relocates
+--- them on the server; mark sets AI_MANAGER_MOVE on the source-pen animals.
 ---
---- Mark mode is DEST-INDEPENDENT and checked FIRST: it marks source-pen animals, so a missing /
---- degenerate dest must not block it (parity with the sell mark leg). The exec leg then fails CLOSED
---- on the structural problems (dest == source, or dest absent from ctx) with NO wage, and charges the
---- wage on a validate REJECTION (no-space / unsupported-type) - the same posture buy uses (wage on a
---- validate reject, none on a bad-data early return). Validation is TYPE-level: a husbandry source pen
---- is single-type, so one representative subtype answers dest type-support + total free slots
---- (@see AIAnimalMoveEvent.validate); no per-subtype loop. Move is an UNGUARDED event-dispatched leg
---- (AIAnimalMoveEvent:run resolves membership itself), so it reports the planned count + skippedCount 0
---- and charges the planned wage - no actual/planned scaling (that is the mark + other guarded legs only).
+--- Mark mode is DEST-INDEPENDENT and checked FIRST, because it marks source-pen animals and a
+--- missing dest must not block it. The exec leg then fails CLOSED with no wage on the structural
+--- problems - dest == source, or a dest absent from ctx - and charges the wage on a validate
+--- REJECTION, the same posture buy uses. Validation is TYPE-level: a husbandry source pen is
+--- single-type, so one representative subtype answers dest type-support and free slots. Move is an
+--- UNGUARDED event-dispatched leg, so it reports the planned count and charges the planned wage.
+---@see AIAnimalMoveEvent.validate
 ---@param action table
 ---@param ctx table
 ---@param placeable table the already-resolved SOURCE husbandry placeable
@@ -754,21 +869,17 @@ function RLHerdsmanExecutor._doMove(action, ctx, placeable, farmId, count)
         return setMarkOnAll(ctx, placeable, action, MARK_BY_OPERATION.move, farmId)
     end
 
-    -- Structural fail-closed (no wage), checked BEFORE validate: a same-pen move is a no-op. The
-    -- slice-5 picker prevents authoring it; this is the defensive backstop.
+    -- A same-pen move is a no-op. The picker prevents authoring one; this is the backstop.
     if action.destinationHusbandry == action.husbandryId then
         Log:warning("%s rule=%s op=move husbandry=%s farm=%s: destination == source - skipped (no-op, no wage)",
             LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId))
         return false, false, "bad-data"
     end
 
-    -- Dest resolves DI-purely from the owner-farm uniqueId->placeable maps the source came from:
-    -- husbandry first, then the EPP (butcher) map. An owner-farm dest is guaranteed a
-    -- member (the picker only offers owner-farm dests), so no g_* read / RLHusbandryTargetKey.resolve
-    -- is needed, keeping the decision path dual-runnable. eppPlaceablesById is nil-tolerated (treated
-    -- as empty - the always-set-possibly-empty contract), so no-EPP-mod falls straight through to
-    -- the existing missing-dest / husbandry paths. An absent dest is a barn/butcher deleted or
-    -- transferred since the rule was authored.
+    -- The dest resolves from the same owner-farm uniqueId maps the source came from - husbandry
+    -- first, then EPP - so no g_* read is needed and the decision path stays dual-runnable.
+    -- eppPlaceablesById is nil-tolerated, so no-EPP-mod falls through to the husbandry paths. An
+    -- absent dest means a barn or butcher was deleted or transferred since the rule was authored.
     local dest = ctx.husbandryPlaceablesById[action.destinationHusbandry]
     if dest == nil then
         dest = (ctx.eppPlaceablesById or {})[action.destinationHusbandry]
@@ -779,17 +890,14 @@ function RLHerdsmanExecutor._doMove(action, ctx, placeable, farmId, count)
         return false, false, "missing-dest"
     end
 
-    -- EPP (butcher) dest: unwrap the production point and run the delivery-time age filter +
-    -- all-or-nothing capacity gate in the pinned order. A husbandry dest has no
-    -- spec_extendedProductionPoint, so this branch is skipped and the existing husbandry path runs
-    -- byte-identical (nil-guarded, zero change when the EPP mod is absent).
+    -- A husbandry dest has no spec_extendedProductionPoint, so the branch is skipped and the
+    -- husbandry path runs unchanged when the EPP mod is absent.
     local eppSpec = dest.spec_extendedProductionPoint
     if eppSpec ~= nil and eppSpec.productionPoint ~= nil then
         return RLHerdsmanExecutor._doMoveToEPP(action, ctx, placeable, dest, eppSpec.productionPoint, farmId, count)
     end
 
-    -- TYPE-level gate (one representative subtype: the source pen is single-type). A reject still
-    -- charges the wage (buy parity); this is the R3-at-execute overflow (slice 3 leaves the dest uncapped).
+    -- TYPE-level gate on one representative subtype. A reject still charges the wage, matching buy.
     local errorCode = AIAnimalMoveEvent.validate(placeable, dest, count, action.animals[1].subTypeIndex)
     if errorCode == AnimalMoveEvent.MOVE_ERROR_NOT_ENOUGH_SPACE then
         Log:warning("%s rule=%s op=move husbandry=%s farm=%s count=%d: destination has no room - dispatch skipped (wage charged)",
@@ -805,30 +913,30 @@ function RLHerdsmanExecutor._doMove(action, ctx, placeable, farmId, count)
         return true, false, "bad-data"
     end
 
-    -- broadcastEvent(..., true) runs the local :run SYNCHRONOUSLY, so two moves to the same dest the
-    -- same tick do not over-fill: the first move's updateNow reduces the dest's free slots before the
-    -- second _doMove's validate reads them (the same synchronicity sell/buy rely on).
+    -- broadcastEvent(..., true) runs the local :run SYNCHRONOUSLY, so two moves to the same dest in
+    -- one tick cannot over-fill: the first move's updateNow reduces the dest's free slots before the
+    -- second validate reads them.
     ctx.server:broadcastEvent(AIAnimalMoveEvent.new(placeable, dest, action.animals), true)
     Log:debug("%s rule=%s op=move husbandry=%s farm=%s: broadcast AIAnimalMoveEvent dest=%s count=%d",
         LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(action.destinationHusbandry), count)
     return true, true, nil
 end
 
---- Move to an EPP (butcher) destination: player-move-FACING parity - the delivery-time age
---- filter + the same delivery primitive - with two DELIBERATE divergences (placeable-keyed transport;
---- ALL-OR-NOTHING capacity). PINNED order:
----   1. typeData PRESENCE on the SOURCE pen's type index (placeable:getAnimalTypeIndex() - single-type
----      pen, in-ctx, no g_*) BEFORE any age read; nil -> ANIMAL_NOT_SUPPORTED reject, wage charged.
----   2. age filter over action.animals vs typeData.minimumAge/.maximumAge (player-path `or 0`/`or 999`
----      defaults); out-of-window animals are skipped-for-age (counted, surfaced).
----   3. eligible == 0 -> no dispatch, skipReason "all-age-ineligible", wage charged.
----   4. space/subtype validate on the ELIGIBLE count (AIAnimalMoveEvent.validate unwraps the pp);
----      ALL-OR-NOTHING - a reject skips the WHOLE dispatch (wage charged), skipped-age still surfaced.
----   5. dispatch the eligible only via AIAnimalMoveEvent (targetObject = the EPP PLACEABLE; the event
----      unwraps + delivers via the shipped player-path primitive).
---- Counts ride the SCALING-FREE extra channel ({ movedCount, skippedAge }); actualCount stays nil so
---- the wage is planned. @see RLHerdsmanExecutor._executeOne (the extra merge). Butcher free slots are
---- logged at validate to make the same-tick slot-sync residual visible (Design Notes).
+--- Move to an EPP (butcher) destination: player-move parity on the delivery-time age filter and the
+--- delivery primitive, with two deliberate divergences - placeable-keyed transport, and ALL-OR-NOTHING
+--- capacity. The order is PINNED:
+---   1. typeData PRESENCE on the SOURCE pen's type index, BEFORE any age read; nil rejects as
+---      ANIMAL_NOT_SUPPORTED with the wage charged.
+---   2. age filter over action.animals against typeData.minimumAge/.maximumAge; out-of-window animals
+---      are skipped-for-age.
+---   2b. sick filter over the age-eligible (RLDiseaseSaleGate); a sick animal is skipped-for-sickness.
+---   3. eligible == 0 -> no dispatch, skipReason "all-sick" when any was sick else
+---      "all-age-ineligible", wage charged.
+---   4. space/subtype validate on the ELIGIBLE count; a reject skips the WHOLE dispatch with the wage
+---      charged, and both skip counts still surface.
+---   5. dispatch the eligible only, with the EPP PLACEABLE as targetObject.
+--- Counts ride the SCALING-FREE extra channel, so the wage stays planned.
+--- @see RLHerdsmanExecutor._executeOne for the merge.
 ---@param action table
 ---@param ctx table
 ---@param placeable table the resolved SOURCE husbandry placeable (single-type pen)
@@ -841,11 +949,9 @@ end
 ---@return string|nil skipReason
 ---@return nil actualCount always nil (the EPP move never scales the wage)
 ---@return nil skippedCount always nil
----@return table extra { movedCount, skippedAge }
+---@return table extra { movedCount, skippedAge, skippedSick }
 function RLHerdsmanExecutor._doMoveToEPP(action, ctx, placeable, dest, pp, farmId, count)
-    -- 1. typeData PRESENCE (before any age read). The source pen is single-type; its type index
-    -- keys the butcher's animalsTypeData. getAnimalTypeIndex is the source placeable's own method
-    -- (in-ctx, no g_*), the same read the planner ctx uses for the pen type.
+    -- 1. The source pen is single-type, and its type index keys the butcher's animalsTypeData.
     local typeIndex = placeable.getAnimalTypeIndex ~= nil and placeable:getAnimalTypeIndex() or nil
     local typeData = (typeIndex ~= nil and type(pp.animalsTypeData) == "table") and pp.animalsTypeData[typeIndex] or nil
     if typeData == nil then
@@ -854,8 +960,7 @@ function RLHerdsmanExecutor._doMoveToEPP(action, ctx, placeable, dest, pp, farmI
         return true, false, "bad-data"
     end
 
-    -- 2. Delivery-time age filter (player-move parity: same minimumAge/maximumAge, same `or 0`/`or 999`
-    -- defaults). animal.age is the pen animal's live age (in RLRM the cluster IS the Animal).
+    -- 2. Delivery-time age filter, with the player path's own `or 0` / `or 999` defaults.
     local minAge = typeData.minimumAge or 0
     local maxAge = typeData.maximumAge or 999
     local eligible = {}
@@ -871,20 +976,39 @@ function RLHerdsmanExecutor._doMoveToEPP(action, ctx, placeable, dest, pp, farmI
     Log:info("%s rule=%s op=move husbandry=%s farm=%s: butcher age filter (window %d-%d) -> %d eligible, %d skipped-age of %d",
         LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), minAge, maxAge, #eligible, skippedAge, count)
 
-    -- 3. All eligible filtered out: no dispatch, wage charged (buy/no-space parity), skipped-age still surfaced.
-    if #eligible == 0 then
-        Log:warning("%s rule=%s op=move husbandry=%s farm=%s: all %d animal(s) age-ineligible for the butcher - dispatch skipped (wage charged)",
-            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), count)
-        return true, false, "all-age-ineligible", nil, nil, { movedCount = 0, skippedAge = skippedAge }
+    -- 2b. The sick gate over the age-eligible only, so skippedAge stays exactly the age count.
+    local skippedSick = 0
+    if #eligible > 0 then
+        local healthy = {}
+        for _, animal in ipairs(eligible) do
+            if RLDiseaseSaleGate.check(animal) then
+                healthy[#healthy + 1] = animal
+            else
+                skippedSick = skippedSick + 1
+                Log:debug("%s rule=%s op=move husbandry=%s farm=%s: skipping sick animal uniqueId=%s for the butcher",
+                    LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(animal.uniqueId))
+            end
+        end
+        eligible = healthy
+        Log:debug("%s rule=%s op=move husbandry=%s farm=%s: butcher sick filter -> %d eligible, %d skipped-sick",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), #eligible, skippedSick)
     end
 
-    -- 4. Space + subtype validate on the ELIGIBLE count (validate unwraps the pp). ALL-OR-NOTHING: a
-    -- no-space / unsupported-subtype reject skips the WHOLE dispatch (deliberate divergence from the
-    -- player UI's part-fill - Design Notes), wage charged, skipped-age still surfaced. Log the butcher's
-    -- free slots at validate to make the same-tick slot-sync residual visible.
-    -- Representative subtype = the FIRST ELIGIBLE animal's (a survivor of the age filter), not
-    -- action.animals[1] which could be an age-dropped animal of a different subtype in a hypothetical
-    -- multi-subtype pen. #eligible >= 1 is guaranteed here (the eligible==0 early-return above).
+    -- 3. All eligible filtered out: no dispatch, wage charged, both skip counts still surfaced.
+    if #eligible == 0 then
+        if skippedSick > 0 then
+            Log:warning("%s rule=%s op=move husbandry=%s farm=%s: no animal left for the butcher, %d sick - dispatch skipped (wage charged)",
+                LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), skippedSick)
+            return true, false, "all-sick", nil, nil, { movedCount = 0, skippedAge = skippedAge, skippedSick = skippedSick }
+        end
+        Log:warning("%s rule=%s op=move husbandry=%s farm=%s: all %d animal(s) age-ineligible for the butcher - dispatch skipped (wage charged)",
+            LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), count)
+        return true, false, "all-age-ineligible", nil, nil, { movedCount = 0, skippedAge = skippedAge, skippedSick = 0 }
+    end
+
+    -- 4. The representative subtype is the FIRST ELIGIBLE animal's, not action.animals[1], which
+    -- could be an age-dropped animal of a different subtype. The butcher's free slots are logged here
+    -- to make the same-tick slot-sync residual visible.
     local repSubTypeIndex = eligible[1].subTypeIndex
     local freeSlots = (pp.getNumOfFreeAnimalSlots ~= nil) and pp:getNumOfFreeAnimalSlots(repSubTypeIndex) or nil
     Log:info("%s rule=%s op=move husbandry=%s farm=%s: butcher free slots at validate = %s (need %d eligible)",
@@ -894,17 +1018,17 @@ function RLHerdsmanExecutor._doMoveToEPP(action, ctx, placeable, dest, pp, farmI
     if errorCode == AnimalMoveEvent.MOVE_ERROR_NOT_ENOUGH_SPACE then
         Log:warning("%s rule=%s op=move husbandry=%s farm=%s: butcher has no room for %d eligible (ALL-OR-NOTHING) - dispatch skipped (wage charged)",
             LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), #eligible)
-        return true, false, "no-space", nil, nil, { movedCount = 0, skippedAge = skippedAge }
+        return true, false, "no-space", nil, nil, { movedCount = 0, skippedAge = skippedAge, skippedSick = skippedSick }
     elseif errorCode ~= nil then
         Log:warning("%s rule=%s op=move husbandry=%s farm=%s: butcher validate rejected (errorCode=%s) - dispatch skipped (wage charged)",
             LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(errorCode))
-        return true, false, "bad-data", nil, nil, { movedCount = 0, skippedAge = skippedAge }
+        return true, false, "bad-data", nil, nil, { movedCount = 0, skippedAge = skippedAge, skippedSick = skippedSick }
     end
 
-    -- 5. Dispatch the eligible animals only. targetObject is the EPP PLACEABLE (MP-stable node-object);
-    -- AIAnimalMoveEvent:run unwraps the pp and delivers via the shipped player-path primitive.
+    -- 5. Dispatch the eligible only. targetObject is the EPP PLACEABLE, an MP-stable node object; the
+    -- event unwraps the production point and delivers via the shipped player-path primitive.
     ctx.server:broadcastEvent(AIAnimalMoveEvent.new(placeable, dest, eligible), true)
-    Log:debug("%s rule=%s op=move husbandry=%s farm=%s: broadcast AIAnimalMoveEvent to butcher dest=%s eligible=%d skippedAge=%d",
-        LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(action.destinationHusbandry), #eligible, skippedAge)
-    return true, true, nil, nil, nil, { movedCount = #eligible, skippedAge = skippedAge }
+    Log:debug("%s rule=%s op=move husbandry=%s farm=%s: broadcast AIAnimalMoveEvent to butcher dest=%s eligible=%d skippedAge=%d skippedSick=%d",
+        LOG_PREFIX, tostring(action.ruleId), tostring(action.husbandryId), tostring(farmId), tostring(action.destinationHusbandry), #eligible, skippedAge, skippedSick)
+    return true, true, nil, nil, nil, { movedCount = #eligible, skippedAge = skippedAge, skippedSick = skippedSick }
 end

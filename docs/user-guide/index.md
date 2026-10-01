@@ -9,7 +9,7 @@ A Farming Simulator 25 mod that replaces the default animal cluster system with 
 - **Individual animals** - Every animal is unique with its own identity, genetics, and history
 - **Genetics system** - Traits like productivity and size are inherited from parents with natural variation
 - **Realistic breeding** - Gestation periods, offspring genetics, breeding age limits, and pregnancy complications
-- **Disease simulation** - Species-specific diseases that spread, require treatment, and affect production
+- **Disease simulation** - Species-specific diseases that make animals sick and cut production and value - most spread through a pen and can be treated
 - **Lifecycle & aging** - Animals age, peak in productivity, grow old, and eventually die
 - **Herd automation** - Set daily tasks that sell, buy, move, castrate, name, or inseminate animals for you
 - **Saved filters** - Build reusable searches to find and act on exactly the animals you want
@@ -63,7 +63,7 @@ Per-species reference with breeds, production, prices, breeding, and lifespan da
 - [Cattle](factsheet-cattle.md) - 7 breeds including dairy, beef, and highland
 - [Pigs](factsheet-pigs.md) - 3 breeds with large litter mechanics
 - [Sheep & Goats](factsheet-sheep.md) - 4 sheep breeds plus goats covering wool, meat, and goat milk
-- [Horses](factsheet-horses.md) - 8 colour variants, no diseases
+- [Horses](factsheet-horses.md) - 8 colour variants with riding, fitness and cleanliness
 - [Chickens](factsheet-chickens.md) - Hens and roosters with egg production curves
 
 ### Guides
@@ -99,4 +99,4 @@ In-depth explanations of the mod's core systems:
 
 ## Credits
 
-This mod is a fork of [FS25 Realistic Livestock](https://github.com/Arrow-kb/FS25_RealisticLivestock) by [Arrow-kb](https://github.com/Arrow-kb). Released under [GPL-3.0](https://github.com/rittermod/FS25_RealisticLivestockRM/blob/main/LICENSE).
+This mod is a fork of [FS25 Realistic Livestock](https://github.com/Arrow-kb/FS25_RealisticLivestock) by [Arrow-kb](https://github.com/Arrow-kb). Changes to the disease system are inspired by Renfordt's [Enhanced Livestock](https://github.com/renfordt/FS25_EnhancedLivestock), with some parts converted directly from it. Released under [GPL-3.0](https://github.com/rittermod/FS25_RealisticLivestockRM/blob/main/LICENSE).
