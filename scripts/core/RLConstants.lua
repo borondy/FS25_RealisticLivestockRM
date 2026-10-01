@@ -137,6 +137,10 @@ RLConstants.AREA_CODES = {
     [16] = {
         ["code"] = "SP",
         ["country"] = "Spain"
+    },
+    [17] = {
+        ["code"] = "HU",
+        ["country"] = "Hungary"
     }
 }
 
