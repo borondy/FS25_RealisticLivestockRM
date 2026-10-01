@@ -165,7 +165,7 @@
 				</liquidManure>
 			</output>
 		</subType>
-		<subType subType="COW_HOLSTEIN" fillTypeName="COW_HOLSTEIN" gender="female" minWeight="42.0" targetWeight="575.0" maxWeight="1200.0" breed="HOLSTEIN">
+		<subType subType="COW_HOLSTEIN" fillTypeName="COW_HOLSTEIN" gender="female" minWeight="42.0" targetWeight="630.0" maxWeight="1200.0" breed="HOLSTEIN">
 			<visuals>
 				<visual minAge="0" visualAnimalIndex="6" image="$dataS/character/animals/domesticated/cow/store_cowHolsteinBaby.png" canBeBought="true">
 					<description>$l10n_animal_descriptionCowMilk</description>
@@ -246,7 +246,7 @@
 				</liquidManure>
 			</output>
 		</subType>
-		<subType subType="BULL_HOLSTEIN" fillTypeName="BULL_HOLSTEIN" gender="male" minWeight="45.0" targetWeight="650.0" maxWeight="1400.0" breed="HOLSTEIN">
+		<subType subType="BULL_HOLSTEIN" fillTypeName="BULL_HOLSTEIN" gender="male" minWeight="45.0" targetWeight="750.0" maxWeight="1400.0" breed="HOLSTEIN">
 			<visuals>
 				<visual minAge="0" visualAnimalIndex="6" image="$dataS/character/animals/domesticated/cow/store_cowHolsteinBaby.png" canBeBought="true">
 					<description>$l10n_animal_descriptionBullFeed</description>
@@ -988,7 +988,7 @@
 				</liquidManure>
 			</output>
 		</subType>
-		<subType subType="BOAR_LANDRACE" fillTypeName="BOAR_LANDRACE" gender="male" minWeight="1.4" targetWeight="205.0" maxWeight="1200.0" breed="LANDRACE">
+		<subType subType="BOAR_LANDRACE" fillTypeName="BOAR_LANDRACE" gender="male" minWeight="1.4" targetWeight="175.0" maxWeight="1200.0" breed="LANDRACE">
 			<visuals>
 				<visual minAge="0" visualAnimalIndex="1" image="$dataS/character/animals/domesticated/pig/store_pigLandraceBaby.png" canBeBought="true">
 					<description>$l10n_animal_descriptionBoarFeed</description>

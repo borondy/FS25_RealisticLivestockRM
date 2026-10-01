@@ -1134,6 +1134,7 @@ function Animal:getCanReproduce() return AnimalReproduction.getCanReproduce(self
 function Animal:updateHealth(foodFactor) AnimalHealth.updateHealth(self, foodFactor) end
 
 function Animal:updateWeight(foodFactor)
+    local growthConstant = 0.6
     local subType = self:getSubType()
     local minWeight = subType.minWeight
     local targetWeight = self.targetWeight
@@ -1142,14 +1143,14 @@ function Animal:updateWeight(foodFactor)
     local adultMonth = subType.reproductionMinAgeMonth * 1.5
 
     local baseIncrease = ((targetWeight - minWeight) / adultMonth) / (24 * g_currentMission.environment.daysPerPeriod)
-    local increase = baseIncrease * (self.gender == "female" and 0.6 or 1.0) * (1 + ((adultMonth - self.age) / 75)) *
+    local increase = baseIncrease * growthConstant * (1 + ((adultMonth - self.age) / 75)) *
     math.min(foodFactor * 1.25, 1)
 
     if increase < 0 then metabolism = 1 + (1 - metabolism) end
 
     increase = increase * metabolism
 
-    if self.isCastrated then increase = increase * 1.15 end
+    if self.isCastrated then increase = increase * 1.02 end
 
     if self.clusterSystem ~= nil and self.clusterSystem.owner ~= nil and self.clusterSystem.owner.spec_husbandryMilk ~= nil and self.isLactating then increase =
         increase * 0.75 end
@@ -1305,7 +1306,74 @@ function Animal:getDirtFactor() return AnimalHorse.getDirtFactor(self) end
 
 function Animal:changeDirt(delta) AnimalHorse.changeDirt(self, delta) end
 
+function Animal:getCowSellPrice()
+    local pricePerKg = 3.42
+    local weight = 0
+    if self.weight ~= nil then
+        weight = tonumber(self.weight) or 0
+    else
+        weight = 500
+    end
+
+    if weight <= 0 then return 0 end
+
+    local q = 1.0
+    if self.genetics ~= nil and self.genetics.quality ~= nil then
+        q = tonumber(self.genetics.quality) or 1.0
+    end
+
+    if q < 0.35 then q = 0.35 end
+    if q > 1.75 then q = 1.75 end
+
+    local t = (q - 0.35) / (1.75 - 0.35)
+    local bonus = 0.10 * t
+
+    local weightBasePrice =  (weight * (1 + bonus)) * pricePerKg
+
+    if(self.isLactating) then
+        weightBasePrice = weightBasePrice * 1.15
+    end
+
+    if(self.isPregnant) then
+        weightBasePrice = weightBasePrice * 1.25
+    end
+    return weightBasePrice
+end
+
+function Animal:getPigSellPrice()
+    local pricePerKg = 4.0
+    local weight = 0
+    if self.weight ~= nil then
+        weight = tonumber(self.weight) or 0
+    else
+        weight = 120
+    end
+
+    if weight <= 0 then return 0 end
+
+    local q = 1.0
+    if self.genetics ~= nil and self.genetics.quality ~= nil then
+        q = tonumber(self.genetics.quality) or 1.0
+    end
+
+    if q < 0.35 then q = 0.35 end
+    if q > 1.75 then q = 1.75 end
+
+    local t = (q - 0.35) / (1.75 - 0.35)
+    local bonus = 0.10 * t
+
+    local weightBasePrice =  (weight * (1 + bonus)) * pricePerKg
+
+    if(self.isPregnant) then
+        weightBasePrice = weightBasePrice * 1.25
+    end
+    return weightBasePrice
+end
+
 function Animal:getSellPrice()
+    if self.animalTypeIndex == AnimalType.COW then return self:getCowSellPrice() end
+    if self.animalTypeIndex == AnimalType.PIG then return self:getPigSellPrice() end
+
     local subType = self:getSubType()
     local sellPrice = subType.sellPrice:get(self.age < 0 and 0 or self.age)
 
