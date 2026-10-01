@@ -225,4 +225,19 @@ function AnimalSystemStateEvent:run(connection)
     animalSystem.animals = self.animals
     animalSystem.aiAnimals = self.aiAnimals
 
+    -- The pools just changed, so an open Buy tab may hold items that no longer exist;
+    -- rebind it in place rather than making the player reopen the menu. All three senders
+    -- reach here - the dealer reset, the hourly stock churn and the join snapshot. The
+    -- churn is the frequent one, so a browsing list rebuilds about once an in-game hour;
+    -- that is deliberate, and reloadAnimalList restores selection by identity but not
+    -- scroll position.
+    --
+    -- RECEIVER-SIDE ONLY: the server broadcasts without sendLocal, so on a listen host an
+    -- admin CLIENT changing the preset leaves the HOST's open list unrebound.
+    if g_rlMenu ~= nil and g_rlMenu.buyFrame ~= nil
+       and g_rlMenu.buyFrame.refreshIfOpen ~= nil then
+        Log:debug("AnimalSystemStateEvent:run: dealer pools replaced, refreshing an open Buy tab")
+        g_rlMenu.buyFrame:refreshIfOpen()
+    end
+
 end

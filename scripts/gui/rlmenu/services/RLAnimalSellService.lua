@@ -1,29 +1,23 @@
 --[[
     RLAnimalSellService.lua
-    Stateless service for animal sell operations in the RL Tabbed Menu.
+    Stateless service for animal sell operations, wrapping AnimalSellEvent dispatch with
+    the same subscription pattern as RLAnimalMoveService. Single and bulk sells both route
+    through AnimalSellEvent, so the MoneyType is always SOLD_ANIMALS.
 
-    Wraps AnimalSellEvent dispatch with the same subscription pattern as
-    RLAnimalMoveService. All sells route through AnimalSellEvent (both
-    single and bulk), fixing the legacy single-sell MoneyType bug where
-    AnimalScreenDealer.applyTarget used direct removeCluster + addMoney
-    with MoneyType.NEW_ANIMALS_COST instead of SOLD_ANIMALS.
+    Fee sign convention: Animal:getTranportationFee(1) returns a POSITIVE number. This
+    service stores fees positive internally and negates when passing them to
+    AnimalSellEvent, which expects a negative transportPrice.
 
-    Fee sign convention: Animal:getTranportationFee(1) returns a positive
-    number. This service stores fees as positive internally and negates
-    when passing to AnimalSellEvent (which expects negative transportPrice).
-
-    RL messages are handled server-side by AnimalSellEvent:run() -- the
-    service does NOT add them (unlike RLAnimalMoveService which adds
-    move messages client-side).
-
-    All methods are static (module-level functions). The service does not
-    hold state between calls; the messageCenter subscription for sell
-    responses is scoped to each sellAnimals() invocation via closure.
+    RL messages are added server-side by AnimalSellEvent:run - this service adds none,
+    unlike RLAnimalMoveService's client-side move message.
 ]]
 
 local Log = RmLogging.getLogger("RLRM")
 
 RLAnimalSellService = {}
+
+--- Client-only code: a sick animal left out before dispatch; never sent on the wire.
+RLAnimalSellService.ERROR_ANIMAL_SICK = -2
 
 
 --- Compute sell price, transportation fee, and net total for a single animal.
@@ -166,11 +160,8 @@ function RLAnimalSellService.sellAnimals(husbandry, animals, totalPrice, totalFe
         tostring(husbandry and husbandry.getName and husbandry:getName()),
         totalPrice, totalFee)
 
-    -- Route the subscribe + dispatch through the shared request helper: one in-flight
-    -- request per event CLASS, a cancellable watchdog, and a single-consume completion.
-    -- The helper owns unsubscribe + cleanup; onSellResponse keeps the caller-callback shape.
-    -- errorCode may be RLAnimalEventRequest.TIMEOUT_CODE on watchdog expiry (!= SELL_SUCCESS,
-    -- so it surfaces as a failure and getErrorText maps it to the timeout text).
+    -- The shared request helper owns the subscribe, the watchdog and the cleanup. The code
+    -- may be the TIMEOUT one on watchdog expiry, which surfaces as an ordinary failure.
     local function onSellResponse(errorCode)
         Log:trace("RLAnimalSellService.onSellResponse: errorCode=%s", tostring(errorCode))
         if errorCode ~= AnimalSellEvent.SELL_SUCCESS then
@@ -200,24 +191,11 @@ function RLAnimalSellService.sellAnimals(husbandry, animals, totalPrice, totalFe
 end
 
 
---- Partition a sell batch into the survivors that pass a per-animal verdict and
---- the rejects, for the trailer-at-dealer Sell flow.
---- Contract: the survivor SHAPE of RLAnimalBuyService.filterBuyableAnimals
---- (`{ valid, rejected, firstErrorCode }`), reproducing legacy
---- AnimalScreenDealerTrailer:applyTargetBulk's per-item skip-invalid-sell-the-rest
---- behaviour - but with NO running-count capacity ledger: selling fills no
---- destination, and the server AnimalSellEvent:run gate is per-animal-independent
---- (it blocks on the first non-sellable animal; there is no cumulative dimension
---- to track). This is a per-animal survivor partition only.
----
---- Pure / dual-run: takes the source + the verdict function as parameters and
---- does NO price math, NO g_*, NO capacity counter - it only partitions by the
---- injected per-animal verdict. The in-game caller injects an adapter that gates
---- on `animal:getCanBeSold()` (returning AnimalSellEvent.SELL_ERROR_CANNOT_BE_SOLD),
---- which is exact parity with the authoritative server leg (AnimalSellEvent:run
---- gates per-animal on getCanBeSold + permission only). A headless test injects a
---- mock validate returning plain sentinel codes, so this loads no AnimalSellEvent.
---- @param source table The sell SOURCE object (the held trailer); passed through to validate
+--- Partition a sell batch into survivors and rejects by a per-animal verdict, in the same
+--- shape the buy filter returns. NO capacity ledger, unlike the buy side: selling fills no
+--- destination and the server gate is per-animal independent, so there is no cumulative
+--- dimension to track. Purely a partition - no price math and no capacity counter.
+--- @param source table The sell SOURCE object (the selected pen or the held trailer); passed through to validate
 --- @param animals table|nil Array of Animal/cluster refs to sell (nil -> empty result)
 --- @param validate function (source, animal) -> errorCode|nil per-animal verdict
 --- @return table result { valid = {<animal>...}, rejected = {{animal, reason}...}, firstErrorCode = <code|nil> }
@@ -253,6 +231,33 @@ function RLAnimalSellService.filterSellableAnimals(source, animals, validate)
 end
 
 
+--- Client verdict for one animal on the Sell tab: unsellable first, then sick, else sellable.
+--- @param source table The sell source (pen or trailer); unused, kept for the filter's validate shape
+--- @param animal table Animal to test
+--- @return number|nil errorCode SELL_ERROR_CANNOT_BE_SOLD, ERROR_ANIMAL_SICK, or nil when sellable
+function RLAnimalSellService.validateForSale(source, animal)
+    if not animal:getCanBeSold() then
+        Log:trace("RLAnimalSellService.validateForSale: uniqueId=%s cannot be sold", tostring(animal.uniqueId))
+        return AnimalSellEvent.SELL_ERROR_CANNOT_BE_SOLD
+    end
+    if not RLDiseaseSaleGate.check(animal) then
+        Log:trace("RLAnimalSellService.validateForSale: uniqueId=%s is sick", tostring(animal.uniqueId))
+        return RLAnimalSellService.ERROR_ANIMAL_SICK
+    end
+    Log:trace("RLAnimalSellService.validateForSale: uniqueId=%s sellable", tostring(animal.uniqueId))
+    return nil
+end
+
+
+--- The confirmation line naming how many sick animals a sale left out.
+--- @param count number Number of sick animals left out
+--- @return string Localized line
+function RLAnimalSellService.buildSickSkippedLine(count)
+    Log:trace("RLAnimalSellService.buildSickSkippedLine: count=%s", tostring(count))
+    return string.format(g_i18n:getText("rl_ui_sellSkippedSick"), count)
+end
+
+
 --- Map an AnimalSellEvent error code to a localized error string.
 --- @param errorCode number The error code from AnimalSellEvent
 --- @return string Localized error text, or a generic fallback for unknown codes
@@ -260,6 +265,10 @@ function RLAnimalSellService.getErrorText(errorCode)
     if errorCode == RLAnimalEventRequest.TIMEOUT_CODE then
         Log:trace("RLAnimalSellService.getErrorText: synthetic timeout code -> rl_ui_tradeRequestTimeout")
         return g_i18n:getText("rl_ui_tradeRequestTimeout")
+    end
+    if errorCode == RLAnimalSellService.ERROR_ANIMAL_SICK then
+        Log:trace("RLAnimalSellService.getErrorText: client-only sick code -> rl_ui_sellErrorSick")
+        return g_i18n:getText("rl_ui_sellErrorSick")
     end
     local mapping = AnimalScreenDealerFarm.SELL_ERROR_CODE_MAPPING[errorCode]
     if mapping ~= nil and mapping.text ~= nil then

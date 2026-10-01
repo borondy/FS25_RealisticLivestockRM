@@ -63,18 +63,11 @@ function RLAnimalQuery.formatHusbandryLabel(husbandry, fallbackIndex)
     return name
 end
 
---- Project the farm's live husbandries into plain `{ uniqueId, animalType, name }` descriptors for
---- the F6 husbandry picker + the pure target gate (RLHerdsmanRulePresenter). Reuses
---- listHusbandriesForFarm (one enumeration source, already name-sorted) so the picker cannot drift
---- from the Info tab (M12). The `uniqueId` field holds the STABLE TARGET KEY from
---- RLHusbandryTargetKey.keyFor (the placeable's uniqueId on server/host, its net-object-id on a pure
---- client) - the field name is kept because the picker / presenter / wire treat it as one opaque
---- unique string, and keying it the SAME way the decoded targets are keyed is what makes the
---- picker's pre-check match. `animalType` is getAnimalTypeIndex() (nil for a not-fully-loaded /
---- non-animal placeable - the pure gate excludes nil-type from typed lists); `name` uses the
---- formatHusbandryLabel "Husbandry N" fallback so the picker + sort never see an empty label. A
---- husbandry with no usable key (keyFor returns nil + :warning) is SKIPPED (it could never
---- round-trip as a stored target). Returns a fresh array (empty for nil / farmless).
+--- Project the farm's live husbandries into plain descriptors for the picker and the pure
+--- target gate, over the SAME enumeration the Info tab uses so the two cannot drift. The
+--- `uniqueId` field holds the STABLE TARGET KEY, keyed exactly as decoded targets are,
+--- which is what makes the picker's pre-check match. A husbandry with no usable key is
+--- SKIPPED - it could never round-trip as a stored target.
 ---@param farmId number|nil
 ---@return table descriptors array of { uniqueId = string, animalType = number|nil, name = string } (uniqueId = stable target key)
 function RLAnimalQuery.listHusbandryDescriptorsForFarm(farmId)
@@ -109,11 +102,8 @@ function RLAnimalQuery.listHusbandryDescriptorsForFarm(farmId)
     return descriptors
 end
 
---- Compose a move-destination display label: the base placeable name plus a localized "(butcher)"
---- suffix for an EPP destination, so the picker rows and the rule's destination button label agree
---- (one suffix home shared by this descriptor projection AND the frame's resolvePlaceableName).
---- A husbandry destination gets the bare name. Falls back to a literal "(butcher)" only if g_i18n is
---- unavailable (the key is seeded in every locale, so a live game resolves it).
+--- Compose a move-destination label: the placeable name plus a localized "(butcher)" suffix
+--- for an EPP. One suffix home, so the picker rows and the destination button agree.
 ---@param name string|nil base placeable name
 ---@param isEPP boolean|nil true for an EPP butcher destination
 ---@return string label
@@ -124,17 +114,12 @@ function RLAnimalQuery.composeDestinationLabel(name, isEPP)
     return base .. " " .. suffix
 end
 
---- Project the farm's live MOVE DESTINATIONS into descriptors for the herdsman move-dest picker + the
---- frame's dest-revalidation map. The husbandry half REUSES listHusbandryDescriptorsForFarm verbatim
---- (scalar `animalType`, name-sorted, same stable target keys); the EPP half scans
---- placeableSystem.placeables for owner-farm butchers - mirroring RLMoveDestinationHelper.getValidDestinations'
---- placeable scan, but enumerating the PLACEABLE (MP-stable key) rather than the production point, and
---- reporting the SET of supported type indices (`animalTypes` = keys of pp.animalsTypeData) so a
---- multi-type butcher is ONE picker row under an ANY-type filter. An EPP whose type set is EMPTY is
---- EXCLUDED (it can never accept the pen's animals), as is one with no usable target key.
---- EPP is an OPTIONAL third-party mod: every hop nil-guards spec_extendedProductionPoint /
---- productionPoint / animalsTypeData, so an absent mod yields exactly the husbandry descriptors (zero
---- behavior change). EPP descriptors are appended (unsorted); the presenter re-sorts the candidate set.
+--- Project the farm's live MOVE DESTINATIONS into descriptors. The husbandry half reuses the
+--- projection above; the EPP half scans for owner-farm butchers, enumerating the PLACEABLE
+--- rather than the production point for an MP-stable key, and reporting the SET of supported
+--- types so a multi-type butcher is ONE picker row. An EPP with an empty type set is excluded.
+--- EPP is an OPTIONAL mod, so every hop nil-guards and an absent mod yields exactly the
+--- husbandry descriptors. EPP entries are appended unsorted; the presenter re-sorts.
 ---@param farmId number|nil
 ---@return table descriptors husbandry { uniqueId, animalType, name } + EPP { uniqueId, animalTypes, name, isEPP }
 function RLAnimalQuery.listMoveDestinationDescriptorsForFarm(farmId)
@@ -268,8 +253,9 @@ RLAnimalQuery.TINT_MARKED  = "marked"
 ---   displayIdentifier         : identifier with genetics tag applied
 ---   price                     : sell price (setValue on the currency cell)
 ---   hasDisease, isMarked, recentlyBoughtByAI : state flags
+---   hasUntreatedDisease, hasTreatedDisease, isDiseaseCarrier : disease icon flags
 ---   descriptorVisible, descriptorText         : herdsman/mark badge
----   tint                      : "normal" | "disease" | "marked"
+---   tint                      : "normal" | "marked"
 ---
 --- Malformed cluster returns a sentinel row with "?" placeholders + a warning.
 --- @param item table|nil
@@ -287,6 +273,12 @@ function RLAnimalQuery.formatAnimalRow(item)
         displayIdentifier  = "?",
         price              = 0,
         hasDisease         = false,
+        -- Initialized false, not left nil: the malformed-cluster early return
+        -- below and an animal shape without the accessor both reach the icon
+        -- resolver, which reads these as plain booleans.
+        hasUntreatedDisease = false,
+        hasTreatedDisease   = false,
+        isDiseaseCarrier    = false,
         isMarked           = false,
         recentlyBoughtByAI = false,
         descriptorVisible  = false,
@@ -335,6 +327,15 @@ function RLAnimalQuery.formatAnimalRow(item)
     if cluster.getHasAnyDisease ~= nil then
         row.hasDisease = cluster:getHasAnyDisease() == true
     end
+    -- Nil-guarded because a row's cluster is not always an RLRM Animal: a
+    -- vanilla world-trailer cluster before conversion, and a Buy-frame store
+    -- item of the same shape, both reach here and render no icons.
+    if cluster.getDiseaseStatusFlags ~= nil then
+        local untreated, treated, carrier = cluster:getDiseaseStatusFlags()
+        row.hasUntreatedDisease = untreated == true
+        row.hasTreatedDisease   = treated == true
+        row.isDiseaseCarrier    = carrier == true
+    end
     if cluster.getMarked ~= nil then
         row.isMarked = cluster:getMarked() == true
     end
@@ -359,10 +360,11 @@ function RLAnimalQuery.formatAnimalRow(item)
         end
     end
 
-    -- Tint: disease beats marked beats normal.
-    if row.hasDisease then
-        row.tint = RLAnimalQuery.TINT_DISEASE
-    elseif row.isMarked then
+    -- Tint: marked beats normal. Disease is carried by the status-icon row
+    -- rather than the tint, because it needs to distinguish untreated from
+    -- under-treatment from carrier and a single tint cannot. A marked animal
+    -- keeps its orange tint whether or not it is also diseased.
+    if row.isMarked then
         row.tint = RLAnimalQuery.TINT_MARKED
     end
 
@@ -403,16 +405,54 @@ end
 -- Status icon resolution
 -- =============================================================================
 
---- Resolve 0-2 status icons for an animal row.
---- Returns an array of {slice, r, g, b} entries, ordered for right-justified
---- rendering: first entry = leftmost icon, last entry = rightmost icon.
----
---- Category 1 (pregnancy/fertility): mutually exclusive, priority order.
---- Category 2 (production): from productionIcon, already monitor-gated.
+--- Slot names for the card's status-icon row, left to right. ONE module-level
+--- constant rather than a literal per frame: five copies of a slot-name list is
+--- five places for a rename to miss one, and a missed one shows as a silently
+--- absent icon rather than an error.
+RLAnimalQuery.SLOT_NAMES = {
+    "statusIcon1", "statusIcon2", "statusIcon3",
+    "statusIcon4", "statusIcon5", "statusIcon6",
+}
+
+--- Dev-only: emit every icon on every row, so a layout spike can measure a full row
+--- without hunting for an animal in each state, and a misspelled slot shows up as a gap.
+--- Never commit true - the suite enforces that, since the asserts redden while it is set.
+RLAnimalQuery.DEV_FORCE_ALL_ICONS = false
+
+--- Resolve 0-5 status icons for a row, ordered for right-justified rendering: disease,
+--- then pregnancy and fertility, then production, so health reads at the left while the
+--- production marker keeps the right edge. Disease contributes up to three INDEPENDENT
+--- icons; the other groups are internally exclusive, so five is the worst case over six slots.
 --- @param row table  Row from formatAnimalRow
 --- @return table icons  Array of {slice=string, r=number, g=number, b=number}
 function RLAnimalQuery.resolveStatusIcons(row)
     local icons = {}
+
+    -- One distinct icon per slot, deliberately exceeding the reachable worst case: the
+    -- point is the row's geometry. A whole branch rather than widened conditions, since
+    -- ORing the flags leaves the exclusive groups resolving live and under-fills the row.
+    if RLAnimalQuery.DEV_FORCE_ALL_ICONS then
+        return {
+            { slice = "rlStatus.briefcase_medical", r = 0.92, g = 0.34, b = 0.30 },
+            { slice = "rlStatus.pill_bottle",       r = 0.47, g = 0.71, b = 0.91 },
+            { slice = "rlStatus.dna",               r = 0.65, g = 0.65, b = 0.65 },
+            { slice = "rlStatus.baby",              r = 0.85, g = 0.47, b = 0.75 },
+            { slice = "rlStatus.circle_off",        r = 0.65, g = 0.65, b = 0.65 },
+            { slice = "rlStatus.milk",              r = 0.47, g = 0.71, b = 0.91 },
+        }
+    end
+
+    -- Disease: three INDEPENDENT flags, so an animal carrying an untreated
+    -- infection AND a carried gene shows both.
+    if row.hasUntreatedDisease then
+        icons[#icons + 1] = { slice = "rlStatus.briefcase_medical", r = 0.92, g = 0.34, b = 0.30 }
+    end
+    if row.hasTreatedDisease then
+        icons[#icons + 1] = { slice = "rlStatus.pill_bottle", r = 0.47, g = 0.71, b = 0.91 }
+    end
+    if row.isDiseaseCarrier then
+        icons[#icons + 1] = { slice = "rlStatus.dna", r = 0.65, g = 0.65, b = 0.65 }
+    end
 
     -- Category 1: Pregnancy / Fertility (mutually exclusive)
     if row.isPregnant then
@@ -432,28 +472,57 @@ function RLAnimalQuery.resolveStatusIcons(row)
         icons[#icons + 1] = { slice = "rlStatus.egg", r = 0.47, g = 0.71, b = 0.91 }
     end
 
-    Log:trace("RLAnimalQuery.resolveStatusIcons: uniqueId=%s count=%d pregnant=%s recovering=%s infertile=%s production=%s",
-        tostring(row.uniqueId), #icons, tostring(row.isPregnant),
+    Log:trace("RLAnimalQuery.resolveStatusIcons: uniqueId=%s count=%d untreated=%s treated=%s carrier=%s pregnant=%s recovering=%s infertile=%s production=%s",
+        tostring(row.uniqueId), #icons,
+        tostring(row.hasUntreatedDisease), tostring(row.hasTreatedDisease),
+        tostring(row.isDiseaseCarrier), tostring(row.isPregnant),
         tostring(row.isRecoveringFromBirth), tostring(row.isInfertile),
         tostring(row.productionIcon))
 
     return icons
 end
 
+--- Fill a cell's icon slots RIGHT-JUSTIFIED, so a partial row hugs the same edge as a full
+--- one. Two boundaries callers depend on: a nil slot is skipped rather than raising, since
+--- a frame may not declare every slot, and with more icons than slots the RIGHTMOST win,
+--- so the leading icons fall off. Slices are set per visual state because setImageSlice
+--- writes one state only; FOCUSED is left to fall back to the profile's own colour.
+--- @param cell table  SmoothList cell
+--- @param slotNames table  Array of slot attribute names, left to right
+--- @param icons table  Array of {slice, r, g, b} from a resolve* function
+function RLAnimalQuery.applyStatusIconSlots(cell, slotNames, icons)
+    if cell == nil or slotNames == nil or icons == nil then return end
+
+    local slotCount = #slotNames
+    for i = 1, slotCount do
+        local slot = cell:getAttribute(slotNames[i])
+        if slot ~= nil then
+            -- Right-justify: icon N fills slot (slotCount - #icons + N).
+            local iconIndex = i - (slotCount - #icons)
+            local def = icons[iconIndex]
+            if def ~= nil then
+                slot:setImageSlice(GuiOverlay.STATE_NORMAL, def.slice)
+                slot:setImageSlice(GuiOverlay.STATE_SELECTED, def.slice)
+                slot:setImageSlice(GuiOverlay.STATE_HIGHLIGHTED, def.slice)
+                slot:setImageColor(GuiOverlay.STATE_NORMAL, def.r, def.g, def.b)
+                -- Bitmap gamma workaround: 0.015/0.017/0.015 produces #212321
+                -- matching card text (preset_fs25_colorMainDark renders #0E0E0D via bitmaps).
+                slot:setImageColor(GuiOverlay.STATE_SELECTED, 0.015, 0.017, 0.015)
+                slot:setImageColor(GuiOverlay.STATE_HIGHLIGHTED, 0.015, 0.017, 0.015)
+                slot:setVisible(true)
+            else
+                slot:setVisible(false)
+            end
+        end
+    end
+end
+
 -- =============================================================================
 -- Section grouping (SmoothList multi-section data source)
 -- =============================================================================
 
---- Group a sorted item list into sections:
----   1. Diseased Animals (if any diseased items exist, regardless of subType)
----   2. One section per distinct subType, in first-seen order
----
---- Returns three parallel tables:
----   sectionOrder[]  : opaque section keys in display order
----   itemsBySection  : section key -> items array
----   titlesBySection : section key -> localized title string
----
---- Pure function on the items array; no mutation of the input.
+--- Group a sorted item list into sections: any diseased animals first, regardless of
+--- subType, then one section per distinct subType in first-seen order.
 --- @param items table
 --- @return table sectionOrder, table itemsBySection, table titlesBySection
 function RLAnimalQuery.buildSections(items)

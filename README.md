@@ -1,11 +1,6 @@
 [![Read User Guide](https://img.shields.io/badge/Read-User_Guide-blue?style=for-the-badge&logo=materialformkdocs&logoColor=white)](https://rittermod.github.io/FS25_RealisticLivestockRM/)
 [![Download Latest Release](https://img.shields.io/badge/Download-Latest_Release-orange?style=for-the-badge&logo=github)](https://github.com/rittermod/FS25_RealisticLivestockRM/releases/latest/download/FS25_RealisticLivestockRM.zip)
 
-
-
-> [!NOTE]
-> My version of the awesome [FS25 Realistic Livestock](https://github.com/Arrow-kb/FS25_RealisticLivestock) mod by [Arrow-kb](https://github.com/Arrow-kb).
-
 # FS25 Realistic Livestock - Ritter version
 
 Replaces FS25's simple animal clusters with individually tracked animals - each with unique genetics, breeding, diseases, and production traits. A maintained version of Arrow-kb's [Realistic Livestock](https://github.com/Arrow-kb/FS25_RealisticLivestock) mod.
@@ -23,14 +18,15 @@ This is a maintained version of the original mod by Arrow-kb, who has discontinu
 - Genetics display in animal names with configurable detail level (average score or full trait breakdown)
 - Breeding and reproduction with pregnancy mechanics and genetic inheritance
 - AI insemination system with semen dewars
-- Disease simulation with infection, treatment, and immunity
+- Disease simulation with nine diseases across cows, pigs, sheep, goats, chickens and horses - a hidden phase before symptoms on harder settings, spread within a pen, immunity, paid treatment and culling, with five difficulty levels and a per-disease on/off list
 - Animal monitoring to track individual animals over time
 - Weight system tied to genetics and feeding
 - Animal marking and castration
 - RL Menu: a standalone tabbed menu (default Right Shift + O, also opened from pens, dealers, and trailers) covering all animal management - animal browsing with pedigree/genetics/disease detail, moving, selling, buying, AI straw purchases, messages, and trailer loading/unloading
 - Saveable animal filters: build reusable filters in-game (age, gender, pregnancy, genetics, weight, health, and more) and cycle them with F across the menu tabs
-- Herdsman automation: named daily tasks (sell, buy, castrate, naming, AI insemination, move) driven by saved filters, with per-task caps, budgets, and a herdsman wage
+- Herdsman automation: named daily tasks (sell, buy, castrate, naming, AI insemination, move, horse care) driven by saved filters, with per-task caps, budgets, and a herdsman wage
 - Animal Country of Origin setting: choose the country new animals are registered in (ear tags, identifiers)
+- Dealer controls: choose which animals and age groups the dealer offers, and whether it stocks Budget, Standard or Premium quality animals
 - Daily summary mode for message log
 - In-game help pages covering monitors, pregnancy, production, weight, and genetics
 - Highland cattle bull support
@@ -46,6 +42,8 @@ This is a maintained version of the original mod by Arrow-kb, who has discontinu
 
 ## Supported Maps & Packs
 
+RLRM works on virtually any map out of the box. It does not need to be on a list. The maps below are special only because they add their own custom animal types or breeds, which need built-in support for those extras to get the full RLRM treatment (genetics, breeding, reproduction). On any other map, the standard animals just work.
+
 **Maps:**
 - [Hof Bergmann](https://www.lsfarming-mods.com/) - ducks, geese, cats, rabbits, alpacas, quail with full breeding support
 - [Witcombe](https://oxygendavid.itch.io/witcombe-park-farm) - UK breeds (Jersey, Gloucestershire Old Spot, Texel, Suffolk, Blue Faced Leicester) with full breeding support; Hereford heritage profile
@@ -57,7 +55,6 @@ This is a maintained version of the original mod by Arrow-kb, who has discontinu
 
 ## Notes
 
-- Based on Arrow-kb's Realistic Livestock mod (v1.2.0.5), released under GPL-3 license
 - Savegame data from Arrow-kb's original version is automatically migrated on first load
 - Font Library mod is no longer required (functionality has been inlined)
 - Incompatible with FS25_EnhancedLivestock, FS25_MoreVisualAnimals, and FS25_EnhancedAnimalSystem (use FS25_MoreVisualAnimalsRM instead of FS25_MoreVisualAnimals)
@@ -70,6 +67,12 @@ Place `FS25_RealisticLivestockRM.zip` in your mods folder.
 
 ## Changelog
 See the [CHANGELOG](CHANGELOG.md) for a detailed list of changes, fixes, and improvements in this version.
+
+## Credits
+
+My version of the awesome [FS25 Realistic Livestock](https://github.com/Arrow-kb/FS25_RealisticLivestock) mod by [Arrow-kb](https://github.com/Arrow-kb) (v1.2.0.5), released under GPL-3 license.
+
+Changes to the disease system are inspired by Renfordt's [Enhanced Livestock](https://github.com/renfordt/FS25_EnhancedLivestock), also released under GPL-3 license, with some parts converted directly from it.
 
 ## License
 This mod is released under GPL-3 license. See the [LICENSE](LICENSE) file for details.

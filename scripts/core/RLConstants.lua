@@ -202,4 +202,43 @@ RLConstants.DEWAR_QUANTITIES = {
 }
 
 
+-- Genetics domain bounds. Every genetics trait value the mod generates, stores
+-- or transports lives in [GENETICS_MIN, GENETICS_MAX]. This is the intended one
+-- home for the domain: RLGeneticsDraw reads these rather than carrying its own
+-- copies, and new consumers are expected to do the same. Retrofitting the
+-- literals that predate this constant is tracked separately and NOT done yet,
+-- so hardcoded 0.25 / 1.75 / 1.5 still survive across the tree. GENETICS_SPAN is
+-- DERIVED, never a literal, so it cannot drift from the bounds it summarises.
+RLConstants.GENETICS_MIN = 0.25
+RLConstants.GENETICS_MAX = 1.75
+RLConstants.GENETICS_SPAN = RLConstants.GENETICS_MAX - RLConstants.GENETICS_MIN
+
+
+-- Maximum lifespan in months per animal type, keyed by the UPPERCASE type NAME.
+-- The index is registration order and shifts with load order, so a name is the
+-- only stable key; the caller resolves the name and passes it.
+--
+-- The same numbers already appear in the old-age death mechanic, in two places:
+-- AnimalHealth.calculateOldAgeMonthlyAnimalDeaths and
+-- RealisticLivestock.calculateOldAgeMonthlyAnimalDeaths. This table is a THIRD
+-- copy and nothing compares the three - both of those hold their numbers inline
+-- in an if/elseif chain, which no test can read - so a change here has to be
+-- made in all three by hand.
+--
+-- A type absent from this table has no entry rather than a default, matching
+-- what the two authorities do with an unrecognised type: they leave it at a
+-- minAge of 20000 and it never dies of old age.
+--
+-- READ-ONLY by contract. Consumers share this object rather than a copy, so a
+-- mutation reaches all of them; there is deliberately no defensive copy and no
+-- metatable freeze.
+RLConstants.MAX_LIFESPAN_MONTHS_BY_TYPE = {
+    COW = 240,
+    PIG = 240,
+    SHEEP = 144,
+    HORSE = 360,
+    CHICKEN = 96
+}
+
+
 Log:info("RLConstants loaded")
