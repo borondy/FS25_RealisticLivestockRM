@@ -120,13 +120,14 @@ function RLSettings.onClickExportCSV()
 
 	local file = io.open(modSettingsDirectory .. "animals.csv", "w")
 
-	file:write("Type,Subtype,Country,Farm Id,Unique Id,Age,Health,Weight,Value,Value / kg,Pregnant,Expected Offspring,Lactating,Food,Water,Straw,Product,Manure,Liquid Manure")
+	file:write("Type,Subtype,Country,Farm Id,Unique Id,Age,Health,Weight,Value,Value / kg,Pregnant,Expected Offspring,Lactating,Food,Water,Straw,Product,Manure,Liquid Manure, FarmId, PlaceableName")
 
 	local husbandrySystem = g_currentMission.husbandrySystem
 	local animalSystem = g_currentMission.animalSystem
 
 	for _, placeable in pairs(husbandrySystem.placeables) do
-
+		local farmId = placeable.ownerFarmId
+		local placeableName = placeable:getName() or ""
 		local animals = placeable:getClusters()
 
 		for _, animal in pairs(animals) do
@@ -148,7 +149,7 @@ function RLSettings.onClickExportCSV()
 			
 			local expectedOffspring = animal.pregnancy ~= nil and animal.pregnancy.pregnancies ~= nil and #animal.pregnancy.pregnancies or 0
 
-			file:write(string.format("\n%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s", animalSystem.types[animal.animalTypeIndex].name, animal.subType, RLConstants.AREA_CODES[animal.birthday.country].code, animal.farmId, animal.uniqueId, animal.age, hasMonitor and animal.health or "no monitor", hasMonitor and animal.weight or "no monitor", value, valuePerKg, animal.isPregnant and "yes" or "no", expectedOffspring, (hasMonitor and (animal.isLactating and "yes" or "no") or "no monitor"), hasMonitor and foodInput or "no monitor", hasMonitor and waterInput or "no monitor", hasMonitor and strawInput or "no monitor", hasMonitor and productOutput or "no monitor", hasMonitor and manureOutput or "no monitor", hasMonitor and liquidManureOutput or "no monitor"))
+			file:write(string.format("\n%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s", animalSystem.types[animal.animalTypeIndex].name, animal.subType, RLConstants.AREA_CODES[animal.birthday.country].code, animal.farmId, animal.uniqueId, animal.age, hasMonitor and animal.health or "no monitor", hasMonitor and animal.weight or "no monitor", value, valuePerKg, animal.isPregnant and "yes" or "no", expectedOffspring, (hasMonitor and (animal.isLactating and "yes" or "no") or "no monitor"), hasMonitor and foodInput or "no monitor", hasMonitor and waterInput or "no monitor", hasMonitor and strawInput or "no monitor", hasMonitor and productOutput or "no monitor", hasMonitor and manureOutput or "no monitor", hasMonitor and liquidManureOutput or "no monitor", farmId, placeableName))
 
 		end
 
