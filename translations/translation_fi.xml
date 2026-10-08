@@ -439,6 +439,7 @@
         <text name="rl_settings_exportCSV_label" text="Vie CSV:ksi"/>
         <text name="rl_settings_exportCSV_tooltip" text="Vie tilastot CSV:ksi"/>
         <text name="rl_settings_exportCSV_text" text="Vie CSV:ksi"/>
+        <text name="rl_settings_exportCSV_failed" text="Could not write %s. Close it in other programs and try again."/>
 
         <text name="rl_settings_maxNumMessages_label" text="Enimmäismäärä viestejä"/>
         <text name="rl_settings_maxNumMessages_tooltip" text="Korkeampi määrä kasvattaa tallennuskansiosi kokoa. Kun tämä raja on saavutettu, vanhimmat viestit poistetaan."/>

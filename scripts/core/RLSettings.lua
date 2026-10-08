@@ -155,47 +155,69 @@ function RLSettings.onDiseaseSelectionConfirmed(catalog, result)
 end
 
 
-function RLSettings.onClickExportCSV()
+--- Write `text` to `path`, creating the mod-settings folder first; false on a missing handle or a raise.
+---@param path string
+---@param text string
+---@return boolean ok
+function RLSettings.writeExportFile(path, text)
 
-	local file = io.open(modSettingsDirectory .. "animals.csv", "w")
+	local file = nil
+	local ok, written = pcall(function()
+		createFolder(modSettingsDirectory)
+		file = io.open(path, "w")
+		if file == nil then return false end
+		-- In-game write and close return nil even on success, so their results prove nothing.
+		file:write(text)
+		file:close()
+		file = nil
+		return true
+	end)
 
-	file:write("Type,Subtype,Country,Farm Id,Unique Id,Age,Health,Weight,Value,Value / kg,Pregnant,Expected Offspring,Lactating,Food,Water,Straw,Product,Manure,Liquid Manure")
-
-	local husbandrySystem = g_currentMission.husbandrySystem
-	local animalSystem = g_currentMission.animalSystem
-
-	for _, placeable in pairs(husbandrySystem.placeables) do
-
-		local animals = placeable:getClusters()
-
-		for _, animal in pairs(animals) do
-
-			local hasMonitor = animal.monitor.active or animal.monitor.removed
-
-			local foodInput = animal:getInput("food") * 24
-			local waterInput = animal:getInput("water") * 24
-			local strawInput = animal:getInput("straw") * 24
-			local manureOutput = animal:getOutput("manure") * 24
-			local liquidManureOutput = animal:getOutput("liquidManure") * 24
-			local milkOutput = animal:getOutput("milk") * 24
-			local palletsOutput = animal:getOutput("pallets") * 24
-
-			local productOutput = milkOutput > palletsOutput and milkOutput or palletsOutput
-
-			local value = animal:getSellPrice()
-			local valuePerKg = hasMonitor and (value / animal.weight) or "no monitor"
-			
-			local expectedOffspring = animal.pregnancy ~= nil and animal.pregnancy.pregnancies ~= nil and #animal.pregnancy.pregnancies or 0
-
-			file:write(string.format("\n%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s", animalSystem.types[animal.animalTypeIndex].name, animal.subType, RLConstants.AREA_CODES[animal.birthday.country].code, animal.farmId, animal.uniqueId, animal.age, hasMonitor and animal.health or "no monitor", hasMonitor and animal.weight or "no monitor", value, valuePerKg, animal.isPregnant and "yes" or "no", expectedOffspring, (hasMonitor and (animal.isLactating and "yes" or "no") or "no monitor"), hasMonitor and foodInput or "no monitor", hasMonitor and waterInput or "no monitor", hasMonitor and strawInput or "no monitor", hasMonitor and productOutput or "no monitor", hasMonitor and manureOutput or "no monitor", hasMonitor and liquidManureOutput or "no monitor"))
-
-		end
-
+	if file ~= nil then
+		Log:trace("RLSettings.writeExportFile: closing %s after the write or close raised", tostring(path))
+		pcall(function() file:close() end)
 	end
 
-	file:close()
+	if not ok then
+		Log:trace("RLSettings.writeExportFile: writing %s raised: %s", tostring(path), tostring(written))
+		return false
+	end
+	if written ~= true then
+		Log:trace("RLSettings.writeExportFile: could not open %s for writing", tostring(path))
+		return false
+	end
+	Log:trace("RLSettings.writeExportFile: handed %d byte(s) to %s", #text, tostring(path))
+	return true
 
-	InfoDialog.show(modSettingsDirectory .. "animals.csv")
+end
+
+
+--- Export the player farms' pen animals to animals.csv in the mod-settings folder and show the path.
+---@return nil
+function RLSettings.onClickExportCSV()
+
+	RmSafeUtils.safeCall("RLSettings.onClickExportCSV", function()
+
+		local mission = g_currentMission
+		local ctx = {
+			animalSystem = mission.animalSystem,
+			isMultiplayer = mission.missionDynamicInfo.isMultiplayer == true
+		}
+		local path = modSettingsDirectory .. "animals.csv"
+		local lines, stats = RLAnimalExport.buildLines(mission.husbandrySystem.placeables, ctx)
+
+		-- The byte-order mark makes spreadsheet programs read non-ASCII names as UTF-8.
+		if not RLSettings.writeExportFile(path, "\239\187\191" .. table.concat(lines, "\n")) then
+			Log:warning("RLSettings.onClickExportCSV: could not write %s", path)
+			InfoDialog.show(string.format(g_i18n:getText("rl_settings_exportCSV_failed"), path))
+			return
+		end
+
+		Log:info("RLSettings.onClickExportCSV: %d row(s), %d failed, %d pen(s) exported, %d skipped (%s) -> %s",
+			stats.rows, stats.rowsFailed, stats.pensExported, stats.pensSkipped, ctx.isMultiplayer and "MP" or "SP", path)
+		InfoDialog.show(path)
+
+	end)
 
 end
 

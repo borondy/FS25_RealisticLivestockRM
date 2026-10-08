@@ -455,6 +455,7 @@
         <text name="rl_settings_exportCSV_label" text="CSV Olarak Dışa Aktar"/>
         <text name="rl_settings_exportCSV_tooltip" text="İstatistikleri CSV olarak dışa aktar"/>
         <text name="rl_settings_exportCSV_text" text="CSV Olarak Dışa Aktar"/>
+        <text name="rl_settings_exportCSV_failed" text="Could not write %s. Close it in other programs and try again."/>
 
         <text name="rl_settings_maxNumMessages_label" text="Maksimum Mesaj Sayısı"/>
         <text name="rl_settings_maxNumMessages_tooltip" text="Daha yüksek bir miktar, kayıt (save) klasörünüzün daha fazla yer kaplamasına neden olur. Bu sınıra ulaşıldıktan sonra en eski mesajlar silinir."/>

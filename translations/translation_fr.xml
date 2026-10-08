@@ -455,6 +455,7 @@
         <text name="rl_settings_exportCSV_label" text="Exporter en CSV"/>
         <text name="rl_settings_exportCSV_tooltip" text="Exporter les statistiques en CSV"/>
         <text name="rl_settings_exportCSV_text" text="Exporter en CSV"/>
+        <text name="rl_settings_exportCSV_failed" text="Could not write %s. Close it in other programs and try again."/>
 
         <text name="rl_settings_maxNumMessages_label" text="Nombre maximum de messages"/>
         <text name="rl_settings_maxNumMessages_tooltip" text="Un nombre plus élevé augmente l'espace utilisé par la sauvegarde. Une fois la limite atteinte, les messages les plus anciens seront supprimés."/>

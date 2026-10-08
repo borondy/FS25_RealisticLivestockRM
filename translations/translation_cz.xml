@@ -455,6 +455,7 @@
         <text name="rl_settings_exportCSV_label" text="Exportovat do CSV"/>
         <text name="rl_settings_exportCSV_tooltip" text="Exportovat statistiky do CSV"/>
         <text name="rl_settings_exportCSV_text" text="Exportovat do CSV"/>
+        <text name="rl_settings_exportCSV_failed" text="Could not write %s. Close it in other programs and try again."/>
 
         <text name="rl_settings_maxNumMessages_label" text="Maximální počet zpráv"/>
         <text name="rl_settings_maxNumMessages_tooltip" text="Vyšší hodnota způsobí, že složka uložené hry zabere více místa. Po dosažení tohoto limitu budou nejstarší zprávy mazány."/>

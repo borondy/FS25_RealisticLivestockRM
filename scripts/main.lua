@@ -350,6 +350,7 @@ source(modDirectory .. "scripts/messaging/RLMessage.lua")
 source(modDirectory .. "scripts/messaging/RLMessageAggregator.lua")
 
 -- SECTION 20k: Core (settings)
+source(modDirectory .. "scripts/core/RLAnimalExport.lua")
 source(modDirectory .. "scripts/core/RLSettings.lua")
 source(modDirectory .. "scripts/utils/RLDebugUtils.lua")
 

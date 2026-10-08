@@ -414,6 +414,7 @@
         <text name="rl_settings_exportCSV_label" text="eksporter til CSV"/>
         <text name="rl_settings_exportCSV_tooltip" text="Eksporter stats til CSV"/>
         <text name="rl_settings_exportCSV_text" text="Eksporter til CSV"/>
+        <text name="rl_settings_exportCSV_failed" text="Could not write %s. Close it in other programs and try again."/>
 
         <text name="rl_settings_maxNumMessages_label" text="Maks. antal beskeder"/>
         <text name="rl_settings_maxNumMessages_tooltip" text="Et højere antal vil resultere i, at dit save game optager mere plads. Når denne grænse er nået, slettes de tidligste beskeder."/>

@@ -56,7 +56,7 @@ Most settings are saved per-savegame and synced in multiplayer, and in multiplay
 | Setting | Default | Options | Description |
 |---------|---------|---------|-------------|
 | **Change Tag Colour** | - | Button | Opens the ear tag colour picker. Customise the colour of animal identification tags. |
-| **Export To CSV** | - | Button | Exports all animal data to a CSV file. Useful for tracking herd statistics in a spreadsheet. |
+| **Export To CSV** | - | Button | Writes the animals in your farm's pens to `animals.csv` in `modSettings/FS25_RealisticLivestockRM/` in your game profile, for a spreadsheet. In multiplayer an admin's export covers every player farm's pens. Animals being ridden or on a trailer are not included. Food, water, straw and production figures are per month. Values that need a health monitor are blank for animals without one. Close the file in other programs before exporting again, or it cannot be overwritten. Owner Farm is your game farm number; Farm Id is the herd number from the ear tag. |
 | **Set Maximum Visual Animals** | 2 | Button (opens a slider) | Sets the maximum number of animals rendered per pen. A per-machine display/performance preference: each player sets their own value, it is not synced in multiplayer or saved per-savegame, and any player (not just admins) can change it. The dialog's **Recommended** button suggests a value based on your graphics settings. |
 
 ---

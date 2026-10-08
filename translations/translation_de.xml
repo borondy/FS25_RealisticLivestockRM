@@ -422,6 +422,7 @@
         <text name="rl_settings_exportCSV_label" text="Als CSV exportieren"/>
         <text name="rl_settings_exportCSV_tooltip" text="Statistiken in CSV exportieren"/>
         <text name="rl_settings_exportCSV_text" text="Als CSV exportieren"/>
+        <text name="rl_settings_exportCSV_failed" text="Could not write %s. Close it in other programs and try again."/>
 
         <text name="rl_settings_maxNumMessages_label" text="Maximale Anzahl von Nachrichten"/>
         <text name="rl_settings_maxNumMessages_tooltip" text="Ein höherer Wert führt dazu, dass Ihr Speicherordner mehr Speicherplatz beansprucht. Sobald diese Grenze erreicht ist, werden die ältesten Nachrichten gelöscht."/>

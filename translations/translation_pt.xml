@@ -432,6 +432,7 @@
         <text name="rl_settings_exportCSV_label" text="Export To CSV"/>
         <text name="rl_settings_exportCSV_tooltip" text="Export stats to CSV"/>
         <text name="rl_settings_exportCSV_text" text="Export To CSV"/>
+        <text name="rl_settings_exportCSV_failed" text="Could not write %s. Close it in other programs and try again."/>
 
         <text name="rl_settings_maxNumMessages_label" text="Maximum Amount of Messages"/>
         <text name="rl_settings_maxNumMessages_tooltip" text="A higher amount will result in your save folder taking up more space. After this limit is reached, the earliest messages will be deleted."/>

@@ -439,6 +439,7 @@
         <text name="rl_settings_exportCSV_label" text="导出为CSV"/>
         <text name="rl_settings_exportCSV_tooltip" text="将统计信息导出为CSV"/>
         <text name="rl_settings_exportCSV_text" text="导出为CSV"/>
+        <text name="rl_settings_exportCSV_failed" text="Could not write %s. Close it in other programs and try again."/>
 
         <text name="rl_settings_maxNumMessages_label" text="最大消息数量"/>
         <text name="rl_settings_maxNumMessages_tooltip" text="数量较大会导致存档文件夹占用更多空间。达到此限制后，最早的消息将被删除。"/>

@@ -420,6 +420,7 @@
         <text name="rl_settings_exportCSV_label" text="Экспорт в CSV"/>
         <text name="rl_settings_exportCSV_tooltip" text="Экспортировать статистику в формат CSV"/>
         <text name="rl_settings_exportCSV_text" text="Экспортировать в CSV"/>
+        <text name="rl_settings_exportCSV_failed" text="Could not write %s. Close it in other programs and try again."/>
 
         <text name="rl_settings_maxNumMessages_label" text="Макс. количество сообщений"/>
         <text name="rl_settings_maxNumMessages_tooltip" text="Более высокое значение приведет к тому, что файлы сохранений будут занимать больше места. При достижении этого лимита самые старые сообщения будут автоматически удаляться."/>

@@ -430,6 +430,7 @@
         <text name="rl_settings_exportCSV_label" text="Exporteer naar CSV"/>
         <text name="rl_settings_exportCSV_tooltip" text="Exporteer statistieken naar CSV"/>
         <text name="rl_settings_exportCSV_text" text="Exporteer naar CSV"/>
+        <text name="rl_settings_exportCSV_failed" text="Could not write %s. Close it in other programs and try again."/>
 
         <text name="rl_settings_maxNumMessages_label" text="Maximaal aantal berichten"/>
         <text name="rl_settings_maxNumMessages_tooltip" text="Een hoger aantal zorgt ervoor dat je savegame-map meer ruimte inneemt. Als dit maximum bereikt is, worden de oudste berichten verwijderd."/>
