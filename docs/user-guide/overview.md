@@ -111,7 +111,7 @@ Open the **RL Menu** with **Right Shift + O** in-game - or, from the ESC menu's 
 - **Move** - Transfer animals between your husbandries
 - **Manage** - View detailed stats, genetics, health, and production for each animal
 - **Insemination** - Browse and buy stored semen for artificial breeding without keeping males
-- **Message Log** - Track births, deaths, diseases, and other events
+- **Message Log** - Track births, deaths, diseases, and other events. A red triangle marks deaths and other urgent messages, an orange one marks notable events such as pregnancies, disease news and daily summaries; the colours follow the game's colour-blind setting.
 - **Herdsman** - Automate daily herd chores with rules: sell, buy, move, castrate, name, inseminate, or look after your horses - applied to the animals a saved filter picks, in the pens you choose. See the [Herdsman guide](guide-herdsman.md).
 - **Settings** - Adjust every RLRM option: the death toggle and the **Diseases** level, food scaling, dealer stock size, how good the dealer's animals are, which breeds and age groups the dealer offers, ear tag colours, genetics display, how many animals are shown in 3D per pen, CSV export, and more. This tab also hosts the **saved filter** editor.
 

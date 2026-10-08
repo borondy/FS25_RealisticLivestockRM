@@ -72,10 +72,27 @@
     <Profile name="rlMenu_container" extends="baseReference" with="anchorTopLeft">
     </Profile>
 
-    <!-- Importance indicator icon (full-color, no select tinting) -->
-    <Profile name="rlMenu_importanceIcon" extends="emptyPanel" with="anchorTopLeft">
+    <!--
+        Message severity icons, one profile per shape, each centred on the 48px icon column.
+        Tinted per row by RLSeverityIcon.apply; the three colour keys are placeholders that
+        give each state its own colour table.
+    -->
+    <Profile name="rlMenu_severityCircle" extends="baseReference" with="anchorTopLeft">
+        <size value="29px 29px"/>
+        <position value="10px -10px"/>
+        <imageSliceId value="gui.storeAttribute_info"/>
         <imageColor value="1 1 1 1"/>
         <imageSelectedColor value="1 1 1 1"/>
+        <imageHighlightedColor value="1 1 1 1"/>
+    </Profile>
+
+    <Profile name="rlMenu_severityTriangle" extends="baseReference" with="anchorTopLeft">
+        <size value="43px 32px"/>
+        <position value="3px -9px"/>
+        <imageSliceId value="gui.contextAction_icon_alert"/>
+        <imageColor value="1 1 1 1"/>
+        <imageSelectedColor value="1 1 1 1"/>
+        <imageHighlightedColor value="1 1 1 1"/>
     </Profile>
 
     <!-- Herdsman/mark descriptor badge on Info tab animal cards. -->

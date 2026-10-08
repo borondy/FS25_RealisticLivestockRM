@@ -188,6 +188,7 @@ source(modDirectory .. "scripts/gui/RealisticLivestockFrame.lua")
 source(modDirectory .. "scripts/gui/AnimalAIDialog.lua")
 source(modDirectory .. "scripts/gui/AnimalFilterDialog.lua")
 source(modDirectory .. "scripts/gui/AnimalMoveDestinationDialog.lua")
+source(modDirectory .. "scripts/gui/RLSeverityIcon.lua")
 source(modDirectory .. "scripts/gui/DiseaseDialog.lua")
 source(modDirectory .. "scripts/gui/EarTagColourPickerDialog.lua")
 source(modDirectory .. "scripts/gui/RLFilterConditionDialog.lua")
@@ -346,6 +347,7 @@ source(modDirectory .. "scripts/core/RealisticLivestock_FSBaseMission.lua")
 source(modDirectory .. "scripts/console/RLConsoleCommandManager.lua")
 
 -- SECTION 20j: Messaging
+-- Reads RLConstants at file scope, so it must follow SECTION 2c.
 source(modDirectory .. "scripts/messaging/RLMessage.lua")
 source(modDirectory .. "scripts/messaging/RLMessageAggregator.lua")
 

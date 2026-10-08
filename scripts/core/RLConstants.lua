@@ -241,4 +241,41 @@ RLConstants.MAX_LIFESPAN_MONTHS_BY_TYPE = {
 }
 
 
+-- Message severity vocabulary. Definition-only data on the message rows: never saved,
+-- never streamed, so changing a message's severity is not a savegame or wire change.
+RLConstants.SEVERITY = {
+    INFO = "info",
+    SUCCESS = "success",
+    NOTICE = "notice",
+    WARNING = "warning"
+}
+
+
+-- Icon style per severity VALUE. Info has no entry, so its icon stays hidden. Colours are
+-- keyed by the game's colour-blind setting ([false] normal, [true] colour-blind).
+RLConstants.SEVERITY_STYLE = {
+    success = {
+        profile = "rlMenu_severityCircle",
+        color = {
+            [false] = { 0.33716, 0.55834, 0.0003, 1 },  -- fs25_colorGreen preset
+            [true] = { 0.0742, 0.4341, 0.6939, 1 }      -- colorBlue preset
+        }
+    },
+    notice = {
+        profile = "rlMenu_severityTriangle",
+        color = {
+            [false] = { 0.8, 0.4, 0, 1 },               -- colorOrange preset
+            [true] = { 0.3, 0.15, 0, 1 }                -- dark colour-blind orange, no preset
+        }
+    },
+    warning = {
+        profile = "rlMenu_severityTriangle",
+        color = {
+            [false] = { 0.8069, 0.0097, 0.0097, 1 },    -- colorRed preset
+            [true] = { 0.9473, 0.5271, 0, 1 }           -- bright colour-blind orange, no preset
+        }
+    }
+}
+
+
 Log:info("RLConstants loaded")
