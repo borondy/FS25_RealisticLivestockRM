@@ -1,38 +1,40 @@
+-- Severity: WARNING = serious and still actionable, NOTICE = a setback (a death), SUCCESS = a good outcome,
+-- INFO = a chosen action. A daily summary takes the severity of the messages it folds.
 RLMessage = {
 	["PREGNANCY_SINGLE"] = {
 		["text"] = "pregnancySingle",
 		["title"] = "pregnancy",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.SUCCESS
 	},
 	["PREGNANCY_MULTIPLE"] = {
 		["text"] = "pregnancyMultiple",
 		["title"] = "pregnancy",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.SUCCESS
 	},
 	["PREGNANCY_SOLD"] = {
 		["text"] = "pregnancySold",
 		["title"] = "pregnancy",
-		["severity"] = RLConstants.SEVERITY.INFO
+		["severity"] = RLConstants.SEVERITY.WARNING
 	},
 	["PREGNANCY_DIED"] = {
 		["text"] = "pregnancyDied",
 		["title"] = "pregnancy",
-		["severity"] = RLConstants.SEVERITY.INFO
+		["severity"] = RLConstants.SEVERITY.NOTICE
 	},
 	["DEATH"] = {
 		["text"] = "death",
 		["title"] = "death",
-		["severity"] = RLConstants.SEVERITY.WARNING
+		["severity"] = RLConstants.SEVERITY.NOTICE
 	},
 	["DISEASE_CONTRACTED"] = {
 		["text"] = "diseaseContracted",
 		["title"] = "disease",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.WARNING
 	},
 	["DISEASE_CURED"] = {
 		["text"] = "diseaseCured",
 		["title"] = "disease",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.SUCCESS
 	},
 	["DISEASE_TREATMENT_START"] = {
 		["text"] = "diseaseTreatment_start",
@@ -53,7 +55,7 @@ RLMessage = {
 	["DISEASE_TREATMENT_FAILED"] = {
 		["text"] = "diseaseTreatment_failed",
 		["title"] = "disease",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.WARNING
 	},
 	["NAME_CHANGE"] = {
 		["text"] = "nameChange",
@@ -183,12 +185,12 @@ RLMessage = {
 	["INSEMINATION_SUCCESS"] = {
 		["text"] = "insemination_success",
 		["title"] = "insemination",
-		["severity"] = RLConstants.SEVERITY.INFO
+		["severity"] = RLConstants.SEVERITY.SUCCESS
 	},
 	["INSEMINATION_FAIL"] = {
 		["text"] = "insemination_fail",
 		["title"] = "insemination",
-		["severity"] = RLConstants.SEVERITY.INFO
+		["severity"] = RLConstants.SEVERITY.NOTICE
 	},
 	["AI_MANAGER_INSEMINATED_SINGLE"] = {
 		["text"] = "aiManager_ai_single",
@@ -251,96 +253,96 @@ RLMessage = {
 	["AI_MANAGER_MOVE_SKIPPED_AGE_SINGLE"] = {
 		["text"] = "aiManager_moveSkippedAge_single",
 		["title"] = "aiManager",
-		["severity"] = RLConstants.SEVERITY.INFO
+		["severity"] = RLConstants.SEVERITY.NOTICE
 	},
 	["AI_MANAGER_MOVE_SKIPPED_AGE_MULTIPLE"] = {
 		["text"] = "aiManager_moveSkippedAge_multiple",
 		["title"] = "aiManager",
-		["severity"] = RLConstants.SEVERITY.INFO
+		["severity"] = RLConstants.SEVERITY.NOTICE
 	},
 	-- Herdsman move sick-skip (EPP butcher destinations): animals showing symptoms stay in the pen.
 	-- Same shape as the age-skip pair: count-only, INDIVIDUAL, beside or instead of the moved message.
 	["AI_MANAGER_MOVE_SKIPPED_SICK_SINGLE"] = {
 		["text"] = "aiManager_moveSkippedSick_single",
 		["title"] = "aiManager",
-		["severity"] = RLConstants.SEVERITY.INFO
+		["severity"] = RLConstants.SEVERITY.NOTICE
 	},
 	["AI_MANAGER_MOVE_SKIPPED_SICK_MULTIPLE"] = {
 		["text"] = "aiManager_moveSkippedSick_multiple",
 		["title"] = "aiManager",
-		["severity"] = RLConstants.SEVERITY.INFO
+		["severity"] = RLConstants.SEVERITY.NOTICE
 	},
 	-- Daily summary message types
 	["DAILY_BIRTHS_SUMMARY"] = {
 		["text"] = "dailyBirthsSummary",
 		["title"] = "pregnancy",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.SUCCESS
 	},
 	["DAILY_DEATHS_SUMMARY"] = {
 		["text"] = "dailyDeathsSummary",
 		["title"] = "death",
-		["severity"] = RLConstants.SEVERITY.WARNING
+		["severity"] = RLConstants.SEVERITY.NOTICE
 	},
 	["DAILY_SALES_SUMMARY"] = {
 		["text"] = "dailySalesSummary",
 		["title"] = "movement",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.INFO
 	},
 	["DAILY_OVERCROWDING_SUMMARY"] = {
 		["text"] = "dailyOvercrowdingSummary",
 		["title"] = "pregnancy",
-		["severity"] = RLConstants.SEVERITY.WARNING  -- Warning severity: an urgent signal
+		["severity"] = RLConstants.SEVERITY.WARNING
 	},
 	["DAILY_PURCHASES_SUMMARY"] = {
 		["text"] = "dailyPurchasesSummary",
 		["title"] = "movement",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.INFO
 	},
 	-- New herdsman daily summaries (M-Tick T5). title="aiManager" groups them with the
-	-- per-op herdsman messages; severity notice matches the other routine dailies (births/sales).
+	-- per-op herdsman messages.
 	["DAILY_CASTRATIONS_SUMMARY"] = {
 		["text"] = "dailyCastrationsSummary",
 		["title"] = "aiManager",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.INFO
 	},
 	["DAILY_NAMINGS_SUMMARY"] = {
 		["text"] = "dailyNamingsSummary",
 		["title"] = "aiManager",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.INFO
 	},
 	["DAILY_INSEMINATIONS_SUMMARY"] = {
 		["text"] = "dailyInseminationsSummary",
 		["title"] = "aiManager",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.INFO
 	},
 	["DAILY_MARK_SELL_SUMMARY"] = {
 		["text"] = "dailyMarkSellSummary",
 		["title"] = "aiManager",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.INFO
 	},
 	["DAILY_MARK_CASTRATE_SUMMARY"] = {
 		["text"] = "dailyMarkCastrateSummary",
 		["title"] = "aiManager",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.INFO
 	},
 	["DAILY_MARK_INSEMINATE_SUMMARY"] = {
 		["text"] = "dailyMarkInseminateSummary",
 		["title"] = "aiManager",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.INFO
 	},
 	["DAILY_MOVES_SUMMARY"] = {
 		["text"] = "dailyMovesSummary",
 		["title"] = "aiManager",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.INFO
 	},
 	["DAILY_MARK_MOVE_SUMMARY"] = {
 		["text"] = "dailyMarkMoveSummary",
 		["title"] = "aiManager",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.INFO
 	},
 	["DAILY_HORSE_CARE_SUMMARY"] = {
 		["text"] = "dailyHorseCareSummary",
 		["title"] = "aiManager",
-		["severity"] = RLConstants.SEVERITY.NOTICE
+		["severity"] = RLConstants.SEVERITY.INFO
 	}
 }
