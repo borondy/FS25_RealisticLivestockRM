@@ -175,7 +175,7 @@
         <text name="rl_ui_output_pallets_eggs" text="Яйця"/>
         <text name="rl_ui_output_pallets_wool" text="Шерсть"/>
         <text name="rl_ui_output_pallets_goatMilk" text="Козяче молоко"/>
-        <text name="rl_ui_amountPerDay" text="%.0fЛ / день" tag="format"/>
+        <text name="rl_ui_amountPerDay" text="%sЛ / день" tag="format"/>
         <text name="rl_ui_feePerMonth" text="%s / місяць" tag="format"/>
         <text name="rl_ui_feePerDose" text="%s / dose" tag="format"/>
 

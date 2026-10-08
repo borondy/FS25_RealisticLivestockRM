@@ -115,7 +115,7 @@ local function buildInputRows(animal)
     local daysPerMonth = g_currentMission.environment.daysPerPeriod
     for fillType, amount in pairs(animal.input) do
         local title = g_i18n:getText("rl_ui_input_" .. fillType)
-        local valueText = string.format(g_i18n:getText("rl_ui_amountPerDay"), (amount * 24) / daysPerMonth)
+        local valueText = RLAnimalDisplayHelper.formatAmountPerDay((amount * 24) / daysPerMonth)
         table.insert(rows, { title = title, valueText = valueText })
     end
     return rows
@@ -139,7 +139,7 @@ local function buildOutputRows(animal)
             if animal.animalTypeIndex == AnimalType.CHICKEN then outputText = "pallets_eggs" end
         end
         local title = g_i18n:getText("rl_ui_output_" .. outputText)
-        local valueText = string.format(g_i18n:getText("rl_ui_amountPerDay"), (amount * 24) / daysPerMonth)
+        local valueText = RLAnimalDisplayHelper.formatAmountPerDay((amount * 24) / daysPerMonth)
         table.insert(rows, { title = title, valueText = valueText })
     end
     return rows

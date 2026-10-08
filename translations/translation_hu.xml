@@ -203,7 +203,7 @@
         <text name="rl_ui_output_pallets_eggs" text="Tojás"/>
         <text name="rl_ui_output_pallets_wool" text="Gyapjú"/>
         <text name="rl_ui_output_pallets_goatMilk" text="Kecsketej"/>
-        <text name="rl_ui_amountPerDay" text="%.0f l / nap" tag="format"/>
+        <text name="rl_ui_amountPerDay" text="%s l / nap" tag="format"/>
         <text name="rl_ui_feePerMonth" text="%s / hónap" tag="format"/>
         <text name="rl_ui_feePerDose" text="%s / dose" tag="format"/>
 

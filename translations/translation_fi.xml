@@ -192,7 +192,7 @@
         <text name="rl_ui_output_pallets_eggs" text="Munia"/>
         <text name="rl_ui_output_pallets_wool" text="Villa"/>
         <text name="rl_ui_output_pallets_goatMilk" text="Vuohenmaito"/>
-        <text name="rl_ui_amountPerDay" text="%.0fl / päivä" tag="format"/>
+        <text name="rl_ui_amountPerDay" text="%sl / päivä" tag="format"/>
         <text name="rl_ui_feePerMonth" text="%s / kk" tag="format"/>
         <text name="rl_ui_feePerDose" text="%s / dose" tag="format"/>
 

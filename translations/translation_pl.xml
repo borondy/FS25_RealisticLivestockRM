@@ -189,7 +189,7 @@
         <text name="rl_ui_output_pallets_eggs" text="Eggs"/>
         <text name="rl_ui_output_pallets_wool" text="Wool"/>
         <text name="rl_ui_output_pallets_goatMilk" text="Goat milk"/>
-        <text name="rl_ui_amountPerDay" text="%.0fL / day" tag="format"/>
+        <text name="rl_ui_amountPerDay" text="%sL / day" tag="format"/>
         <text name="rl_ui_feePerMonth" text="%s / month" tag="format"/>
         <text name="rl_ui_feePerDose" text="%s / dose" tag="format"/>
 

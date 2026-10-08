@@ -1087,7 +1087,7 @@ function Animal:showMonitorInfo(box)
 
     for fillType, amount in pairs(self.input) do
         box:addLine(g_i18n:getText("rl_ui_input_" .. fillType),
-            string.format(g_i18n:getText("rl_ui_amountPerDay"), (amount * 24) / daysPerMonth))
+            RLAnimalDisplayHelper.formatAmountPerDay((amount * 24) / daysPerMonth))
     end
 
     for fillType, amount in pairs(self.output) do
@@ -1103,7 +1103,7 @@ function Animal:showMonitorInfo(box)
         end
 
         box:addLine(g_i18n:getText("rl_ui_output_" .. outputText),
-            string.format(g_i18n:getText("rl_ui_amountPerDay"), (amount * 24) / daysPerMonth))
+            RLAnimalDisplayHelper.formatAmountPerDay((amount * 24) / daysPerMonth))
     end
 end
 
