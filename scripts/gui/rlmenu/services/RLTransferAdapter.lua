@@ -171,6 +171,21 @@ function RLTransferAdapter.eppActionLabelKey(direction)
     return RLTransferAdapter.DELIVER_LABEL_KEY
 end
 
+--- The animal type a side's list is filtered by: its first item's (a side holds one type).
+--- @param items table|nil  list items carrying `.animal` or `.cluster`
+--- @return number|nil animalTypeIndex  nil for a nil or empty list
+function RLTransferAdapter.filterTypeIndexOf(items)
+    if items == nil or #items == 0 then
+        Log:trace("RLTransferAdapter.filterTypeIndexOf: empty list -> nil")
+        return nil
+    end
+    local first = items[1]
+    local animal = first.animal or first.cluster
+    local typeIndex = animal ~= nil and animal.animalTypeIndex or nil
+    Log:trace("RLTransferAdapter.filterTypeIndexOf: %d item(s) -> type %s", #items, tostring(typeIndex))
+    return typeIndex
+end
+
 -- =============================================================================
 -- NULL adapter (shell) - empty display, empty enumeration, no-op dispatch
 -- =============================================================================

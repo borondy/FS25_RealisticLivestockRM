@@ -1396,7 +1396,7 @@ end
 
 --- Render the filterChip Text element to reflect the combined Quick filter
 --- + saved filter state. Delegates branch resolution to the
---- shared RLFilterChipHelper so all four RL Menu frames render consistently.
+--- shared RLFilterChipHelper so every RL Menu filter frame renders it the same way.
 --- No-op + WARNING if the XML element is missing.
 function RLMenuBuyFrame:updateFilterChip()
     local chip = self.filterChip

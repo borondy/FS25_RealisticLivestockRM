@@ -1,6 +1,6 @@
 # Saved Filters
 
-Saved filters are named, reusable searches that narrow a long animal list down to just the animals you care about. Build a filter once - "old cows that aren't pregnant", "top-genetics breeding bulls" - and reuse it on the Buy, Sell, Move, and Manage screens. Filters are also how the [Herdsman](guide-herdsman.md) decides which animals to act on, so they are worth learning early.
+Saved filters are named, reusable searches that narrow a long animal list down to just the animals you care about. Build a filter once - "old cows that aren't pregnant", "top-genetics breeding bulls" - and reuse it on the Buy, Sell, Move, Manage, and trailer Transfer screens. Filters are also how the [Herdsman](guide-herdsman.md) decides which animals to act on, so they are worth learning early.
 
 > **Note:** This documentation was generated with AI assistance and may contain inaccuracies. If you spot an error, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues).
 
@@ -33,7 +33,7 @@ Open the **RL Menu** (default **Right Shift + O**, or press **R** at one of your
 3. Set the **animal type** - scope the filter to one species (Cows, Sheep, Pigs, ...) or leave it as **Any** to use it everywhere.
 4. Set **Show on** - where the filter should appear:
    - **All screens**
-   - **Owned-herd screens** (Sell, Move, Manage)
+   - **Owned-herd screens** (Sell, Move, Manage, Transfer)
    - **Dealer screens** (Buy)
 
    This keeps a "cull my herd" filter off the dealer's Buy screen, and a "good bulls to buy" filter off your own-herd screens.
@@ -54,7 +54,7 @@ The mod turns it into a saved filter and drops you straight into the editor with
 A few notes:
 
 - **Save filter** needs the **trade animals** permission (the same one that gates **New filter**) and a farm.
-- It appears on the RL Menu's own tabs. If you open a livestock **dealer** directly - a walk-up dealer, or the shop's *Buy Animals* button - there is no Settings tab to tune the filter in, so the button is hidden; open the RL Menu from one of your pens instead.
+- It appears on the RL Menu's own tabs. If you open a livestock **dealer** directly - a walk-up dealer, or the shop's *Buy Animals* button - there is no Settings tab to tune the filter in, so the button is hidden; open the RL Menu from one of your pens instead. The same goes for the screens a livestock trailer opens (Transfer, and Buy and Sell at a dealer).
 - The Quick filter's **Value** (price) slider has no saved-filter equivalent yet, so if you narrowed it, that one condition is left behind (the mod warns you). Everything else carries over.
 
 ---
@@ -123,7 +123,7 @@ For the complete field-and-comparator reference - and for power users who want t
 
 ## Using a filter in-game
 
-On the **Buy**, **Sell**, **Move**, and **Manage** screens, press **F** to cycle through the filters available there. A chip in the header shows the active filter (`No filter`, then `Filter: <name>`). Keep pressing **F** to move to the next filter, or past the last one to go back to `No filter`.
+On the **Buy**, **Sell**, **Move**, **Manage**, and trailer **Transfer** screens, press **F** to cycle through the filters available there. A chip in the header shows the active filter (`Filter: <name>`) and is hidden when none is active. Keep pressing **F** to move to the next filter, or past the last one to clear the filter.
 
 Only filters whose **Show on** scope and **animal type** fit the current screen appear in the cycle - so you never have to scroll past filters that don't apply.
 

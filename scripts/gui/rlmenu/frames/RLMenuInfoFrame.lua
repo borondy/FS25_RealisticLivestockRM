@@ -668,7 +668,7 @@ function RLMenuInfoFrame:onClickFilter()
         tostring(self.activeFilterId), #base, #narrowed, tostring(animalTypeIndex))
 
     -- allowSave=true + sourceUsage=OWNED: this frame views owned animals, so saving
-    -- from QF produces a filter scoped to the OWNED cycle bucket (Info/Sell/Move).
+    -- from QF produces a filter scoped to the OWNED cycle bucket (Info/Sell/Move/Transfer).
     -- The user can flip to ANY in the Settings editor that opens post-Save.
     AnimalFilterDialog.show(narrowed, animalTypeIndex, self.onFilterApplied, self, false, true, RLFilterUsage.OWNED)
 end
