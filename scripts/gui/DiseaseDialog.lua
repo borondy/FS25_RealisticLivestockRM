@@ -29,28 +29,39 @@ function DiseaseDialog.createFromExistingGui(gui)
 end
 
 
--- Only VISIBLE records are subtracted, so an animal incubating a disease is still offered its
--- vaccine, exactly as a healthy one is.
---- The rows for one animal: its visible records, then the vaccines it can take that no visible record names.
+-- Only VISIBLE records become rows and are subtracted from the vaccine rows, so an animal incubating
+-- a disease is still offered its vaccine, exactly as a healthy one is. RLDiseaseStatus.sortRows owns the order.
+--- The rows for one animal, sorted: its visible records and the vaccines it can take that no visible record names.
 ---@param animal table The animal being shown.
----@return table diseases A fresh array of visible records.
----@return table vaccineModels A fresh array of registry entries for the vaccine rows.
+---@return table rows A fresh array of `{ record = <visible record or nil>, model = <registry entry> }`.
 local function buildRows(animal)
 
-    local diseases = animal:getVisibleDiseases()
+    local rows = {}
     local listed = {}
-    for _, record in ipairs(diseases) do listed[record.title] = true end
-
-    local vaccineModels = {}
-    for _, model in ipairs(g_diseaseManager:getVaccineModelsFor(animal)) do
-        if not listed[model.title] then vaccineModels[#vaccineModels + 1] = model end
+    for _, record in ipairs(animal:getVisibleDiseases()) do
+        listed[record.title] = true
+        rows[#rows + 1] = { record = record, model = record.model }
     end
 
-    Log:debug("DiseaseDialog: rows built, %s of %s records and %s vaccine row(s) (uniqueId=%s)",
-        tostring(#diseases), tostring(animal.diseases ~= nil and #animal.diseases or nil), tostring(#vaccineModels),
-        tostring(animal.uniqueId))
+    local recordRows = #rows
+    for _, model in ipairs(g_diseaseManager:getVaccineModelsFor(animal)) do
+        if not listed[model.title] then rows[#rows + 1] = { model = model } end
+    end
 
-    return diseases, vaccineModels
+    -- Read at call time: this file is sourced before RLDiseaseStatus.
+    rows = RLDiseaseStatus.sortRows(rows)
+
+    local order = {}
+    for i, row in ipairs(rows) do
+        order[i] = string.format("%s(%s)", tostring(row.model.title),
+            tostring(RLDiseaseStatus.rowGroup(row.record, row.model)))
+    end
+
+    Log:debug("DiseaseDialog: rows built, %s of %s records and %s vaccine row(s), order %s (uniqueId=%s)",
+        tostring(recordRows), tostring(animal.diseases ~= nil and #animal.diseases or nil),
+        tostring(#rows - recordRows), table.concat(order, ","), tostring(animal.uniqueId))
+
+    return rows
 
 end
 
@@ -69,17 +80,16 @@ local function rowAt(dialog, index)
 
     local uniqueId = dialog.animal ~= nil and dialog.animal.uniqueId or nil
 
-    local record = dialog.diseases[index]
-    if record ~= nil then
-        Log:trace("DiseaseDialog rowAt: record row index=%s title=%s uniqueId=%s", tostring(index),
-            tostring(record.title), tostring(uniqueId))
-        return record, record.model
+    local row = dialog.rows[index]
+    if row == nil then
+        Log:trace("DiseaseDialog rowAt: no row, index=%s past the last of %s (uniqueId=%s)", tostring(index),
+            tostring(#dialog.rows), tostring(uniqueId))
+        return nil, nil
     end
 
-    local model = dialog.vaccineModels[index - #dialog.diseases]
-    Log:trace("DiseaseDialog rowAt: vaccine row index=%s title=%s uniqueId=%s", tostring(index),
-        tostring(model ~= nil and model.title or nil), tostring(uniqueId))
-    return nil, model
+    Log:trace("DiseaseDialog rowAt: %s row index=%s title=%s uniqueId=%s",
+        row.record ~= nil and "record" or "vaccine", tostring(index), tostring(row.model.title), tostring(uniqueId))
+    return row.record, row.model
 
 end
 
@@ -107,6 +117,36 @@ local function offersDose(animal, record, model)
     Log:trace("DiseaseDialog offersDose: %s (title=%s reason=%s uniqueId=%s)", ok and "yes" or "no",
         tostring(model.title), tostring(reason), tostring(animal.uniqueId))
     return ok
+
+end
+
+
+-- Asks the button's own offer rule; the not-treated and paused groups are the button's treatment gate
+-- minus a running course, so the selected row offers Start, Resume or Vaccinate whenever any row does.
+--- The first row whose OK button offers Start, Resume or Vaccinate, else row 1.
+---@param dialog table The dialog instance, its `rows` built.
+---@return number index
+local function firstActionIndex(dialog)
+
+    local animal = dialog.animal
+    local uniqueId = animal ~= nil and animal.uniqueId or nil
+    -- Read at call time: this file is sourced before RLDiseaseStatus.
+    local GROUP = RLDiseaseStatus.ROW_GROUP
+
+    for index, row in ipairs(dialog.rows) do
+        local group = RLDiseaseStatus.rowGroup(row.record, row.model)
+        if offersDose(animal, row.record, row.model) or group == GROUP.NOT_TREATED
+            or group == GROUP.TREATMENT_PAUSED then
+            Log:trace("DiseaseDialog firstActionIndex: index=%s title=%s, first action (uniqueId=%s)",
+                tostring(index), tostring(row.model.title), tostring(uniqueId))
+            return index
+        end
+    end
+
+    local first = dialog.rows[1]
+    Log:trace("DiseaseDialog firstActionIndex: index=1 title=%s, no action, row 1 (uniqueId=%s)",
+        tostring(first ~= nil and first.model.title or nil), tostring(uniqueId))
+    return 1
 
 end
 
@@ -196,7 +236,7 @@ end
 
 
 -- Refuses while diseases are off, and both callers funnel through here. It does not close a dialog
--- already open, and the list is an open-time snapshot the next open reads again.
+-- already open, and the rows are a snapshot, rebuilt only on open and after the player's own action.
 --- Open the Diseases dialog for one animal; its rows come from `buildRows`.
 ---@param animal table|nil The animal whose records to show.
 ---@param onCloseCallback function|nil Invoked on close so the parent can refresh.
@@ -214,8 +254,8 @@ function DiseaseDialog.show(animal, onCloseCallback, onCloseTarget)
     local dialog = DiseaseDialog.INSTANCE
 
     dialog.animal = animal
-    -- Fresh arrays: the row count and the cells both read these, never the animal's live array.
-    dialog.diseases, dialog.vaccineModels = buildRows(animal)
+    -- A fresh array: the row count and the cells both read it, never the animal's live array.
+    dialog.rows = buildRows(animal)
     dialog.onCloseCallback = onCloseCallback
     dialog.onCloseTarget = onCloseTarget
 
@@ -224,23 +264,26 @@ function DiseaseDialog.show(animal, onCloseCallback, onCloseTarget)
 end
 
 
---- Load the list, select row 1, set the OK and Cull buttons for the animal shown, then log the geometry.
+--- Load the list, select `firstActionIndex`'s row, set the OK and Cull buttons, then log the geometry.
 function DiseaseDialog:onOpen()
 
     DiseaseDialog:superClass().onOpen(self)
 
     -- The singleton reuses its list and reloadData only clamps a stale index, so the highlight is
-    -- re-anchored and the button seeded explicitly: neither fires the selection delegate here.
+    -- set and the button seeded explicitly: setSelectedItem fires the selection delegate only when
+    -- the index changes.
     self.diseaseList:reloadData()
-    self.diseaseList:setSelectedItem(1, 1)
+    local index = firstActionIndex(self)
+    self.diseaseList:setSelectedItem(1, index)
 
-    self:onClickListItem(1)
+    self:onClickListItem(index)
 
     self:updateCullButton()
 
     logGeometry(self)
 
-    Log:trace("DiseaseDialog:onOpen: opened (uniqueId=%s)", tostring(self.animal ~= nil and self.animal.uniqueId))
+    Log:trace("DiseaseDialog:onOpen: opened, selected index=%s (uniqueId=%s)", tostring(index),
+        tostring(self.animal ~= nil and self.animal.uniqueId))
 
 end
 
@@ -278,8 +321,8 @@ function DiseaseDialog:onClickOk()
         return
     end
 
-    -- The ANIMAL's record, never the open-time list: that list is a shallow snapshot and a daily
-    -- tick can have removed this record since the dialog opened.
+    -- The ANIMAL's record, never the row's: the rows are a shallow snapshot and a daily tick can
+    -- have removed this record since they were built.
     local liveDisease = self.animal:getDisease(disease.title)
 
     if liveDisease == nil then
@@ -318,14 +361,13 @@ function DiseaseDialog:onClickOk()
         self.animal:addMessage("DISEASE_TREATMENT_" .. (isResuming and "RESUME" or "START"), { disease.model.name, string.format(g_i18n:getText("rl_ui_feePerMonth"), g_i18n:formatMoney(disease.model.treatment.cost, 2, true, true)) })
     end
 
-    self:onClickListItem(self.diseaseList.selectedIndex)
-    self.diseaseList:reloadData()
+    self:rebuildRows()
 
 end
 
 
 --- Label the OK button for one row: Vaccinate on a dose row, the course label on a treatable record, else disabled.
----@param index number|nil The row's index in the open-time list.
+---@param index number|nil The row's index in `rows`.
 function DiseaseDialog:onClickListItem(index)
 
     local disease, model = rowAt(self, index)
@@ -339,7 +381,8 @@ function DiseaseDialog:onClickListItem(index)
     end
 
     -- The same gate as onClickOk's, and the two must stay identical: this one decides whether
-    -- the button is offered, that one decides whether the click is honoured.
+    -- the button is offered, that one decides whether the click is honoured. RLDiseaseStatus.rowGroup
+    -- copies it minus a running course, and must agree too.
     if disease == nil or disease.model.treatment == nil
         or disease.state ~= RLDiseaseRecord.STATE.INFECTIOUS then
 
@@ -484,35 +527,27 @@ function DiseaseDialog:onVaccinateConfirmed(yes, title)
     Log:debug("DiseaseDialog:onVaccinateConfirmed: sent title=%s uniqueId=%s farmId=%s accepted=%s",
         tostring(title), tostring(animal.uniqueId), tostring(animal.farmId), tostring(accepted))
 
-    self:rebuildRows(title)
+    self:rebuildRows()
 
 end
 
 
--- On a pure client the server's change arrives with the pen's next flush, so the rows rebuilt here
--- still show the old state until the dialog is opened again.
---- Rebuild the rows from the live animal, keep the selection on `title`'s row and relabel the button.
----@param title string The title whose row stays selected; the clamped previous row when none carries it.
-function DiseaseDialog:rebuildRows(title)
+-- After a dose on a pure client the record arrives with the pen's next flush, so the rows rebuilt here
+-- still show the old state until the dialog is opened again; a treatment toggle writes its record locally first.
+--- Rebuild and re-sort the rows from the live animal, select `firstActionIndex`'s row and relabel the button.
+function DiseaseDialog:rebuildRows()
 
-    self.diseases, self.vaccineModels = buildRows(self.animal)
+    self.rows = buildRows(self.animal)
     self.diseaseList:reloadData()
 
-    local index = self.diseaseList.selectedIndex
-    for i = 1, #self.diseases + #self.vaccineModels do
-        local _, model = rowAt(self, i)
-        if model.title == title then
-            index = i
-            break
-        end
-    end
+    local index = firstActionIndex(self)
 
     -- Explicit relabel: setSelectedItem fires the selection delegate only when the index changes.
     self.diseaseList:setSelectedItem(1, index)
     self:onClickListItem(index)
 
-    Log:trace("DiseaseDialog:rebuildRows: selected index=%s for title=%s (uniqueId=%s)", tostring(index),
-        tostring(title), tostring(self.animal.uniqueId))
+    Log:trace("DiseaseDialog:rebuildRows: selected index=%s (uniqueId=%s)", tostring(index),
+        tostring(self.animal.uniqueId))
 
 end
 
@@ -524,13 +559,13 @@ function DiseaseDialog:getNumberOfSections()
 end
 
 
---- Count the rows from the same open-time tables the cells are populated from: records, then vaccines.
+--- Count the rows from the same sorted array the cells are populated from.
 ---@param list table The dialog's list.
 ---@param section number The one section.
 ---@return number count
 function DiseaseDialog:getNumberOfItemsInSection(list, section)
 
-    return #self.diseases + #self.vaccineModels
+    return #self.rows
 
 end
 

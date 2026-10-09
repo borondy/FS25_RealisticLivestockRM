@@ -53,7 +53,7 @@ When a disease shows in an animal in one of your pens, a "Contracted" message po
 
 ### Treatment
 
-Treat a sick animal from the **Diseases** dialog: open it from the RL Menu's Info tab, where **D** ("Animal Diseases" in Controls) opens it too. Every treatable disease has a 1-month course. A sick animal's row in the dialog shows the fee per month, and it is charged day by day while the course runs, so a finished course costs about the listed fee in total.
+Treat a sick animal from the **Diseases** dialog: open it from the RL Menu's Info tab, where **D** ("Animal Diseases" in Controls) opens it too. Every treatable disease has a 1-month course. A sick animal's row in the dialog shows the fee per month, and it is charged day by day while the course runs, so a finished course costs about the listed fee in total. The dialog lists the disease that most needs you first - an untreated illness before a vaccine you have not given, a course already running below both - and when it opens and after each treatment or dose it selects the first row you can start, resume or vaccinate.
 
 You can stop a course and resume it later. A stopped course keeps the progress it has made and costs nothing while it is stopped, and the detail panel reads **Treatment paused**.
 

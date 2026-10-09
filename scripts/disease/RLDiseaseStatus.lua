@@ -4,7 +4,8 @@
     label key, the whole months of an immune or vaccinated label, its card icon token, and whether it groups
     the animal as diseased. An incubating non-carrier record resolves exactly as a healthy animal does.
     isDiseased and iconOf are the per-record rules the Animal display predicates and the filter
-    catalog read; resolve composes them.
+    catalog read; resolve composes them. rowGroup and sortRows order the Diseases dialog's rows by
+    how urgently each calls for action, numbered by ROW_GROUP, most urgent first.
 
     Pure: no setting, no g_*, no GUI - callers gate diseasesEnabled. Reads Disease.isVisibleToPlayer,
     RLDiseaseRecord.STATE and RLDiseaseProgression.COMPLETION_EPSILON at CALL time only; nothing
@@ -31,6 +32,18 @@ RLDiseaseStatus.ICON = {
     ["UNTREATED"] = "untreated",
     ["TREATED"] = "treated",
     ["CARRIER"] = "carrier"
+}
+
+--- The Diseases dialog's row groups, most urgent first. READ-ONLY by contract.
+RLDiseaseStatus.ROW_GROUP = {
+    ["SICK_NO_TREATMENT"] = 1,
+    ["NOT_TREATED"] = 2,
+    ["TREATMENT_PAUSED"] = 3,
+    ["NOT_VACCINATED"] = 4,
+    ["BEING_TREATED"] = 5,
+    ["IMMUNE"] = 6,
+    ["CARRIER"] = 7,
+    ["OTHER"] = 8
 }
 
 
@@ -126,6 +139,54 @@ function RLDiseaseStatus.resolve(record)
     presentation.icon = RLDiseaseStatus.iconOf(record)
 
     return presentation
+end
+
+
+-- Keyed on state: the treatment counter is read only on an INFECTIOUS record, so a DEAD record
+-- holding a stale counter groups as OTHER where resolve would label it paused.
+--- How urgently one dialog row calls for action. Unlogged: per-comparison callers.
+---@param record table|nil The row's visible record, nil on a vaccine row.
+---@param model table The row's registry entry.
+---@return number group A `ROW_GROUP` value; lower is more urgent.
+function RLDiseaseStatus.rowGroup(record, model)
+    local GROUP = RLDiseaseStatus.ROW_GROUP
+
+    if record == nil then return GROUP.NOT_VACCINATED end
+
+    if RLDiseaseStatus.isDiseased(record) then
+        if record.treatmentRunning then return GROUP.BEING_TREATED end
+        if model.treatment == nil then return GROUP.SICK_NO_TREATMENT end
+        if (record.treatmentMonthsRemaining or 0) > 0 then return GROUP.TREATMENT_PAUSED end
+        return GROUP.NOT_TREATED
+    end
+
+    -- Before the carrier test, so an immune carrier groups as immune.
+    if record.state == RLDiseaseRecord.STATE.RECOVERED then return GROUP.IMMUNE end
+
+    if record.isCarrier then return GROUP.CARRIER end
+
+    return GROUP.OTHER
+end
+
+
+--- The dialog's rows in a fresh array, by `rowGroup` then the disease's internal key; the input is untouched.
+---@param rows table Array of `{ record = <visible record or nil>, model = <registry entry> }`.
+---@return table sorted A fresh array holding the input's own entry tables.
+function RLDiseaseStatus.sortRows(rows)
+    local sorted = {}
+    for i, row in ipairs(rows) do sorted[i] = row end
+
+    -- Explicit branches: a false group compare must never fall through to the title compare.
+    table.sort(sorted, function(a, b)
+        local groupA = RLDiseaseStatus.rowGroup(a.record, a.model)
+        local groupB = RLDiseaseStatus.rowGroup(b.record, b.model)
+        if groupA ~= groupB then return groupA < groupB end
+        return a.model.title < b.model.title
+    end)
+
+    Log:trace("RLDiseaseStatus.sortRows: %s row(s) sorted", tostring(#sorted))
+
+    return sorted
 end
 
 
