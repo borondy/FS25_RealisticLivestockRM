@@ -5,11 +5,12 @@
     the animal as diseased. An incubating non-carrier record resolves exactly as a healthy animal does.
     isDiseased and iconOf are the per-record rules the Animal display predicates and the filter
     catalog read; resolve composes them. rowGroup and sortRows order the Diseases dialog's rows by
-    how urgently each calls for action, numbered by ROW_GROUP, most urgent first.
+    how urgently each calls for action, numbered by ROW_GROUP, most urgent first; rowSeverity maps
+    a row's group to the severity its icon shows.
 
     Pure: no setting, no g_*, no GUI - callers gate diseasesEnabled. Reads Disease.isVisibleToPlayer,
-    RLDiseaseRecord.STATE and RLDiseaseProgression.COMPLETION_EPSILON at CALL time only; nothing
-    here reads them at file scope.
+    RLDiseaseRecord.STATE, RLDiseaseProgression.COMPLETION_EPSILON and RLConstants.SEVERITY at CALL
+    time only; nothing here reads them at file scope.
 ]]
 
 RLDiseaseStatus = {}
@@ -166,6 +167,25 @@ function RLDiseaseStatus.rowGroup(record, model)
     if record.isCarrier then return GROUP.CARRIER end
 
     return GROUP.OTHER
+end
+
+
+--- The severity one dialog row's icon shows, from its `rowGroup`. Unlogged: per-row callers.
+---@param record table|nil The row's visible record, nil on a vaccine row.
+---@param model table The row's registry entry.
+---@return string severity An `RLConstants.SEVERITY` value; INFO shows no icon.
+function RLDiseaseStatus.rowSeverity(record, model)
+    local GROUP = RLDiseaseStatus.ROW_GROUP
+    local SEVERITY = RLConstants.SEVERITY
+    local group = RLDiseaseStatus.rowGroup(record, model)
+
+    if group == GROUP.SICK_NO_TREATMENT or group == GROUP.NOT_TREATED or group == GROUP.TREATMENT_PAUSED then
+        return SEVERITY.WARNING
+    end
+    if group == GROUP.NOT_VACCINATED then return SEVERITY.NOTICE end
+    if group == GROUP.IMMUNE then return SEVERITY.SUCCESS end
+
+    return SEVERITY.INFO
 end
 
 

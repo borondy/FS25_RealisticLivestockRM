@@ -241,8 +241,9 @@ RLConstants.MAX_LIFESPAN_MONTHS_BY_TYPE = {
 }
 
 
--- Message severity vocabulary. Definition-only data on the message rows: never saved,
--- never streamed, so changing a message's severity is not a savegame or wire change.
+-- Severity vocabulary. Definition-only data on the message rows: never saved, never streamed,
+-- so changing a message's severity is not a savegame or wire change. The Diseases dialog
+-- derives a row's severity from its row group (RLDiseaseStatus.rowSeverity).
 RLConstants.SEVERITY = {
     INFO = "info",
     SUCCESS = "success",
@@ -252,9 +253,11 @@ RLConstants.SEVERITY = {
 
 
 -- Icon style per severity VALUE. Info has no entry, so its icon stays hidden. Colours are
--- keyed by the game's colour-blind setting ([false] normal, [true] colour-blind).
+-- keyed by the game's colour-blind setting ([false] normal, [true] colour-blind). `shape` names
+-- the glyph, so a surface with its own row height can map it to a profile of its own size.
 RLConstants.SEVERITY_STYLE = {
     success = {
+        shape = "circle",
         profile = "rlMenu_severityCircle",
         color = {
             [false] = { 0.33716, 0.55834, 0.0003, 1 },  -- fs25_colorGreen preset
@@ -262,6 +265,7 @@ RLConstants.SEVERITY_STYLE = {
         }
     },
     notice = {
+        shape = "triangle",
         profile = "rlMenu_severityTriangle",
         color = {
             [false] = { 0.8, 0.4, 0, 1 },               -- colorOrange preset
@@ -269,6 +273,7 @@ RLConstants.SEVERITY_STYLE = {
         }
     },
     warning = {
+        shape = "triangle",
         profile = "rlMenu_severityTriangle",
         color = {
             [false] = { 0.8069, 0.0097, 0.0097, 1 },    -- colorRed preset

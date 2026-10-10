@@ -11,8 +11,8 @@
 
 			<GuiElement profile="rl_headerContainer" position="39px -53.5px">
 
-				<Text profile="rl_diseaseListHeaderText" position="5px 0px" width="380px" text="$l10n_rl_disease" id="titleHeader"/>
-				<Text profile="rl_diseaseListHeaderText" position="395px 0px" width="250px" text="$l10n_ui_missionStatusTitle" id="statusHeader"/>
+				<Text profile="rl_diseaseListHeaderText" position="41px 0px" width="380px" text="$l10n_rl_disease" id="titleHeader"/>
+				<Text profile="rl_diseaseListHeaderText" position="431px 0px" width="214px" text="$l10n_ui_missionStatusTitle" id="statusHeader"/>
 				<Text profile="rl_diseaseListHeaderText" position="655px 0px" width="165px" text="$l10n_rl_ui_duration" id="durationHeader"/>
 				<Text profile="rl_diseaseListHeaderText" position="830px 0px" width="170px" text="$l10n_rl_ui_fee" id="feeHeader"/>
 				<ThreePartBitmap profile="fs25_lineSeparatorBottom" position="0px -2dp"/>
@@ -21,8 +21,9 @@
 
 			<SmoothList profile="rl_husbandryList" id="diseaseList" position="46.5px -83.5px">
 				<ListItem profile="rl_husbandryListItem">
-					<Text profile="rl_husbandryListTextRight" position="5px 0px" size="380px 32px" name="title"/>
-					<Text profile="rl_husbandryListTextRight" position="395px 0px" size="250px 32px" name="status"/>
+					<Bitmap profile="rl_diseaseSeverityTriangle" name="severity"/>
+					<Text profile="rl_husbandryListTextRight" position="41px 0px" size="380px 32px" name="title"/>
+					<Text profile="rl_husbandryListTextRight" position="431px 0px" size="214px 32px" name="status"/>
 					<Text profile="rl_husbandryListTextRight" position="655px 0px" size="165px 32px" name="duration"/>
 					<Text profile="rl_husbandryListTextRight" position="830px 0px" size="170px 32px" name="fee"/>
 				</ListItem>

@@ -1,7 +1,9 @@
 --[[
     RLSeverityIcon.lua
     Severity icon for a list cell: resolve picks the profile and colour for a severity
-    (RLConstants.SEVERITY_STYLE), apply writes them onto a Bitmap.
+    (RLConstants.SEVERITY_STYLE), apply writes them onto a Bitmap. A caller whose rows need
+    another icon size passes its own profiles keyed by the style's shape; the glyph choice
+    stays in SEVERITY_STYLE.
 
     resolve is pure (data in, data out) so it runs headless; apply and readColorBlindMode
     touch the GUI and the game settings and run in-game only. Nothing here reads an engine
@@ -15,33 +17,40 @@ local Log = RmLogging.getLogger("RLRM")
 --- Resolve a severity to its icon profile and colour; nil for a severity with no icon.
 --- @param severity string|nil RLConstants.SEVERITY value
 --- @param isColorBlindMode boolean|nil Only exactly true selects the colour-blind colour
+--- @param profiles table|nil Shape -> profile name; replaces the style's profile when it holds the shape
 --- @return string|nil profile Profile name, or nil when the severity shows no icon
 --- @return table|nil color {r, g, b, a}, shared and read-only
-function RLSeverityIcon.resolve(severity, isColorBlindMode)
+function RLSeverityIcon.resolve(severity, isColorBlindMode, profiles)
     local style = RLConstants.SEVERITY_STYLE[severity]
     if style == nil then
         Log:trace("RLSeverityIcon.resolve: severity=%s -> no icon", tostring(severity))
         return nil
     end
 
+    local profile = style.profile
+    if profiles ~= nil and profiles[style.shape] ~= nil then
+        profile = profiles[style.shape]
+    end
+
     local colorBlind = isColorBlindMode == true
-    Log:trace("RLSeverityIcon.resolve: severity=%s colorBlind=%s -> profile=%s",
-        tostring(severity), tostring(colorBlind), tostring(style.profile))
-    return style.profile, style.color[colorBlind]
+    Log:trace("RLSeverityIcon.resolve: severity=%s colorBlind=%s shape=%s -> profile=%s",
+        tostring(severity), tostring(colorBlind), tostring(style.shape), tostring(profile))
+    return profile, style.color[colorBlind]
 end
 
 --- Show the severity icon on a Bitmap, or hide it for a severity with no icon.
 --- @param element table|nil Bitmap element; nil is a no-op
 --- @param severity string|nil RLConstants.SEVERITY value
 --- @param isColorBlindMode boolean|nil Colour-blind state read by the caller
+--- @param profiles table|nil Shape -> profile name, passed through to resolve
 --- @return boolean shown True when the icon is visible after the call
-function RLSeverityIcon.apply(element, severity, isColorBlindMode)
+function RLSeverityIcon.apply(element, severity, isColorBlindMode, profiles)
     if element == nil then
         Log:trace("RLSeverityIcon.apply: no element, severity=%s", tostring(severity))
         return false
     end
 
-    local profile, color = RLSeverityIcon.resolve(severity, isColorBlindMode)
+    local profile, color = RLSeverityIcon.resolve(severity, isColorBlindMode, profiles)
     if profile == nil then
         element:setVisible(false)
         return false

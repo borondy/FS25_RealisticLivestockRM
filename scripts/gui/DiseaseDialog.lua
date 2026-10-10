@@ -3,6 +3,19 @@ DiseaseDialog = {}
 local diseaseDialog_mt = Class(DiseaseDialog, MessageDialog)
 local modDirectory = g_currentModDirectory
 
+--- The row icon's profiles by shape, sized for this dialog's 32px rows.
+DiseaseDialog.SEVERITY_PROFILES = {
+    ["circle"] = "rl_diseaseSeverityCircle",
+    ["triangle"] = "rl_diseaseSeverityTriangle"
+}
+
+--- Dev-only layout spike: cycle every severity down the rows so each icon shape is on screen.
+--- Never commit true.
+DiseaseDialog.DEV_FORCE_ALL_SEVERITIES = false
+
+--- Row-index cycle the dev switch uses, one of each severity.
+DiseaseDialog.FORCED_SEVERITY_CYCLE = { "warning", "notice", "success", "info" }
+
 function DiseaseDialog.register()
 
     local dialog = DiseaseDialog.new()
@@ -12,9 +25,14 @@ function DiseaseDialog.register()
 end
 
 
+--- Construct the dialog; `measuredProfiles` scopes the icon measurement line to one per profile per reload.
+---@param target table|nil
+---@param customMt table|nil
+---@return table self
 function DiseaseDialog.new(target, customMt)
 
     local self = MessageDialog.new(target, customMt or diseaseDialog_mt)
+    self.measuredProfiles = {}
 
     return self
 
@@ -269,9 +287,14 @@ function DiseaseDialog:onOpen()
 
     DiseaseDialog:superClass().onOpen(self)
 
+    self.isColorBlindMode = RLSeverityIcon.readColorBlindMode()
+    Log:debug("DiseaseDialog:onOpen: colorBlind=%s forced=%s (uniqueId=%s)", tostring(self.isColorBlindMode),
+        tostring(DiseaseDialog.DEV_FORCE_ALL_SEVERITIES), tostring(self.animal ~= nil and self.animal.uniqueId))
+
     -- The singleton reuses its list and reloadData only clamps a stale index, so the highlight is
     -- set and the button seeded explicitly: setSelectedItem fires the selection delegate only when
-    -- the index changes.
+    -- the index changes. reloadData populates synchronously, so the reset scopes the measurement to it.
+    self.measuredProfiles = {}
     self.diseaseList:reloadData()
     local index = firstActionIndex(self)
     self.diseaseList:setSelectedItem(1, index)
@@ -538,6 +561,7 @@ end
 function DiseaseDialog:rebuildRows()
 
     self.rows = buildRows(self.animal)
+    self.measuredProfiles = {}
     self.diseaseList:reloadData()
 
     local index = firstActionIndex(self)
@@ -577,7 +601,7 @@ function DiseaseDialog:getTitleForSectionHeader(list, section)
 end
 
 
---- Fill one row's cells; Duration and Fee show what the row's button acts on, else a dash.
+--- Fill one row's cells: the severity icon, then Duration and Fee for what the row's button acts on, else a dash.
 ---@param list table The dialog's list.
 ---@param section number The one section.
 ---@param index number The row index.
@@ -589,6 +613,24 @@ function DiseaseDialog:populateCellForItemInSection(list, section, index, cell)
     if model == nil then
         Log:trace("DiseaseDialog:populateCellForItemInSection: no row at index=%s", tostring(index))
         return
+    end
+
+    -- Applied on every row, so an INFO row hides an icon its recycled cell still carries.
+    -- Read at call time: this file is sourced before RLDiseaseStatus.
+    local severity = RLDiseaseStatus.rowSeverity(disease, model)
+    if DiseaseDialog.DEV_FORCE_ALL_SEVERITIES then
+        local cycle = DiseaseDialog.FORCED_SEVERITY_CYCLE
+        severity = cycle[(index - 1) % #cycle + 1]
+    end
+    local icon = cell:getAttribute("severity")
+    local shown = RLSeverityIcon.apply(icon, severity, self.isColorBlindMode, DiseaseDialog.SEVERITY_PROFILES)
+    local measured = shown and not self.measuredProfiles[icon.profile]
+    if measured then
+        self.measuredProfiles[icon.profile] = true
+        Log:debug("DiseaseDialog: severity icon profile=%s size=%.1fx%.1f pos=%.1f,%.1f abs=%.1f,%.1f",
+            tostring(icon.profile), icon.size[1] * 1920, icon.size[2] * 1080,
+            icon.position[1] * 1920, icon.position[2] * 1080,
+            icon.absPosition[1] * 1920, icon.absPosition[2] * 1080)
     end
 
     -- Duration and Fee ask the same offersDose rule the button asks, so a dose row shows the vaccine and
@@ -609,8 +651,10 @@ function DiseaseDialog:populateCellForItemInSection(list, section, index, cell)
         arm = "treatment"
     end
 
-    Log:trace("DiseaseDialog:populateCellForItemInSection: %s cells %s|%s (index=%s title=%s uniqueId=%s)", arm,
-        tostring(duration), tostring(fee), tostring(index), tostring(model.title),
+    Log:trace("DiseaseDialog:populateCellForItemInSection: %s cells %s|%s severity=%s shown=%s measured=%s "
+        .. "forced=%s (index=%s title=%s uniqueId=%s)", arm, tostring(duration), tostring(fee), tostring(severity),
+        tostring(shown), tostring(measured), tostring(DiseaseDialog.DEV_FORCE_ALL_SEVERITIES), tostring(index),
+        tostring(model.title),
         tostring(self.animal ~= nil and self.animal.uniqueId or nil))
 
     cell:getAttribute("title"):setText(model.name)
