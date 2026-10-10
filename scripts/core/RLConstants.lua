@@ -255,6 +255,8 @@ RLConstants.SEVERITY = {
 -- Icon style per severity VALUE. Info has no entry, so its icon stays hidden. Colours are
 -- keyed by the game's colour-blind setting ([false] normal, [true] colour-blind). `shape` names
 -- the glyph, so a surface with its own row height can map it to a profile of its own size.
+-- A style may carry `selectedColor`, keyed the same way, for a selected row; without it the
+-- selected row uses `color`.
 RLConstants.SEVERITY_STYLE = {
     success = {
         shape = "circle",
@@ -262,6 +264,10 @@ RLConstants.SEVERITY_STYLE = {
         color = {
             [false] = { 0.33716, 0.55834, 0.0003, 1 },  -- fs25_colorGreen preset
             [true] = { 0.0742, 0.4341, 0.6939, 1 }      -- colorBlue preset
+        },
+        selectedColor = {
+            [false] = { 0.015, 0.017, 0.015, 1 },       -- bitmap match for fs25_colorMainDark text, no preset
+            [true] = { 0.015, 0.017, 0.015, 1 }         -- same in colour-blind mode
         }
     },
     notice = {

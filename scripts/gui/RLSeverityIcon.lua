@@ -14,12 +14,13 @@ RLSeverityIcon = {}
 
 local Log = RmLogging.getLogger("RLRM")
 
---- Resolve a severity to its icon profile and colour; nil for a severity with no icon.
+--- Resolve a severity to its icon profile, colour and selected-row colour; nil for a severity with no icon.
 --- @param severity string|nil RLConstants.SEVERITY value
 --- @param isColorBlindMode boolean|nil Only exactly true selects the colour-blind colour
 --- @param profiles table|nil Shape -> profile name; replaces the style's profile when it holds the shape
 --- @return string|nil profile Profile name, or nil when the severity shows no icon
 --- @return table|nil color {r, g, b, a}, shared and read-only
+--- @return table|nil selectedColor {r, g, b, a} for a selected row, read-only; falls back to color
 function RLSeverityIcon.resolve(severity, isColorBlindMode, profiles)
     local style = RLConstants.SEVERITY_STYLE[severity]
     if style == nil then
@@ -33,9 +34,10 @@ function RLSeverityIcon.resolve(severity, isColorBlindMode, profiles)
     end
 
     local colorBlind = isColorBlindMode == true
-    Log:trace("RLSeverityIcon.resolve: severity=%s colorBlind=%s shape=%s -> profile=%s",
-        tostring(severity), tostring(colorBlind), tostring(style.shape), tostring(profile))
-    return profile, style.color[colorBlind]
+    local selectedSource = style.selectedColor ~= nil and "selectedColor" or "color"
+    Log:trace("RLSeverityIcon.resolve: severity=%s colorBlind=%s shape=%s -> profile=%s selected=%s",
+        tostring(severity), tostring(colorBlind), tostring(style.shape), tostring(profile), selectedSource)
+    return profile, style.color[colorBlind], (style.selectedColor or style.color)[colorBlind]
 end
 
 --- Show the severity icon on a Bitmap, or hide it for a severity with no icon.
@@ -50,7 +52,7 @@ function RLSeverityIcon.apply(element, severity, isColorBlindMode, profiles)
         return false
     end
 
-    local profile, color = RLSeverityIcon.resolve(severity, isColorBlindMode, profiles)
+    local profile, color, selectedColor = RLSeverityIcon.resolve(severity, isColorBlindMode, profiles)
     if profile == nil then
         element:setVisible(false)
         return false
@@ -60,7 +62,8 @@ function RLSeverityIcon.apply(element, severity, isColorBlindMode, profiles)
     element:applyProfile(profile)
     local r, g, b, a = color[1], color[2], color[3], color[4]
     element:setImageColor(GuiOverlay.STATE_NORMAL, r, g, b, a)
-    element:setImageColor(GuiOverlay.STATE_SELECTED, r, g, b, a)
+    element:setImageColor(GuiOverlay.STATE_SELECTED,
+        selectedColor[1], selectedColor[2], selectedColor[3], selectedColor[4])
     element:setImageColor(GuiOverlay.STATE_HIGHLIGHTED, r, g, b, a)
     element:setVisible(true)
     return true
