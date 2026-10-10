@@ -488,6 +488,9 @@
         <text name="rl_ui_stopTreatment" text="Прервать лечение"/>
         <text name="rl_ui_cull" text="Выбраковка"/>
         <text name="rl_ui_cullConfirm" text="Выбраковать %s? Животное будет навсегда удалено из вашего стада, а вы получите %s в качестве компенсации."/>
+        <text name="rl_ui_startTreatmentConfirm" text="Start treating %s for %s? The course lasts %s and costs %s a month."/>
+        <text name="rl_ui_resumeTreatmentConfirm" text="Resume treating %s for %s? The course has %s left and costs %s a month."/>
+        <text name="rl_ui_stopTreatmentConfirm" text="Stop treating %s for %s? No fee is charged while it is stopped, and the months already served are kept if you resume."/>
         <text name="rl_ui_duration" text="Длительность"/>
         <text name="rl_ui_beingTreated" text="Лечится"/>
         <text name="rl_ui_notTreated" text="Не лечится"/>

@@ -490,6 +490,9 @@
         <text name="rl_ui_stopTreatment" text="Stop Treatment"/>
         <text name="rl_ui_cull" text="Cull"/>
         <text name="rl_ui_cullConfirm" text="Cull %s? It is removed from your herd for good, and you receive %s in compensation."/>
+        <text name="rl_ui_startTreatmentConfirm" text="Start treating %s for %s? The course lasts %s and costs %s a month."/>
+        <text name="rl_ui_resumeTreatmentConfirm" text="Resume treating %s for %s? The course has %s left and costs %s a month."/>
+        <text name="rl_ui_stopTreatmentConfirm" text="Stop treating %s for %s? No fee is charged while it is stopped, and the months already served are kept if you resume."/>
         <text name="rl_ui_duration" text="Duration"/>
         <text name="rl_ui_beingTreated" text="Being treated"/>
         <text name="rl_ui_notTreated" text="Not treated"/>

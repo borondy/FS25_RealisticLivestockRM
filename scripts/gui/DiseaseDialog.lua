@@ -202,6 +202,39 @@ local function animalLabel(animal)
 end
 
 
+-- The OK button's label and the confirm it opens both ask this, so the two always name the same action.
+--- The treatment action a record's status calls for: "stop" on a running course, "resume" on a paused one.
+---@param disease table A visible record at INFECTIOUS whose model has `treatment`.
+---@return string action "start", "resume" or "stop".
+local function treatmentAction(disease)
+
+    -- Read at call time: this file is sourced before RLDiseaseStatus.
+    local KEY = RLDiseaseStatus.KEY
+    local statusKey = RLDiseaseStatus.resolve(disease).statusKey
+    local action = statusKey == KEY.BEING_TREATED and "stop"
+        or (statusKey == KEY.TREATMENT_PAUSED and "resume" or "start")
+
+    Log:trace("DiseaseDialog treatmentAction: %s (statusKey=%s title=%s)", action, tostring(statusKey),
+        tostring(disease.title))
+    return action
+
+end
+
+
+-- Shared by the Duration cell and the Start / Resume confirms, so the confirm names the months the row shows.
+--- A course's Duration: the whole months left once a course is under way, the authored total otherwise.
+---@param disease table A record at INFECTIOUS.
+---@param treatment table The record's `treatment` block.
+---@return string duration
+local function courseDuration(disease, treatment)
+
+    -- Read at call time: this file is sourced before RLDiseaseStatus.
+    return RealisticLivestock.formatAge(disease.treatmentMonthsRemaining > 0
+        and RLDiseaseStatus.wholeMonthsRemaining(disease.treatmentMonthsRemaining) or treatment.months)
+
+end
+
+
 --- One element's absolute x and width in reference pixels, or nil when it has no settled geometry.
 ---@param element table|nil
 ---@return string|nil span "x/width"
@@ -322,7 +355,7 @@ function DiseaseDialog:onClose()
 end
 
 
---- The OK button: a dose row opens the vaccinate confirm, a treatable record row toggles its course.
+--- The OK button: a dose row opens the vaccinate confirm, a treatable record row the treatment confirm.
 function DiseaseDialog:onClickOk()
 
     local disease, model = rowAt(self, self.diseaseList.selectedIndex)
@@ -344,47 +377,7 @@ function DiseaseDialog:onClickOk()
         return
     end
 
-    -- The ANIMAL's record, never the row's: the rows are a shallow snapshot and a daily tick can
-    -- have removed this record since they were built.
-    local liveDisease = self.animal:getDisease(disease.title)
-
-    if liveDisease == nil then
-        Log:warning("DiseaseDialog:onClickOk: the animal no longer carries that record, refusing (disease=%s uniqueId=%s)",
-            tostring(disease.title), tostring(self.animal.uniqueId))
-        return
-    end
-
-    local newState = not liveDisease.treatmentRunning
-    local husbandry = self.animal.clusterSystem.owner
-
-    -- Read BEFORE the seed, or a fresh start reads its own seeded counter and says RESUME.
-    local isResuming = liveDisease.treatmentMonthsRemaining > 0
-
-    Log:trace("DiseaseDialog:onClickOk sending event disease=%s treatment=%s treatmentMonthsRemaining=%s uniqueId=%s",
-        disease.title, tostring(newState), tostring(liveDisease.treatmentMonthsRemaining),
-        tostring(self.animal.uniqueId))
-    DiseaseTreatmentToggleEvent.sendEvent(husbandry, self.animal, disease.title, newState)
-
-    -- The flag LEADS the writes, as everywhere else on this path: it is the sole cause of
-    -- replication, so writing it last puts it behind every statement that can raise.
-    self.animal:setDirty()
-
-    disease.treatmentRunning = newState
-    liveDisease.treatmentRunning = newState
-
-    -- START only. On a RESUME the refusal of a non-zero counter IS the pause contract - the
-    -- served months survive because nothing writes the counter down.
-    if newState then
-        RLDiseaseRecord.enrolTreatment(liveDisease, liveDisease.model.treatment)
-    end
-
-    if not newState then
-        self.animal:addMessage("DISEASE_TREATMENT_STOP", { disease.model.name })
-    else
-        self.animal:addMessage("DISEASE_TREATMENT_" .. (isResuming and "RESUME" or "START"), { disease.model.name, string.format(g_i18n:getText("rl_ui_feePerMonth"), g_i18n:formatMoney(disease.model.treatment.cost, 2, true, true)) })
-    end
-
-    self:rebuildRows()
+    self:confirmTreatment(disease, treatmentAction(disease))
 
 end
 
@@ -419,11 +412,7 @@ function DiseaseDialog:onClickListItem(index)
 
     self.yesButton:setDisabled(false)
 
-    -- Read at call time: this file is sourced before RLDiseaseStatus.
-    local KEY = RLDiseaseStatus.KEY
-    local statusKey = RLDiseaseStatus.resolve(disease).statusKey
-    local label = statusKey == KEY.BEING_TREATED and "stop"
-        or (statusKey == KEY.TREATMENT_PAUSED and "resume" or "start")
+    local label = treatmentAction(disease)
 
     Log:trace("DiseaseDialog:onClickListItem: button enabled, label=%s (index=%s)", label, tostring(index))
     self.yesButton:setText(g_i18n:getText("rl_ui_" .. label .. "Treatment"))
@@ -555,6 +544,122 @@ function DiseaseDialog:onVaccinateConfirmed(yes, title)
 end
 
 
+--- Ask the player to confirm starting, resuming or stopping one course, naming the animal and the disease.
+---@param disease table The row's record, at INFECTIOUS with a `treatment`.
+---@param action string "start", "resume" or "stop", as `treatmentAction` labels the button.
+function DiseaseDialog:confirmTreatment(disease, action)
+
+    local animal = self.animal
+    local model = disease.model
+    local cost = model.treatment.cost
+    local label = animalLabel(animal)
+    local text, title, dialogType, duration
+
+    if action == "stop" then
+        text = string.format(g_i18n:getText("rl_ui_stopTreatmentConfirm"), label, model.name)
+        title = g_i18n:getText("ui_attention")
+        dialogType = DialogElement.TYPE_WARNING
+    else
+        local textKey = action == "resume" and "rl_ui_resumeTreatmentConfirm" or "rl_ui_startTreatmentConfirm"
+        local titleKey = action == "resume" and "rl_ui_resumeTreatment" or "rl_ui_startTreatment"
+        duration = courseDuration(disease, model.treatment)
+        text = string.format(g_i18n:getText(textKey), label, model.name, duration,
+            g_i18n:formatMoney(cost, 0, true, true))
+        title = g_i18n:getText(titleKey)
+        dialogType = DialogElement.TYPE_QUESTION
+    end
+
+    Log:debug("DiseaseDialog:confirmTreatment: confirming title=%s action=%s duration=%s cost=%s "
+        .. "uniqueId=%s farmId=%s", tostring(disease.title), tostring(action), tostring(duration), tostring(cost),
+        tostring(animal.uniqueId), tostring(animal.farmId))
+    YesNoDialog.show(self.onTreatmentConfirmed, self, text, title, nil, nil, dialogType, nil, nil,
+        { title = disease.title, action = action })
+
+end
+
+
+-- The confirm can stay open across a daily tick, so Yes re-reads the ANIMAL's record: a course can end, or
+-- the animal recover or die, meanwhile. A Stop confirmed on a course that already ended must not start one.
+--- The confirm's answer: on Yes toggle the course when the live record still calls for it; on No do nothing.
+---@param yes boolean True when the player confirmed.
+---@param args table `{ title = <disease title>, action = "start" | "resume" | "stop" }` from the confirm.
+function DiseaseDialog:onTreatmentConfirmed(yes, args)
+
+    local animal = self.animal
+    local title, action = args.title, args.action
+
+    if not yes then
+        Log:trace("DiseaseDialog:onTreatmentConfirmed: declined (title=%s action=%s uniqueId=%s)", tostring(title),
+            tostring(action), tostring(animal.uniqueId))
+        return
+    end
+
+    if animal.clusterSystem == nil or animal.clusterSystem.owner == nil then
+        Log:warning("DiseaseDialog:onTreatmentConfirmed: the animal is in no pen, no toggle sent "
+            .. "(title=%s action=%s uniqueId=%s clusterSystem=%s)", tostring(title), tostring(action),
+            tostring(animal.uniqueId), tostring(animal.clusterSystem))
+        self:close()
+        return
+    end
+
+    local liveDisease = animal:getDisease(title)
+    local wantRunning = action == "stop"
+    local reason
+
+    if liveDisease == nil then
+        reason = "gone"
+    elseif liveDisease.state ~= RLDiseaseRecord.STATE.INFECTIOUS then
+        reason = "not-infectious"
+    elseif liveDisease.model.treatment == nil then
+        reason = "untreatable"
+    elseif (liveDisease.treatmentRunning == true) ~= wantRunning then
+        reason = "running-state-moved"
+    end
+
+    if reason ~= nil then
+        Log:debug("DiseaseDialog:onTreatmentConfirmed: refused, reason=%s (title=%s action=%s uniqueId=%s)",
+            reason, tostring(title), tostring(action), tostring(animal.uniqueId))
+        self:rebuildRows()
+        return
+    end
+
+    local newState = not liveDisease.treatmentRunning
+    local husbandry = animal.clusterSystem.owner
+
+    -- Read BEFORE the seed, or a fresh start reads its own seeded counter and says RESUME.
+    local isResuming = liveDisease.treatmentMonthsRemaining > 0
+
+    Log:debug("DiseaseDialog:onTreatmentConfirmed: sending title=%s action=%s treatment=%s "
+        .. "treatmentMonthsRemaining=%s uniqueId=%s farmId=%s", tostring(title), tostring(action), tostring(newState),
+        tostring(liveDisease.treatmentMonthsRemaining), tostring(animal.uniqueId), tostring(animal.farmId))
+    DiseaseTreatmentToggleEvent.sendEvent(husbandry, animal, title, newState)
+
+    -- The flag LEADS the writes, as everywhere else on this path: it is the sole cause of
+    -- replication, so writing it last puts it behind every statement that can raise.
+    animal:setDirty()
+
+    liveDisease.treatmentRunning = newState
+
+    -- START only. On a RESUME the refusal of a non-zero counter IS the pause contract - the
+    -- served months survive because nothing writes the counter down.
+    if newState then
+        RLDiseaseRecord.enrolTreatment(liveDisease, liveDisease.model.treatment)
+    end
+
+    local model = liveDisease.model
+    if not newState then
+        animal:addMessage("DISEASE_TREATMENT_STOP", { model.name })
+    else
+        local fee = g_i18n:formatMoney(model.treatment.cost, 2, true, true)
+        animal:addMessage("DISEASE_TREATMENT_" .. (isResuming and "RESUME" or "START"),
+            { model.name, string.format(g_i18n:getText("rl_ui_feePerMonth"), fee) })
+    end
+
+    self:rebuildRows()
+
+end
+
+
 -- After a dose on a pure client the record arrives with the pen's next flush, so the rows rebuilt here
 -- still show the old state until the dialog is opened again; a treatment toggle writes its record locally first.
 --- Rebuild and re-sort the rows from the live animal, select `firstActionIndex`'s row and relabel the button.
@@ -643,10 +748,8 @@ function DiseaseDialog:populateCellForItemInSection(list, section, index, cell)
         arm = "dose"
     elseif disease ~= nil and disease.state == RLDiseaseRecord.STATE.INFECTIOUS and model.treatment ~= nil then
         local treatment = model.treatment
-        -- Months remaining once a course is under way, the authored total otherwise. Two shipped
-        -- diseases carry no treatment block, so the model.treatment clause keeps them on the dash arm.
-        duration = RealisticLivestock.formatAge(disease.treatmentMonthsRemaining > 0
-            and RLDiseaseStatus.wholeMonthsRemaining(disease.treatmentMonthsRemaining) or treatment.months)
+        -- Two shipped diseases carry no treatment block, so the model.treatment clause keeps them on the dash arm.
+        duration = courseDuration(disease, treatment)
         fee = string.format(g_i18n:getText("rl_ui_feePerMonth"), g_i18n:formatMoney(treatment.cost, 2, true, true))
         arm = "treatment"
     end
