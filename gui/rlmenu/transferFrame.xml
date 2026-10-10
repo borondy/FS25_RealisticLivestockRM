@@ -111,7 +111,7 @@
 
         <!--
             Narrow column = PEN info. Hidden by RLDetailPaneHelper.updatePenDisplay
-            whenever no husbandry is supplied (the shell's both sides).
+            whenever the active side supplies no husbandry.
         -->
         <GuiElement profile="fs25_animalInfoContainer" id="penBox">
             <Text profile="rlMenu_penInfoHeader" id="penInformationHeader" text="$l10n_rl_menu_info_pen_information" position="0px -10px"/>

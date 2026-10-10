@@ -187,12 +187,10 @@ function RLTransferAdapter.filterTypeIndexOf(items)
 end
 
 -- =============================================================================
--- NULL adapter (shell) - empty display, empty enumeration, no-op dispatch
+-- NULL adapter (fallback) - empty display, empty enumeration, no-op dispatch
 -- =============================================================================
 
---- The shell adapter: lists nothing on the counterpart side and never mutates.
---- Used for both pen and world until the concrete adapters land. getDisplayData
---- returns an i18n KEY name (the frame resolves it) so the contract stays pure.
+--- Fallback for a counterpart with no registered adapter: lists nothing, never mutates.
 RLTransferAdapter.NULL = {
     --- @param _context table|nil  { trailer, counterpart, counterpartHandle } (ignored)
     --- @return table display  { name = i18n KEY, used = 0, total = 0 }
@@ -205,7 +203,7 @@ RLTransferAdapter.NULL = {
     end,
 
     --- @param _context table  { trailer, counterpart, counterpartHandle } (ignored)
-    --- @return table items  always empty for the shell
+    --- @return table items  always empty
     enumerate = function(_self, _context)
         return {}
     end,
@@ -223,7 +221,7 @@ RLTransferAdapter.NULL = {
     --- @param _context table
     --- @return boolean handled  always false
     dispatch = function(_self, direction, animals, _context)
-        Log:debug("RLTransferAdapter.NULL:dispatch: no-op (direction=%s, %d animal(s)) - shell performs no transfer",
+        Log:debug("RLTransferAdapter.NULL:dispatch: no-op (direction=%s, %d animal(s)) - no registered adapter, no transfer",
             tostring(direction), animals ~= nil and #animals or 0)
         return false
     end,
@@ -233,14 +231,10 @@ RLTransferAdapter.NULL = {
 -- Adapter selection
 -- =============================================================================
 
--- Registry of concrete adapters keyed by counterpart string. Empty in the shell;
--- the pen / world slices register their adapters here. forCounterpart falls back
--- to NULL for any counterpart with no registered adapter.
+-- Concrete adapters keyed by counterpart; the pen, world and EPP adapter files register here.
 RLTransferAdapter._adapters = {}
 
---- Pick the adapter for a counterpart. Returns the registered concrete adapter,
---- or NULL when none is registered (the shell registers none, so every
---- counterpart - including nil - resolves to NULL).
+--- The registered adapter for a counterpart, or NULL when none is (nil included).
 --- @param counterpart string|nil  RLMenu.TRAILER_PEN / TRAILER_WORLD / ...
 --- @return table adapter
 function RLTransferAdapter.forCounterpart(counterpart)
@@ -254,4 +248,4 @@ function RLTransferAdapter.forCounterpart(counterpart)
     return adapter
 end
 
-Log:debug("RLTransferAdapter: loaded (shell - NULL adapter only)")
+Log:debug("RLTransferAdapter: loaded")

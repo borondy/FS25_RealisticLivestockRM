@@ -10,8 +10,7 @@
     (RLTransferAdapter); the frame only talks to that seam.
 
     Chrome mirrors RLMenuInfoFrame; the multi-select data row and footer mirror
-    RLMenuMoveFrame. The pen and animal detail columns reuse RLDetailPaneHelper, and the
-    pen column stays hidden while no side supplies a husbandry.
+    RLMenuMoveFrame. The pen and animal detail columns reuse RLDetailPaneHelper.
 
     The Quick filter, filter chip and saved-filter cycle narrow the active side's list;
     that state lasts one trailer screen session and is never shared with other tabs.
@@ -659,8 +658,7 @@ function RLMenuTransferFrame:updateEmptyState()
 end
 
 
---- Refresh the pen detail column. Shell: no side supplies a husbandry, so the
---- pen column stays hidden (updatePenDisplay hides penBox on nil husbandry).
+--- Refresh the pen detail column; it hides when the active side supplies no husbandry.
 function RLMenuTransferFrame:updatePenDisplay()
     RLDetailPaneHelper.updatePenDisplay(self, self:detailHusbandry(), self.farmId)
 end
@@ -1061,7 +1059,7 @@ function RLMenuTransferFrame:dispatchTransfer(animals)
     local handled = self.adapter:dispatch(direction, animals, self.context)
     if not handled then
         self.movePending = false
-        Log:debug("RLMenuTransferFrame:dispatchTransfer: dispatch returned false, state unchanged (shell no-op)")
+        Log:debug("RLMenuTransferFrame:dispatchTransfer: dispatch returned false, state unchanged")
         return
     end
 
