@@ -1,7 +1,19 @@
 # Changelog
 
-## 1.4.1.0-dev.2:
+## 1.4.1.0-dev.3:
+- Added the Filter button and saved-filter cycling to the trailer Transfer tab, so you can filter, then load or unload only the animals you want.
+- Added a coloured icon to each row of the Diseases dialog, so you can see at a glance what each disease needs.
+- Changed the CSV export to list only player farms' animals, with rounded numbers and more columns.
+- Changed the Message Log icons and added colour-blind support.
+- Changed which Message Log entries get an icon: red for problems you can still fix, orange for deaths and other setbacks, green for births and cures.
+- Changed the Diseases dialog to list the disease that most needs you first, so an untreated illness is no longer buried below the vaccines.
+- Changed the Diseases dialog to ask before starting, resuming or stopping a treatment.
+- Fixed the pen selector not getting keyboard focus when a tab opens on an empty pen.
+- Fixed the daily deaths summary showing the English word "from" in every language.
+- Fixed food, water and straw rates under 1 litre a day showing as "0L / day".
+- Fixed pasture pens leaving meadow grass out of the food total and feed forecast.
 
+## 1.4.1.0-dev.2:
 - Added footrot for cattle, sheep and goats, with treatment and a vaccine.
 - Fixed the Diseases dialog to show the vaccine's protection and dose price, not the treatment fee, on rows you vaccinate from.
 - Fixed the Diseases dialog cutting off long disease names and misaligning its column headers.
@@ -9,7 +21,6 @@
 - Explained footrot in the disease guide, the overview, the FAQ and the cattle and sheep factsheets.
 
 ## 1.4.1.0-dev.1:
-
 - Added vaccination: from the Diseases dialog, one dose at a time, vaccinate cattle against BRD, pigs against PED, sheep and goats against pulpy kidney, and cows and female goats against mastitis.
 - Added protection from the mother at birth: piglets, lambs and goat kids born in your pens to a sow, ewe or female goat that is immune to PED or pulpy kidney - vaccinated or recovered - start life protected for one month (piglets) or two months (lambs and kids).
 - Changed immunity and vaccination times to show in months, and stopped the info box beside an animal showing how long a past illness lasted.
@@ -21,14 +32,12 @@
 ## 1.4.0.0:
 
 ### Heads up before you update
-
 - Every disease infection, immunity, part-way treatment and CVM carrier in your save is cleared on first load - the new disease records cannot read the old ones. Your herd starts out disease-free and CVM-free.
 - The Diseases setting becomes a difficulty level: an existing save lands on Normal, or Off if diseases were off. The Disease Chance setting is gone.
 - A sick animal that shows symptoms can no longer be sold or taken to a butcher, by you or by the herdsman. A herdsman sell rule for animals with any disease now sells none - switch it off or change its filter.
 - Foot and mouth treatment is now a one-month course like every other disease, instead of three months.
 
 ### Added
-
 - Added avian flu (HPAI) for chickens, BRD for cattle and pulpy kidney for sheep and goats - HPAI cannot be treated, so cull a bird that shows it straight away to stop it spreading through the flock.
 - Added colic, the first horse disease: a horse can fall ill with it on its own (it never spreads), grows more slowly if it is still young, and can die of it; a $500 treatment course cures it about half the time.
 - Added a hidden phase on Hard and Very hard: a newly infected animal of most diseases shows nothing until its symptoms appear, and on every level the "Contracted" message now arrives on the day symptoms show; an animal still in the hidden phase already spreads its disease.
@@ -39,7 +48,6 @@
 - Added a credit to Renfordt's Enhanced Livestock: changes to the disease system are inspired by it, with some parts converted directly from it.
 
 ### Changed
-
 - Rebuilt the disease system to run on the daily tick instead of once a month - catching, spreading, treatment and recovery all move day by day, and each disease's chance of striking is a monthly rate by age, so longer months no longer raise it.
 - Turned the Diseases setting into a difficulty choice - Off, Easy, Normal, Hard or Very hard: on Easy and Normal, the default, diseases are rare or strike now and then and show symptoms at once, while on Hard and Very hard they strike more often, spread faster and most take a while to show.
 - Changed natural recovery so an untreated animal that survives stays sick for at least its illness's minimum length and then recovers on a daily chance - some animals now stay sick longer than others.
@@ -50,22 +58,18 @@
 - Renamed Avian Flu to Avian Flu (LPAI) in every language, to tell it apart from the new HPAI.
 
 ### Removed
-
 - Removed the Disease Chance setting - the difficulty level replaces it.
 
 ### Fixed
-
 - Fixed saving while a horse is out of its pen removing vehicles from the save - one per horse out, taken from the start of the vehicle list and sometimes the horse itself.
 - Fixed January and February messages appearing below the previous year's messages in the Messages tab; pregnancy due dates, birthdays and the feed forecast now use the right year in those months too.
 - Fixed one bad entry in the disease definition file silently dropping every disease defined after it - an authoring mistake now warns and skips just the offending entry.
 
 ### Documentation
-
 - Rewrote the disease guide to cover all nine diseases, the hidden phase and the difficulty levels.
 - Corrected the settings reference: disease messages are not collected into daily summaries, though a death from disease still counts in the day's deaths summary.
 
 ## 1.3.2.1:
-
 - Fixed newborn rabbits on the Witcombe map never gaining health, so many of them died at their first day change - rabbits of every age now eat and drink the amounts the Witcombe support sets.
 - Corrected the disease guide's spread ratings - Foot & Mouth is the one disease that sustains an outbreak on its own, while PED and avian flu outbreaks usually burn out.
 - Documented in the pack-creation guide which curves accept decimal values - food, water and straw do, every other curve reads whole numbers only.
@@ -74,7 +78,6 @@
 ## 1.3.2.0:
 
 ### Heads up before you update
-
 - Treating a disease now costs money. Any animal already part-way through a course starts charging on the next month - Foot & Mouth bills $250 a month across its three months, mastitis $200 and PED $150.
 - The old per-pen herdsman's leftover settings are cleared out of your save the first time you save after updating. It has not run since v1.3.0.0 and the Herdsman tab in RL Menu replaces it.
 - The custom Mark Animal and Castrate Animal keybindings are gone, and any custom keys you had set for them are ignored.
@@ -82,7 +85,6 @@
 - For mod authors: getAIManager on a Realistic Livestock animal pen is removed with no replacement.
 
 ### Diseases
-
 - Changed the disease signal on animal cards from a red row to status icons, so you can tell an untreated animal from one under treatment and spot a CVM carrier at a glance.
 - Fixed animals dying from a disease they had just beaten - curing an animal, by treatment or by natural recovery, now reliably saves it.
 - Fixed cured animals still dying of the same disease all through the months they were meant to be immune - almost no chicken used to survive avian flu, even after recovering from it.
@@ -100,7 +102,6 @@
 - Fixed an animal the server had just cured reading as "Being treated" on other players' screens when treatment was toggled.
 
 ### The animal screen and the per-pen herdsman
-
 - Changed every route into the animal screen to open the RL Menu, including ones other mods trigger - some previously opened the old screen and others did nothing at all.
 - Stopped replacing the base game's hand-tool sorting on the statistics screen - Realistic Livestock had been overriding it with code that behaved like the base game's, so nothing changes on that screen, but the mod no longer overwrites other mods that adjust it.
 - Removed the old animal management screen for good. Browsing and managing animals is unchanged - the RL Menu already handled all of it. In the rare case another mod opens the animal screen in a way the RL Menu cannot take over, you now see the standard Farming Simulator screen instead of the old Realistic Livestock one.
@@ -111,7 +112,6 @@
 - Fixed the R shortcut being listed as "Open Animal Screen" in the Controls settings, naming a screen that no longer exists - it now reads "Manage Animals" in every language, matching the button it triggers.
 
 ### Translations
-
 - Added Spanish as a new language, covering the menus, filters, herdsman, settings, messages and in-game help - it arrives as one of the most complete translations the mod ships (contributed by zarvaoo_16).
 - Completed the Dutch translation - the many menu, filter, herdsman, settings and message strings that were still showing in English are now translated (contributed by Nozem1982).
 - Completed the Ukrainian translation - the menus, filters, herdsman, settings, messages and in-game help were still largely in English (contributed by Kalderone Daniil_ua).
@@ -119,10 +119,10 @@
 - Fixed the herdsman labels in thirteen languages still carrying wording retired two releases ago - among them a budget field that read as a share of herd value when it actually sets a share of your farm money.
 
 ### Documentation
-
 - Updated the disease guide's survival tables to match the new post-recovery rules - a cured animal faces no further risk from the disease it beat until its immunity lapses.
 
 ## 1.3.1.0:
+
 ### Heads up before you update
 Things that affect existing saves:
 - Dealer animal genetics follow a natural bell curve now. An "Extremely good" animal drops from roughly one in 25 to under one in 200, and "Very bad" ones from about one in 20 to about one in 160. Existing dealer stock is untouched and converges to the new curve as the dealer restocks.
@@ -158,12 +158,12 @@ Things that affect existing saves:
 ### Compatibility
 - Listed the Sheep Breeds Pack for RLRM alongside the Cow Breeds Pack as a supported animal pack.
 
-
 ## 1.3.0.1:
 - Improved the saved-filter editor - comparison operators now read as plain English ("is at least", "is one of", "does not contain", ...) in the Compare dropdown and each condition row, instead of programmer symbols.
 - Fixed the saved-filter editor showing the Gender, Breed, and Name fields as raw internal names in the field picker and condition rows.
 
 ## 1.3.0.0:
+
 ### Heads up before you update
 Things that affect existing saves:
 - The old herdsman automation no longer runs. Set up your automation again in the new Herdsman menu.
@@ -511,7 +511,7 @@ Things that affect existing saves:
 - Added missing translation keys across all languages (sourced from EnhancedLivestock where available)
 - Updated Italian translation (contributed by FirenzeIT)
 
-## 1.0.0.0 (Stable):
+## 1.0.0.0:
 - Added "Manage Animals" (R) button to in-game animal menu for quick access to animal management
 - Added "Select" (A) action to check/uncheck selection boxes in buy and sell dialogs
 - Changed the insemination button to be disabled when a female is ineligible (pregnant, too young, recovering)
@@ -523,7 +523,7 @@ Things that affect existing saves:
 - Fixed batch "Remove All Monitors" button not reflecting pending removal state
 - Fixed milk/wool/goat milk info not showing on dedicated server clients
 
-## 0.6.1.0 (2026-02-16):
+## 0.6.1.0:
 - Fixed AI dialog insemination not syncing in multiplayer
 - Fixed AI dialog insemination blocked for cows that never gave birth
 - Fixed server crash when client inseminates cow with straw
@@ -537,7 +537,7 @@ Things that affect existing saves:
 - Fixed black screen when multiplayer client tries to ride a horse
 - Fixed multiplayer client unable to clean horses
 
-## 0.6.0.0 (2026-02-13):
+## 0.6.0.0:
 - Added daily summary mode for message log
 - Added "Reset AI Animals" button to settings
 - Fixed freeze when selling animals with active filter
@@ -547,25 +547,25 @@ Things that affect existing saves:
 - Added a user documentation site with per-species guides
 - Added FS25_EnhancedLivestock as an incompatible mod
 
-## 0.5.0.0 (2026-01-31):
+## 0.5.0.0:
 - Added compatibility handling for FS25_MoreVisualAnimals conflict
 - Improved pregnancy handling
 - Fixed wrong text string for water/straw in monitor menu
 - Added Italian (it) translation
 
-## 0.4.2.0 (2026-01-24):
+## 0.4.2.0:
 - Improved fallback handling for days per month calculation
 - Improved failover for animal subtypes and breeds
 
-## 0.4.1.0 (2026-01-22):
+## 0.4.1.0:
 - Fixed wrong text for when females can reproduce
 - Fixed death message count for auto-sold newborns
 - Fixed crash with invalid animal root node in visual animals
 
-## 0.4.0.0 (2026-01-18):
+## 0.4.0.0:
 - Removed Font Library dependency by inlining 3D text rendering directly in the mod
 
-## 0.3.0.0 (2026-01-18):
+## 0.3.0.0:
 - Added the initial Ritter version, based on Arrow-kb's Realistic Livestock v1.2.0.5
 - Added automatic savegame migration from Arrow-kb's Realistic Livestock
 - Added Highland Bulls support (based on Renfordt's PR 389)
