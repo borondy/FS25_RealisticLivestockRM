@@ -29,6 +29,7 @@ end
 
 --- Update animal health based on food factor relative to subType threshold.
 --- Food above threshold increases health; below threshold decreases it.
+--- Better health genetics slow the loss, matching the (2 - genetics) term of the low-health and old-age death rolls.
 --- Also triggers weight update via animal:updateWeight().
 --- @param animal table Animal instance
 --- @param foodFactor number Food factor (0.0-1.0)
@@ -38,19 +39,30 @@ function AnimalHealth.updateHealth(animal, foodFactor)
     local healthThresholdFactor = subType.healthThresholdFactor
     local healthGenetics = animal.genetics.health
 
-    local factor, delta = nil
+    local factor, delta, geneticsTerm, branch
 
     if healthThresholdFactor < foodFactor then
         factor = (foodFactor - healthThresholdFactor) / (1 - healthThresholdFactor)
         delta = subType.healthIncreaseHour
+        geneticsTerm = healthGenetics
+        branch = "gain"
     else
         factor = foodFactor / healthThresholdFactor - 1
         delta = subType.healthDecreaseHour
+        geneticsTerm = 2 - healthGenetics
+        branch = "loss"
     end
 
-    local healthDelta = delta * factor * healthGenetics
+    local healthDelta = delta * factor * geneticsTerm
+    local healthBefore = animal.health
 
     if healthDelta ~= 0 then animal.health = math.clamp(math.floor(animal.health + healthDelta), 0, 100) end
+
+    Log:trace("updateHealth: farmId=%s uniqueId=%s typeIndex=%s subType=%s food=%s branch=%s geneticsTerm=%s"
+        .. " healthDelta=%s health=%s->%s",
+        tostring(animal.farmId), tostring(animal.uniqueId), tostring(animal.animalTypeIndex), tostring(subType.name),
+        tostring(foodFactor), tostring(branch), tostring(geneticsTerm), tostring(healthDelta), tostring(healthBefore),
+        tostring(animal.health))
 
     animal:updateWeight(foodFactor)
 
