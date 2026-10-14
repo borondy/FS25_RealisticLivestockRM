@@ -219,11 +219,11 @@ RLConstants.GENETICS_SPAN = RLConstants.GENETICS_MAX - RLConstants.GENETICS_MIN
 -- only stable key; the caller resolves the name and passes it.
 --
 -- The same numbers already appear in the old-age death mechanic, in two places:
--- AnimalHealth.calculateOldAgeMonthlyAnimalDeaths and
+-- AnimalHealth.getOldAgeMonthlyDeathChance and
 -- RealisticLivestock.calculateOldAgeMonthlyAnimalDeaths. This table is a THIRD
 -- copy and nothing compares the three - both of those hold their numbers inline
--- in an if/elseif chain, which no test can read - so a change here has to be
--- made in all three by hand.
+-- in an if/elseif chain, and a test reads only the getter's resulting chance -
+-- so a change here has to be made in all three by hand.
 --
 -- A type absent from this table has no entry rather than a default, matching
 -- what the two authorities do with an unrecognised type: they leave it at a
@@ -239,6 +239,10 @@ RLConstants.MAX_LIFESPAN_MONTHS_BY_TYPE = {
     HORSE = 360,
     CHICKEN = 96
 }
+
+
+-- Health lost per hour by an unfed animal whose subtype XML sets no health#decreasePerHour.
+RLConstants.HEALTH_DECREASE_PER_HOUR = 8
 
 
 -- Severity vocabulary. Definition-only data on the message rows: never saved, never streamed,

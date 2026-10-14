@@ -1,8 +1,10 @@
 --[[
     AnimalHealth.lua
-    Health updates, death processing, and the monthly death evaluations - low
-    health, old age, random accidents. Animal.lua holds one-liner delegates that
-    route here, and must be sourced AFTER this module.
+    Health updates, death processing, and the daily death rolls - low health,
+    old age, random accidents. Old-age and accident chances are per month and
+    are converted to a daily chance at the live days per period; the low-health
+    chance is already daily. Animal.lua holds one-liner delegates that route
+    here, and must be sourced AFTER this module.
 
     Serialization and XML load/save stay in Animal.lua: health, isDead and
     numAnimals are initialized in the constructor and serialized as part of the
@@ -29,7 +31,7 @@ end
 
 --- Update animal health based on food factor relative to subType threshold.
 --- Food above threshold increases health; below threshold decreases it.
---- Better health genetics slow the loss, matching the (2 - genetics) term of the low-health and old-age death rolls.
+--- Better health genetics slow the loss, matching the (2 - genetics) term of the old-age death roll.
 --- Also triggers weight update via animal:updateWeight().
 --- @param animal table Animal instance
 --- @param foodFactor number Food factor (0.0-1.0)
@@ -94,59 +96,49 @@ function AnimalHealth.die(animal, reason)
 end
 
 
---- Evaluate monthly death chance from low health. Animals below 80 health
---- face increasing death probability scaled by health genetics.
---- Called from evaluateDaily (server-side only).
+--- Clamp a death chance to [0, 1]; zero, a negative and NaN read 0, and nothing above 1 reaches the conversion.
+--- @param chance number raw chance
+--- @return number clamped chance in [0, 1]
+local function clampChance(chance)
+    if not (chance > 0) then return 0 end
+    if chance > 1 then return 1 end
+    return chance
+end
+
+
+--- Daily death chance from low health; better health genetics lower it, and under 6 months reads 10 health worse.
 --- @param animal table Animal instance
---- @return number 1 if animal died, 0 otherwise
-function AnimalHealth.calculateLowHealthMonthlyAnimalDeaths(animal)
+--- @return number chance daily probability in [0, 1]
+function AnimalHealth.getLowHealthDailyDeathChance(animal)
 
-    if animal.numAnimals <= 0 or animal.isDead then
-        Log:trace("calculateLowHealth: skipped (dead=%s numAnimals=%d)",
-            tostring(animal.isDead), animal.numAnimals or 0)
-        return 0
-    end
-
-    local deathChance = 0.01
     local health = animal.health
-    local healthGenetics = animal.genetics.health
 
     if health >= 80 then
-        Log:trace("calculateLowHealth: health=%d >= 80, no risk", health)
+        Log:trace("getLowHealthDailyDeathChance: farmId=%s uniqueId=%s health=%s >= 80, chance 0",
+            tostring(animal.farmId), tostring(animal.uniqueId), tostring(health))
         return 0
     end
 
     if animal.age < 6 then health = health - 10 end
-    deathChance = (0.5 * (2 - healthGenetics)) - (health / 100)
 
-    Log:trace("calculateLowHealth: health=%d genetics=%.2f deathChance=%.4f",
-        animal.health, healthGenetics, deathChance)
+    local raw = 0.5 * (1.5 - 0.5 * animal.genetics.health) - health / 100
+    local chance = clampChance(raw)
 
-    if math.random() <= deathChance then
-        animal:die("rl_death_health")
-        return 1
-    end
+    Log:trace("getLowHealthDailyDeathChance: farmId=%s uniqueId=%s health=%s age=%s genetics=%s raw=%s chance=%s",
+        tostring(animal.farmId), tostring(animal.uniqueId), tostring(animal.health), tostring(animal.age),
+        tostring(animal.genetics.health), tostring(raw), tostring(chance))
 
-    return 0
+    return chance
 
 end
 
 
---- Evaluate monthly death chance from old age. Each animal type has a
---- min/max age range; death probability increases once past minAge.
---- Called from evaluateDaily (server-side only).
+--- Monthly old-age death chance: zero below the type's minimum age, then rising with age, times (2 - health genetics).
 --- @param animal table Animal instance
---- @return number 1 if animal died, 0 otherwise
-function AnimalHealth.calculateOldAgeMonthlyAnimalDeaths(animal)
-
-    if animal.numAnimals <= 0 or animal.isDead then
-        Log:trace("calculateOldAge: skipped (dead=%s numAnimals=%d)",
-            tostring(animal.isDead), animal.numAnimals or 0)
-        return 0
-    end
+--- @return number chance monthly probability in [0, 1]
+function AnimalHealth.getOldAgeMonthlyDeathChance(animal)
 
     local animalType = animal.animalTypeIndex
-    local deathChance = 0.01
     local age = animal.age
     local healthGenetics = animal.genetics.health
 
@@ -181,39 +173,29 @@ function AnimalHealth.calculateOldAgeMonthlyAnimalDeaths(animal)
     end
 
     if age < minAge then
-        Log:trace("calculateOldAge: age=%d < minAge=%d, no risk", age, minAge)
+        Log:trace("getOldAgeMonthlyDeathChance: farmId=%s uniqueId=%s age=%s < minAge=%s, chance 0",
+            tostring(animal.farmId), tostring(animal.uniqueId), tostring(age), tostring(minAge))
         return 0
     end
 
-    deathChance = 0.7 - ((maxAge - age) / 100)
+    local raw = (0.7 - ((maxAge - age) / 100)) * (2 - healthGenetics)
+    local chance = clampChance(raw)
 
-    Log:trace("calculateOldAge: age=%d minAge=%d maxAge=%d genetics=%.2f deathChance=%.4f",
-        age, minAge, maxAge, healthGenetics, deathChance)
+    Log:trace("getOldAgeMonthlyDeathChance: farmId=%s uniqueId=%s age=%s minAge=%s maxAge=%s genetics=%s raw=%s"
+        .. " chance=%s", tostring(animal.farmId), tostring(animal.uniqueId), tostring(age), tostring(minAge),
+        tostring(maxAge), tostring(healthGenetics), tostring(raw), tostring(chance))
 
-    if math.random() <= deathChance * (2 - healthGenetics) then
-        animal:die("rl_death_age")
-        return 1
-    end
-
-    return 0
+    return chance
 
 end
 
 
---- Evaluate monthly random death chance (e.g., broken legs, accidents).
---- Dead animals may be sold at reduced price (lower quality meat).
---- Called from evaluateDaily (server-side only).
+--- Monthly accident chance for the type the spec houses, raised in the cold and scaled by the accidents setting.
 --- @param animal table Animal instance
 --- @param spec table Husbandry animal spec (provides animalTypeIndex, minTemp)
---- @return number deaths 1 if animal died, 0 otherwise
---- @return number money Sale proceeds if animal was sold, 0 otherwise
-function AnimalHealth.calculateRandomMonthlyAnimalDeaths(animal, spec)
-
-    if animal.numAnimals <= 0 or animal.isDead then
-        Log:trace("calculateRandom: skipped (dead=%s numAnimals=%d)",
-            tostring(animal.isDead), animal.numAnimals or 0)
-        return 0, 0
-    end
+--- @return number chance monthly probability in [0, 1]
+--- @return boolean canBeSold whether the carcass pays a salvage share
+function AnimalHealth.getAccidentMonthlyDeathChance(animal, spec)
 
     local animalType = spec.animalTypeIndex
     local animalsCanBeSold = true
@@ -260,12 +242,119 @@ function AnimalHealth.calculateRandomMonthlyAnimalDeaths(animal, spec)
         deathChance = deathChance * (1 + (1 - (temp / 10)))
     end
 
-    deathChance = deathChance * animal.accidentsChance
+    local raw = deathChance * animal.accidentsChance
+    local chance = clampChance(raw)
 
-    Log:trace("calculateRandom: type=%s age=%d temp=%s deathChance=%.6f",
-        tostring(animalType), animal.age, tostring(temp), deathChance)
+    Log:trace("getAccidentMonthlyDeathChance: farmId=%s uniqueId=%s type=%s age=%s temp=%s raw=%s chance=%s"
+        .. " canBeSold=%s", tostring(animal.farmId), tostring(animal.uniqueId), tostring(animalType),
+        tostring(animal.age), tostring(temp), tostring(raw), tostring(chance), tostring(animalsCanBeSold))
 
-    if math.random() <= deathChance then
+    return chance, animalsCanBeSold
+
+end
+
+
+--- Roll the daily low-health death; no draw is spent when the chance is not above 0.
+--- @param animal table Animal instance
+--- @return number died 1 if the animal died, 0 otherwise
+function AnimalHealth.calculateLowHealthDailyAnimalDeaths(animal)
+
+    if animal.numAnimals <= 0 or animal.isDead then
+        Log:trace("calculateLowHealth: skipped (dead=%s numAnimals=%d)",
+            tostring(animal.isDead), animal.numAnimals or 0)
+        return 0
+    end
+
+    local chance = AnimalHealth.getLowHealthDailyDeathChance(animal)
+
+    if not (chance > 0) then
+        Log:trace("calculateLowHealth: farmId=%s uniqueId=%s chance=%s, no draw",
+            tostring(animal.farmId), tostring(animal.uniqueId), tostring(chance))
+        return 0
+    end
+
+    local draw = math.random()
+
+    Log:trace("calculateLowHealth: farmId=%s uniqueId=%s chance=%s draw=%s",
+        tostring(animal.farmId), tostring(animal.uniqueId), tostring(chance), tostring(draw))
+
+    if draw < chance then
+        animal:die("rl_death_health")
+        return 1
+    end
+
+    return 0
+
+end
+
+
+--- Roll the old-age death: the monthly chance converted to a daily one; no draw when it is not above 0.
+--- @param animal table Animal instance
+--- @param daysPerPeriod number days per month, 1..28
+--- @return number died 1 if the animal died, 0 otherwise
+function AnimalHealth.calculateOldAgeMonthlyAnimalDeaths(animal, daysPerPeriod)
+
+    if animal.numAnimals <= 0 or animal.isDead then
+        Log:trace("calculateOldAge: skipped (dead=%s numAnimals=%d)",
+            tostring(animal.isDead), animal.numAnimals or 0)
+        return 0
+    end
+
+    local monthly = AnimalHealth.getOldAgeMonthlyDeathChance(animal)
+
+    if not (monthly > 0) then
+        Log:trace("calculateOldAge: farmId=%s uniqueId=%s monthly=%s, no draw",
+            tostring(animal.farmId), tostring(animal.uniqueId), tostring(monthly))
+        return 0
+    end
+
+    local daily = RLDiseaseRates.perTick(monthly, daysPerPeriod)
+    local draw = math.random()
+
+    Log:trace("calculateOldAge: farmId=%s uniqueId=%s monthly=%s daily=%s daysPerPeriod=%s draw=%s",
+        tostring(animal.farmId), tostring(animal.uniqueId), tostring(monthly), tostring(daily),
+        tostring(daysPerPeriod), tostring(draw))
+
+    if draw < daily then
+        animal:die("rl_death_age")
+        return 1
+    end
+
+    return 0
+
+end
+
+
+--- Roll the accident death like the old-age one; a carcass that can be sold pays a salvage share.
+--- @param animal table Animal instance
+--- @param spec table Husbandry animal spec (provides animalTypeIndex, minTemp)
+--- @param daysPerPeriod number days per month, 1..28
+--- @return number deaths 1 if animal died, 0 otherwise
+--- @return number money Sale proceeds if animal was sold, 0 otherwise
+function AnimalHealth.calculateRandomMonthlyAnimalDeaths(animal, spec, daysPerPeriod)
+
+    if animal.numAnimals <= 0 or animal.isDead then
+        Log:trace("calculateRandom: skipped (dead=%s numAnimals=%d)",
+            tostring(animal.isDead), animal.numAnimals or 0)
+        return 0, 0
+    end
+
+    local monthly, animalsCanBeSold = AnimalHealth.getAccidentMonthlyDeathChance(animal, spec)
+
+    if not (monthly > 0) then
+        Log:trace("calculateRandom: farmId=%s uniqueId=%s monthly=%s, no draw",
+            tostring(animal.farmId), tostring(animal.uniqueId), tostring(monthly))
+        return 0, 0
+    end
+
+    local daily = RLDiseaseRates.perTick(monthly, daysPerPeriod)
+    local draw = math.random()
+
+    Log:trace("calculateRandom: farmId=%s uniqueId=%s monthly=%s daily=%s daysPerPeriod=%s draw=%s",
+        tostring(animal.farmId), tostring(animal.uniqueId), tostring(monthly), tostring(daily),
+        tostring(daysPerPeriod), tostring(draw))
+
+    if draw < daily then
         local animalPrice = 0
         if animalsCanBeSold then animalPrice = animal:getSellPrice() * 0.33 end
 
@@ -288,11 +377,12 @@ end
 --- Sequential short-circuit: lowHealth -> oldAge (if alive) -> random (if alive and spec).
 --- @param animal table Animal instance
 --- @param spec table|nil Husbandry animal spec (nil for sale animals)
+--- @param daysPerPeriod number days per month, 1..28, for the old-age and accident conversion
 --- @return number lowHealthDeath 1 if died from low health, 0 otherwise
 --- @return number oldDeath 1 if died from old age, 0 otherwise
 --- @return number randomDeath 1 if died from random accident, 0 otherwise
 --- @return number randomDeathMoney Sale proceeds from random death, 0 otherwise
-function AnimalHealth.evaluateDaily(animal, spec)
+function AnimalHealth.evaluateDaily(animal, spec, daysPerPeriod)
 
     if not animal.deathEnabled or g_server == nil then
         Log:trace("evaluateDaily: skipped (deathEnabled=%s server=%s)",
@@ -305,16 +395,16 @@ function AnimalHealth.evaluateDaily(animal, spec)
         return 0, 0, 0, 0
     end
 
-    local lowHealthDeath = animal:calculateLowHealthMonthlyAnimalDeaths()
+    local lowHealthDeath = animal:calculateLowHealthDailyAnimalDeaths()
 
     local oldDeath = 0
     if lowHealthDeath == 0 then
-        oldDeath = animal:calculateOldAgeMonthlyAnimalDeaths()
+        oldDeath = animal:calculateOldAgeMonthlyAnimalDeaths(daysPerPeriod)
     end
 
     local randomDeath, randomDeathMoney = 0, 0
     if spec ~= nil and lowHealthDeath == 0 and oldDeath == 0 then
-        randomDeath, randomDeathMoney = animal:calculateRandomMonthlyAnimalDeaths(spec)
+        randomDeath, randomDeathMoney = animal:calculateRandomMonthlyAnimalDeaths(spec, daysPerPeriod)
     end
 
     if lowHealthDeath > 0 or oldDeath > 0 or randomDeath > 0 then

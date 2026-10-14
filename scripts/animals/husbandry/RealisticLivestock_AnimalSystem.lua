@@ -673,9 +673,30 @@ end
 AnimalSystem.loadSubTypes = Utils.overwrittenFunction(AnimalSystem.loadSubTypes, RealisticLivestock_AnimalSystem.loadSubTypes)
 
 
+--- Give a subtype whose XML sets no hourly health loss RLRM's starvation rate instead of the engine default.
+--- @param subType table the subtype the loader just filled
+--- @param declaresDecrease boolean whether its XML sets health#decreasePerHour
+function RealisticLivestock_AnimalSystem.applyHealthDefaults(subType, declaresDecrease)
+
+    if declaresDecrease then
+        Log:trace("applyHealthDefaults: subType=%s declares decreasePerHour=%s, kept",
+            tostring(subType.name), tostring(subType.healthDecreaseHour))
+        return
+    end
+
+    subType.healthDecreaseHour = RLConstants.HEALTH_DECREASE_PER_HOUR
+
+    Log:trace("applyHealthDefaults: subType=%s declares no decreasePerHour, set to %s",
+        tostring(subType.name), tostring(subType.healthDecreaseHour))
+
+end
+
+
 function RealisticLivestock_AnimalSystem:loadSubType(superFunc, animalType, subType, xmlFile, key, directory)
 
     local returnValue = superFunc(self, animalType, subType, xmlFile, key, directory)
+
+    RealisticLivestock_AnimalSystem.applyHealthDefaults(subType, xmlFile:hasProperty(key .. ".health#decreasePerHour"))
 
     -- Log visual indices for debugging
     if subType.visuals ~= nil then
