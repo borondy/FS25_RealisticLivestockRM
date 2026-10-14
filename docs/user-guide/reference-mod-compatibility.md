@@ -30,7 +30,7 @@ These mods load and run alongside RLRM, but one or more of their features do not
 
 | Mod | Limitation |
 |-----|-----------|
-| **FS25_lsfmAnimalTransportPack.zip** | The LSFM Animal Transport Pack's animal herding / driving feature does not work. Driving animals opens the animal screen through the pack's custom object instead of a standard livestock trailer, and RLRM's rewritten animal screen does not recognise that call, so the action fails. There may be further errors later in the process. The rest of the pack is unaffected. This pack is distributed with the Hof Bergmann map, so it may be active even if you did not install it separately - see [Hof Bergmann Map Support](map-hof-bergmann.md#bundled-animal-transport-pack). |
+| **FS25_lsfmAnimalTransportPack.zip** | The LSFM Animal Transport Pack's animal herding / driving feature does not work. Driving animals opens the RL Menu at that pen instead of the pack's transfer screen, so animals cannot be moved to or from the pack's carrier. There may be further errors later in the process. The rest of the pack is unaffected. This pack is distributed with the Hof Bergmann map, so it may be active even if you did not install it separately - see [Hof Bergmann Map Support](map-hof-bergmann.md#bundled-animal-transport-pack). |
 
 ---
 

@@ -132,7 +132,7 @@ RLRM tracks dogs as individuals with names and genetics, but does not add breedi
 
 Hof Bergmann is distributed together with a separate mod, **FS25_lsfmAnimalTransportPack.zip** (the LSFM Animal Transport Pack). Because it arrives with the map, it is easy to assume it is part of Hof Bergmann itself - it is not, and the limitation below is a fault of that pack, not the map.
 
-The transport pack's animal herding / driving feature does not work with RLRM. Driving animals opens the animal screen through the pack's custom object instead of a standard livestock trailer, and RLRM's rewritten animal screen does not recognise that call, so the action fails; there may be further errors later in the process. Everything else on the map works normally, and the rest of the transport pack is unaffected.
+The transport pack's animal herding / driving feature does not work with RLRM. Driving animals opens the RL Menu at that pen instead of the pack's transfer screen, so animals cannot be moved to or from the pack's carrier; there may be further errors later in the process. Everything else on the map works normally, and the rest of the transport pack is unaffected.
 
 See [Mod Compatibility](reference-mod-compatibility.md#partial-compatibility) for the full compatibility list.
 
