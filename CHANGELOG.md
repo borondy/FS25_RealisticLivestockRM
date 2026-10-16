@@ -1,33 +1,40 @@
 # Changelog
 
-## 1.4.1.0-dev.3:
+## 1.4.1.0:
+
+### Added
+- Added vaccination: from the Diseases dialog, vaccinate cattle against BRD, pigs against PED, sheep and goats against pulpy kidney, and cows and female goats against mastitis.
+- Added protection from the mother: piglets, lambs and goat kids born in your pens to an immune mother start life protected against PED or pulpy kidney.
+- Added footrot for cattle, sheep and goats, with treatment and a vaccine.
 - Added the Filter button and saved-filter cycling to the trailer Transfer tab, so you can filter, then load or unload only the animals you want.
 - Added a coloured icon to each row of the Diseases dialog, so you can see at a glance what each disease needs.
+
+### Changed
+- Changed animals that run out of food to lose health more slowly.
+- Changed immunity times to show in months, and stopped the info box beside an animal showing how long a past illness lasted.
+- Changed the Diseases dialog to list the disease that most needs you first.
+- Changed the Diseases dialog to ask before starting, resuming or stopping a treatment.
 - Changed the CSV export to list only player farms' animals, with rounded numbers and more columns.
 - Changed the Message Log icons and added colour-blind support.
 - Changed which Message Log entries get an icon: red for problems you can still fix, orange for deaths and other setbacks, green for births and cures.
-- Changed the Diseases dialog to list the disease that most needs you first, so an untreated illness is no longer buried below the vaccines.
-- Changed the Diseases dialog to ask before starting, resuming or stopping a treatment.
+
+### Fixed
+- Fixed multi-second freezes when moving animals with some mod combinations.
+- Fixed animals with better health genetics losing health faster, not slower, when they are short of food.
+- Fixed old-age and accident deaths becoming more frequent the more days your months have.
+- Fixed an animal at the dealer or in the artificial insemination catalogue occasionally missing a day of ageing and disease progress when the animal listed before it died that day.
+- Fixed the Diseases dialog cutting off long disease names and misaligning its column headers.
 - Fixed the pen selector not getting keyboard focus when a tab opens on an empty pen.
 - Fixed the daily deaths summary showing the English word "from" in every language.
 - Fixed food, water and straw rates under 1 litre a day showing as "0L / day".
 - Fixed pasture pens leaving meadow grass out of the food total and feed forecast.
 
-## 1.4.1.0-dev.2:
-- Added footrot for cattle, sheep and goats, with treatment and a vaccine.
-- Fixed the Diseases dialog to show the vaccine's protection and dose price, not the treatment fee, on rows you vaccinate from.
-- Fixed the Diseases dialog cutting off long disease names and misaligning its column headers.
-- Shortened the Russian insemination label so it fits the herdsman operation selector.
-- Explained footrot in the disease guide, the overview, the FAQ and the cattle and sheep factsheets.
+### Translations
+- Updated the Russian translation (contributed by frezer89).
 
-## 1.4.1.0-dev.1:
-- Added vaccination: from the Diseases dialog, one dose at a time, vaccinate cattle against BRD, pigs against PED, sheep and goats against pulpy kidney, and cows and female goats against mastitis.
-- Added protection from the mother at birth: piglets, lambs and goat kids born in your pens to a sow, ewe or female goat that is immune to PED or pulpy kidney - vaccinated or recovered - start life protected for one month (piglets) or two months (lambs and kids).
-- Changed immunity and vaccination times to show in months, and stopped the info box beside an animal showing how long a past illness lasted.
-- Fixed multi-second freezes when moving animals with some mod combinations: the in-game Animals page no longer rebuilds its animal list while it is closed.
-- Fixed an animal at the dealer or in the artificial insemination catalogue occasionally missing a day of ageing and disease progress when the animal listed before it died that day.
-- Completed the Russian translation (contributed by frezer89).
-- Explained vaccination and protection from the mother in the disease and breeding guides, the FAQ and the pig and sheep factsheets.
+### Documentation
+- Explained vaccination, footrot and protection from the mother in the disease and breeding guides, the overview, the FAQ and the cattle, pig and sheep factsheets.
+- Corrected the mod compatibility and Hof Bergmann pages on what the LSFM Animal Transport Pack's herding does with Realistic Livestock.
 
 ## 1.4.0.0:
 
