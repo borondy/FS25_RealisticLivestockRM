@@ -413,7 +413,8 @@ function RLAnimalInfoService.getAnimalDisplay(animal, husbandry)
 
     local geneticsRows = {}
     if RLGeneticsFormatter ~= nil and RLGeneticsFormatter.format ~= nil then
-        geneticsRows = RLGeneticsFormatter.format(animal.genetics, animal.animalTypeIndex, animal.subType)
+        geneticsRows = RLGeneticsFormatter.format(animal.genetics, animal.animalTypeIndex, animal.subType,
+            animal.isCastrated)
     end
 
     local hasMonitor = animal.monitor ~= nil
@@ -570,8 +571,9 @@ function RLAnimalInfoService.markAnimal(animal, key, active)
         tostring(animal.farmId), tostring(animal.uniqueId), tostring(key), tostring(active))
 end
 
---- Castrate an animal. Same code path as AnimalScreen:onClickCastrate.
---- @param animal table
+--- Castrate an animal and send AnimalCastrateEvent when it belongs to a cluster system with an owner.
+--- @param animal table|nil animal to castrate; nil is a no-op
+--- @return nil
 function RLAnimalInfoService.castrateAnimal(animal)
     if animal == nil then
         Log:trace("RLAnimalInfoService.castrateAnimal: nil animal, skipping")
@@ -579,7 +581,6 @@ function RLAnimalInfoService.castrateAnimal(animal)
     end
 
     animal.isCastrated = true
-    animal.genetics.fertility = 0
 
     local owner = animal.clusterSystem and animal.clusterSystem.owner
     if owner ~= nil then

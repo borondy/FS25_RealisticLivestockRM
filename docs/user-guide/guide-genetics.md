@@ -44,9 +44,9 @@ Fertility has one additional rating:
 
 | Rating | Meaning |
 |--------|---------|
-| **Infertile** | Animal can never breed (extremely rare - about 1 in 1,000) |
+| **Infertile** | Animal can never breed: born infertile (extremely rare - about 1 in 1,000), or a castrated male |
 
-*Infertile animals can still produce milk/wool/eggs - they just can't reproduce.*
+*Infertile animals can still produce milk/wool/eggs - they just can't reproduce. Castrating a male does not change his other genetics or his overall rating.*
 
 ---
 

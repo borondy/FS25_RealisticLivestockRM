@@ -459,7 +459,7 @@ function RLHerdsmanExecutor._doBuy(action, ctx, placeable, farmId, count)
     return true, true, nil
 end
 
---- Castrate: exec sets isCastrated and zeroes genetics.fertility per animal, then broadcasts
+--- Castrate: exec sets isCastrated per animal, then broadcasts
 --- AnimalCastrateEvent per animal so clients sync; mark sets AI_MANAGER_CASTRATE.
 ---@param action table
 ---@param ctx table
@@ -476,9 +476,8 @@ function RLHerdsmanExecutor._doCastrate(action, ctx, placeable, farmId, count)
         return setMarkOnAll(ctx, placeable, action, MARK_BY_OPERATION.castrate, farmId)
     end
 
-    -- Validate EVERY animal's genetics table BEFORE mutating, so a malformed animal drops the whole
-    -- action instead of castrating a prefix and then raising. Corrupt action data fails the whole
-    -- action regardless of membership.
+    -- An animal without a genetics table marks corrupt action data: the whole action is skipped,
+    -- regardless of membership, before any animal is castrated.
     for _, animal in ipairs(action.animals) do
         if type(animal.genetics) ~= "table" then
             Log:warning("%s rule=%s op=castrate husbandry=%s farm=%s: animal has no genetics table - skipped (no wage)",
@@ -498,12 +497,7 @@ function RLHerdsmanExecutor._doCastrate(action, ctx, placeable, farmId, count)
     for _, probe in ipairs(action.animals) do
         local animal = resolveMember(clusterAnimals, probe, action, farmId)
         if animal ~= nil then
-            -- Mirror AnimalCastrateEvent:run on the RESOLVED object. The genetics TYPE check, not
-            -- merely `~= nil`, keeps a divergent resolved object from raising.
             animal.isCastrated = true
-            if type(animal.genetics) == "table" then
-                animal.genetics.fertility = 0
-            end
             -- Broadcast WITHOUT sendLocal: the event applies on server AND client, and the server
             -- already mutated above. @see RLAnimalInfoService.castrateAnimal.
             ctx.server:broadcastEvent(AnimalCastrateEvent.new(placeable, animal))

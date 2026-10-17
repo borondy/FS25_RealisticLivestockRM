@@ -163,8 +163,9 @@ end
 --- @param genetics table|nil
 --- @param animalTypeIndex number|nil
 --- @param subTypeName string|nil optional; distinguishes goats within SHEEP for the productivity-row label (see getProductivityLabelKey). A nil/absent value keeps the SHEEP -> wool default.
+--- @param isCastrated boolean|nil optional; true reads the Fertility row as 0, nil means intact
 --- @return table rows
-function RLGeneticsFormatter.format(genetics, animalTypeIndex, subTypeName)
+function RLGeneticsFormatter.format(genetics, animalTypeIndex, subTypeName, isCastrated)
     if genetics == nil then return {} end
 
     -- An all-nil-stats table is no data, not five "Extremely Low" rows: zero-init genetics
@@ -238,13 +239,14 @@ function RLGeneticsFormatter.format(genetics, animalTypeIndex, subTypeName)
         numericValue = RLGeneticsFormatter.toNumericValue(health),
     })
 
-    -- Row 4: Fertility (with special infertile case)
-    local fertilityKey = RLGeneticsFormatter.resolveFertilityTier(fertility)
+    -- Row 4: Fertility (with special infertile case). The effective value, while Overall above sums the raw gene.
+    local effectiveFertility = RLGenetics.effectiveFertility(genetics, isCastrated) or 0
+    local fertilityKey = RLGeneticsFormatter.resolveFertilityTier(effectiveFertility)
     table.insert(rows, {
         labelKey     = "rl_ui_fertility",
         valueKey     = fertilityKey,
         colorKey     = RLGeneticsFormatter.VALUE_KEY_TO_COLOR_KEY[fertilityKey],
-        numericValue = RLGeneticsFormatter.toNumericValue(fertility),
+        numericValue = RLGeneticsFormatter.toNumericValue(effectiveFertility),
     })
 
     -- Row 5: Meat (quality)

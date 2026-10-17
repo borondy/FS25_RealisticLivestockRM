@@ -44,7 +44,9 @@ function RLAnimalDisplayHelper.formatDisplayName(name, animal)
     else
         local m = genetics.metabolism and RLScaleHelper.scaleToNinetyNine(genetics.metabolism) or 0
         local h = genetics.health and RLScaleHelper.scaleToNinetyNine(genetics.health) or 0
-        local f = genetics.fertility and RLScaleHelper.scaleToNinetyNine(genetics.fertility) or 0
+        -- Read at call time: this file is sourced before RLGenetics.
+        local fertility = RLGenetics.effectiveFertility(genetics, animal.isCastrated)
+        local f = fertility and RLScaleHelper.scaleToNinetyNine(fertility) or 0
         local q = genetics.quality and RLScaleHelper.scaleToNinetyNine(genetics.quality) or 0
 
         if genetics.productivity ~= nil then

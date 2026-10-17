@@ -166,7 +166,7 @@ comparator's expected shape.
 | `health` | number | same as weight | all | **Monitor-gated.** Same as weight. |
 | `genetics.metabolism` | number (0-99) | `<` `<=` `==` `!=` `>=` `>` `in` `notin` | all | Scaled to 0-99. |
 | `genetics.health` | number (0-99) | same | all | Scaled to 0-99. |
-| `genetics.fertility` | number (0-99) | same | all | Scaled to 0-99. |
+| `genetics.fertility` | number (0-99) | same | all | Scaled to 0-99. A castrated male reads 0. |
 | `genetics.quality` | number (0-99) | same | all | Scaled to 0-99. |
 | `genetics.productivity` | number (0-99) | same | **COW, SHEEP, CHICKEN** | Scaled to 0-99. Other species don't carry productivity. |
 | `genetics.overall` | number (0-99) | same | all | Average of the present genetics traits, then scaled to 0-99. Matches the on-screen overall genetics number. |

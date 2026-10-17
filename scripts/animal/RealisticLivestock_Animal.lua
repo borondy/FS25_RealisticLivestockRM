@@ -761,6 +761,9 @@ function Animal:showInfo(box)
     if self.isCastrated then box:addLine(g_i18n:getText("rl_ui_castrated"), g_i18n:getText("rl_ui_yes")) end
 end
 
+--- Add the genetics lines to the look-at box: Overall on the raw genes, Fertility as the animal can use it.
+--- @param box table info box taking addLine(label, value)
+--- @return nil
 function Animal:showGeneticsInfo(box)
     local genetics = self.genetics
     local metabolism = genetics.metabolism
@@ -827,7 +830,9 @@ function Animal:showGeneticsInfo(box)
 
     box:addLine(g_i18n:getText("rl_ui_health"), "rl_ui_genetics_" .. qualityText)
 
-    local fertility = genetics.fertility
+    local fertility = RLGenetics.effectiveFertility(genetics, self.isCastrated)
+    Log:trace("Animal:showGeneticsInfo: uniqueId=%s castrated=%s fertility=%s",
+        tostring(self.uniqueId), tostring(self.isCastrated), tostring(fertility))
 
     if fertility >= 1.65 then
         qualityText = "extremelyHigh"
