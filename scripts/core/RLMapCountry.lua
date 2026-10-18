@@ -46,7 +46,7 @@ function RLMapCountry.resolveIndex(mapAreaCode)
         end
     end
 
-    return mapAreaCode or 1
+    return mapAreaCode or 17
 end
 
 --- Resolve the two-letter RL area code new animals are stamped with.
@@ -69,7 +69,7 @@ function RLMapCountry.resolveCode(mapAreaCode)
 
     if entry ~= nil then return entry.code end
 
-    return "UK"
+    return "HU"
 end
 
 Log:info("RLMapCountry loaded")
