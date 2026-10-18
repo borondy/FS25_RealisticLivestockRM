@@ -1,38 +1,16 @@
 --[[
     RLAnimalEventRequest.lua
-    Shared cross-fire guard + timeout watchdog for the RL Tabbed Menu trade
-    services (RLAnimalBuyService / RLAnimalSellService / RLAnimalMoveService).
+    Shared cross-fire guard + timeout watchdog for the trade services (Buy / Sell / Move).
+    It wraps the existing subscribe / sendEvent seam and changes no MP wire format.
 
-    The three services each open a per-call g_messageCenter subscription whose
-    reply carries only a 3-bit errorCode and no correlation id. Base game avoids
-    cross-fire structurally (one shop screen = one live subscriber per MessageType);
-    RLRM regressed that by letting every in-flight service open its own subscriber,
-    so the first server reply fired EVERY live subscriber of that class. A dropped
-    reply also leaked the closure (animals / callback / target) for the lifetime of
-    g_messageCenter (zombie leak).
-
-    This helper restores the "one live subscriber per event class" invariant by
-    serializing to a SINGLE in-flight request PER EVENT CLASS: a second same-class
-    request is rejected (returns false - reject, never queue) so the caller keeps
-    its selection, and each request arms a CANCELLABLE Timer.createOneshot watchdog
-    that fires the callback once with a synthetic timeout code if the server never
-    replies (then unsubscribes + clears the flag - no zombie). A single-consume
-    token means the callback never fires twice for one request (reply OR timeout,
-    whichever lands first).
-
-    No MP wire change: it wraps the existing subscribe / sendEvent seam only. The
-    late-reply-after-timeout residual (a reply with no correlation id can still
-    cross-fire into the NEXT same-class request's subscriber) is a documented, accepted
-    follow-up - the token stops double-fire for the SAME request but cannot attribute a
-    late reply; the generous timeout makes it rare.
-
-    Injection seam (in-game recorder test): dispatch() takes an optional `deps`
-    table { messageCenter, sendEvent, timerFactory }. Production callers omit it
-    (defaults to the real g_messageCenter / g_client sendEvent / Timer.createOneshot);
-    the in-game recorder test injects fakes so the helper's mechanics are asserted
-    without touching a root global or a live server. Keying is per event CLASS (a
-    table, not one module boolean) so a Buy and a Move in flight together never
-    collide.
+    Each service opens a per-call g_messageCenter subscription whose reply carries only an
+    errorCode and NO correlation id, so the first server reply fires EVERY live subscriber
+    of that class. This holds the one-live-subscriber-per-class invariant by serializing to
+    a SINGLE in-flight request per event class: a second same-class request is REJECTED
+    rather than queued, and each request arms a cancellable watchdog that fires the callback
+    once with a synthetic timeout code if the server never replies. A single-consume token
+    stops the callback firing twice; keying is per event CLASS, so a Buy and a Move in
+    flight together never collide.
 ]]
 
 local Log = RmLogging.getLogger("RLRM")
@@ -71,20 +49,12 @@ function RLAnimalEventRequest._defaultTimerFactory(durationMs, callback)
 end
 
 
---- Serialize an animal-trade event dispatch to one in-flight request per event class,
---- with a cancellable timeout watchdog and a single-consume completion.
----
---- Contract:
----  * Rejects (returns false, no dispatch, no subscription) when a request of the
----    SAME eventClass is already in flight - the caller keeps its selection.
----  * Otherwise subscribes, arms the watchdog, and sends the event (all inside a
----    pcall so an engine throw during arm/send can't strand the in-flight flag);
----    returns true. In SP the reply publishes SYNCHRONOUSLY inside sendEvent, so
----    onReply has already run (and the flag cleared) by the time this returns true.
----  * onReply fires EXACTLY ONCE, with the server errorCode on a real reply or
----    RLAnimalEventRequest.TIMEOUT_CODE on watchdog expiry. State (timer / subscription
----    / flag) is always cleared BEFORE onReply, and onReply is pcall-guarded so a
----    side-effect throw cannot bubble into the arm pcall or strand state.
+--- Serialize an animal-trade dispatch to ONE in-flight request per event class, with a
+--- cancellable watchdog and a single-consume completion. A same-class request already in
+--- flight is REJECTED without dispatching, so the caller keeps its selection. Arming and
+--- sending sit inside a pcall, so an engine throw cannot strand the in-flight flag. In SP
+--- the reply publishes synchronously, so onReply has already run on return. onReply fires
+--- EXACTLY ONCE, with the server code or the timeout code, and all state clears BEFORE it.
 --- @param eventClass table The MessageType / event class (AnimalBuyEvent / AnimalSellEvent / AnimalMoveEvent)
 --- @param event table The constructed event to dispatch
 --- @param onReply function Response handler fired once with the errorCode (real reply or synthetic timeout)
@@ -199,22 +169,18 @@ function RLAnimalEventRequest.isInFlight(eventClass)
 end
 
 
---- Clear all in-flight state. Called on mission load/teardown so a request stranded by a
---- mission teardown (exit-to-menu / disconnect before its reply or watchdog landed - once
---- g_currentMission is gone the watchdog Timer never fires) cannot reject the first same-class
---- trade of the next session. Symmetric with the frames resetting their *Pending lock in onFrameOpen.
+--- Clear all in-flight state on mission load and teardown. A request stranded by a
+--- teardown never fires its watchdog - the timer needs the mission - so without this it
+--- would reject the first same-class trade of the next session.
 function RLAnimalEventRequest.reset()
     RLAnimalEventRequest._inFlight = {}
     Log:debug("RLAnimalEventRequest.reset: cleared in-flight state")
 end
 
 
--- Mission-lifecycle hooks (mod event listener): a fresh mission has no in-flight network
--- requests, and a teardown abandons any pending ones - both reset the per-class gate. The
--- functions ignore the self/node args the engine passes (mirrors RLTestRunner's listener shape).
--- This is load-time registration ceremony (registers against the mission manager, not game
--- state) - the sanctioned load-time escape; it is why the helper is NOT sourced by the headless
--- suites (addModEventListener is engine-only).
+-- Mission-lifecycle hooks: a fresh mission has no in-flight requests and a teardown
+-- abandons any pending ones, so both reset the per-class gate. Registering against the
+-- mission manager is engine-only, which is why the headless suites do not source this.
 function RLAnimalEventRequest.loadMap()
     RLAnimalEventRequest.reset()
 end

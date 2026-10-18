@@ -1,6 +1,6 @@
 <modDesc descVersion="110">
     <author>Ritter</author>
-    <version>1.3.1.0-dev.3</version>
+    <version>1.4.0.0</version>
     <title>
         <en>Realistic Livestock - Ritter version For VirutalTSZ</en>
         <it>Allevamento Realistico - Versione Ritter For VirutalTSZ</it>
@@ -15,113 +15,106 @@ This is a maintained version of the original Realistic Livestock mod by Arrow-kb
 
 Notes:
 - Based on Arrow-kb's Realistic Livestock mod (v1.2.0.5), released under GPL-3 license
+- Changes to the disease system are inspired by Renfordt's Enhanced Livestock (released under GPL-3 license), with some parts converted directly from it
 - Savegame data from Arrow-kb's original version is automatically migrated on first load
 - Font Library mod is no longer required
 - Incompatible with FS25_EnhancedLivestock, FS25_MoreVisualAnimals, and FS25_EnhancedAnimalSystem
+- Works on virtually any map; maps that add their own custom animals or breeds have built-in support (see docs)
 
 Documentation: https://rittermod.github.io/FS25_RealisticLivestockRM
 Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivestockRM
 
 Changelog
 
-1.3.1.0-dev.1:
+1.4.0.0:
+Heads up before you update:
+- Every disease infection, immunity, part-way treatment and CVM carrier in your save is cleared on first load - the new disease records cannot read the old ones. Your herd starts out disease-free and CVM-free.
+- The Diseases setting becomes a difficulty level: an existing save lands on Normal, or Off if diseases were off. The Disease Chance setting is gone.
+- A sick animal that shows symptoms can no longer be sold or taken to a butcher, by you or by the herdsman. A herdsman sell rule for animals with any disease now sells none - switch it off or change its filter.
+- Foot and mouth treatment is now a one-month course like every other disease, instead of three months.
 
 Added:
-- "Choose Animals For Sale" in RL Menu > Settings > General: pick which animals and age groups the animal dealer offers, and the dealer restocks to match. Admins can change it in multiplayer, and every player's dealer updates to match.
+- Added avian flu (HPAI) for chickens, BRD for cattle and pulpy kidney for sheep and goats - HPAI cannot be treated, so cull a bird that shows it straight away to stop it spreading through the flock.
+- Added colic, the first horse disease: a horse can fall ill with it on its own (it never spreads), grows more slowly if it is still young, and can die of it; a $500 treatment course cures it about half the time.
+- Added a hidden phase on Hard and Very hard: a newly infected animal of most diseases shows nothing until its symptoms appear, and on every level the "Contracted" message now arrives on the day symptoms show; an animal still in the hidden phase already spreads its disease.
+- Added illness effects on growth and breeding - most illnesses slow weight gain while an animal shows symptoms, and mastitis and foot and mouth also lower its chance of conceiving.
+- Added a Cull button to the Diseases dialog for an animal showing symptoms: it removes the animal from your herd for good and pays 33% of its current sale price, or nothing for a chicken.
+- Added Choose Diseases to the RL Menu settings: switch individual diseases off so no new cases of them start; animals that already have one keep it until it runs its course.
+- Added a message when a treatment course ends without curing the animal.
+- Added a credit to Renfordt's Enhanced Livestock: changes to the disease system are inspired by it, with some parts converted directly from it.
+
+Changed:
+- Rebuilt the disease system to run on the daily tick instead of once a month - catching, spreading, treatment and recovery all move day by day, and each disease's chance of striking is a monthly rate by age, so longer months no longer raise it.
+- Turned the Diseases setting into a difficulty choice - Off, Easy, Normal, Hard or Very hard: on Easy and Normal, the default, diseases are rare or strike now and then and show symptoms at once, while on Hard and Very hard they strike more often, spread faster and most take a while to show.
+- Changed natural recovery so an untreated animal that survives stays sick for at least its illness's minimum length and then recovers on a daily chance - some animals now stay sick longer than others.
+- Changed every treatable disease to a one-month treatment course, charged day by day while it runs - foot and mouth drops from three months to one.
+- Changed illness effects on production - less milk, goat milk, eggs, wool and manure, and PED raises liquid manure - to apply in full while an animal shows symptoms and about half as strongly while it is still in the hidden phase.
+- Changed the lower sale price for a sick animal to apply only while it shows symptoms - a recovered animal or a CVM carrier now sells at full price.
+- Stopped sick animals being sold or taken to a butcher while they show symptoms - by you or by the herdsman. A herdsman sell rule for animals with any disease now sells none, and in mark mode marks none; a herdsman move to a butcher leaves sick animals in the pen and tells you how many it skipped.
+- Renamed Avian Flu to Avian Flu (LPAI) in every language, to tell it apart from the new HPAI.
+
+Removed:
+- Removed the Disease Chance setting - the difficulty level replaces it.
 
 Fixed:
-- Saved filters and herdsman rules being lost (and overwritten on the next save) when loading a save that has no Realistic Livestock animal data.
+- Fixed saving while a horse is out of its pen removing vehicles from the save - one per horse out, taken from the start of the vehicle list and sometimes the horse itself.
+- Fixed January and February messages appearing below the previous year's messages in the Messages tab; pregnancy due dates, birthdays and the feed forecast now use the right year in those months too.
+- Fixed one bad entry in the disease definition file silently dropping every disease defined after it - an authoring mistake now warns and skips just the offending entry.
 
 Documentation:
-- User-guide coverage for choosing which animals the dealer offers.
+- Rewrote the disease guide to cover all nine diseases, the hidden phase and the difficulty levels.
+- Corrected the settings reference: disease messages are not collected into daily summaries, though a death from disease still counts in the day's deaths summary.
 
-1.3.0.1:
-- Improved the saved-filter editor: comparison operators now read as plain English ("is at least", "is one of", "does not contain", ...) in the Compare dropdown and each condition row, instead of programmer symbols.
-- Fixed the saved-filter editor showing the Gender, Breed, and Name fields as raw internal names in the field picker and condition rows.
+1.3.2.1:
+- Fixed newborn rabbits on the Witcombe map never gaining health, so many of them died at their first day change - rabbits of every age now eat and drink the amounts the Witcombe support sets.
+- Corrected the disease guide's spread ratings - Foot & Mouth is the one disease that sustains an outbreak on its own, while PED and avian flu outbreaks usually burn out.
+- Documented in the pack-creation guide which curves accept decimal values - food, water and straw do, every other curve reads whole numbers only.
+- Enabled animal packs to set decimal food, water and straw rates, such as 0.2 - they were previously cut down to whole numbers.
 
-1.3.0.0:
+1.3.2.0:
+Heads up before you update:
+- Treating a disease now costs money. Any animal already part-way through a course starts charging on the next month - Foot & Mouth bills $250 a month across its three months, mastitis $200 and PED $150.
+- The old per-pen herdsman's leftover settings are cleared out of your save the first time you save after updating. It has not run since v1.3.0.0 and the Herdsman tab in RL Menu replaces it.
+- The custom Mark Animal and Castrate Animal keybindings are gone, and any custom keys you had set for them are ignored.
+- An animal already stuck showing "Being treated" after being cured keeps that label until its immunity expires; there is no repair pass.
+- For mod authors: getAIManager on a Realistic Livestock animal pen is removed with no replacement.
 
-Heads up before you update - things that affect existing saves:
-- The old herdsman automation no longer runs. Set up your automation again in the new Herdsman menu.
-- The old animal screen is removed: your pens, on-foot dealers, the R key, and trailer-to-butcher deliveries all open the new RL Menu now.
-- All mod settings moved into the RL Menu's Settings tab; the in-game Settings page is now a single button that opens it.
-- Breeding ages were adjusted (goats from 8 months, horse stallions from 24, hens stop hatching by ~5 years, roosters retire at 6), so existing herds breed on a slightly different schedule.
-- The "max visible animals" control moved to RL Menu > Settings > General (the Shift+T key was removed).
+Diseases:
+- Changed the disease signal on animal cards from a red row to status icons, so you can tell an untreated animal from one under treatment and spot a CVM carrier at a glance.
+- Fixed animals dying from a disease they had just beaten - curing an animal, by treatment or by natural recovery, now reliably saves it.
+- Fixed cured animals still dying of the same disease all through the months they were meant to be immune - almost no chicken used to survive avian flu, even after recovering from it.
+- Fixed every treatment curing after a single month regardless of the disease - Foot & Mouth now runs the full three-month course its treatment is meant to take.
+- Fixed animals that had recovered from a disease, and CVM carriers, still being listed as diseased - they now group, sort and filter as healthy, so the Diseased Animals list only shows animals that are actually sick.
+- Fixed recovered animals still spreading the disease they beat, so outbreaks now burn out instead of running for the whole immunity window.
+- Fixed a sick animal not passing its disease on during the month it recovered or died - the month an infection ended counted as if the animal had never been contagious.
+- Fixed the Immune label counting up from when the animal caught the disease instead of counting down the protection it has left.
+- Fixed the cured notification arriving a year or two late - it now appears on the month the animal actually recovers, instead of when its immunity runs out.
+- Fixed a treatment you stopped part-way reading as Not treated, so the status now agrees with the months left and the Resume button.
+- Fixed disease treatment being free - the fee is now taken from your farm balance and shown as a cost, where it used to appear as income and never leave your account.
+- Fixed a newly infected animal reporting its infection age as "-1 years, 11 months" in the info box until the next month began. It now reads 0 months.
+- Fixed the Diseases button being usable by farm members without the Trade Animals permission - starting a treatment commits the farm to a recurring per-animal fee, so it now follows the same permission as the other animal actions.
+- Fixed diseases never reaching other players in multiplayer - a client saw whatever the herd looked like when they joined, so an animal falling ill, being cured, or coming out of immunity went unnoticed until something unrelated happened in that pen. Health and treatment now update as they happen.
+- Fixed an animal the server had just cured reading as "Being treated" on other players' screens when treatment was toggled.
 
-New livestock menu - the RL Menu is now the mod's main animal-management interface, a standalone tabbed menu:
-- Open it from anywhere with your own key (default Right Shift + O, set in Controls), plus from your pens, on-foot dealers, the R key, and trailers.
-- Remembers your selected pen and animal as you switch tabs; husbandry list sorted alphabetically.
-- Status icons on every animal card: pregnancy, recovering, infertile or castrated, lactating, producing wool, and laying eggs.
-- Manage tab: animal list with a detail pane - pedigree, genetics, diseases, inputs and outputs - plus per-animal actions: Mark, Monitor, Rename, Diseases, Inseminate, Castrate. Genetics shown as a 0-99 score next to each trait.
-- Messages tab: chronological feed with single and bulk delete.
-- Move tab: move animals between pens or deliver them to a butcher, one or many at a time; a feed-runway estimate shows how many months the current feed lasts.
-- Sell tab: shopping-cart summary (count, price, fee, total).
-- Buy tab: browse dealer animals with per-row prices and a running cart total; buy one or many via a destination picker.
-- AI tab: browse dealer bulls by species, pick a straw quantity with live price preview, favourite bulls, and buy straws without leaving the menu.
-- Saveable Filters: build reusable filters in-game (Settings > Filters) on age, gender, pregnancy, lactation, genetics, subtype, weight, health, marks, and name; multi-value "in / not in" via a Select Values dialog; cross-species matching when Animal type = ANY.
-- Press F on the Manage/Buy/Sell/Move tabs to cycle filters (shown as a chip); a per-filter "Show on" axis (All / Owned herd / Dealer) keeps the cycle tidy. Save the current Quick Filter as a reusable filter in one click.
-- Settings tab: all mod settings now live here instead of on the in-game settings page. New "Animal Country of Origin" setting: choose the country new animals are registered in (ear tags, identifiers) or keep the default. New animals only.
-- Trailers: load and unload animals in the menu - move between a pen and a parked trailer, buy into or sell from a trailer at the dealer, and load or unload horses from a standalone trailer out in the world.
-- Herdsman tab: create, duplicate, and delete named automation tasks; each runs one action - sell, buy, castrate, naming, AI insemination, or move - on the animals matched by a saved filter across the pens you choose. A move task can target a butcher (Extended Production Point); animals outside its age range are skipped and reported.
-- Task editor: name, enable or disable, per-action options (animals per day, budget, naming convention, AI semen choice), and a choice to mark matching animals for review or perform the action outright, with per-row help tooltips.
-- Tasks run automatically on each day-change, server-side, in order (sell, buy, castrate, naming, AI, move), respecting each task's cap, budget, and the destination's free space; a herdsman wage applies per farm. The herdsman reports what it did in the Messages tab (folded into daily counts when message summary mode is on).
-- Multiplayer: everything in the new menu is server-authoritative and syncs to all players; open menus refresh live, and late-joining players receive the full filter and rule set.
-- New user guides for Saved Filters and Herdsman automation; the user guide site can now be downloaded as a PDF.
-
-Multiplayer fixes:
-- Husbandry log messages (animal buy/sell/move, births, deaths, and daily summaries) now appear live for connected players instead of only after rejoining.
-- Inseminating a female from the menu now works on dedicated servers and clients (previously it silently did nothing - no pregnancy, and a straw was wasted); straw counts stay in sync across all players.
-- A mother's post-birth recovery now counts down live instead of appearing stuck as "recovering", which had wrongly blocked inseminating her again until a relog.
-- Rapidly triggering two animal trades of the same kind (buy, sell, or move) no longer risks affecting the wrong animals or leaving the menu stuck - trades now run one at a time with a "trade in progress" notice and timeout recovery.
-- Animals from a DLC that's installed but not active in the session are no longer loaded, preventing them from showing as the wrong breed or gender, or being corrupted when bought, for players without the DLC.
-
-Fixes:
-- Cows on Hof Bergmann v1.4 cow pastures produce milk again (all cow breeds produce milk cans).
-- Pen feed forecast now reflects the real days of feed remaining and no longer under-estimates the months-of-feed range at higher days-per-month settings.
-- A declined semen purchase (e.g. not enough money) no longer uses up dealer spawn space, so repeated declined attempts can't eventually make valid purchases fail with a "no space" message.
-- Fixed an FPS stutter when switching the active implement (G): the animal-visibility settings dialog now loads once per session instead of on every switch.
-- Pressing Esc in an animal pen's menu opened from the in-game menu (Animals page) now returns to the in-game menu instead of closing straight to the game.
-
-Compatibility:
-- LSFM Animal Transport Pack: the pack's animal herding/driving feature does not work with RLRM (it opens the animal screen through the pack's custom transport object, which the new menu does not recognise); the rest of the pack is unaffected. Hof Bergmann bundles this pack - see the mod-compatibility guide.
-
-
-1.2.6.0:
-
-RL Menu (preview - work in progress):
-- Livestock trailers now load and unload in the RL Menu instead of the legacy animal screen.
-- At a pen: walk up to a parked livestock trailer to move animals between the pen and the trailer.
-- At the dealer: with a trailer present, the Buy tab buys animals straight into the trailer and the Sell tab sells straight from it.
-- Out in the world: walk up to a standalone parked trailer to load loose horses into it and unload them back out.
-- Multiplayer: trailer transfers run server-side through the same events the legacy screen used, so they sync to all players, including on dedicated servers.
-
-Herdsman automation tasks (preview):
-- New Herdsman tab in the RL Menu: create, duplicate, and delete named automation tasks. Each task runs one action - sell, buy, castrate, naming, AI insemination, or move - on the animals matched by one of your saved filters, across the pens you choose.
-- Task editor: set a name, enable or disable the task, configure its options (animals per day, budget, naming convention, AI semen choice), and choose whether the task marks matching animals for review or performs the action outright. Per-row help tooltips explain each option.
-- Pick the filter and target pens from inside the editor: the filter list is scoped to the task's action (buy draws from the dealer pool; sell, castrate, and AI from your own herd) and the pen list to the filter's animal type. A task needs a filter and at least one pen to be enabled, so incomplete drafts can be saved disabled.
-- Tasks run automatically on each day-change, server-side, in order (sell -> buy -> castrate -> naming -> AI -> move), respecting each task's animal cap, budget, and the destination pen's free space. A herdsman wage is deducted per farm.
-- Day-change notifications: the herdsman posts the same per-pen messages the legacy herdsman did (sold, bought, castrated, named, inseminated, moved, or "marked for ..."), folded into daily counts when message summary mode is on.
-- The menu-based tasks run alongside the legacy per-pen herdsman, not instead of it. An orange banner warns when a pen still has the legacy herdsman enabled - avoid running both for the same pen, or actions and wages get applied twice.
-- Multiplayer: task create / edit / delete sync to all players and an open menu refreshes live; the day-change actions replicate to clients, including on dedicated servers.
-
-Fixed:
-- Goats now show milk (not wool) production in the animal genetics overview, across the RL Menu, the legacy info dialog, and the on-foot look-at panel.
-- Pregnancies now track each animal's configured gestation period much more closely, especially at higher days-per-period settings where they previously ran too long (contributed by borondy).
-- Young animals now grow to full size over their proper age range instead of maturing far too fast at higher days-per-period settings (contributed by borondy).
-- Multiplayer: settings changed in the RL Menu (Settings -> General) now sync to the server, persist across save/reload, and update live for other players - previously these changes were silently lost on dedicated servers.
-- Hardened against a possible crash when a mod or game code path looked up a missing (nil) text label - the lookup now falls back safely instead of stopping the game, and logs a warning.
-
-Compatibility:
-- FS25_AnimalFoodCalculator is now a blocking conflict instead of a dismissible warning - it breaks RLRM's animal feeding and milk/egg/wool output, so the game stops and prompts a restart to disable it.
+The animal screen and the per-pen herdsman:
+- Changed every route into the animal screen to open the RL Menu, including ones other mods trigger - some previously opened the old screen and others did nothing at all.
+- Stopped replacing the base game's hand-tool sorting on the statistics screen - Realistic Livestock had been overriding it with code that behaved like the base game's, so nothing changes on that screen, but the mod no longer overwrites other mods that adjust it.
+- Removed the old animal management screen for good. Browsing and managing animals is unchanged - the RL Menu already handled all of it. In the rare case another mod opens the animal screen in a way the RL Menu cannot take over, you now see the standard Farming Simulator screen instead of the old Realistic Livestock one.
+- Removed the old per-pen herdsman, the automation you used to set up on a single animal pen - it has not run since v1.3.0.0, the Herdsman tab in RL Menu replaces it, and its leftover settings are cleared out of your save the first time you save after updating.
+- Removed the leftover Mark Animal and Castrate Animal keybindings - they had stopped doing anything, and any custom keys you had set for them are simply ignored now.
+- Removed the getAIManager function that other mods could call on a Realistic Livestock animal pen, with no replacement, because the per-pen herdsman it handed back no longer exists.
+- Fixed being stranded on the old animal screen with no way out - not even Escape - when another mod opened the animal screen in a way Realistic Livestock could not take over. The RL Menu now opens as intended in that case.
+- Fixed the R shortcut being listed as "Open Animal Screen" in the Controls settings, naming a screen that no longer exists - it now reads "Manage Animals" in every language, matching the button it triggers.
 
 Translations:
-- Danish: the herdsman sell tooltip now shows the specific sell age again instead of a vaguer phrasing that dropped it.
-- French: translated the new herdsman task editor, filter editor, daily-summary, mod-compatibility, and saved-filter strings that were still showing in English (contributed by squall39).
-- German: the animal-move confirmation no longer shows a leftover price that the other languages never displayed.
-- Italian: native-speaker refresh across the menu, settings, and help text, plus the herdsman move strings that were still showing in English (contributed by FirenzeIT).
-- Turkish: filled in the many menu, herdsman, settings, and message strings that were still showing in English (contributed by Cyber-Syntax).
-- All languages: new filter and herdsman labels now fall back to English instead of showing raw text codes in languages that have not translated them yet.
+- Added Spanish as a new language, covering the menus, filters, herdsman, settings, messages and in-game help - it arrives as one of the most complete translations the mod ships (contributed by zarvaoo_16).
+- Completed the Dutch translation - the many menu, filter, herdsman, settings and message strings that were still showing in English are now translated (contributed by Nozem1982).
+- Completed the Ukrainian translation - the menus, filters, herdsman, settings, messages and in-game help were still largely in English (contributed by Kalderone Daniil_ua).
+- Completed the Czech translation - the menus, filters, herdsman, settings, messages and in-game help were still largely in English, and the insemination straw is now named as such rather than as bedding straw (contributed by Mapolap).
+- Fixed the herdsman labels in thirteen languages still carrying wording retired two releases ago - among them a budget field that read as a share of herd value when it actually sets a share of your farm money.
 
+Documentation:
+- Updated the disease guide's survival tables to match the new post-recovery rules - a cured animal faces no further risk from the disease it beat until its immunity lapses.
 
 ]]>
         </en>
@@ -134,6 +127,7 @@ Questa è una versione mantenuta del mod originale Realistic Livestock di Arrow-
 
 Note:
 - Basato sul mod Realistic Livestock di Arrow-kb (v1.2.0.5), rilasciato sotto licenza GPL-3
+- Le modifiche al sistema delle malattie sono ispirate a Enhanced Livestock di Renfordt (rilasciato sotto licenza GPL-3), con alcune parti convertite direttamente da esso
 - I dati di salvataggio della versione originale di Arrow-kb vengono migrati automaticamente al primo caricamento
 - Il mod Font Library non è più richiesto
 - Incompatibile con FS25_EnhancedLivestock, FS25_MoreVisualAnimals e FS25_EnhancedAnimalSystem
@@ -154,17 +148,11 @@ Codice sorgente e tracciamento issue: https://github.com/rittermod/FS25_Realisti
         <actionBinding action="RL_OPEN_ANIMAL_SCREEN">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_r" index="1"/>
         </actionBinding>
-        <actionBinding action="RL_MARK">
-            <binding device="KB_MOUSE_DEFAULT" input="KEY_x" index="1"/>
-        </actionBinding>
         <actionBinding action="RL_MONITOR">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_m" index="1"/>
         </actionBinding>
         <actionBinding action="RL_AI">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_i" index="1"/>
-        </actionBinding>
-        <actionBinding action="RL_CASTRATE">
-            <binding device="KB_MOUSE_DEFAULT" input="KEY_c" index="1"/>
         </actionBinding>
         <actionBinding action="RL_DISEASES">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_d" index="1"/>
@@ -181,18 +169,20 @@ Codice sorgente e tracciamento issue: https://github.com/rittermod/FS25_Realisti
         <actionBinding action="RL_MENU">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_rshift KEY_o" index="1"/>
         </actionBinding>
+        <actionBinding action="RL_SELECT_SECTION">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_s" index="1"/>
+        </actionBinding>
     </inputBinding>
     <actions>
         <action name="RL_OPEN_ANIMAL_SCREEN"/>
-        <action name="RL_MARK"/>
         <action name="RL_MONITOR"/>
         <action name="RL_AI"/>
-        <action name="RL_CASTRATE"/>
         <action name="RL_DISEASES"/>
         <action name="RL_RENAME"/>
         <action name="RL_SELECT"/>
         <action name="RL_CYCLE_FILTER"/>
         <action name="RL_MENU"/>
+        <action name="RL_SELECT_SECTION"/>
     </actions>
     <helpLines>
 

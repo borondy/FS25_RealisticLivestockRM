@@ -82,7 +82,7 @@ Sheep and goat prices peak at 36 months and stay at that level for older animals
 | **Goat** | Doe | 100 | 1,000 |
 | | Ram Goat | 150 | 1,500 |
 
-*These are typical prices for an average, healthy animal. Actual prices vary widely - well-bred healthy animals sell for significantly more, while sick or poor-quality animals can sell for far less.*
+*These are typical prices for an average, healthy animal. Actual prices vary widely - well-bred healthy animals sell for significantly more, poor-quality animals can sell for far less, and a sick animal is worth less while sick.*
 
 ### What Affects Sell Price
 
@@ -208,10 +208,11 @@ Sheep and goats usually produce twins - at every age, including first-time mothe
 
 | Disease | Spread | Fatal? | Treatment | Impact |
 |---------|--------|--------|-----------|--------|
-| **Mastitis** | Slowly | No | Quick, affordable | Stops goat milk (only lactating goats can catch it) |
-| **Foot & Mouth** | Moderately | Yes | Slow, moderate cost | Major price loss; slightly reduces wool/milk while sick |
+| **Mastitis** | Slowly | Rarely | 1 month, $200 | Stops goat milk (only lactating goats can catch it) |
+| **Foot and Mouth** | Rapidly | Low to moderate | 1 month, $250 | Major price loss; slightly reduces wool/milk while sick |
+| **Pulpy Kidney** | None | High - worst in lambs and kids | 1 month, $150 (cures about half the time) | Major price loss; considerably less wool/milk while sick |
 
-*Sheep never lactate, so mastitis only affects lactating goats, stopping their milk. See the [Disease Guide](guide-diseases.md) for detailed prevention and treatment.*
+*Sheep never lactate, so mastitis only affects lactating goats, stopping their milk. Pulpy kidney never passes between animals, and lambs and kids up to 12 months old catch it most often. The Fatal column holds while **Animal Death** is on. See the [Disease Guide](guide-diseases.md) for detailed prevention and treatment.*
 
 ---
 

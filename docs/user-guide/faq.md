@@ -123,6 +123,23 @@ See the [Breeding Guide](guide-breeding.md#offspring-breed) for examples and pra
 
 ---
 
+## Why do I only see one animal per pen?
+
+**Short answer:** That is a display setting, not a broken herd. Open **RL Menu > Settings > General > Set Maximum Visual Animals** and check the value.
+
+The setting caps how many animals are **drawn in 3D** in each pen. It does not touch your herd: every animal still exists, eats, produces, breeds and ages exactly as before, and the Manage list shows them all. It exists because rendering a hundred individual animals per pen is expensive, so the cap protects your frame rate.
+
+Two things about it surprise people:
+
+- **It is per machine, not per savegame.** It lives in `modSettings/FS25_RealisticLivestockRM/Settings.xml`, is not saved with your farm, and is not synced in multiplayer - every player sets their own, and any player can change it.
+- **It survives a restart.** Whatever value was last applied is read back on every launch, so a low value stays low until you change it.
+
+To fix it: open the dialog, drag the slider or use the **Recommended** button (which picks a value based on your graphics settings), then press **Apply**. Moving the slider alone does nothing - the value is only stored when you press Apply.
+
+To check the value without opening the menu, search your `log.txt` for `Maximum number of visual animals:` - it is written once at startup.
+
+---
+
 ## Does the mod work on my map?
 
 Almost certainly yes. RLRM works on virtually any map - it does not need to be on a supported list. The maps listed in the docs are only the ones that add their *own* custom animal types or breeds, which need built-in support so those extras also get genetics and breeding. On any other map, the standard FS25 animals work normally.
@@ -199,6 +216,25 @@ A few things worth knowing:
 - **Pack breeds work the same way.** Breeds added by an [animal pack](guide-animal-packs.md) appear in the selector alongside the built-in ones, and pack breeds may ship with some age groups already switched off. A row you unticked is remembered even if you remove the pack and add it back - as long as the pack still uses the same age groups. If a pack update shifts its age groups, the old entry is orphaned.
 
 Hiding every age group in a section removes that section's animals from the dealer. Remember the sex split: to drop a breed completely, untick every group in **both** of its sections. Hiding every buyable animal of a type leaves that type's dealer list empty - which is allowed, if that is what you want.
+
+---
+
+## Why are the dealer's animals so poor - or so expensive?
+
+**Short answer:** RL Menu -> **Settings** -> **Dealer Animal Quality**. One setting decides both how good the dealer's stock is and what it costs.
+
+- **Budget** - the dealer stocks weaker animals and asks barely more than they are worth. Cheap to buy from, slow to build a strong herd from.
+- **Standard** - the default, and exactly how the mod behaves without touching the setting: the full natural spread of animals at the usual dealer price.
+- **Premium** - the dealer stocks strong animals only, and charges a steep premium for them.
+
+A few things worth knowing:
+
+- **Roughly one animal in thirteen ignores the setting**, in either direction. A Budget dealer can be hiding a genuinely good animal, and a Premium one can offer something ordinary at a premium price. That is deliberate - it keeps it worth actually reading the list.
+- **Changing the setting restocks the dealer.** An animal's genetics are fixed when it is generated, so existing stock cannot be re-graded - it is replaced. Animals you already own are untouched, and the AI animals used for insemination are not affected at all.
+- **The herdsman pays the same price you do.** If you have it buying animals for you, it budgets at the active setting's markup.
+- **In multiplayer it is server-wide and admin-only** - other players see the setting but cannot change it.
+
+Don't confuse this with **Genetics Display**, which only changes whether genetics numbers are shown in animal names. It has no effect on what the dealer offers.
 
 ---
 

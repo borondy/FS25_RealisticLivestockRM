@@ -1,9 +1,7 @@
 --[[
     main.lua
-    Main loader for RealisticLivestockRM mod.
-    Loads all dependencies in the correct order.
-
-    IMPORTANT: The loading order is critical - do not reorder without testing.
+    The mod loader. Source order is load-bearing wherever a module reads a sibling at
+    file scope; those lines say so, and the rest are free.
 ]]
 
 local modDirectory = g_currentModDirectory
@@ -11,7 +9,11 @@ local modDirectory = g_currentModDirectory
 -- SECTION 0: Logging
 source(modDirectory .. "scripts/rmlib/RmLogging.lua")
 Log = RmLogging.getLogger("RLRM")
-Log:setLevel(RmLogging.LOG_LEVEL.INFO)
+source(modDirectory .. "scripts/rmlib/RmVersion.lua")
+local Ver = RmVersion.forMod(g_currentModName, Log)
+Log:info("Build: %s", Ver:describe())
+-- DEBUG unless this is a released stable version (>= 1.0.0.0 with no -dev suffix).
+Ver:applyBuildLogLevel()
 
 -- SECTION 1: Font Library
 source(modDirectory .. "scripts/fontlib/RmFontCharacter.lua")
@@ -23,15 +25,17 @@ source(modDirectory .. "scripts/gui/MPLoadingScreen.lua")
 -- SECTION 2b: Utilities
 source(modDirectory .. "scripts/utils/RmSafeUtils.lua")
 source(modDirectory .. "scripts/utils/RLAnimalUtil.lua")
+source(modDirectory .. "scripts/utils/RLPermissionHelper.lua")
 source(modDirectory .. "scripts/utils/RLScaleHelper.lua")
 source(modDirectory .. "scripts/utils/RLAnimalDisplayHelper.lua")
 source(modDirectory .. "scripts/utils/RLMoveDestinationHelper.lua")
+source(modDirectory .. "scripts/utils/RLTimeFormat.lua")
+source(modDirectory .. "scripts/utils/RLCalendar.lua")
 
 -- SECTION 2c: Constants
 source(modDirectory .. "scripts/core/RLConstants.lua")
 
--- SECTION 2d: Map country resolution (needs RLConstants; consumed by
--- RealisticLivestock.lua and RLSettings.lua much later in the order)
+-- SECTION 2d: Map country resolution (needs RLConstants)
 source(modDirectory .. "scripts/core/RLMapCountry.lua")
 
 -- SECTION 3: Animal Husbandry - Cluster System
@@ -56,15 +60,6 @@ source(modDirectory .. "scripts/animals/husbandry/RealisticLivestock_HusbandrySy
 source(modDirectory .. "scripts/animals/husbandry/RealisticLivestock_AnimalNameSystem.lua")
 source(modDirectory .. "scripts/animals/husbandry/RealisticLivestock_AnimalSystem.lua")
 
--- SECTION 6: Animal Shop - Controllers
-source(modDirectory .. "scripts/animals/shop/controllers/AnimalScreenBase.lua")
-source(modDirectory .. "scripts/animals/shop/controllers/AnimalScreenDealer.lua")
-source(modDirectory .. "scripts/animals/shop/controllers/AnimalScreenDealerFarm.lua")
-source(modDirectory .. "scripts/animals/shop/controllers/AnimalScreenDealerTrailer.lua")
-source(modDirectory .. "scripts/animals/shop/controllers/AnimalScreenTrailer.lua")
-source(modDirectory .. "scripts/animals/shop/controllers/AnimalScreenTrailerFarm.lua")
-source(modDirectory .. "scripts/animals/shop/controllers/AnimalScreenMoveFarm.lua")
-
 -- SECTION 7: Animal Shop - Events
 source(modDirectory .. "scripts/animals/shop/events/AIAnimalBuyEvent.lua")
 source(modDirectory .. "scripts/animals/shop/events/AIAnimalInseminationEvent.lua")
@@ -78,7 +73,6 @@ source(modDirectory .. "scripts/animals/shop/events/AnimalSellEvent.lua")
 source(modDirectory .. "scripts/animals/shop/events/SemenBuyEvent.lua")
 
 -- SECTION 8: Animal Shop - Core
-source(modDirectory .. "scripts/animals/shop/AnimalItemNew.lua")
 source(modDirectory .. "scripts/animals/shop/RealisticLivestock_AnimalItemStock.lua")
 
 -- SECTION 9: Events (General)
@@ -88,6 +82,7 @@ source(modDirectory .. "scripts/events/HusbandryMessageDeleteEvent.lua")
 source(modDirectory .. "scripts/events/ReturnStrawEvent.lua")
 source(modDirectory .. "scripts/events/TakeStrawEvent.lua")
 source(modDirectory .. "scripts/events/DiseaseTreatmentToggleEvent.lua")
+source(modDirectory .. "scripts/events/DiseaseCullEvent.lua")
 
 -- SECTION 10: Farms
 source(modDirectory .. "scripts/farms/FarmManager.lua")
@@ -103,6 +98,10 @@ source(modDirectory .. "scripts/bridge/RLModBridge.lua")
 
 -- SECTION 11b: Breeding Mathematics
 source(modDirectory .. "scripts/animal/BreedingMath.lua")
+source(modDirectory .. "scripts/animal/RLGeneticsDraw.lua")
+-- Reads RLConstants at file scope, so it must follow SECTION 2c; a consumer binding one of
+-- its re-exported tables at file scope must follow this line.
+source(modDirectory .. "scripts/animal/RLGenetics.lua")
 
 -- SECTION 11c: Horse Logic (delegate module, sourced before Animal.lua)
 source(modDirectory .. "scripts/animal/AnimalHorse.lua")
@@ -129,20 +128,13 @@ source(modDirectory .. "scripts/events/RLFilterCreateEvent.lua")
 source(modDirectory .. "scripts/events/RLFilterUpdateEvent.lua")
 source(modDirectory .. "scripts/events/RLFilterDeleteEvent.lua")
 source(modDirectory .. "scripts/events/RLFilterStateEvent.lua")
--- QF -> saved-filter conversion module. Depends on RLFilterUsage (above) and
--- RLScaleHelper (SECTION 2b); placed at the tail of 11g for legibility next to
--- the filter stack it serves. Consumed by AnimalFilterDialog:onClickSaveFilter
--- and the RLQuickFilterToSavedFilterTests suite.
+-- Depends on RLFilterUsage (above) and RLScaleHelper (SECTION 2b).
 source(modDirectory .. "scripts/utils/RLQuickFilterToSavedFilter.lua")
 
 -- SECTION 11h: Herdsman Rules - headless service + persistence + MP events
--- In-memory rule registry (sibling of RLFilterService). Serializer before
--- service (mirrors 11g): the service's saveToXMLFile/loadFromXMLFile call into
--- RLHerdsmanRuleSerialization. Wire + Create/Update/Delete/State events after the
--- service (the service references them only at call time, nil-guarded). Create ->
--- Update -> Delete -> State order mirrors 11g's filter events. RLHusbandryTargetKey first:
--- the wire (readTargets/writeTargets) + RLAnimalQuery (13b) + the Herdsman frame (13) all
--- key husbandry targets through it (uniqueId on server, net-object-id on a pure client).
+-- Serializer before service: the service's save/loadFromXMLFile call into it.
+-- RLHusbandryTargetKey first - the wire and its consumers key targets through it
+-- (uniqueId on the server, net-object-id on a pure client).
 source(modDirectory .. "scripts/herdsman/RLHusbandryTargetKey.lua")
 source(modDirectory .. "scripts/herdsman/RLHerdsmanRuleSerialization.lua")
 source(modDirectory .. "scripts/herdsman/RLHerdsmanRuleService.lua")
@@ -152,68 +144,36 @@ source(modDirectory .. "scripts/events/RLHerdsmanRuleUpdateEvent.lua")
 source(modDirectory .. "scripts/events/RLHerdsmanRuleDeleteEvent.lua")
 source(modDirectory .. "scripts/events/RLHerdsmanRuleStateEvent.lua")
 
--- SECTION 11i: Herdsman day-tick planner (M-Tick T1). Pure run-order + candidate
--- selection + sequential claim; consumes RLHerdsmanRuleService.OPERATION_ORDER (11h),
--- RLFilterEvaluator (11g), RLAnimalUtil (top of file). No game state at load.
+-- SECTION 11i: Herdsman day-tick planner - run order, candidate selection, sequential claim
 source(modDirectory .. "scripts/herdsman/RLHerdsmanPlanner.lua")
 
--- SECTION 11j: Herdsman day-tick executor (M-Tick T3). Applies the planner's actions in-game
--- (the in-game wall): dispatches the AI sell/buy/insemination events, mutates castrate/naming
--- directly, sets marks for mark-mode, deducts the per-farm wage. References the AI events +
--- RLHerdsmanRuleService only at call time (dependency-injected ctx), so it loads after 11i with
--- no game state at load. Ships DORMANT - no day-tick hook (T4 wires the tick + ctx build).
+-- SECTION 11j: Herdsman day-tick executor - applies the planner's actions in-game
 source(modDirectory .. "scripts/herdsman/RLHerdsmanExecutor.lua")
 
--- SECTION 11j2: Herdsman day-tick messages (M-Tick T5). The player-notification readout: a pure
--- buildMessages (summary.results -> AI_MANAGER_* records) + a thin emit that drives the server-local
--- addRLMessage sink per husbandry (MP transport now rides the addRLMessageDirect chokepoint's
--- incremental broadcast). References the aggregator only at call time, so it loads after 11j
--- and before the 11k tick that invokes emit.
+-- SECTION 11j2: Herdsman day-tick messages - the player-notification readout
 source(modDirectory .. "scripts/herdsman/RLHerdsmanMessages.lua")
 
--- SECTION 11k: Herdsman day-tick wiring (M-Tick T4). The tick that fires the planner (11i) ->
--- executor (11j) once per day server-side: a MessageType.DAY_CHANGED subscriber (registered from
--- RealisticLivestock_FSBaseMission:onStartMission) assembles the env from g_* and calls the
--- dual-run run(env). Loads after 11j (consumes both at call time); no game state at load.
+-- SECTION 11k: Herdsman day-tick wiring - fires planner then executor once per day, server-side
 source(modDirectory .. "scripts/herdsman/RLHerdsmanDayTick.lua")
 
--- SECTION 11l: Dealer sale-availability - headless registry. Pure override map
--- (canBeBought per subTypeName+minAge stage) + effective-state resolver; no game
--- state at load. Sourced here so the global class table exists for the in-game
--- rlTest suite; persistence, apply, the selector chain and the MP wire + events
--- follow below in dependency order.
+-- SECTION 11l: Dealer sale-availability. Registry first - the serializer and the apply layer
+-- both reference it at load, and the wire codec must precede the two events below.
 source(modDirectory .. "scripts/dealer/RLDealerSaleRegistry.lua")
--- Flat XML codec for the override map + the shared g_rlDealerSaleRegistry
--- singleton bootstrap. Loads after the registry class it references.
 source(modDirectory .. "scripts/dealer/RLDealerSaleSerialization.lua")
--- Apply layer: folds the override registry onto the live store.canBeBought flags
--- (Model A). References RLDealerSaleRegistry (above) at load; RL_ResetDealerEvent
--- only at call time inside applyAndRepopulate, so its later source order is safe.
 source(modDirectory .. "scripts/dealer/RLDealerSaleApply.lua")
--- Catalog: live per-open view-model (type/subType/age-stage + buyability) for the
--- sale-availability selector. Pure build(types, deps) + in-game enumerate() shell;
--- reads the live store.canBeBought (no mutation). Binds the RLAnimalUtil +
--- RLFilterFieldDisplay label seams (both sourced earlier) only inside the shell.
 source(modDirectory .. "scripts/dealer/RLDealerSaleCatalog.lua")
--- Selector model: pure sectioned checkbox model + result collector (buildSectionModel /
--- buildResult) the sale-availability selector dialog (B2) wraps. Env-free data-in/data-out;
--- sourced here in the dealer group, before the GUI dialog that consumes it (SECTION 13).
 source(modDirectory .. "scripts/dealer/RLDealerSaleSelectorModel.lua")
--- Reconcile helper: pure result-vs-catalog diff that resolves the selector's committed
--- set into registry set/clear ops against each stage's shipped default. Env-free
--- data-in/data-out; reaches no sibling dealer module at load or call time.
 source(modDirectory .. "scripts/dealer/RLDealerSaleReconcile.lua")
--- Wire codec: one four-field record shape (subTypeName / minAge / isSet / canBeBought)
--- shared by both dealer sale MP events, carrying its own count-prefix framing so the
--- two events cannot drift apart. Pure stream IO; no sibling dealer module at load time.
 source(modDirectory .. "scripts/dealer/RLDealerSaleWire.lua")
--- MP events. Both reference the wire codec (above) at load; the State event reaches
--- RLDealerSaleRegistry + RLDealerSaleApply (both above) and the Set event reaches
--- RL_ResetDealerEvent (via applyAndRepopulate) only at CALL time, so its later source
--- order is safe. The Set event's executeOnServer references the State event's
--- broadcaster at call time, so State-before-Set is not required either.
 source(modDirectory .. "scripts/events/RLDealerSaleStateEvent.lua")
 source(modDirectory .. "scripts/events/RLDealerSaleSetEvent.lua")
+
+-- SECTION 11m: Dealer quality presets. Reads RLConstants at file scope for the genetics
+-- domain, so it must follow SECTION 2c.
+source(modDirectory .. "scripts/dealer/RLDealerQualityModel.lua")
+
+-- Dereferences RLDealerQualityModel.DEFAULT_INDEX at file scope, so it must follow the model.
+source(modDirectory .. "scripts/dealer/RLDealerQualityResolver.lua")
 
 -- SECTION 12: GUI Elements
 source(modDirectory .. "scripts/gui/elements/DoubleOptionSliderElement.lua")
@@ -221,14 +181,12 @@ source(modDirectory .. "scripts/gui/elements/RenderElement.lua")
 source(modDirectory .. "scripts/gui/elements/TripleOptionElement.lua")
 
 -- SECTION 13: GUI Dialogs and Frames
-source(modDirectory .. "scripts/gui/RealisticLivestock_AnimalScreen.lua")
 source(modDirectory .. "scripts/gui/VisualAnimalsDialog.lua")
 source(modDirectory .. "scripts/gui/NameInputDialog.lua")
 source(modDirectory .. "scripts/gui/RealisticLivestockFrame.lua")
 source(modDirectory .. "scripts/gui/AnimalAIDialog.lua")
 source(modDirectory .. "scripts/gui/AnimalFilterDialog.lua")
 source(modDirectory .. "scripts/gui/AnimalMoveDestinationDialog.lua")
-source(modDirectory .. "scripts/gui/AnimalInfoDialog.lua")
 source(modDirectory .. "scripts/gui/DiseaseDialog.lua")
 source(modDirectory .. "scripts/gui/EarTagColourPickerDialog.lua")
 source(modDirectory .. "scripts/gui/RLFilterConditionDialog.lua")
@@ -236,57 +194,38 @@ source(modDirectory .. "scripts/gui/RLFilterValueSetDialog.lua")
 source(modDirectory .. "scripts/gui/RLHerdsmanFilterPickerDialog.lua")
 source(modDirectory .. "scripts/gui/RLHerdsmanHusbandryPickerDialog.lua")
 source(modDirectory .. "scripts/gui/RLHerdsmanDestinationPickerDialog.lua")
--- Dealer sale-availability selector dialog (B2): sectioned icon + age-range checkbox list.
--- Thin GUI wiring over the pure RLDealerSaleSelectorModel (sourced in the dealer group above).
 source(modDirectory .. "scripts/gui/RLDealerSaleSelectorDialog.lua")
+-- Reads the disease-selection modules (SECTION 20e2) at call time only.
+source(modDirectory .. "scripts/gui/RLDiseaseSelectorDialog.lua")
 source(modDirectory .. "scripts/gui/FileExplorerDialog.lua")
-source(modDirectory .. "scripts/gui/ProfileDialog.lua")
 source(modDirectory .. "scripts/gui/RL_InfoDisplayKeyValueBox.lua")
 source(modDirectory .. "scripts/gui/RealisticLivestock_InGameMenuAnimalsFrame.lua")
--- Temporary legacy-layer tripwire: arms every doomed AnimalScreen-layer member.
--- Sourced LAST in SECTION 13 so every doomed install (controllers, monolith,
--- both dialogs) is complete before it arms. Removed with the legacy layer.
-source(modDirectory .. "scripts/gui/RLLegacyTripwire.lua")
 
--- SECTION 13b: RL Tabbed Menu (new standalone TabbedMenu - migration in progress)
--- Services must be sourced before frames that call them; frames must be
--- sourced before the menu so FrameReference refs resolve.
+-- SECTION 13b: RL Tabbed Menu. Services before the frames that call them; frames before the
+-- menu, so FrameReference refs resolve.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLMessageService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalQuery.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLGeneticsFormatter.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLPenFeedForecast.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalInfoService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLDetailPaneHelper.lua")
--- Shared trade-request guard: one in-flight g_messageCenter request per event
--- class + a cancellable Timer watchdog + single-consume token. Sourced BEFORE the three
--- trade services (Move/Sell/Buy) that route their dispatch through it.
+-- The shared trade-request guard, before the three trade services that dispatch through it.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalEventRequest.lua")
--- GUI-local nil-safe selection-key builder: used by the four multi-select frames'
--- selection paths. Pure (delegates to RLAnimalUtil.toKey, SECTION 2b); sourced before the frames.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLSelectionKey.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalMoveService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalSellService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAnimalBuyService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLDealerQuery.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLAIStockService.lua")
--- Trailer endpoint read service (transfer keystone). Stateless reader that
--- wraps the base-game LivestockTrailer getters into transfer primitives; depends on
--- nothing but the trailer passed in. Loaded now but invoked by no shipped path until
--- the M2 transfer frame consumes it.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTrailerEndpointService.lua")
--- Transfer-frame adapter seam. Pure data-in/data-out (no g_*/getText);
--- the headless dual-run boundary. Loaded with the services, before the Transfer
--- frame and RLMenu consume it.
+-- The transfer adapter seam, before the three counterpart adapters that register into it.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferAdapter.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLFilterCycleHelper.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLFilterChipHelper.lua")
--- Herdsman rule view-model (M-Frame F1). Pure presenter consumed by the Herdsman
--- frame; depends only on RLFilterUsage (SECTION 11g) + RLHerdsmanRuleService.OPERATIONS
--- (SECTION 11h), both sourced above.
+-- Copies RLHerdsmanRuleService's operation tables and gate names by value at file scope,
+-- so it must follow SECTION 11h; sourcing it without the service raises at load.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLHerdsmanRulePresenter.lua")
--- Herdsman rule edit-model (M-Frame F4b). Pure overlay-merge + op-change carry-over
--- for the detail pane; depends on RLHerdsmanRulePresenter (above) for the per-operation
--- default params. Consumed by RLMenuHerdsmanFrame (below).
+-- Reads the presenter's per-operation defaults, so it must follow it.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLHerdsmanRuleEditModel.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuMessagesFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuInfoFrame.lua")
@@ -297,40 +236,20 @@ source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuAIFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuSettingsFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuHerdsmanFrame.lua")
 source(modDirectory .. "scripts/gui/rlmenu/frames/RLMenuTransferFrame.lua")
--- Pure tab-visibility + anchor policy (no g_*). Loaded before RLMenu so the
--- RLMenu.MODE_TRAILER / TRAILER_* constants can re-export the policy's values.
+-- Before RLMenu, whose MODE_TRAILER / TRAILER_* constants re-export the policy's values.
 source(modDirectory .. "scripts/gui/rlmenu/RLMenuTabPolicy.lua")
--- Pure MODE_FULL husbandry-anchor index resolver (no g_*, load-time inert). The
--- Info/Move/Sell frames (sourced above) reference it at runtime only, so it can
--- load here alongside RLMenuTabPolicy (same pure tier), before RLMenu.
 source(modDirectory .. "scripts/gui/rlmenu/RLMenuHusbandryAnchor.lua")
--- Concrete PEN counterpart adapter. In-game tier; registers itself
--- into RLTransferAdapter._adapters[RLMenuTabPolicy.PEN] at load, so it must follow
--- RLMenuTabPolicy (PEN constant) and the services it calls (RLTransferAdapter,
--- RLAnimalQuery, RLAnimalMoveService, all sourced above). No RLMenu dependency.
+-- The three counterpart adapters register into RLTransferAdapter._adapters at load, keyed by
+-- an RLMenuTabPolicy constant, so both must precede them. The AnimalUnloadEvent codec
+-- override precedes the world service so the unload dispatch fires the patched event.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferPenAdapter.lua")
--- WORLD counterpart service + adapter. The service owns the vanilla-
--- cluster -> Animal conversion + the base-game load/unload dispatch; the adapter
--- routes the seam to it and registers into RLTransferAdapter._adapters[RLMenuTabPolicy
--- .WORLD] at load, so both must follow RLMenuTabPolicy (WORLD constant) + RLTransferAdapter
--- (sourced above), and the adapter must follow the service it calls. Animal /
--- AnimalItemStock / AnimalLoadEvent / AnimalUnloadEvent load earlier (base-game / Animal
--- stack). No RLMenu dependency.
--- Codec-only override of base-game AnimalUnloadEvent (string cluster id over the wire);
--- sourced before the world service so the unload dispatch fires the patched event. Base-game
--- AnimalUnloadEvent is already loaded by this point, which the override asserts at load.
 source(modDirectory .. "scripts/animals/shop/events/AnimalUnloadEvent.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTrailerWorldService.lua")
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferWorldAdapter.lua")
--- EPP (butcher) counterpart adapter. In-game sink adapter; registers
--- into RLTransferAdapter._adapters[RLMenuTabPolicy.EPP] at load, so it must follow
--- RLMenuTabPolicy (EPP constant) and the services it calls (RLTransferAdapter,
--- RLAnimalMoveService, RLTrailerEndpointService, all sourced above). No RLMenu dependency.
 source(modDirectory .. "scripts/gui/rlmenu/services/RLTransferEppAdapter.lua")
 source(modDirectory .. "scripts/gui/rlmenu/RLMenu.lua")
--- Surviving AnimalScreen routing seam. Sourced last in 13b (after RLMenu) so it is the
--- SOLE installer of the AnimalScreen.show + LivestockTrailerActivatable.run overrides and
--- reads RLMenu's constants at load. Survives the SECTION 13 monolith teardown.
+-- Last in 13b: the sole installer of the AnimalScreen.show and LivestockTrailerActivatable.run
+-- overrides, and it reads RLMenu's constants at load.
 source(modDirectory .. "scripts/gui/rlmenu/RLAnimalScreenBridge.lua")
 
 -- SECTION 14: Migration System
@@ -359,10 +278,6 @@ source(modDirectory .. "scripts/player/RealisticLivestock_PlayerInputComponent.l
 -- SECTION 19: Vehicles
 source(modDirectory .. "scripts/vehicles/specializations/RealisticLivestock_LivestockTrailer.lua")
 source(modDirectory .. "scripts/vehicles/specializations/Rideable.lua")
-source(modDirectory .. "scripts/vehicles/RealisticLivestock_VehicleSystem.lua")
-
--- SECTION 20a: Herdsman (automated herd management)
-source(modDirectory .. "scripts/herdsman/AIAnimalManager.lua")
 
 -- SECTION 20b: Insemination (dewar/straw infrastructure)
 source(modDirectory .. "scripts/insemination/AIStrawUpdater.lua")
@@ -382,9 +297,37 @@ source(modDirectory .. "scripts/events/RL_ResetDealerEvent.lua")
 -- SECTION 20d: Insemination (dewar manager)
 source(modDirectory .. "scripts/insemination/DewarManager.lua")
 
--- SECTION 20e: Disease
+-- SECTION 20e: Disease. The pure tier first, then the entities that consume it.
+source(modDirectory .. "scripts/disease/RLDiseaseRates.lua")
+-- Must precede the parser: RLDiseaseDefinition reads RLDiseaseRecord.ENDPOINT at file scope,
+-- so sourcing the parser first raises on a nil global. The headless env sources the record
+-- itself, so only the in-game run covers this ordering.
+source(modDirectory .. "scripts/disease/RLDiseaseRecord.lua")
+-- Reads RLDiseaseRecord at call time only.
+source(modDirectory .. "scripts/disease/RLDiseaseDifficulty.lua")
+source(modDirectory .. "scripts/disease/RLDiseaseDefinition.lua")
+-- Reads RLConstants at file scope, so it must follow SECTION 2c.
+source(modDirectory .. "scripts/disease/RLDiseaseVulnerability.lua")
+source(modDirectory .. "scripts/disease/RLDiseaseFatality.lua")
+source(modDirectory .. "scripts/disease/RLDiseaseGenetics.lua")
+source(modDirectory .. "scripts/disease/RLDiseaseTransmission.lua")
+source(modDirectory .. "scripts/disease/RLDiseaseSpread.lua")
+source(modDirectory .. "scripts/disease/RLDiseaseEffects.lua")
+source(modDirectory .. "scripts/disease/RLDiseaseProgression.lua")
+source(modDirectory .. "scripts/disease/RLDiseaseStatus.lua")
+source(modDirectory .. "scripts/disease/RLDiseaseCull.lua")
+source(modDirectory .. "scripts/disease/RLDiseaseSaleGate.lua")
 source(modDirectory .. "scripts/disease/Disease.lua")
 source(modDirectory .. "scripts/disease/DiseaseManager.lua")
+
+-- SECTION 20e2: Disease selection (registry first: the serializer bootstraps its singleton at file scope)
+source(modDirectory .. "scripts/disease/RLDiseaseOverrideRegistry.lua")
+source(modDirectory .. "scripts/disease/RLDiseaseOverrideSerialization.lua")
+source(modDirectory .. "scripts/disease/RLDiseaseOverrideCatalog.lua")
+source(modDirectory .. "scripts/disease/RLDiseaseSelectorModel.lua")
+source(modDirectory .. "scripts/disease/RLDiseaseOverrideReconcile.lua")
+source(modDirectory .. "scripts/events/RLDiseaseOverrideStateEvent.lua")
+source(modDirectory .. "scripts/events/RLDiseaseOverrideSetEvent.lua")
 
 -- SECTION 20f: Core (lifecycle, settings, i18n)
 source(modDirectory .. "scripts/core/FSCareerMissionInfo.lua")
@@ -409,9 +352,7 @@ source(modDirectory .. "scripts/core/RLSettings.lua")
 source(modDirectory .. "scripts/utils/RLDebugUtils.lua")
 
 -- =============================================================================
--- RL Tabbed Menu: install hooks (end-of-file, after all sources are loaded).
--- RLMenu.install() appends hooks onto PlayerInputComponent and RealisticLivestock.loadMap.
--- setupGui runs AFTER loadMap so rlExtra texture config is available; see RLMenu.install() docs.
+-- RL Tabbed Menu: install hooks, after every source above has loaded.
 -- =============================================================================
 
 RLMenu.install()

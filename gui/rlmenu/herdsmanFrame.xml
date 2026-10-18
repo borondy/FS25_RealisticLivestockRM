@@ -14,8 +14,8 @@
 
     The list binds to the real rule registry (F3) and the right pane hosts the
     rule editor (F4b: name / operation / enabled / op-params + read-only filter
-    and husbandries summaries). The filter / husbandry pickers, the action bar,
-    and the legacy-active banner arrive in later herdsman frame slices.
+    and husbandries summaries), with the filter / husbandry pickers and the
+    action bar wired.
 -->
 <GUI name="RLMenuHerdsmanFrame">
     <GuiElement profile="fs25_menuContainer">
@@ -27,11 +27,6 @@
                 <Bitmap profile="fs25_menuHeaderIcon" imageSliceId="rlMenu.herdsman"/>
             </Bitmap>
             <Text profile="fs25_menuHeaderTitle" text="$l10n_rl_menu_herdsman_title"/>
-            <!-- Legacy-active coexistence banner: a fixed-text caution directly below the title,
-                 hidden until RLMenuHerdsmanFrame:refreshBanner finds an enabled legacy herdsman
-                 op on a husbandry. Read-only detection; no legacy code is touched. -->
-            <Text profile="rl_herdsmanLegacyBanner" id="legacyBanner"
-                  text="$l10n_rl_menu_herdsman_legacy_banner"/>
         </GuiElement>
 
         <!-- Content wrapper (the kept subCategoryPages[2]-role container). No
@@ -121,6 +116,7 @@
                                 <Bitmap profile="fs25_textInputIcon"/>
                             </Bitmap>
                             <Text profile="rlMenu_herdsmanRowTooltipInput" name="tooltip"/>
+                            <Text profile="rlMenu_herdsmanRowReasonInput" name="reason"/>
                         </TextInput>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_filters_editor_title_name"/>
                     </Bitmap>
@@ -131,14 +127,6 @@
                             <Text profile="rlMenu_herdsmanRowTooltip" name="tooltip"/>
                         </MultiTextOption>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_operation"/>
-                    </Bitmap>
-
-                    <!-- Enabled (binary) -->
-                    <Bitmap profile="fs25_multiTextOptionContainer" id="ruleEnabledRow">
-                        <BinaryOption profile="fs25_settingsBinaryOption" id="ruleEnabledToggle" onClick="onRuleEnabledChanged">
-                            <Text profile="rlMenu_herdsmanRowTooltip" name="tooltip"/>
-                        </BinaryOption>
-                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_enabled"/>
                     </Bitmap>
 
                     <!-- maxAnimals (numeric TextInput; hidden for castrate/naming) -->
@@ -154,6 +142,7 @@
                                 <Bitmap profile="fs25_textInputIcon"/>
                             </Bitmap>
                             <Text profile="rlMenu_herdsmanRowTooltipInput" name="tooltip"/>
+                            <Text profile="rlMenu_herdsmanRowReasonInput" name="reason"/>
                         </TextInput>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_ui_maxAnimals"/>
                     </Bitmap>
@@ -195,6 +184,7 @@
                                 <Bitmap profile="fs25_textInputIcon"/>
                             </Bitmap>
                             <Text profile="rlMenu_herdsmanRowTooltipInput" name="tooltip"/>
+                            <Text profile="rlMenu_herdsmanRowReasonInput" name="reason"/>
                         </TextInput>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_budgetfixed"/>
                     </Bitmap>
@@ -228,6 +218,7 @@
                         <Button profile="rl_settingsButton" id="ruleFilterButton" onClick="onClickRuleFilter">
                             <ThreePartBitmap profile="fs25_settingsButtonBg"/>
                             <Text profile="rlMenu_herdsmanRowTooltip" name="tooltip"/>
+                            <Text profile="rlMenu_herdsmanRowReason" name="reason"/>
                         </Button>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_info_filter_button"/>
                     </Bitmap>
@@ -243,6 +234,7 @@
                         <Button profile="rl_settingsButton" id="ruleHusbandriesButton" onClick="onClickRuleHusbandries">
                             <ThreePartBitmap profile="fs25_settingsButtonBg"/>
                             <Text profile="rlMenu_herdsmanRowTooltip" name="tooltip"/>
+                            <Text profile="rlMenu_herdsmanRowReason" name="reason"/>
                         </Button>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_husbandries"/>
                     </Bitmap>
@@ -257,8 +249,23 @@
                         <Button profile="rl_settingsButton" id="ruleDestinationButton" onClick="onClickRuleDestination">
                             <ThreePartBitmap profile="fs25_settingsButtonBg"/>
                             <Text profile="rlMenu_herdsmanRowTooltip" name="tooltip"/>
+                            <Text profile="rlMenu_herdsmanRowReason" name="reason"/>
                         </Button>
                         <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_destination"/>
+                    </Bitmap>
+
+                    <!-- Enabled (binary). LAST row by design: enabling is the commit
+                         step, not a parameter - the flush gate makes the filter / husbandries /
+                         destination requirements enabled-conditional (RLHerdsmanRulePresenter
+                         validateEdit / validateFlush), so the toggle belongs after the rows that
+                         satisfy those gates. Row order here IS the pane order; the frame resolves
+                         every row by id, and updateAlternatingElements re-derives the tint stripe
+                         from this element order on each render. -->
+                    <Bitmap profile="fs25_multiTextOptionContainer" id="ruleEnabledRow">
+                        <BinaryOption profile="fs25_settingsBinaryOption" id="ruleEnabledToggle" onClick="onRuleEnabledChanged">
+                            <Text profile="rlMenu_herdsmanRowTooltip" name="tooltip"/>
+                        </BinaryOption>
+                        <Text profile="fs25_settingsMultiTextOptionTitle" text="$l10n_rl_menu_herdsman_detail_enabled"/>
                     </Bitmap>
 
                 </ScrollingLayout>

@@ -12,10 +12,10 @@ Most settings are saved per-savegame and synced in multiplayer, and in multiplay
 
 | Setting | Default | Options | Description |
 |---------|---------|---------|-------------|
-| **Animal Death** | On | Off / On | Toggles all death mechanics (old age, low health, accidents, birth complications, and fatal diseases). When off, animals live indefinitely. The ModHub build labels this setting "Animal Removal". |
+| **Animal Death** | On | Off / On | Toggles all death mechanics (old age, low health, accidents, birth complications, and fatal diseases). When off, animals live indefinitely unless you cull one. The ModHub build labels this setting "Animal Removal". |
 | **Accident Chance** | 100% | 0% - 200% (10% steps) | Scales the probability of random accident deaths. 0% disables accidents entirely. 200% doubles the chance. Only available when Death is enabled. |
 
-*With death disabled, animals never die from any cause - but diseases can still make them sick if diseases are enabled.*
+*With death disabled, no animal dies on its own - only a cull from the Diseases dialog removes one - but diseases can still make them sick unless the **Diseases** setting is **Off**.*
 
 ---
 
@@ -34,8 +34,9 @@ Most settings are saved per-savegame and synced in multiplayer, and in multiplay
 | Setting | Default | Options | Description |
 |---------|---------|---------|-------------|
 | **Max Dealer Animals** | 50 | 20-200 (10 steps) | Maximum number of animals per species available in the animal dealer. Higher values give more choice when buying. |
+| **Dealer Animal Quality** | Standard | Budget / Standard / Premium | How good - and how expensive - the animals the dealer offers are. Budget stock is weaker and cheaper; Premium stock is stronger and costs more. Changing this **discards the current dealer stock and restocks** with new animals, because each animal's genetics are fixed when it is generated. Does not affect the AI animals used for insemination. Admin only in multiplayer. |
 | **Reset Animal Dealer** | - | Button | Restocks the dealer with a fresh set of randomised animals. Use this if you want different genetics or breeds available. Admin only in multiplayer. |
-| **Choose Animals For Sale** | - | Button | Opens a checklist of every animal the dealer can offer, grouped into sections - one per breed *and sex*, so "Holstein" and "Holstein Bull" are separate sections. Each section lists one row per age group. A row is ticked when the dealer currently offers it. Untick one and the dealer stops stocking it; tick it back and it returns. Pressing **OK** after a change restocks the dealer for **every** animal type, exactly like Reset Animal Dealer; **Back** discards. Admin only in multiplayer. |
+| **Choose Animals For Sale** | - | Button | Opens a checklist of every animal the dealer can offer, grouped into sections - one per breed *and sex*, so "Holstein" and "Holstein Bull" are separate sections. Each section lists one row per age group. A row is ticked when the dealer currently offers it. Untick one and the dealer stops stocking it; tick it back and it returns. Two shortcuts save a lot of clicking: **Space** ticks or unticks the **whole list** at once (if anything is ticked anywhere, the first press clears everything), and **S** does the same for **just the section you are on**, leaving every other section untouched. Both keys are rebindable under Options > Controls, and both have a button in the dialog if you would rather click. Pressing **OK** after a change restocks the dealer for **every** animal type, exactly like Reset Animal Dealer; **Back** discards. Admin only in multiplayer. |
 | **Reset AI Animals** | - | Button | Refreshes the artificial insemination animal pool. Use this if the current AI pool has poor genetics. Admin only in multiplayer. |
 
 ---
@@ -65,7 +66,7 @@ Most settings are saved per-savegame and synced in multiplayer, and in multiplay
 | Setting | Default | Options | Description |
 |---------|---------|---------|-------------|
 | **Maximum Amount of Messages** | 500 | 100-5,000 | Maximum number of messages stored per husbandry; older messages are removed when the limit is reached. |
-| **Message Log Summaries** | Off | Off / On | When off, each event (birth, death, disease) generates an individual message. When on, events are aggregated into daily summaries. |
+| **Message Log Summaries** | Off | Off / On | When off, every event gets its own message. When on, births, deaths, sales, purchases, newborns sold because the pen was full, and the herdsman's completed tasks are collected per husbandry and posted at the end of each day, one summary message for each kind of event. Every other message still posts on its own, including all disease messages - falling ill, recovering, and starting, stopping, resuming, or failing treatment. An animal that dies of a disease is counted in the day's deaths summary. |
 
 *Summary mode reduces message clutter in large herds but provides less detail per event.*
 
@@ -75,10 +76,10 @@ Most settings are saved per-savegame and synced in multiplayer, and in multiplay
 
 | Setting | Default | Options | Description |
 |---------|---------|---------|-------------|
-| **Diseases Enabled** | On | Off / On | Toggles the entire disease system. When off, new infections, disease spread, and disease effects are suspended. Already-infected animals are not cured; their diseases resume when the system is re-enabled. |
-| **Disease Chance** | 1x | 0.25x - 5x | Scales the base probability of all disease infections. At 0.25x, diseases are 4 times less common. At 5x, they're 5 times more frequent. Only available when Diseases are enabled. |
+| **Diseases** | Normal | Off / Easy / Normal / Hard / Very hard | How often animals fall ill and how fast diseases spread. **Easy**: diseases are rare, spread slowly and show symptoms at once. **Normal**: diseases strike now and then, spread at a moderate pace and show symptoms at once. **Hard**: diseases strike often, spread fast and most take a while to show symptoms. **Very hard**: diseases strike very often, spread very fast and most take even longer to show symptoms. **Off**: no new infections and no disease progression, spread, or effects; no calf inherits CVM and no dealer animal is stocked carrying it. Admin only in multiplayer. |
+| **Choose Diseases** | - | Button | Choose which diseases can appear. Opens a checklist of every disease, one row each with the animals it affects. A disease is ticked while it can start new cases; on a new savegame every disease is ticked. Untick one and no new case of it starts: no animal in your pens or at the dealer catches it, and it stops spreading - even from animals already ill with it. For CVM, that also means no animal the dealer stocks from then on carries it and no calf conceived from then on inherits it. Existing cases carry on unchanged: animals already ill with it recover or die as usual, treatment works as before, and a CVM carrier keeps its extra milk. Four cases keep a disease you switched off: an animal already incubating it still falls ill and gets the "Contracted" message, a calf conceived before the change is born with it, dealer animals stocked before the change keep CVM until they rotate out of the dealer's stock, and a CVM carrier keeps it for life. **A** ticks or unticks the highlighted row and **Space** ticks or unticks the whole list (if anything is ticked, the first press clears everything); both also have a button in the dialog. **OK** saves your choice and **Back** discards it. While **Diseases** is **Off**, no disease starts whatever is ticked here. Admin only in multiplayer. |
 
-*Disabling diseases suspends Mastitis, CVM, Foot & Mouth, PED, and Avian Influenza - it stops new infections, spread, and effects but does not cure already-infected animals; their diseases resume when re-enabled.*
+*Choosing **Off** suspends every disease but does not cure animals already infected: their diseases resume where they stopped when a level is chosen again, and existing diseases are hidden and a CVM carrier's extra milk stops while the setting is **Off**.*
 
 ---
 
@@ -91,6 +92,8 @@ Most settings are saved per-savegame and synced in multiplayer, and in multiplay
 | **Sort by Genetics** | Off | Off / On | When enabled, animals within each group are sorted by average genetics (highest first) before age, rather than the default type and age sorting. Diseased animals always sort to the top. |
 
 *The genetics tag format for Long mode is `[avg-metabolism:health:fertility:quality:productivity]` (productivity only shown for species that have it). Values are scaled 0-99.*
+
+These settings only change how genetics are DISPLAYED. They are unrelated to **Dealer Animal Quality**, which changes what the dealer actually generates.
 
 ---
 
@@ -113,7 +116,6 @@ Some settings depend on others being enabled:
 
 ```
 Animal Death -> Accident Chance (only when Death is On)
-Diseases Enabled -> Disease Chance (only when Diseases are On)
 Use Custom Animals -> Set Animals XML Path (only when Custom Animals is On)
 ```
 

@@ -281,15 +281,12 @@ function Animal.new(config)
     if self.age >= 0 then
         local environment = g_currentMission.environment
 
-        local currentMonth = environment.currentPeriod + 2
-        local currentYear = environment.currentYear
+        local currentMonth, currentYear = RLCalendar.getMonthAndYear(environment)
+        local birthMonth, birthYear = RLCalendar.subtractMonths(currentMonth, currentYear, self.age)
 
-        if currentMonth > 12 then currentMonth = currentMonth - 12 end
-
-        local birthYear = currentYear - math.floor(self.age / 12)
-        local birthMonth = currentMonth - (self.age % 12)
-
-        if birthMonth <= 0 then birthMonth = 12 + birthMonth end
+        Log:trace("Animal.new: birthday derived %s/%s from %s/%s at age %s",
+            tostring(birthMonth), tostring(birthYear), tostring(currentMonth), tostring(currentYear),
+            tostring(self.age))
 
         local birthCountry = math.random() >= 0.01 and RealisticLivestock.getMapCountryIndex() or
         math.random(1, #RLConstants.AREA_CODES)
@@ -1110,8 +1107,24 @@ function Animal:showMonitorInfo(box)
     end
 end
 
+--- The records a naming surface shows, as a fresh array in record order. Unlogged: the HUD calls it every frame.
+---@return table visible A new array of the records `Disease.isVisibleToPlayer` admits; empty when none.
+function Animal:getVisibleDiseases()
+    local visible = {}
+
+    if self.diseases == nil then return visible end
+
+    for _, disease in ipairs(self.diseases) do
+        if Disease.isVisibleToPlayer(disease) then table.insert(visible, disease) end
+    end
+
+    return visible
+end
+
+--- Add one HUD line per record a player may see. Unlogged: the HUD calls it every frame.
+---@param box table The HUD key/value box being filled.
 function Animal:showDiseasesInfo(box)
-    for _, disease in pairs(self.diseases) do disease:showInfo(box) end
+    for _, disease in ipairs(self:getVisibleDiseases()) do disease:showInfo(box) end
 end
 
 function Animal:getFillTypeTitle()
@@ -1133,6 +1146,11 @@ function Animal:getCanReproduce() return AnimalReproduction.getCanReproduce(self
 
 function Animal:updateHealth(foodFactor) AnimalHealth.updateHealth(self, foodFactor) end
 
+-- The disease multiplier scales positive growth only: an age-driven loss and the decrease terms
+-- stay exactly as a healthy animal's.
+--- Advance this animal's weight by one hour of growth, overweight regression and starvation.
+---@param foodFactor number The pen's 0..1 food factor
+---@return nil
 function Animal:updateWeight(foodFactor)
     local growthConstant = 0.6
     local subType = self:getSubType()
@@ -1146,7 +1164,13 @@ function Animal:updateWeight(foodFactor)
     local increase = baseIncrease * growthConstant * (1 + ((adultMonth - self.age) / 75)) *
     math.min(foodFactor * 1.25, 1)
 
-    if increase < 0 then metabolism = 1 + (1 - metabolism) end
+    if increase < 0 then
+        metabolism = 1 + (1 - metabolism)
+
+        Log:trace("updateWeight: animal=%s/%s age-driven loss (age=%s adultMonth=%s), metabolism inverted to %s",
+            tostring(self.farmId), tostring(self.uniqueId), tostring(self.age), tostring(adultMonth),
+            tostring(metabolism))
+    end
 
     increase = increase * metabolism
 
@@ -1155,10 +1179,28 @@ function Animal:updateWeight(foodFactor)
     if self.clusterSystem ~= nil and self.clusterSystem.owner ~= nil and self.clusterSystem.owner.spec_husbandryMilk ~= nil and self.isLactating then increase =
         increase * 0.75 end
 
+    if increase > 0 then
+        local multipliers, contributors = self:getDiseaseMultipliers("updateWeight")
+
+        if multipliers ~= nil then
+            local healthyIncrease = increase
+            increase = increase * multipliers.weightGain
+
+            if contributors > 0 then
+                Log:trace("updateWeight: animal=%s/%s disease weightGain=%s increase %s -> %s (contributors=%s)",
+                    tostring(self.farmId), tostring(self.uniqueId), tostring(multipliers.weightGain),
+                    tostring(healthyIncrease), tostring(increase), tostring(contributors))
+            end
+        end
+    end
+
     local decrease = 0
     if weight > targetWeight then decrease = (weight - targetWeight) / (metabolism * 25) end
 
     if foodFactor == 0 then
+        Log:trace("updateWeight: animal=%s/%s starving, weight=%s targetWeight=%s",
+            tostring(self.farmId), tostring(self.uniqueId), tostring(weight), tostring(targetWeight))
+
         if weight < targetWeight then
             decrease = (targetWeight - weight) / ((1 - (metabolism - 1)) * 150)
         elseif weight > targetWeight then
@@ -1195,38 +1237,225 @@ function Animal:advanceRecoveryPeriod()
         tostring(self.uniqueId), self.monthsSinceLastBirth, tostring(self.isLactating))
 end
 
+--- Advance this animal's per-period state. Recovery only; disease runs on the daily tick.
 function Animal:onPeriodChanged()
     self:advanceRecoveryPeriod()
-
-    local totalTreatmentCost = 0
-
-    for i = #self.diseases, 1, -1 do
-        local died, treatmentCost = self.diseases[i]:onPeriodChanged(self, self.deathEnabled)
-        totalTreatmentCost = totalTreatmentCost + treatmentCost
-
-        if died then return totalTreatmentCost end
-    end
-
-    return totalTreatmentCost
 end
 
-function Animal:onDayChanged(spec, isServer, day, month, year, currentDayInPeriod, daysPerPeriod, isSaleAnimal)
-    if g_server ~= nil and g_diseaseManager ~= nil then g_diseaseManager:onDayChanged(self) end
 
+-- ONE setDirty per animal per tick however many transitions land, because the flag is
+-- per-container and the countdown between transitions deliberately does not replicate.
+-- It leads every write this function makes; the driver's own writes precede it.
+--- Advance each non-genetic record one daily tick, roll an affected genetic record's death, and apply the result.
+---@param daysPerPeriod number The environment's configured days per period, 1..28.
+---@return boolean died True when a record killed this animal on this tick.
+---@return number treatmentCost The pen's share of this animal's treatment fees this tick.
+function Animal:onDiseaseTick(daysPerPeriod)
+    local INSTRUCTION = RLDiseaseProgression.INSTRUCTION
+    local STATE = RLDiseaseRecord.STATE
+
+    local totalTreatmentCost = 0
+    local geneticSkips = 0
+    local flagged = false
+    local died = false
+
+    -- Guarded so it cannot fire twice, and called BEFORE the write it protects.
+    ---@return nil
+    local function flagOnce()
+        if not flagged then
+            self:setDirty()
+            flagged = true
+        end
+    end
+
+    for i = #self.diseases, 1, -1 do
+        local disease = self.diseases[i]
+
+        -- The record's own copy, which is what every other SEIR consumer reads. A genetic record
+        -- skips the driver, so its state never moves and it is never removed. GENETIC only: a
+        -- `management` record rides along as SEIR like an infectious one.
+        if disease.archetype == "genetic" then
+            geneticSkips = geneticSkips + 1
+
+            -- An affected record rolls its own death and a carrier never does; deaths off SKIPS the roll.
+            if disease.isCarrier ~= true and self.deathEnabled then
+                local result, hazard = RLDiseaseGenetics.rollAffectedDeath(disease.model, daysPerPeriod)
+
+                if result == RLDiseaseGenetics.DEATH_RESULT.DIED then
+                    flagOnce()
+                    died = true
+
+                    Log:debug("onDiseaseTick: an affected genetic record killed the animal (disease=%s "
+                        .. "hazard=%s farmId=%s uniqueId=%s)", tostring(disease.title), tostring(hazard),
+                        tostring(self.farmId), tostring(self.uniqueId))
+
+                    self:die("rl_death_disease")
+
+                    -- The fee accrued earlier in this loop is KEPT, as on the SEIR death exit below.
+                    return died, totalTreatmentCost
+                end
+
+                Log:trace("onDiseaseTick: an affected genetic record survived its roll (disease=%s "
+                    .. "hazard=%s farmId=%s uniqueId=%s)", tostring(disease.title), tostring(hazard),
+                    tostring(self.farmId), tostring(self.uniqueId))
+            elseif disease.isCarrier ~= true then
+                Log:trace("onDiseaseTick: deaths off, skipping the affected genetic roll (disease=%s "
+                    .. "farmId=%s uniqueId=%s)", tostring(disease.title), tostring(self.farmId),
+                    tostring(self.uniqueId))
+            else
+                Log:trace("onDiseaseTick: a genetic carrier never rolls a death (disease=%s farmId=%s "
+                    .. "uniqueId=%s)", tostring(disease.title), tostring(self.farmId), tostring(self.uniqueId))
+            end
+        else
+            local stateBefore = disease.state
+            local runningBefore = disease.treatmentRunning
+            local counterBefore = disease.treatmentMonthsRemaining
+
+            local instruction, treatmentCost, treatmentResult =
+                disease:onDayChanged(self, self.deathEnabled, daysPerPeriod)
+
+            totalTreatmentCost = totalTreatmentCost + treatmentCost
+
+            -- A course is over exactly when a running counter reached 0, which is the one
+            -- write `advanceTreatment` makes on every completion. A RELIEVED or FAILED
+            -- completion leaves the state alone, so state alone cannot see it.
+            local courseEnded = runningBefore == true and counterBefore ~= 0
+                and disease.treatmentMonthsRemaining == 0
+
+            -- Keyed on the record's state, not on the tick's outcome: a record that ENTERED
+            -- already RECOVERED never reports a transition and must still be cleared, or it
+            -- renders "Being treated" for its whole immunity window with no way to clear it.
+            -- A DEAD record deliberately keeps its flag, as the death exit keeps its counters.
+            if disease.treatmentRunning and (disease.state == STATE.RECOVERED or courseEnded) then
+                flagOnce()
+                disease.treatmentRunning = false
+
+                Log:debug("onDiseaseTick: treatment course ended, flag cleared (disease=%s "
+                    .. "state=%s farmId=%s uniqueId=%s)",
+                    tostring(disease.title), tostring(disease.state),
+                    tostring(self.farmId), tostring(self.uniqueId))
+
+                -- Keyed on the driver's result: a failed cure and a completed relief look alike on
+                -- the record. A failed course that recovers naturally on the same tick announces as
+                -- a cure below instead.
+                if treatmentResult == RLDiseaseRecord.TREATMENT_RESULT.FAILED
+                    and disease.state == STATE.INFECTIOUS then
+                    self:addMessage("DISEASE_TREATMENT_FAILED", { disease.model.name })
+
+                    Log:debug("onDiseaseTick: treatment course failed, DISEASE_TREATMENT_FAILED posted "
+                        .. "(disease=%s farmId=%s uniqueId=%s)", tostring(disease.title),
+                        tostring(self.farmId), tostring(self.uniqueId))
+                else
+                    Log:trace("onDiseaseTick: course ended, no failure post (result=%s state=%s disease=%s "
+                        .. "farmId=%s uniqueId=%s)", tostring(treatmentResult), tostring(disease.state),
+                        tostring(disease.title), tostring(self.farmId), tostring(self.uniqueId))
+                end
+            end
+
+            if disease.state ~= stateBefore then
+                flagOnce()
+
+                Log:debug("onDiseaseTick: record moved %s -> %s (disease=%s farmId=%s uniqueId=%s)",
+                    tostring(stateBefore), tostring(disease.state), tostring(disease.title),
+                    tostring(self.farmId), tostring(self.uniqueId))
+
+                -- Symptom onset is when a player first learns of the disease, so the contraction
+                -- message posts here. It posts in this record's own iteration, so it precedes a
+                -- death that a record processed later in this loop causes.
+                if stateBefore == STATE.EXPOSED and disease.state ~= STATE.EXPOSED then
+                    self:addMessage("DISEASE_CONTRACTED", { disease.model.name })
+
+                    Log:debug("onDiseaseTick: symptoms showed, contraction announced (disease=%s state=%s "
+                        .. "farmId=%s uniqueId=%s)", tostring(disease.title), tostring(disease.state),
+                        tostring(self.farmId), tostring(self.uniqueId))
+                end
+
+                -- Keyed on the transition, so an immune record announces once rather than every
+                -- tick; a completed cure and a natural recovery both land here.
+                if disease.state == STATE.RECOVERED then
+                    self:addMessage("DISEASE_CURED", { disease.model.name })
+
+                    Log:debug("onDiseaseTick: record recovered, DISEASE_CURED posted (disease=%s from=%s "
+                        .. "farmId=%s uniqueId=%s)", tostring(disease.title), tostring(stateBefore),
+                        tostring(self.farmId), tostring(self.uniqueId))
+                end
+            end
+
+            if instruction == INSTRUCTION.REMOVE then
+                flagOnce()
+                -- BY INDEX: `removeDisease` walks pairs and takes the first title match, so a
+                -- title-keyed dispatch from this reverse loop could remove a different record.
+                table.remove(self.diseases, i)
+
+                Log:debug("onDiseaseTick: immunity expired, record removed (disease=%s "
+                    .. "farmId=%s uniqueId=%s remaining=%d)",
+                    tostring(disease.title), tostring(self.farmId), tostring(self.uniqueId),
+                    #self.diseases)
+
+            elseif instruction == INSTRUCTION.DIED then
+                flagOnce()
+                died = true
+
+                Log:debug("onDiseaseTick: record killed the animal (disease=%s farmId=%s "
+                    .. "uniqueId=%s)", tostring(disease.title), tostring(self.farmId),
+                    tostring(self.uniqueId))
+
+                self:die("rl_death_disease")
+
+                -- The fee accrued earlier in this loop is KEPT: those ticks were served.
+                return died, totalTreatmentCost
+
+            elseif instruction == INSTRUCTION.NONE then
+                Log:trace("onDiseaseTick: nothing applied, the record stays attached "
+                    .. "(disease=%s state=%s farmId=%s uniqueId=%s)",
+                    tostring(disease.title), tostring(disease.state),
+                    tostring(self.farmId), tostring(self.uniqueId))
+            end
+        end
+    end
+
+    if geneticSkips > 0 then
+        Log:debug("onDiseaseTick: skipped %d genetic record(s) (farmId=%s uniqueId=%s)",
+            geneticSkips, tostring(self.farmId), tostring(self.uniqueId))
+    end
+
+    Log:trace("onDiseaseTick: done (records=%d skipped=%d flagged=%s cost=%s farmId=%s uniqueId=%s)",
+        #self.diseases, geneticSkips, tostring(flagged), tostring(totalTreatmentCost),
+        tostring(self.farmId), tostring(self.uniqueId))
+
+    return died, totalTreatmentCost
+end
+
+--- One day for this animal: aging, reproduction and death; a nil date reads today's calendar date.
+---@param spec table|nil owning husbandry or trailer spec; nil for a pool animal
+---@param isServer boolean whether this peer is the server
+---@param day number|nil calendar day of the month, or nil to read the environment
+---@param month number|nil calendar month
+---@param year number|nil calendar year
+---@param currentDayInPeriod number|nil environment day within the period
+---@param daysPerPeriod number|nil environment days per period
+---@param isSaleAnimal boolean|nil true for a sale or AI pool animal
+---@return number children
+---@return number deadAnimals
+---@return number childrenSold
+---@return number childrenSoldAmount
+---@return number lowHealthDeath
+---@return number oldDeath
+---@return number randomDeath
+---@return number randomDeathMoney
+function Animal:onDayChanged(spec, isServer, day, month, year, currentDayInPeriod, daysPerPeriod, isSaleAnimal)
     self:setRecentlyBoughtByAI(false)
 
     local birthday = self.birthday
 
     if day == nil then
         local environment = g_currentMission.environment
-        month = environment.currentPeriod + 2
         currentDayInPeriod = environment.currentDayInPeriod
-
-        if month > 12 then month = month - 12 end
-
         daysPerPeriod = environment.daysPerPeriod
-        day = 1 + math.floor((currentDayInPeriod - 1) * (RLConstants.DAYS_PER_MONTH[month] / daysPerPeriod))
-        year = environment.currentYear
+        day, month, year = RLCalendar.getDate(environment)
+
+        Log:trace("Animal:onDayChanged: no date passed, read %s/%s/%s (farmId=%s uniqueId=%s)",
+            tostring(day), tostring(month), tostring(year), tostring(self.farmId), tostring(self.uniqueId))
     end
 
 
@@ -1504,8 +1733,30 @@ function Animal:updateInput()
     end
 end
 
+-- The disease multipliers come from getDiseaseMultipliers once per call, above the fill-type loop;
+-- it answers nil for an animal without records or with diseases off, and output then stays unscaled.
+--- Recompute this animal's per-hour output for every fill type its subtype produces.
+---@param temp number The day's minimum temperature, read by the wool cold gate.
+---@return nil
 function Animal:updateOutput(temp)
     local subType = self:getSubType()
+
+    -- Resolved above the fill-type loop so every fill type reads the same multipliers.
+    local multipliers, contributors = self:getDiseaseMultipliers("updateOutput")
+
+    if multipliers ~= nil then
+        if contributors > 0 then
+            Log:trace("updateOutput: animal=%s/%s disease multipliers milk=%s pallets=%s manure=%s "
+                .. "liquidManure=%s (contributors=%s)",
+                tostring(self.farmId), tostring(self.uniqueId), tostring(multipliers.milk),
+                tostring(multipliers.pallets), tostring(multipliers.manure),
+                tostring(multipliers.liquidManure), tostring(contributors))
+        else
+            Log:trace("updateOutput: animal=%s/%s holds disease records but none contributes "
+                .. "(none symptomatic or incubating, or an unregistered title), output unscaled",
+                tostring(self.farmId), tostring(self.uniqueId))
+        end
+    end
 
     for fillType, output in pairs(subType.output) do
         local litersPerDay = 0
@@ -1528,6 +1779,9 @@ function Animal:updateOutput(temp)
 
             if fillTypeIndex == FillType.WOOL then
                 if temp < 12 then litersPerDay = 0 end
+
+                Log:trace("updateOutput[wool]: animal=%s/%s temp=%s coldGateClosed=%s",
+                    tostring(self.farmId), tostring(self.uniqueId), tostring(temp), tostring(temp < 12))
             elseif fillTypeIndex == FillType.GOATMILK then
                 local monthsSinceLastBirth = self.monthsSinceLastBirth or 12
                 local factor = 0.8
@@ -1541,16 +1795,17 @@ function Animal:updateOutput(temp)
                 end
 
                 litersPerDay = litersPerDay * factor
+
+                Log:trace("updateOutput[goatmilk]: animal=%s/%s months=%s isLactating=%s isParent=%s factor=%s",
+                    tostring(self.farmId), tostring(self.uniqueId), tostring(monthsSinceLastBirth),
+                    tostring(self.isLactating), tostring(self.isParent), tostring(factor))
             end
 
             litersPerDay = litersPerDay * productivity
         end
 
-        -- Milk diagnostics: capture the milk gate breakdown here, but defer the
-        -- logging until AFTER the disease modifier below - a sick cow is zeroed by
-        -- disease:modifyOutput, not by the lactation gate, and the two are
-        -- indistinguishable from the husbandry side (both read 0). Carrying these in
-        -- loop-body locals lets the post-disease log split "gate failure" from "disease".
+        -- Milk diagnostics: capture the gate breakdown here and log it AFTER the disease multiplier,
+        -- because a disease zeroing milk and a lactation-gate failure both read 0 from the husbandry side.
         local isMilk = fillType == "milk"
         local milkCurve, milkFactor, milkProductivity, milkPreDisease
 
@@ -1573,16 +1828,17 @@ function Animal:updateOutput(temp)
             milkCurve, milkFactor, milkProductivity, milkPreDisease = curveLitersPerDay, factor, productivity, litersPerDay
         end
 
-        for _, disease in pairs(self.diseases) do litersPerDay = disease:modifyOutput(fillType, litersPerDay) end
+        if multipliers ~= nil then litersPerDay = litersPerDay * multipliers[fillType] end
 
         if isMilk then
             -- litersPerDay is now the FINAL value (post lactation gate AND disease).
             -- TRACE the full breakdown for every cow every recompute; there is no
             -- debugger, so this is the only way to see why a lactating cow yields no milk.
-            Log:trace("updateOutput[milk]: animal=%s/%s subType=%s age=%d curve(l/day)=%.3f isLactating=%s isParent=%s months=%s factor=%.3f productivity=%.3f diseases=%d -> preDisease l/h=%.4f final l/h=%.4f",
+            Log:trace("updateOutput[milk]: animal=%s/%s subType=%s age=%d curve(l/day)=%.3f isLactating=%s isParent=%s months=%s factor=%.3f productivity=%.3f diseases=%d diseaseMilk=%s -> preDisease l/h=%.4f final l/h=%.4f",
                 tostring(self.farmId), tostring(self.uniqueId), tostring(subType.name), self.age or -1,
                 milkCurve, tostring(self.isLactating), tostring(self.isParent),
                 tostring(self.monthsSinceLastBirth), milkFactor, milkProductivity, #self.diseases,
+                tostring(multipliers ~= nil and multipliers.milk or nil),
                 milkPreDisease / 24, litersPerDay / 24)
 
             -- Smoking-gun DEBUG: client shows "lactating" but the FINAL server output is 0.
@@ -1619,25 +1875,58 @@ function Animal:getHasName()
     return self.name ~= nil and self.name ~= ""
 end
 
+-- Silent by contract: a cured notification belongs to the transition that cures. Matching is
+-- by title over an unordered walk, so two records of one title lose an UNSPECIFIED one - which
+-- is why `Animal:onDiseaseTick`, with no production caller left here, removes by INDEX.
+--- Detach the first record carrying `title`, silently.
+---
+--- The dirty flag LEADS `table.remove`, and only inside the match branch. Leading is the
+--- contract: the flag is the sole cause of replication, so writing it last puts it behind the
+--- statement that can raise and a mid-removal failure would leave the server holding a record
+--- no client can see, with nothing scheduled to correct it. The asymmetry is what settles the
+--- order - an under-flag is a silent divergence with no bound on how long it lasts, an
+--- over-flag costs one extra pen broadcast. The no-match arm must NOT flag: it changes
+--- nothing, and the flush it would buy ships the whole pen.
+---@param title string Disease type title to remove.
 function Animal:removeDisease(title)
     for i, disease in pairs(self.diseases) do
-        if disease.type.title == title then
-            self:addMessage("DISEASE_CURED", { disease.type.name })
+        -- The record carries its own title, so this no longer reaches through to the registry
+        -- entry to ask what it is called.
+        if disease.title == title then
+            Log:trace("removeDisease: removing record (disease=%s farmId=%s uniqueId=%s remaining=%d)",
+                tostring(title), tostring(self.farmId), tostring(self.uniqueId), #self.diseases - 1)
+
+            -- Nothing between this and the removal: the flag is what makes the removal replicate,
+            -- so anything placed in the gap is a statement that can raise between them.
+            self:setDirty()
             table.remove(self.diseases, i)
             return
         end
     end
+
+    Log:trace("removeDisease: no record carries that title, nothing removed (disease=%s uniqueId=%s)",
+        tostring(title), tostring(self.uniqueId))
 end
 
-function Animal:addDisease(type, isCarrier, genes)
-    table.insert(self.diseases, Disease.new(type, isCarrier, genes))
+-- The flag leads the insert, for `removeDisease`'s reason. Safe only because `setDirty` defers the flush to the
+-- placeable's next update: never flush synchronously between them. Sale, dealer and AI animals have no cluster
+-- system, so their flag goes nowhere. No message: the surfacing tick or `contractDisease` announces the record.
+--- Attach a new disease record to this animal.
+---@param model table Disease model entry from the disease manager's registry.
+---@param isCarrier boolean|nil True for an asymptomatic carrier record.
+---@param genes number|nil Count of affected genes inherited, 0 when not genetic.
+function Animal:addDisease(model, isCarrier, genes)
+    self:setDirty()
 
-    self:addMessage("DISEASE_CONTRACTED", { type.name })
+    Log:trace("addDisease: contracted, animal flagged dirty (disease=%s farmId=%s uniqueId=%s)",
+        tostring(model.title), tostring(self.farmId), tostring(self.uniqueId))
+
+    table.insert(self.diseases, Disease.new(model, isCarrier, genes))
 end
 
 function Animal:getDisease(title)
     for _, disease in pairs(self.diseases) do
-        if disease.type.title == title then return disease end
+        if disease.title == title then return disease end
     end
 
     return nil
@@ -1714,8 +2003,88 @@ function Animal:getCanBeInseminatedByAnimal(animal) return AnimalReproduction.ge
 
 function Animal:setInsemination(animal) AnimalReproduction.setInsemination(self, animal) end
 
+-- A GAMEPLAY predicate: the saved-filter field the herdsman sells on reads it, as do the list sorts
+-- and the "Diseased Animals" grouping. The per-record rule's one home is RLDiseaseStatus.isDiseased.
+--- Whether diseases are on and at least one record groups this animal as diseased. Unlogged: per-comparison callers.
+---@return boolean hasActiveDisease A strict boolean; false with no manager, diseases off or no diseases table.
 function Animal:getHasAnyDisease()
-    return g_diseaseManager ~= nil and g_diseaseManager.diseasesEnabled and #self.diseases > 0
+    if g_diseaseManager == nil or not g_diseaseManager.diseasesEnabled or self.diseases == nil then
+        return false
+    end
+
+    for _, disease in ipairs(self.diseases) do
+        if RLDiseaseStatus.isDiseased(disease) then
+            return true
+        end
+    end
+
+    return false
+end
+
+-- The one gate for every sub-lethal consumer (output, growth, conception) and the only resolve
+-- caller. Silent for an animal without records - the hot path. The display predicates keep theirs.
+-- A carrier's output profile folds in HERE, into the resolver's own table, so it shares this gate.
+--- Resolve this animal's sub-lethal disease multipliers for one consumer, behind the diseases setting.
+---@param caller string Label naming the consumer, used only by the refusal and fold TRACEs
+---@return table|nil multipliers The resolver's table with carrier profiles folded; nil with no records or diseases off
+---@return number|nil contributors Records resolved plus carrier records folded; nil alongside a nil table
+function Animal:getDiseaseMultipliers(caller)
+    if self.diseases == nil or next(self.diseases) == nil then return nil end
+
+    if g_diseaseManager == nil or not g_diseaseManager.diseasesEnabled then
+        Log:trace("getDiseaseMultipliers: animal=%s/%s caller=%s skipped, reason=%s",
+            tostring(self.farmId), tostring(self.uniqueId), tostring(caller),
+            g_diseaseManager == nil and "no disease manager" or "diseases off")
+
+        return nil
+    end
+
+    local multipliers, contributors = RLDiseaseEffects.resolve(self.diseases, g_diseaseManager.diseases)
+    local carrier, carriers = RLDiseaseGenetics.carrierOutputs(self.diseases, g_diseaseManager.diseases)
+
+    if carriers > 0 then
+        for _, name in ipairs(RLDiseaseEffects.OUTPUT_CHANNELS) do
+            multipliers[name] = multipliers[name] * carrier[name]
+        end
+
+        Log:trace("getDiseaseMultipliers: animal=%s/%s caller=%s folded %s carrier record(s), milk=%s",
+            tostring(self.farmId), tostring(self.uniqueId), tostring(caller), tostring(carriers),
+            tostring(multipliers.milk))
+    end
+
+    return multipliers, contributors + carriers
+end
+
+-- Each record's token comes from RLDiseaseStatus.iconOf, the per-record rule's one home. The flags
+-- OR across records, so a carrier running an active infection lights two icons.
+--- Resolve the three display flags the animal-list cards render as status icons, behind the diseases gate.
+---@return boolean untreated true iff at least one record's token is UNTREATED
+---@return boolean treated true iff at least one record's token is TREATED
+---@return boolean carrier true iff at least one record's token is CARRIER
+function Animal:getDiseaseStatusFlags()
+    if g_diseaseManager == nil or not g_diseaseManager.diseasesEnabled or self.diseases == nil then
+        return false, false, false
+    end
+
+    local ICON = RLDiseaseStatus.ICON
+    local untreated, treated, carrier = false, false, false
+
+    for _, disease in ipairs(self.diseases) do
+        local icon = RLDiseaseStatus.iconOf(disease)
+
+        if icon == ICON.CARRIER then
+            carrier = true
+        elseif icon == ICON.TREATED then
+            treated = true
+        elseif icon == ICON.UNTREATED then
+            untreated = true
+        end
+    end
+
+    Log:trace("getDiseaseStatusFlags: uniqueId=%s untreated=%s treated=%s carrier=%s",
+        tostring(self.uniqueId), tostring(untreated), tostring(treated), tostring(carrier))
+
+    return untreated, treated, carrier
 end
 
 function Animal:createVisual(husbandryId, animalId)

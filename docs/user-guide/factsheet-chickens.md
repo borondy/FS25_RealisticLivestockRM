@@ -35,7 +35,7 @@ Hens lay eggs regardless of whether a rooster is present - a rooster is only nee
 | 60 mo | 1 - 5 |
 | 72+ mo | 0 |
 
-*Egg production peaks at 12 months and holds steady until 48 months, then declines to zero by 72 months (6 years). Genetics cause large variation between individual hens. Avian Influenza stops ALL egg production.*
+*Egg production peaks at 12 months and holds steady until 48 months, then declines to zero by 72 months (6 years). Genetics cause large variation between individual hens. With Avian Flu (LPAI), egg production drops to about 40% of normal while a bird is sick.*
 
 ```mermaid
 %%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#e65100"}}}}%%
@@ -59,7 +59,7 @@ Chicken prices are low and identical for hens and roosters:
 | Newborn | $3 | $2 |
 | Adult (36 mo) | $30 | $25 |
 
-*Actual sell prices vary - well-bred healthy chickens sell for more, while sick birds sell for less. Even at peak value chickens are worth very little. Their value is in egg production.*
+*Actual sell prices vary - well-bred healthy chickens sell for more, and a sick bird is worth less while sick. Even at peak value chickens are worth very little. Their value is in egg production.*
 
 ### What Affects Sell Price
 
@@ -68,7 +68,7 @@ Chicken prices are low and identical for hens and roosters:
 | Quality genetics | Better genetics -> noticeably higher price |
 | Weight | Well-fed birds near target weight are worth more |
 | Health | Healthy birds sell for more |
-| Avian Influenza | Drastically reduces price |
+| Avian Flu (LPAI or HPAI) | Drastically reduces price |
 
 ---
 
@@ -141,9 +141,12 @@ A successful hatch is typically around 5 chicks, and can reach up to 12 from a h
 
 | Disease | Spread | Fatal? | Treatment | Impact |
 |---------|--------|--------|-----------|--------|
-| **Avian Influenza** | Rapidly | Yes, high fatality | **None** | Stops ALL egg production, severe price loss |
+| **Avian Flu (LPAI)** | Moderately | Low | 1 month, $5 | Egg production drops to about 40% of normal while a bird is sick, severe price loss |
+| **Avian Flu (HPAI)** | Rapidly | Almost always fatal | **None** - cull | Rare; eggs unchanged, severe price loss |
 
-> **Avian Flu is untreatable.** It spreads fast, kills many infected birds, and completely stops egg production. Infected chickens that survive gain immunity for about two years, but an outbreak can devastate a flock. See the [Disease Guide](guide-diseases.md).
+*The Fatal column holds while **Animal Death** is on.*
+
+> **Two strains of avian flu.** LPAI is the common one: cheap to treat and rarely fatal, but egg production drops to about 40% of normal while a bird is sick. HPAI is rare but, with **Animal Death** on, almost always fatal, and it has no treatment - cull a sick bird from the Diseases dialog on the day it shows, because a bird culled that day infects nobody. Survivors are immune for 12 months (LPAI) or 24 months (HPAI). See the [Disease Guide](guide-diseases.md).
 
 ---
 
@@ -153,7 +156,7 @@ A successful hatch is typically around 5 chicks, and can reach up to 12 from a h
 
 2. **Peak production is 12-48 months.** Buy young hens and plan to replace them before they hit 48 months (4 years) when production starts declining.
 
-3. **Avian Flu is devastating.** No treatment exists. Sell infected birds quickly to limit spread and recover some value. Keeping smaller flocks in separate pens also limits outbreak damage.
+3. **Watch for HPAI.** It has no treatment and sick birds cannot be sold at the dealer - cull each case from the Diseases dialog on the day it shows. LPAI, the common strain, is cheap to treat.
 
 4. **Cheap but productive.** At $3 per chick and up to 9 eggs/day at peak, chickens have the best return-on-investment for small farms. The initial cost is negligible.
 

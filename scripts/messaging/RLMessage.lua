@@ -49,6 +49,12 @@ RLMessage = {
 		["title"] = "disease",
 		["importance"] = 3
 	},
+	-- A course that ended without a cure: per animal, INDIVIDUAL (not in RLMessageAggregator.AGGREGATABLE).
+	["DISEASE_TREATMENT_FAILED"] = {
+		["text"] = "diseaseTreatment_failed",
+		["title"] = "disease",
+		["importance"] = 2
+	},
 	["NAME_CHANGE"] = {
 		["text"] = "nameChange",
 		["title"] = "name",
@@ -226,6 +232,18 @@ RLMessage = {
 		["title"] = "aiManager",
 		["importance"] = 3
 	},
+	-- Herdsman horse-care op (count-only, no money - the wage is charged by the executor and never
+	-- reported here). Net-new herdsman family with no mark variant: horse care is perform-only.
+	["AI_MANAGER_HORSE_CARE_SINGLE"] = {
+		["text"] = "aiManager_horseCare_single",
+		["title"] = "aiManager",
+		["importance"] = 3
+	},
+	["AI_MANAGER_HORSE_CARE_MULTIPLE"] = {
+		["text"] = "aiManager_horseCare_multiple",
+		["title"] = "aiManager",
+		["importance"] = 3
+	},
 	-- Herdsman move age-skip (EPP butcher destinations): animals outside the butcher's
 	-- accepted age window are skipped at delivery. Count-only, INDIVIDUAL (not in
 	-- RLMessageAggregator.AGGREGATABLE) - exceptional + actionable, so it stays out of the daily
@@ -237,6 +255,18 @@ RLMessage = {
 	},
 	["AI_MANAGER_MOVE_SKIPPED_AGE_MULTIPLE"] = {
 		["text"] = "aiManager_moveSkippedAge_multiple",
+		["title"] = "aiManager",
+		["importance"] = 3
+	},
+	-- Herdsman move sick-skip (EPP butcher destinations): animals showing symptoms stay in the pen.
+	-- Same shape as the age-skip pair: count-only, INDIVIDUAL, beside or instead of the moved message.
+	["AI_MANAGER_MOVE_SKIPPED_SICK_SINGLE"] = {
+		["text"] = "aiManager_moveSkippedSick_single",
+		["title"] = "aiManager",
+		["importance"] = 3
+	},
+	["AI_MANAGER_MOVE_SKIPPED_SICK_MULTIPLE"] = {
+		["text"] = "aiManager_moveSkippedSick_multiple",
 		["title"] = "aiManager",
 		["importance"] = 3
 	},
@@ -305,6 +335,11 @@ RLMessage = {
 	},
 	["DAILY_MARK_MOVE_SUMMARY"] = {
 		["text"] = "dailyMarkMoveSummary",
+		["title"] = "aiManager",
+		["importance"] = 2
+	},
+	["DAILY_HORSE_CARE_SUMMARY"] = {
+		["text"] = "dailyHorseCareSummary",
 		["title"] = "aiManager",
 		["importance"] = 2
 	}

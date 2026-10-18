@@ -638,25 +638,6 @@
         <textAlignment value="left"/>
     </Profile>
 
-    <!--
-        Legacy-active coexistence banner: a fixed-text caution shown in the header, directly
-        below the Herdsman title, while legacy herdsman tasks are still enabled on a husbandry
-        (the migration-window double-execution hazard). Orange ($preset_colorOrange) reads as a
-        caution without the red "error" weight. Hidden by default; RLMenuHerdsmanFrame:refreshBanner
-        toggles it. x matches the title inset; y is a first guess tuned by the onFrameOpen
-        measurement log, not eyeballed.
-    -->
-    <Profile name="rl_herdsmanLegacyBanner" extends="fs25_textDefault" with="anchorTopLeft pivotTopLeft">
-        <size value="1400px 26px"/>
-        <position value="100px -58px"/>
-        <textSize value="19px"/>
-        <textBold value="true"/>
-        <textColor value="$preset_colorOrange"/>
-        <textAlignment value="left"/>
-        <textUpperCase value="false"/>
-        <visible value="false"/>
-    </Profile>
-
     <!-- Per-row help line for the herdsman rule editor (RLMenuHerdsmanFrame). Lives as a
          child of each row's value WIDGET (the legacy rl_aiTooltip home in AnimalScreen.xml), NOT the
          row container (which clips to its bounds). Extends the base tooltip profile and overrides
@@ -674,6 +655,50 @@
          the name / maxAnimals / budgetFixed rows. -->
     <Profile name="rlMenu_herdsmanRowTooltipInput" extends="rlMenu_herdsmanRowTooltip">
         <position value="387px 0px"/>
+    </Profile>
+
+    <!-- Per-row REASON line for the herdsman rule editor: a second Text stacked in the same value
+         widget, in the same rect as the help line above, carrying the "Required" / bounds string for
+         a row whose data is missing or out of domain.
+
+         This profile's colour table is the INVERSE of the help line's, which is what makes the
+         idle/focused swap free of any Lua focus hook: the help line is visible only while its parent
+         widget is focused or highlighted, so painting this one on the opposite states puts exactly
+         one of the two in the shared rect at a time. A focus hook would not survive here anyway -
+         the frame's own tint pass invalidates the layout on every render, which re-wraps focus
+         handlers on a scrolling layout's children.
+
+         Every state is declared explicitly rather than left to inherit: an undeclared one resolves
+         through its own fallback chain, which is how a row ends up painting both strings or neither.
+         `textDisabledColor` is deliberately the VISIBLE colour - a disabled row that is still
+         missing required data must keep saying so.
+
+         Residual, queued as a manual check: the SELECTED states are not declared by the profile this
+         one extends, so a row that is ever `selected` may paint neither string. Whether a row here
+         can reach that state is unverified.
+
+         Position / width / colours only - never the anchor. Overriding the anchor knocks the
+         inherited sizing traits off the chain and silently disables text wrap, which is why the
+         parent profile does not override it either. -->
+    <Profile name="rlMenu_herdsmanRowReason" extends="rlMenu_herdsmanRowTooltip">
+        <textColor value="$preset_colorOrange"/>
+        <textDisabledColor value="$preset_colorOrange"/>
+        <textFocusedColor value="$preset_colorTransparent"/>
+        <textHighlightedColor value="$preset_colorTransparent"/>
+        <textSelectedColor value="$preset_colorTransparent"/>
+        <textFocusedSelectedColor value="$preset_colorTransparent"/>
+    </Profile>
+
+    <!-- TextInput-row variant, mirroring the tooltip split: a TextInput's value widget is ~31px
+         narrower than the button / selector widgets, so its reason line needs the same 387px
+         position its help line uses to share one right edge with the other rows. -->
+    <Profile name="rlMenu_herdsmanRowReasonInput" extends="rlMenu_herdsmanRowTooltipInput">
+        <textColor value="$preset_colorOrange"/>
+        <textDisabledColor value="$preset_colorOrange"/>
+        <textFocusedColor value="$preset_colorTransparent"/>
+        <textHighlightedColor value="$preset_colorTransparent"/>
+        <textSelectedColor value="$preset_colorTransparent"/>
+        <textFocusedSelectedColor value="$preset_colorTransparent"/>
     </Profile>
 
 
