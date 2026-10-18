@@ -47,6 +47,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="12" durationMonth="10" minHealthFactor="0.75"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="200"/>
 				<key ageMonth="24" value="2400"/>
@@ -124,6 +125,7 @@
 				</visual>
 			</visuals>
 			<reproduction supported="false" minAgeMonth="12"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="250"/>
 				<key ageMonth="24" value="2700"/>
@@ -196,6 +198,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="12" durationMonth="10" minHealthFactor="0.75"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="200"/>
 				<key ageMonth="24" value="2200"/>
@@ -273,6 +276,7 @@
 				</visual>
 			</visuals>
 			<reproduction supported="false" minAgeMonth="12"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="235"/>
 				<key ageMonth="24" value="2500"/>
@@ -346,6 +350,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="12" durationMonth="10" minHealthFactor="0.75"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="275"/>
 				<key ageMonth="24" value="3200"/>
@@ -423,6 +428,7 @@
 				</visual>
 			</visuals>
 			<reproduction supported="false" minAgeMonth="12"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="300"/>
 				<key ageMonth="24" value="3200"/>
@@ -495,6 +501,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="12" durationMonth="10" minHealthFactor="0.75"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="320"/>
 				<key ageMonth="24" value="3400"/>
@@ -572,6 +579,7 @@
 				</visual>
 			</visuals>
 			<reproduction supported="false" minAgeMonth="12"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="350"/>
 				<key ageMonth="24" value="3750"/>
@@ -644,6 +652,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="12" durationMonth="10" minHealthFactor="0.75"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="225"/>
 				<key ageMonth="24" value="2400"/>
@@ -721,6 +730,7 @@
 				</visual>
 			</visuals>
 			<reproduction supported="false" minAgeMonth="12"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="250"/>
 				<key ageMonth="24" value="2500"/>
@@ -762,6 +772,153 @@
 				</liquidManure>
 			</output>
 		</subType>
+		<subType subType="COW_HIGHLAND_CATTLE" fillTypeName="COW_HIGHLAND_CATTLE" gender="female" minWeight="35.0" targetWeight="725.0" maxWeight="1200.0" statsBreeding="breedCowsCount" breed="HIGHLAND" requiredDLC="highlandsFishingPack">
+			<visuals>
+				<visual minAge="0" visualAnimalIndex="19" name="$l10n_animal_visual_baby" image="$dataS/character/animals/domesticated/cow/store_highlandCattleBaby.png" canBeBought="true">
+					<description>$l10n_animal_descriptionCowProfit</description>
+					<description>$l10n_animal_descriptionCowFeed</description>
+					<description>$l10n_animal_descriptionWater</description>
+					<description>$l10n_animal_descriptionBuffaloYoung</description>
+					<description>$l10n_rl_descriptionCowReproduction</description>
+				</visual>
+				<visual minAge="6" visualAnimalIndex="20" name="$l10n_animal_visual_kid" image="$dataS/character/animals/domesticated/cow/store_highlandCattleKid.png" canBeBought="true">
+					<description>$l10n_animal_descriptionCowProfit</description>
+					<description>$l10n_animal_descriptionCowFeed</description>
+					<description>$l10n_animal_descriptionWater</description>
+					<description>$l10n_rl_descriptionCowReproduction</description>
+				</visual>
+				<visual minAge="12" visualAnimalIndex="21" name="$l10n_animal_visual_adult" image="$dataS/character/animals/domesticated/cow/store_highlandCattle.png" canBeBought="true">
+					<description>$l10n_animal_descriptionCowProfit</description>
+					<description>$l10n_animal_descriptionCowFeed</description>
+					<description>$l10n_animal_descriptionWater</description>
+					<description>$l10n_animal_descriptionMature</description>
+					<description>$l10n_rl_descriptionCowReproduction</description>
+				</visual>
+				<visual minAge="18" visualAnimalIndex="21" name="$l10n_animal_visual_adult" image="$dataS/character/animals/domesticated/cow/store_highlandCattle.png" canBeBought="true">
+					<description>$l10n_animal_descriptionCowProfit</description>
+					<description>$l10n_animal_descriptionCowFeed</description>
+					<description>$l10n_animal_descriptionWater</description>
+					<description>$l10n_animal_descriptionMature</description>
+					<description>$l10n_rl_descriptionCowReproduction</description>
+				</visual>
+			</visuals>
+			<reproduction minAgeMonth="12" durationMonth="10" minHealthFactor="0.75"/>
+			<buyPrice>
+				<key ageMonth="0" value="300"/>
+				<key ageMonth="24" value="3000"/>
+			</buyPrice>
+			<sellPrice>
+				<key ageMonth="0" value="230"/>
+				<key ageMonth="24" value="3000"/>
+				<key ageMonth="36" value="3500"/>
+				<key ageMonth="60" value="2500"/>
+			</sellPrice>
+			<transportPrice>
+				<key ageMonth="0" value="40"/>
+				<key ageMonth="12" value="100"/>
+				<key ageMonth="18" value="200"/>
+			</transportPrice>
+			<input>
+				<straw>
+					<key ageMonth="0" value="15"/>
+					<key ageMonth="18" value="130"/>
+				</straw>
+				<water>
+					<key ageMonth="0" value="20"/>
+					<key ageMonth="18" value="140"/>
+				</water>
+				<food>
+					<key ageMonth="0" value="80"/>
+					<key ageMonth="18" value="550"/>
+				</food>
+			</input>
+			<output>
+				<milk fillType="MILK">
+					<key ageMonth="0" value="0"/>
+					<key ageMonth="12" value="0"/>
+					<key ageMonth="12" value="100"/>
+					<key ageMonth="36" value="100"/>
+					<key ageMonth="36" value="160"/>
+					<key ageMonth="72" value="160"/>
+					<key ageMonth="120" value="70"/>
+				</milk>
+				<manure>
+					<key ageMonth="0" value="25"/>
+					<key ageMonth="18" value="300"/>
+				</manure>
+				<liquidManure>
+					<key ageMonth="0" value="40"/>
+					<key ageMonth="18" value="250"/>
+				</liquidManure>
+			</output>
+		</subType>
+		<subType subType="BULL_HIGHLAND_CATTLE" fillTypeName="BULL_HIGHLAND_CATTLE" gender="male" minWeight="35.0" targetWeight="950.0" maxWeight="1600.0" statsBreeding="breedCowsCount" breed="HIGHLAND" requiredDLC="highlandsFishingPack">
+			<visuals>
+				<visual minAge="0" visualAnimalIndex="19" name="$l10n_animal_visual_baby" image="$dataS/character/animals/domesticated/cow/store_highlandCattleBaby.png" canBeBought="true">
+					<description>$l10n_animal_descriptionBullFeed</description>
+					<description>$l10n_animal_descriptionWater</description>
+					<description>$l10n_animal_descriptionBullYoung</description>
+					<description>$l10n_animal_descriptionBullReproduction</description>
+				</visual>
+				<visual minAge="6" visualAnimalIndex="20" name="$l10n_animal_visual_kid" image="$dataS/character/animals/domesticated/cow/store_highlandCattleKid.png" canBeBought="true">
+					<description>$l10n_animal_descriptionBullFeed</description>
+					<description>$l10n_animal_descriptionWater</description>
+					<description>$l10n_animal_descriptionBullReproduction</description>
+				</visual>
+				<visual minAge="12" visualAnimalIndex="21" name="$l10n_animal_visual_adult" image="$dataS/character/animals/domesticated/cow/store_highlandCattle.png" canBeBought="true">
+					<description>$l10n_animal_descriptionBullFeed</description>
+					<description>$l10n_animal_descriptionWater</description>
+					<description>$l10n_animal_descriptionMature</description>
+					<description>$l10n_animal_descriptionBullReproduction</description>
+				</visual>
+				<visual minAge="18" visualAnimalIndex="21" name="$l10n_animal_visual_adult" image="$dataS/character/animals/domesticated/cow/store_highlandCattle.png" canBeBought="true">
+					<description>$l10n_animal_descriptionBullFeed</description>
+					<description>$l10n_animal_descriptionWater</description>
+					<description>$l10n_animal_descriptionMature</description>
+					<description>$l10n_animal_descriptionBullReproduction</description>
+				</visual>
+			</visuals>
+			<reproduction supported="false" minAgeMonth="12"/>
+			<buyPrice>
+				<key ageMonth="0" value="350"/>
+				<key ageMonth="24" value="3500"/>
+			</buyPrice>
+			<sellPrice>
+				<key ageMonth="0" value="280"/>
+				<key ageMonth="24" value="3500"/>
+				<key ageMonth="36" value="4000"/>
+				<key ageMonth="60" value="3000"/>
+			</sellPrice>
+			<transportPrice>
+				<key ageMonth="0" value="40"/>
+				<key ageMonth="12" value="150"/>
+				<key ageMonth="18" value="500"/>
+			</transportPrice>
+			<input>
+				<straw>
+					<key ageMonth="0" value="15"/>
+					<key ageMonth="18" value="130"/>
+				</straw>
+				<water>
+					<key ageMonth="0" value="20"/>
+					<key ageMonth="18" value="140"/>
+				</water>
+				<food>
+					<key ageMonth="0" value="80"/>
+					<key ageMonth="18" value="575"/>
+				</food>
+			</input>
+			<output>
+				<manure>
+					<key ageMonth="0" value="25"/>
+					<key ageMonth="18" value="280"/>
+				</manure>
+				<liquidManure>
+					<key ageMonth="0" value="40"/>
+					<key ageMonth="18" value="230"/>
+				</liquidManure>
+			</output>
+		</subType>
 		<subType subType="COW_WATERBUFFALO" fillTypeName="COW_WATERBUFFALO" gender="female" statsBreeding="breedWaterBuffaloCount" minWeight="35.0" targetWeight="425.0" maxWeight="1200.0" breed="WATER_BUFFALO">
 			<visuals>
 				<visual minAge="0" visualAnimalIndex="13" name="$l10n_animal_visual_baby" image="$dataS/character/animals/domesticated/waterBuffalo/store_waterBuffaloBaby.png" canBeBought="true">
@@ -793,6 +950,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="12" durationMonth="10" minHealthFactor="0.75"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="200"/>
 				<key ageMonth="24" value="1500"/>
@@ -865,6 +1023,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="12" supported="false"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="250"/>
 				<key ageMonth="24" value="1800"/>
@@ -947,6 +1106,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="6" durationMonth="4" minHealthFactor="0.75"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="55"/>
 				<key ageMonth="12" value="1100"/>
@@ -1010,6 +1170,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="8" supported="false"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="65"/>
 				<key ageMonth="12" value="1400"/>
@@ -1076,6 +1237,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="6" durationMonth="4" minHealthFactor="0.75"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="45"/>
 				<key ageMonth="12" value="1000"/>
@@ -1139,6 +1301,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="8" supported="false"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="55"/>
 				<key ageMonth="12" value="1200"/>
@@ -1205,6 +1368,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="6" durationMonth="4" minHealthFactor="0.75"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="65"/>
 				<key ageMonth="12" value="1200"/>
@@ -1268,6 +1432,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="8" supported="false"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="75"/>
 				<key ageMonth="12" value="1500"/>
@@ -1351,6 +1516,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="8" durationMonth="5" minHealthFactor="0.75"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="50"/>
 				<key ageMonth="36" value="600"/>
@@ -1416,6 +1582,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="5" supported="false"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="60"/>
 				<key ageMonth="36" value="800"/>
@@ -1484,6 +1651,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="8" durationMonth="5" minHealthFactor="0.75"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="90"/>
 				<key ageMonth="36" value="950"/>
@@ -1549,6 +1717,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="5" supported="false"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="125"/>
 				<key ageMonth="36" value="1200"/>
@@ -1617,6 +1786,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="8" durationMonth="5" minHealthFactor="0.75"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="115"/>
 				<key ageMonth="36" value="1100"/>
@@ -1682,6 +1852,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="5" supported="false"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="145"/>
 				<key ageMonth="36" value="1350"/>
@@ -1750,6 +1921,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="8" durationMonth="5" minHealthFactor="0.75"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="45"/>
 				<key ageMonth="36" value="575"/>
@@ -1815,6 +1987,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="5" supported="false"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="55"/>
 				<key ageMonth="36" value="650"/>
@@ -1883,6 +2056,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="8" durationMonth="5" minHealthFactor="0.75"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="200"/>
 				<key ageMonth="36" value="1500"/>
@@ -1946,6 +2120,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="5" supported="false"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="225"/>
 				<key ageMonth="36" value="1750"/>
@@ -2009,7 +2184,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="22" durationMonth="11" minHealthFactor="0.75"/>
-			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
 				<key ageMonth="0" value="500"/>
@@ -2056,7 +2231,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="24" supported="false"/>
-			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
 				<key ageMonth="0" value="650"/>
@@ -2103,7 +2278,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="22" durationMonth="11" minHealthFactor="0.75"/>
-			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
 				<key ageMonth="0" value="500"/>
@@ -2150,7 +2325,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="24" supported="false"/>
-			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
 				<key ageMonth="0" value="650"/>
@@ -2197,7 +2372,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="22" durationMonth="11" minHealthFactor="0.75"/>
-			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
 				<key ageMonth="0" value="500"/>
@@ -2244,7 +2419,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="24" supported="false"/>
-			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
 				<key ageMonth="0" value="650"/>
@@ -2291,7 +2466,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="22" durationMonth="11" minHealthFactor="0.75"/>
-			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
 				<key ageMonth="0" value="500"/>
@@ -2338,7 +2513,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="24" supported="false"/>
-			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
 				<key ageMonth="0" value="650"/>
@@ -2385,7 +2560,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="22" durationMonth="11" minHealthFactor="0.75"/>
-			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
 				<key ageMonth="0" value="500"/>
@@ -2432,7 +2607,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="24" supported="false"/>
-			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
 				<key ageMonth="0" value="650"/>
@@ -2479,7 +2654,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="22" durationMonth="11" minHealthFactor="0.75"/>
-			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
 				<key ageMonth="0" value="500"/>
@@ -2526,7 +2701,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="24" supported="false"/>
-			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
 				<key ageMonth="0" value="650"/>
@@ -2573,7 +2748,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="22" durationMonth="11" minHealthFactor="0.75"/>
-			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
 				<key ageMonth="0" value="500"/>
@@ -2620,7 +2795,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="24" supported="false"/>
-			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
 				<key ageMonth="0" value="650"/>
@@ -2667,7 +2842,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="22" durationMonth="11" minHealthFactor="0.75"/>
-			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
 				<key ageMonth="0" value="500"/>
@@ -2714,7 +2889,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="24" supported="false"/>
-			<health increasePerHour="10" decreasePerHour="25" thresholdFactor="0.45"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.45"/>
 			<rideable filename="$dataS/character/animals/domesticated/horse/horse.xml"/>
 			<buyPrice>
 				<key ageMonth="0" value="650"/>
@@ -2783,6 +2958,7 @@
 				</visual>
 			</visuals>
 			<reproduction minAgeMonth="6" durationMonth="2" minHealthFactor="0.75"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="3"/>
 				<key ageMonth="6" value="30"/>
@@ -2837,6 +3013,7 @@
 				</visual>
 			</visuals>
 			<reproduction supported="false" minAgeMonth="6"/>
+			<health increasePerHour="10" decreasePerHour="8" thresholdFactor="0.2"/>
 			<buyPrice>
 				<key ageMonth="0" value="3"/>
 				<key ageMonth="6" value="30"/>

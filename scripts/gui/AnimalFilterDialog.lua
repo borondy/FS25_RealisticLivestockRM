@@ -50,8 +50,8 @@ end
 --- @param callback function consumer callback fired on OK
 --- @param target table|nil callback target (called via `callback(target, filters, items)`)
 --- @param isBuyMode boolean true when opened from Buy frame; applies the active dealer-quality preset's markup to Value
---- @param allowSave boolean|nil opt-in to render the Save filter button (default false; only the four RLMenu frames pass true; legacy R-key AnimalScreen path keeps default false)
---- @param sourceUsage string|nil canonical RLFilterUsage value derived from the source frame (OWNED for Info/Sell/Move, DEALER for Buy); threaded into the saved-filter payload when the user clicks Save
+--- @param allowSave boolean|nil opt-in to render the Save filter button (default false; only the five RLMenu filter frames pass true; legacy R-key AnimalScreen path keeps default false)
+--- @param sourceUsage string|nil canonical RLFilterUsage value derived from the source frame (OWNED for Info/Sell/Move/Transfer, DEALER for Buy); threaded into the saved-filter payload when the user clicks Save
 function AnimalFilterDialog.show(items, animalTypeIndex, callback, target, isBuyMode, allowSave, sourceUsage)
 
     if AnimalFilterDialog.INSTANCE == nil then AnimalFilterDialog.register() end
@@ -503,10 +503,10 @@ function AnimalFilterDialog:onOpen()
         #filters, binaryCount, sliderCount, table.concat(sliderSummary, " ")))
 
     -- Save filter button + leading separator visibility. Three gates (per spec):
-    --   1. self.allowSave (caller opt-in - only the four RLMenu frames pass true)
+    --   1. self.allowSave (caller opt-in - only the five RLMenu filter frames pass true)
     --   2. tradeAnimals permission (matches RLMenuSettingsFrame:hasCreatePermission)
-    --   3. g_rlMenu.openMode == MODE_FULL (Settings tab unreachable in MODE_DEALER,
-    --      so Save+redirect is meaningless)
+    --   3. g_rlMenu.openMode == MODE_FULL (Settings tab unreachable in MODE_DEALER
+    --      and MODE_TRAILER, so Save+redirect is meaningless)
     -- Both the button and its leading separator are toggled together so the dialog
     -- footer never shows an orphan divider. The button row uses SIBLING separators,
     -- so the visibility cascade does not auto-hide the separator when the button hides.

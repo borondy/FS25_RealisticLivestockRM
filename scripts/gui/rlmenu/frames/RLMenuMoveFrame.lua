@@ -186,8 +186,14 @@ function RLMenuMoveFrame:onFrameOpen()
         FocusManager:linkElements(self.subCategorySelector, FocusManager.BOTTOM, self.animalList)
         FocusManager:linkElements(self.animalList, FocusManager.TOP, self.subCategorySelector)
     end
-    if self.animalList ~= nil then
+    -- An empty SmoothList refuses focus; without the selector fallback nothing in the sidebar
+    -- holds focus and the keys cannot reach the pen selector.
+    if self.animalList ~= nil and self.animalList:getItemCount() > 0 then
         FocusManager:setFocus(self.animalList)
+        Log:debug("RLMenuMoveFrame:onFrameOpen: focus on animalList (%d items)", self.animalList:getItemCount())
+    elseif self.subCategorySelector ~= nil then
+        FocusManager:setFocus(self.subCategorySelector)
+        Log:debug("RLMenuMoveFrame:onFrameOpen: list empty, focus on subCategorySelector")
     end
 
     -- Revalidate active saved filter against current scope + render chip.

@@ -37,7 +37,7 @@
         <GuiElement profile="rlMenu_container" position="20px -165px" size="1560px 700px">
             <SmoothList profile="rlMenu_tableList" id="messagesList" position="0px 0px" size="1540px 700px">
                 <ListItem profile="rlMenu_tableListItem" name="messagesRowTemplate" size="1540px 48px">
-                    <Bitmap profile="rlMenu_importanceIcon"          position="9px -9px"   size="30px 30px"  name="importance"/>
+                    <Bitmap profile="rlMenu_severityTriangle" name="severity"/>
                     <Text   profile="rlMenu_tableRowCellLeftAligned" position="60px 0px"   size="140px 48px" name="date"/>
                     <Text   profile="rlMenu_tableRowCellLeftAligned" position="210px 0px"  size="150px 48px" name="type"/>
                     <Text   profile="rlMenu_tableRowCellLeftAligned" position="370px 0px"  size="170px 48px" name="animal" textLayoutMode="scrolling"/>

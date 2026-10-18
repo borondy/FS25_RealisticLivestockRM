@@ -8,8 +8,9 @@
     multi-select. Differences from moveFrame.xml:
       - The sidebar selector is a fixed TWO-entry source picker (counterpart +
         trailer), onClick wired to onSourceChanged.
-      - No filter chip, no money box, no "no husbandries" empty container -
-        Transfer is cost-free and always has exactly two source entries.
+      - The filter chip is the same element as moveFrame.xml's; there is no
+        money box and no "no husbandries" empty container - Transfer is
+        cost-free and always has exactly two source entries.
       - Header icon is rlMenu.move_animal (Move and Transfer never coexist on
         screen); title is rl_menu_transfer_title; empty text is
         rl_menu_transfer_empty_no_animals.
@@ -36,6 +37,10 @@
         <!-- Dot indicators -->
         <BoxLayout profile="fs25_subCategorySelectorBox" id="subCategoryDotBox"/>
         <RoundCorner profile="fs25_subCategorySelectorDot" id="subCategoryDotTemplate"/>
+
+        <!-- Filter chip: readout of the active Quick and saved filter, in the strip
+             between the dot indicators and the animal list container. -->
+        <Text id="filterChip" profile="rlMenu_filterChip" text="$l10n_rl_menu_filter_chip_none" position="28px -125px"/>
 
         <!-- Animal list container -->
         <GuiElement profile="fs25_subCategoryListContainer" id="animalListContainer">
@@ -106,7 +111,7 @@
 
         <!--
             Narrow column = PEN info. Hidden by RLDetailPaneHelper.updatePenDisplay
-            whenever no husbandry is supplied (the shell's both sides).
+            whenever the active side supplies no husbandry.
         -->
         <GuiElement profile="fs25_animalInfoContainer" id="penBox">
             <Text profile="rlMenu_penInfoHeader" id="penInformationHeader" text="$l10n_rl_menu_info_pen_information" position="0px -10px"/>

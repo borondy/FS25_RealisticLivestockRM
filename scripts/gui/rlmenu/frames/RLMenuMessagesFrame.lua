@@ -17,6 +17,13 @@ local Log = RmLogging.getLogger("RLRM")
 -- Store mod directory at source time (g_currentModDirectory only valid during source())
 local modDirectory = g_currentModDirectory
 
+--- Dev-only layout spike: cycle every severity down the rows so each icon shape is on screen.
+--- Never commit true.
+RLMenuMessagesFrame.DEV_FORCE_ALL_SEVERITIES = false
+
+--- Row-index cycle the dev switch uses, one of each severity.
+RLMenuMessagesFrame.FORCED_SEVERITY_CYCLE = { "warning", "notice", "success", "info" }
+
 --- Construct a new RLMenuMessagesFrame instance.
 --- Called once by setupGui() during mod load.
 --- @return table self The new frame instance
@@ -24,6 +31,7 @@ function RLMenuMessagesFrame.new()
     local self = RLMenuMessagesFrame:superClass().new(nil, RLMenuMessagesFrame_mt)
     self.name = "RLMenuMessagesFrame"
     self.rows = {}
+    self.measuredProfiles = {}
     self.farmId = nil
     self.isFrameOpen = false
 
@@ -78,13 +86,12 @@ function RLMenuMessagesFrame:onGuiSetupFinished()
     end
 end
 
---- Called by the Paging element when this tab becomes active. Refreshes on every open,
---- then clears the unread flag FARM-WIDE, because this tab is a unioned farm view -
---- without it the per-husbandry unread notification re-fires on every day change.
+--- Tab open: read colour-blind, refresh, clear unread FARM-WIDE - the tab unions all pens, else notices re-fire daily.
 function RLMenuMessagesFrame:onFrameOpen()
     RLMenuMessagesFrame:superClass().onFrameOpen(self)
     self.isFrameOpen = true
-    Log:debug("RLMenuMessagesFrame:onFrameOpen")
+    self.isColorBlindMode = RLSeverityIcon.readColorBlindMode()
+    Log:debug("RLMenuMessagesFrame:onFrameOpen: colorBlind=%s", tostring(self.isColorBlindMode))
     self:refreshData()
 
     -- Acknowledge unread state for every pen on the local farm. Iterating
@@ -123,9 +130,22 @@ function RLMenuMessagesFrame:refreshData()
     self.farmId = farmId
 
     self.rows = RLMessageService.getMessagesForFarm(farmId)
-    Log:debug("RLMenuMessagesFrame:refreshData: farmId=%s rows=%d",
-        tostring(farmId), #self.rows)
 
+    local counts = { info = 0, success = 0, notice = 0, warning = 0 }
+    for _, row in ipairs(self.rows) do
+        if counts[row.severity] ~= nil then
+            counts[row.severity] = counts[row.severity] + 1
+        else
+            counts.info = counts.info + 1
+        end
+    end
+    Log:debug("RLMenuMessagesFrame:refreshData: farmId=%s rows=%d "
+        .. "info=%d success=%d notice=%d warning=%d cb=%s forced=%s",
+        tostring(farmId), #self.rows, counts.info, counts.success, counts.notice, counts.warning,
+        tostring(self.isColorBlindMode), tostring(RLMenuMessagesFrame.DEV_FORCE_ALL_SEVERITIES))
+
+    -- reloadData populates synchronously, so the reset scopes one measurement per shape to this refresh.
+    self.measuredProfiles = {}
     if self.messagesList ~= nil then
         self.messagesList:reloadData()
     end
@@ -329,8 +349,8 @@ end
 -- =============================================================================
 -- SmoothList data source / delegate protocol
 --
--- Deliberately NOT logged: SmoothList calls these at draw frequency and tracing them
--- would swamp the log.
+-- SmoothList calls these at draw frequency, so they log nothing at DEBUG or above beyond one
+-- measurement line per icon shape per refresh; the only per-row lines are RLSeverityIcon's TRACE.
 -- =============================================================================
 
 --- Return how many items the SmoothList should render in the given section.
@@ -355,9 +375,19 @@ function RLMenuMessagesFrame:populateCellForItemInSection(list, _section, index,
     local row = self.rows[index]
     if row == nil then return end
 
-    local importance = cell:getAttribute("importance")
-    if importance ~= nil then
-        importance:setImageSlice(nil, row.importanceSlice)
+    local severity = row.severity
+    if RLMenuMessagesFrame.DEV_FORCE_ALL_SEVERITIES then
+        local cycle = RLMenuMessagesFrame.FORCED_SEVERITY_CYCLE
+        severity = cycle[(index - 1) % #cycle + 1]
+    end
+    local element = cell:getAttribute("severity")
+    if RLSeverityIcon.apply(element, severity, self.isColorBlindMode)
+        and not self.measuredProfiles[element.profile] then
+        self.measuredProfiles[element.profile] = true
+        Log:debug("RLMenuMessagesFrame: severity icon profile=%s size=%.1fx%.1f pos=%.1f,%.1f abs=%.1f,%.1f",
+            tostring(element.profile), element.size[1] * 1920, element.size[2] * 1080,
+            element.position[1] * 1920, element.position[2] * 1080,
+            element.absPosition[1] * 1920, element.absPosition[2] * 1080)
     end
 
     local typeCell = cell:getAttribute("type")

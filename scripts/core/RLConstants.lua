@@ -224,11 +224,11 @@ RLConstants.GENETICS_SPAN = RLConstants.GENETICS_MAX - RLConstants.GENETICS_MIN
 -- only stable key; the caller resolves the name and passes it.
 --
 -- The same numbers already appear in the old-age death mechanic, in two places:
--- AnimalHealth.calculateOldAgeMonthlyAnimalDeaths and
+-- AnimalHealth.getOldAgeMonthlyDeathChance and
 -- RealisticLivestock.calculateOldAgeMonthlyAnimalDeaths. This table is a THIRD
 -- copy and nothing compares the three - both of those hold their numbers inline
--- in an if/elseif chain, which no test can read - so a change here has to be
--- made in all three by hand.
+-- in an if/elseif chain, and a test reads only the getter's resulting chance -
+-- so a change here has to be made in all three by hand.
 --
 -- A type absent from this table has no entry rather than a default, matching
 -- what the two authorities do with an unrecognised type: they leave it at a
@@ -243,6 +243,58 @@ RLConstants.MAX_LIFESPAN_MONTHS_BY_TYPE = {
     SHEEP = 144,
     HORSE = 360,
     CHICKEN = 96
+}
+
+
+-- Health lost per hour by an unfed animal whose subtype XML sets no health#decreasePerHour.
+RLConstants.HEALTH_DECREASE_PER_HOUR = 8
+
+
+-- Severity vocabulary. Definition-only data on the message rows: never saved, never streamed,
+-- so changing a message's severity is not a savegame or wire change. The Diseases dialog
+-- derives a row's severity from its row group (RLDiseaseStatus.rowSeverity).
+RLConstants.SEVERITY = {
+    INFO = "info",
+    SUCCESS = "success",
+    NOTICE = "notice",
+    WARNING = "warning"
+}
+
+
+-- Icon style per severity VALUE. Info has no entry, so its icon stays hidden. Colours are
+-- keyed by the game's colour-blind setting ([false] normal, [true] colour-blind). `shape` names
+-- the glyph, so a surface with its own row height can map it to a profile of its own size.
+-- A style may carry `selectedColor`, keyed the same way, for a selected row; without it the
+-- selected row uses `color`.
+RLConstants.SEVERITY_STYLE = {
+    success = {
+        shape = "circle",
+        profile = "rlMenu_severityCircle",
+        color = {
+            [false] = { 0.33716, 0.55834, 0.0003, 1 },  -- fs25_colorGreen preset
+            [true] = { 0.0742, 0.4341, 0.6939, 1 }      -- colorBlue preset
+        },
+        selectedColor = {
+            [false] = { 0.015, 0.017, 0.015, 1 },       -- bitmap match for fs25_colorMainDark text, no preset
+            [true] = { 0.015, 0.017, 0.015, 1 }         -- same in colour-blind mode
+        }
+    },
+    notice = {
+        shape = "triangle",
+        profile = "rlMenu_severityTriangle",
+        color = {
+            [false] = { 0.8, 0.4, 0, 1 },               -- colorOrange preset
+            [true] = { 0.3, 0.15, 0, 1 }                -- dark colour-blind orange, no preset
+        }
+    },
+    warning = {
+        shape = "triangle",
+        profile = "rlMenu_severityTriangle",
+        color = {
+            [false] = { 0.8069, 0.0097, 0.0097, 1 },    -- colorRed preset
+            [true] = { 0.9473, 0.5271, 0, 1 }           -- bright colour-blind orange, no preset
+        }
+    }
 }
 
 

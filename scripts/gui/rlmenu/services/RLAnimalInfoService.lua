@@ -4,6 +4,7 @@
 
     Read-only:
       * getHusbandryDisplay(husbandry, farmId) -> pen column payload
+      * sumFoodTotals(foodInfos, meadowInfo)   -> store, meadow and total food litres
       * getAnimalDisplay(animal, husbandry)    -> animal column payload
       * getFarmBalance(farmId)                 -> integer money or nil
 
@@ -115,7 +116,7 @@ local function buildInputRows(animal)
     local daysPerMonth = g_currentMission.environment.daysPerPeriod
     for fillType, amount in pairs(animal.input) do
         local title = g_i18n:getText("rl_ui_input_" .. fillType)
-        local valueText = string.format(g_i18n:getText("rl_ui_amountPerDay"), (amount * 24) / daysPerMonth)
+        local valueText = RLAnimalDisplayHelper.formatAmountPerDay((amount * 24) / daysPerMonth)
         table.insert(rows, { title = title, valueText = valueText })
     end
     return rows
@@ -139,7 +140,7 @@ local function buildOutputRows(animal)
             if animal.animalTypeIndex == AnimalType.CHICKEN then outputText = "pallets_eggs" end
         end
         local title = g_i18n:getText("rl_ui_output_" .. outputText)
-        local valueText = string.format(g_i18n:getText("rl_ui_amountPerDay"), (amount * 24) / daysPerMonth)
+        local valueText = RLAnimalDisplayHelper.formatAmountPerDay((amount * 24) / daysPerMonth)
         table.insert(rows, { title = title, valueText = valueText })
     end
     return rows
@@ -151,6 +152,43 @@ end
 -- Husbandry display
 -- =============================================================================
 
+-- The meadow entry is matched by table identity, never by flag or title. Its capacity is 0 or
+-- stale, so it stays out of the store capacity and ratio.
+--- Sum a pen's food entries into store and meadow litres.
+--- @param foodInfos table entries from getFoodInfos
+--- @param meadowInfo table|nil the pen's meadow food entry
+--- @return table totals { storeValue, storeCapacity, storeRatio, meadowValue, totalValue }
+function RLAnimalInfoService.sumFoodTotals(foodInfos, meadowInfo)
+    local storeValue = 0
+    local storeCapacity = 0
+    local meadowValue = 0
+    for _, info in ipairs(foodInfos) do
+        if meadowInfo ~= nil and info == meadowInfo then
+            meadowValue = meadowValue + (info.value or 0)
+        elseif not info.ignoreCapacity then
+            storeCapacity = math.max(info.capacity or 0, storeCapacity)
+            storeValue = storeValue + (info.value or 0)
+        end
+    end
+
+    local storeRatio = 0
+    if storeCapacity > 0 then
+        storeRatio = storeValue / storeCapacity
+    end
+    local totalValue = storeValue + meadowValue
+
+    Log:trace("RLAnimalInfoService.sumFoodTotals: store=%.2f storeCapacity=%.2f storeRatio=%.4f"
+        .. " meadow=%.2f total=%.2f", storeValue, storeCapacity, storeRatio, meadowValue, totalValue)
+
+    return {
+        storeValue    = storeValue,
+        storeCapacity = storeCapacity,
+        storeRatio    = storeRatio,
+        meadowValue   = meadowValue,
+        totalValue    = totalValue,
+    }
+end
+
 --- Build the pen-column payload for a husbandry.
 ---
 --- Returns:
@@ -160,14 +198,14 @@ end
 ---     penImageFilename  = string|nil,          -- nil -> frame hides icon
 ---     conditionInfos    = table (passed through from husbandry:getConditionInfos),
 ---     foodInfos         = table (passed through from husbandry:getFoodInfos),
----     foodTotalValue    = number,              -- sum of food values (non-ignoreCapacity only)
----     foodTotalCapacity = number,
----     foodTotalRatio    = number,
+---     foodTotalValue    = number,              -- store litres plus the pen's meadow litres
+---     foodTotalCapacity = number,              -- store only
+---     foodTotalRatio    = number,              -- store only
 ---   }
 ---
 --- conditionInfos / foodInfos are pure pass-throughs (RL does not override
 --- those husbandry methods); this builder adds the name/count composition and
---- food-total summation.
+--- takes the food totals from sumFoodTotals.
 ---
 --- @param husbandry table|nil
 --- @param farmId number|nil
@@ -212,33 +250,29 @@ function RLAnimalInfoService.getHusbandryDisplay(husbandry, farmId)
         if ok and type(infos) == "table" then foodInfos = infos end
     end
 
-    -- Sum food values, skipping ignoreCapacity entries; capacity tracks the
-    -- largest of the per-entry capacities. foodTotalRatio drives the pen-fill
-    -- bar in the Info frame.
-    local foodTotalValue = 0
-    local foodTotalCapacity = 0
-    for _, info in ipairs(foodInfos) do
-        if not info.ignoreCapacity then
-            foodTotalCapacity = math.max(info.capacity or 0, foodTotalCapacity)
-            foodTotalValue = foodTotalValue + (info.value or 0)
-        end
+    -- The text, the alert colour and both forecasts count the meadow's grass; the bar
+    -- (foodTotalRatio) measures the feed store only.
+    local meadowInfo
+    if husbandry.spec_husbandryMeadow ~= nil then
+        meadowInfo = husbandry.spec_husbandryMeadow.foodInfo
     end
-    local foodTotalRatio = (foodTotalCapacity > 0) and (foodTotalValue / foodTotalCapacity) or 0
+    local totals = RLAnimalInfoService.sumFoodTotals(foodInfos, meadowInfo)
 
     local foodMonthsRemaining
     if RLPenFeedForecast ~= nil and RLPenFeedForecast.getMonthsRemaining ~= nil then
-        foodMonthsRemaining = RLPenFeedForecast.getMonthsRemaining(husbandry, foodTotalValue)
+        foodMonthsRemaining = RLPenFeedForecast.getMonthsRemaining(husbandry, totals.totalValue)
     end
 
     -- Real-days runway drives the low-feed colour alert (daysPerPeriod-stable);
     -- foodMonthsRemaining above still drives the at-a-glance months range label.
     local foodDaysRemaining
     if RLPenFeedForecast ~= nil and RLPenFeedForecast.getDaysRemaining ~= nil then
-        foodDaysRemaining = RLPenFeedForecast.getDaysRemaining(husbandry, foodTotalValue)
+        foodDaysRemaining = RLPenFeedForecast.getDaysRemaining(husbandry, totals.totalValue)
     end
 
-    Log:debug("RLAnimalInfoService.getHusbandryDisplay: farmId=%s husbandry='%s' count=%s",
-        tostring(farmId), name, countText)
+    Log:debug("RLAnimalInfoService.getHusbandryDisplay: farmId=%s husbandry='%s' count=%s"
+        .. " store=%.2f meadow=%.2f total=%.2f",
+        tostring(farmId), name, countText, totals.storeValue, totals.meadowValue, totals.totalValue)
 
     return {
         name                = name,
@@ -246,9 +280,9 @@ function RLAnimalInfoService.getHusbandryDisplay(husbandry, farmId)
         penImageFilename    = penImageFilename,
         conditionInfos      = conditionInfos,
         foodInfos           = foodInfos,
-        foodTotalValue      = foodTotalValue,
-        foodTotalCapacity   = foodTotalCapacity,
-        foodTotalRatio      = foodTotalRatio,
+        foodTotalValue      = totals.totalValue,
+        foodTotalCapacity   = totals.storeCapacity,
+        foodTotalRatio      = totals.storeRatio,
         foodMonthsRemaining = foodMonthsRemaining,
         foodDaysRemaining   = foodDaysRemaining,
     }

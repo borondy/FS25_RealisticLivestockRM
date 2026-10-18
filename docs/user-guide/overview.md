@@ -54,7 +54,7 @@ Individual animals can be monitored, marked, and castrated:
 
 ### Diseases
 
-All nine of the mod's diseases:
+All ten of the mod's diseases:
 
 | Disease | Affects | Treatable? | Key Impact |
 |---------|---------|------------|------------|
@@ -67,8 +67,9 @@ All nine of the mod's diseases:
 | BRD | Cattle | Yes | Worst in calves; less milk |
 | Pulpy Kidney | Sheep, Goats | Yes (cures about half the time) | Never spreads, but high fatality, worst in lambs and kids |
 | Colic | Horses | Yes (cures about half the time) | Major price loss; never spreads |
+| Footrot | Cattle, Sheep, Goats | Yes (cures about 9 times in 10) | Never fatal, but lingers for months untreated and cuts milk and wool |
 
-Diseases can spread between animals in the same pen, but never pass between pens. An animal that recovers from a disease is immune to it for a time.
+Diseases can spread between animals in the same pen, but never pass between pens. An animal that recovers from a disease is immune to it for a time. Five diseases can be prevented with a vaccine - see [Vaccination](guide-diseases.md#vaccination).
 
 See the [Disease Guide](guide-diseases.md) for prevention and treatment strategies.
 
@@ -110,7 +111,7 @@ Open the **RL Menu** with **Right Shift + O** in-game - or, from the ESC menu's 
 - **Move** - Transfer animals between your husbandries
 - **Manage** - View detailed stats, genetics, health, and production for each animal
 - **Insemination** - Browse and buy stored semen for artificial breeding without keeping males
-- **Message Log** - Track births, deaths, diseases, and other events
+- **Message Log** - Track births, deaths, diseases, and other events. A red triangle marks a problem you can still act on, such as a disease showing, a treatment that failed or an overcrowded pen; an orange one marks a setback such as a death or a failed insemination; a green circle marks good news such as births and cures. Routine entries have no icon, and the colours follow the game's colour-blind setting.
 - **Herdsman** - Automate daily herd chores with rules: sell, buy, move, castrate, name, inseminate, or look after your horses - applied to the animals a saved filter picks, in the pens you choose. See the [Herdsman guide](guide-herdsman.md).
 - **Settings** - Adjust every RLRM option: the death toggle and the **Diseases** level, food scaling, dealer stock size, how good the dealer's animals are, which breeds and age groups the dealer offers, ear tag colours, genetics display, how many animals are shown in 3D per pen, CSV export, and more. This tab also hosts the **saved filter** editor.
 

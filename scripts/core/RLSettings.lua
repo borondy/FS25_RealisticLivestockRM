@@ -155,6 +155,82 @@ function RLSettings.onDiseaseSelectionConfirmed(catalog, result)
 end
 
 
+--- Open the Choose Diseases selector; the catalog is both its data and its callback target.
+function RLSettings.onClickDiseaseSelection()
+
+	if RLDiseaseSelectorDialog.INSTANCE == nil then
+		Log:error("RLSettings.onClickDiseaseSelection: RLDiseaseSelectorDialog.INSTANCE is nil (eager registration failed?); cannot open dialog")
+		return
+	end
+
+	local catalog = RLDiseaseOverrideCatalog.enumerate()
+
+	Log:debug("RLSettings.onClickDiseaseSelection: opening selector over %d disease(s)", #catalog)
+	RLDiseaseSelectorDialog.show(RLSettings.onDiseaseSelectionConfirmed, catalog, catalog)
+
+end
+
+
+--- Confirm handler for the disease selector: diff the checked titles into ops and send them.
+---@param catalog table the catalog the dialog was opened over
+---@param result table|nil checked rows `{ { title }, ... }`; nil on cancel changes nothing, `{}` switches every listed title off
+function RLSettings.onDiseaseSelectionConfirmed(catalog, result)
+
+	if result == nil then
+		Log:debug("RLSettings.onDiseaseSelectionConfirmed: cancelled; no change")
+		return
+	end
+
+	local ops = RLDiseaseOverrideReconcile.diff(result, catalog)
+
+	if #ops == 0 then
+		Log:debug("RLSettings.onDiseaseSelectionConfirmed: no changes; nothing dispatched")
+		return
+	end
+
+	Log:debug("RLSettings.onDiseaseSelectionConfirmed: dispatching %d disease override op(s)", #ops)
+	RLDiseaseOverrideSetEvent.sendEvent(ops)
+
+end
+
+
+--- Write `text` to `path`, creating the mod-settings folder first; false on a missing handle or a raise.
+---@param path string
+---@param text string
+---@return boolean ok
+function RLSettings.writeExportFile(path, text)
+
+	local file = nil
+	local ok, written = pcall(function()
+		createFolder(modSettingsDirectory)
+		file = io.open(path, "w")
+		if file == nil then return false end
+		-- In-game write and close return nil even on success, so their results prove nothing.
+		file:write(text)
+		file:close()
+		file = nil
+		return true
+	end)
+
+	if file ~= nil then
+		Log:trace("RLSettings.writeExportFile: closing %s after the write or close raised", tostring(path))
+		pcall(function() file:close() end)
+	end
+
+	if not ok then
+		Log:trace("RLSettings.writeExportFile: writing %s raised: %s", tostring(path), tostring(written))
+		return false
+	end
+	if written ~= true then
+		Log:trace("RLSettings.writeExportFile: could not open %s for writing", tostring(path))
+		return false
+	end
+	Log:trace("RLSettings.writeExportFile: handed %d byte(s) to %s", #text, tostring(path))
+	return true
+
+end
+
+
 function RLSettings.onClickExportCSV()
 
 	local file = io.open(modSettingsDirectory .. "animals.csv", "w")

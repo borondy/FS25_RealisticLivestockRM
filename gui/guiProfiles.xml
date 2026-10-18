@@ -174,4 +174,32 @@
 		<textBold value="true"/>
 	</Profile>
 
+	<Profile name="rl_diseaseListHeaderText" extends="fs25_textDefault" with="anchorStretchingYLeft">
+		<textSize value="18px"/>
+		<textBold value="true"/>
+		<textUpperCase value="true"/>
+		<textAlignment value="left"/>
+		<textColor value="$preset_colorWhite_50"/>
+	</Profile>
+
+	<!-- Diseases dialog severity icons, one per shape, for its 32px rows. Tinted per row by
+	     RLSeverityIcon.apply; the three colour keys are placeholders that give each state its own table. -->
+	<Profile name="rl_diseaseSeverityCircle" extends="baseReference" with="anchorTopLeft">
+		<size value="22px 22px"/>
+		<position value="8px -5px"/>
+		<imageSliceId value="gui.storeAttribute_info"/>
+		<imageColor value="1 1 1 1"/>
+		<imageSelectedColor value="1 1 1 1"/>
+		<imageHighlightedColor value="1 1 1 1"/>
+	</Profile>
+
+	<Profile name="rl_diseaseSeverityTriangle" extends="baseReference" with="anchorTopLeft">
+		<size value="32px 24px"/>
+		<position value="4px -4px"/>
+		<imageSliceId value="gui.contextAction_icon_alert"/>
+		<imageColor value="1 1 1 1"/>
+		<imageSelectedColor value="1 1 1 1"/>
+		<imageHighlightedColor value="1 1 1 1"/>
+	</Profile>
+
 </GUIProfiles>

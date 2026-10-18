@@ -3,8 +3,8 @@
 -- which consumer frames a filter appears on in the F-cycle picker. Three states, matching
 -- the `nil-or-equal` rule the other scope axes (`animalType`, `farmId`) use:
 --
---   * `ANY`    - visible on every consumer frame (Info/Sell/Move/Buy).
---   * `OWNED`  - visible only on owned-herd frames (Info/Sell/Move).
+--   * `ANY`    - visible on every consumer frame (Info/Sell/Move/Transfer/Buy).
+--   * `OWNED`  - visible only on owned-herd frames (Info/Sell/Move/Transfer).
 --   * `DEALER` - visible only on dealer frames (Buy).
 --
 -- The single source of truth for the canonical string values and their wire-byte encoding.
@@ -23,7 +23,7 @@ RLFilterUsage = {}
 --- save with no `usage` attribute.
 RLFilterUsage.ANY = "ANY"
 
---- Visible on owned-herd frames only (Info / Sell / Move).
+--- Visible on owned-herd frames only (Info / Sell / Move / Transfer).
 RLFilterUsage.OWNED = "OWNED"
 
 --- Visible on dealer frames only (Buy).

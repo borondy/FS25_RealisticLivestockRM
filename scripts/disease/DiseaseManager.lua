@@ -12,7 +12,8 @@
 
     The active difficulty preset (`diseaseDifficulty`, stored by `onDifficultyChanged` on every
     peer) scales the roll, the seed and the spread entries; `diseasesEnabled` is derived from it.
-    `isTitleEnabled` is the per-title gate every producer of a NEW record reads.
+    `isTitleEnabled` is the per-title gate of the four infection and inheritance producers; a
+    vaccine dose and a newborn's maternal protection do not read it.
 ]]
 
 DiseaseManager = {}
@@ -286,6 +287,69 @@ function DiseaseManager:getSortedTitles()
     Log:trace("getSortedTitles: rebuilt the sorted walk for a new registry (%d title(s))", #titles)
 
     return titles
+
+end
+
+
+--- Whether a model's prerequisites ask for a lactating animal.
+---@param model table a registry entry
+---@return boolean needsLactation true when any prerequisite path ends in `isLactating`
+local function needsLactation(model)
+
+    for _, prerequisite in ipairs(model.prerequisites or {}) do
+        local path = prerequisite.path
+        if path ~= nil and path[#path] == "isLactating" then return true end
+    end
+
+    return false
+
+end
+
+
+-- Gender and type, never the current `isLactating`: a dose before calving is the point of the
+-- mastitis vaccine. The test is the one the birth path uses to start lactation.
+--- The vaccines this animal can take, in sorted title order. Fails closed on an unresolvable type.
+---@param animal table the animal the dialog is showing
+---@return table models a fresh array of registry entries carrying a `vaccine` block
+function DiseaseManager:getVaccineModelsFor(animal)
+
+    local models = {}
+    local typeName = resolveAnimalTypeName(animal)
+
+    if typeName == nil then
+        Log:trace("DiseaseManager:getVaccineModelsFor: type unresolved, no vaccines (uniqueId=%s)",
+            tostring(animal.uniqueId))
+        return models
+    end
+
+    local canLactate = animal.gender == "female" and (typeName == "COW" or animal.subType == "GOAT")
+
+    for _, title in ipairs(self:getSortedTitles()) do
+        local model = self.diseases[title]
+        local bound = false
+
+        if model.vaccine ~= nil then
+            for i = 1, #model.animals do
+                if model.animals[i] == typeName then
+                    bound = true
+                    break
+                end
+            end
+        end
+
+        if bound and needsLactation(model) and not canLactate then
+            Log:trace("DiseaseManager:getVaccineModelsFor: skipped title=%s, reason=cannot lactate (uniqueId=%s)",
+                tostring(title), tostring(animal.uniqueId))
+        elseif bound then
+            models[#models + 1] = model
+        end
+    end
+
+    Log:trace("DiseaseManager:getVaccineModelsFor: type=%s gender=%s subType=%s -> %s vaccine(s) (uniqueId=%s)",
+        tostring(typeName), tostring(animal.gender), tostring(animal.subType), tostring(#models),
+        tostring(animal.uniqueId))
+
+    return models
 
 end
 

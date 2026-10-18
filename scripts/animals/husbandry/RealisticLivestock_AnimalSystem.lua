@@ -672,9 +672,30 @@ end
 AnimalSystem.loadSubTypes = Utils.overwrittenFunction(AnimalSystem.loadSubTypes, RealisticLivestock_AnimalSystem.loadSubTypes)
 
 
+--- Give a subtype whose XML sets no hourly health loss RLRM's starvation rate instead of the engine default.
+--- @param subType table the subtype the loader just filled
+--- @param declaresDecrease boolean whether its XML sets health#decreasePerHour
+function RealisticLivestock_AnimalSystem.applyHealthDefaults(subType, declaresDecrease)
+
+    if declaresDecrease then
+        Log:trace("applyHealthDefaults: subType=%s declares decreasePerHour=%s, kept",
+            tostring(subType.name), tostring(subType.healthDecreaseHour))
+        return
+    end
+
+    subType.healthDecreaseHour = RLConstants.HEALTH_DECREASE_PER_HOUR
+
+    Log:trace("applyHealthDefaults: subType=%s declares no decreasePerHour, set to %s",
+        tostring(subType.name), tostring(subType.healthDecreaseHour))
+
+end
+
+
 function RealisticLivestock_AnimalSystem:loadSubType(superFunc, animalType, subType, xmlFile, key, directory)
 
     local returnValue = superFunc(self, animalType, subType, xmlFile, key, directory)
+
+    RealisticLivestock_AnimalSystem.applyHealthDefaults(subType, xmlFile:hasProperty(key .. ".health#decreasePerHour"))
 
     -- Log visual indices for debugging
     if subType.visuals ~= nil then
@@ -2511,9 +2532,45 @@ function AnimalSystem:onDayChanged()
             end)
         end
 
+        -- A visit can de-list the animal it visits (a death removes it from this array), so the
+        -- slot is re-read before advancing: when it changed, the next animal now sits at `i`.
+        --- Visit every animal of one pool array once, in array order.
+        ---@param animals table The pool array for one animal type, mutated by the visits
+        ---@param poolName string Which pool, for log attribution only
+        ---@param visit function Called with each animal in turn
+        ---@return number visits How many animals were visited
+        ---@return number shifted How many visits left their slot no longer holding the visited animal
+        local function walkPool(animals, poolName, visit)
+            local visits, shifted = 0, 0
+            local i = 1
+
+            while i <= #animals do
+                local animal = animals[i]
+
+                visit(animal)
+                visits = visits + 1
+
+                if animals[i] == animal then
+                    Log:trace("AnimalSystem:onDayChanged: %s slot %d kept its animal, advancing (uniqueId=%s)",
+                        poolName, i, tostring(animal.uniqueId))
+                    i = i + 1
+                else
+                    shifted = shifted + 1
+                    Log:trace("AnimalSystem:onDayChanged: %s slot %d changed during its visit, re-reading the slot " ..
+                        "(visited typeIndex=%s farmId=%s uniqueId=%s country=%s)",
+                        poolName, i, tostring(animal.animalTypeIndex), tostring(animal.farmId),
+                        tostring(animal.uniqueId), tostring(safeBirthCountry(animal)))
+                end
+            end
+
+            return visits, shifted
+        end
+
+        local saleVisits, saleShifted = 0, 0
+
         for _, animals in pairs(self.animals) do
 
-            for _, animal in pairs(animals) do
+            local visits, shifted = walkPool(animals, "sale", function(animal)
 
                 animal.reserved = false
 
@@ -2526,21 +2583,35 @@ function AnimalSystem:onDayChanged()
                 -- AFTER progression, exactly as the pen orders it.
                 rollInfection(animal)
 
-            end
+            end)
+
+            saleVisits = saleVisits + visits
+            saleShifted = saleShifted + shifted
 
         end
 
+        Log:debug("AnimalSystem:onDayChanged: sale pool walked %d animal(s), %d slot(s) changed during a visit",
+            saleVisits, saleShifted)
+
+        local aiVisits, aiShifted = 0, 0
+
         for _, animals in pairs(self.aiAnimals) do
 
-            for _, animal in pairs(animals) do
+            local visits, shifted = walkPool(animals, "AI", function(animal)
                 RmSafeUtils.safeAnimalCall(animal, "AnimalSystem:onDayChanged(ai)", function()
                     animal:onDayChanged(nil, self.isServer, day, month, year, currentDayInPeriod, daysPerPeriod, true)
                 end)
 
                 tickDisease(animal, "AI")
-            end
+            end)
+
+            aiVisits = aiVisits + visits
+            aiShifted = aiShifted + shifted
 
         end
+
+        Log:debug("AnimalSystem:onDayChanged: AI pool walked %d animal(s), %d slot(s) changed during a visit",
+            aiVisits, aiShifted)
 
     end)
 end

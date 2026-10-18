@@ -166,8 +166,14 @@ function RLMenuBuyFrame:onFrameOpen()
         FocusManager:linkElements(self.subCategorySelector, FocusManager.BOTTOM, self.animalList)
         FocusManager:linkElements(self.animalList, FocusManager.TOP, self.subCategorySelector)
     end
-    if self.animalList ~= nil then
+    -- An empty SmoothList refuses focus; without the selector fallback nothing in the sidebar
+    -- holds focus and the keys cannot reach the pen selector.
+    if self.animalList ~= nil and self.animalList:getItemCount() > 0 then
         FocusManager:setFocus(self.animalList)
+        Log:debug("RLMenuBuyFrame:onFrameOpen: focus on animalList (%d items)", self.animalList:getItemCount())
+    elseif self.subCategorySelector ~= nil then
+        FocusManager:setFocus(self.subCategorySelector)
+        Log:debug("RLMenuBuyFrame:onFrameOpen: list empty, focus on subCategorySelector")
     end
 
     -- Revalidate active saved filter against current dealer type + render chip.
@@ -1396,7 +1402,7 @@ end
 
 --- Render the filterChip Text element to reflect the combined Quick filter
 --- + saved filter state. Delegates branch resolution to the
---- shared RLFilterChipHelper so all four RL Menu frames render consistently.
+--- shared RLFilterChipHelper so every RL Menu filter frame renders it the same way.
 --- No-op + WARNING if the XML element is missing.
 function RLMenuBuyFrame:updateFilterChip()
     local chip = self.filterChip

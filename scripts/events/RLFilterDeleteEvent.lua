@@ -121,7 +121,7 @@ function RLFilterDeleteEvent:run(connection)
     if g_rlMenu ~= nil then
         -- Iterate frame NAMES, not frame references: ipairs stops at the first nil, so an
         -- array holding a nil frame field would silently skip every later frame.
-        for _, frameName in ipairs({"infoFrame", "buyFrame", "sellFrame", "moveFrame"}) do
+        for _, frameName in ipairs({"infoFrame", "buyFrame", "sellFrame", "moveFrame", "transferFrame"}) do
             local f = g_rlMenu[frameName]
             if f ~= nil and f.onRemoteFilterChange ~= nil then
                 f:onRemoteFilterChange(id, "delete")

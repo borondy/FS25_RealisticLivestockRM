@@ -56,7 +56,7 @@ Fertility has one additional rating:
 
 - Affects how quickly health recovers or deteriorates
 - Higher health genetics = more likely to survive a disease (they do not make an animal less likely to catch one)
-- Animals below 80% health face monthly death risk - good health genetics help stay above this threshold
+- Animals in poor health face a daily death risk - good health genetics lower it and help keep health up
 - **Impact:** Survival and longevity
 
 ### Fertility

@@ -259,6 +259,21 @@ function RLMessageAggregator.parseMoneyValue(formattedMoney)
 end
 
 
+--- Deaths summary breakdown such as "old age (2), a disease (1)"; no connecting word to translate.
+--- @param reasons table count per reason text key
+--- @param translate function maps a reason key to its display text; nil falls back to the key
+--- @return string breakdown comma-joined parts, in pairs() order
+function RLMessageAggregator.formatDeathReasons(reasons, translate)
+    local parts = {}
+    for reason, count in pairs(reasons) do
+        local reasonText = translate(reason) or reason
+        table.insert(parts, string.format("%s (%d)", reasonText, count))
+        Log:trace("RLMessageAggregator.formatDeathReasons: %s -> '%s' x%d", tostring(reason), reasonText, count)
+    end
+    return table.concat(parts, ", ")
+end
+
+
 function RLMessageAggregator.consolidateDay()
     RmSafeUtils.safeCall("RLMessageAggregator.consolidateDay", function()
         for _, pending in pairs(RLMessageAggregator.pending) do
@@ -276,13 +291,8 @@ function RLMessageAggregator.consolidateDay()
                 end
 
                 if pending.deaths.count > 0 then
-                    -- Format reasons string: "2 from old age, 1 from disease"
-                    local reasonParts = {}
-                    for reason, count in pairs(pending.deaths.reasons) do
-                        local reasonText = g_i18n:getText(reason) or reason
-                        table.insert(reasonParts, tostring(count) .. " from " .. reasonText)
-                    end
-                    local reasonsStr = table.concat(reasonParts, ", ")
+                    local reasonsStr = RLMessageAggregator.formatDeathReasons(pending.deaths.reasons,
+                        function(key) return g_i18n:getText(key) end)
 
                     husbandry:addRLMessageDirect("DAILY_DEATHS_SUMMARY", nil,
                         { tostring(pending.deaths.count), husbandryName, reasonsStr })

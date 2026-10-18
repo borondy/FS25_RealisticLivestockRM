@@ -10,8 +10,10 @@
     (RLTransferAdapter); the frame only talks to that seam.
 
     Chrome mirrors RLMenuInfoFrame; the multi-select data row and footer mirror
-    RLMenuMoveFrame. The pen and animal detail columns reuse RLDetailPaneHelper, and the
-    pen column stays hidden while no side supplies a husbandry.
+    RLMenuMoveFrame. The pen and animal detail columns reuse RLDetailPaneHelper.
+
+    The Quick filter, filter chip and saved-filter cycle narrow the active side's list;
+    that state lasts one trailer screen session and is never shared with other tabs.
 ]]
 
 RLMenuTransferFrame = {}
@@ -46,6 +48,14 @@ function RLMenuTransferFrame.new()
     -- switch (the two sides are different animal universes).
     self.selectedAnimals   = {}
 
+    -- Filter state, reset on every open. sideItemsUnfiltered is the side's list before
+    -- any filter; filterTypeIndex scopes the saved filters to that list's animal type.
+    self.filters             = {}
+    self.activeFilterId      = nil
+    self.activeFilter        = nil
+    self.sideItemsUnfiltered = {}
+    self.filterTypeIndex     = nil
+
     -- In-flight lock between dispatch and completion: the action button is
     -- selection-gated, not request-gated, so nothing else blocks a duplicate submit.
     self.movePending       = false
@@ -59,8 +69,19 @@ function RLMenuTransferFrame.new()
     self.isFrameOpen = false
     self.hasCustomMenuButtons = true
 
-    -- Footer buttons. Back always; Select and SelectAll once the side has rows.
+    -- Footer buttons. Back always; Filter while the side has animals, plus Cycle when a
+    -- farm is set; Select and SelectAll once the visible list has rows.
     self.backButtonInfo = { inputAction = InputAction.MENU_BACK }
+    self.filterButtonInfo = {
+        inputAction = InputAction.MENU_CANCEL,
+        text = g_i18n:getText("rl_menu_info_filter_button"),
+        callback = function() self:onClickFilter() end,
+    }
+    self.cycleFilterButtonInfo = {
+        inputAction = InputAction.RL_CYCLE_FILTER,
+        text = g_i18n:getText("rl_menu_cycle_filter_button"),
+        callback = function() self:onCycleFilter() end,
+    }
     self.selectButtonInfo = {
         inputAction = InputAction.RL_SELECT,
         text = g_i18n:getText("button_select"),
@@ -165,6 +186,9 @@ function RLMenuTransferFrame:onFrameOpen()
     self.farmId  = RLAnimalInfoService.getCurrentFarmId()
     self.selectedAnimals = {}
     self.movePending = false
+    self.filters = {}
+    self.activeFilterId = nil
+    self.activeFilter = nil
 
     -- The closure captures BOTH the trailer and the counterpart at open time, so a
     -- reply arriving after a close - or after a reopen on a different trailer or pen -
@@ -193,8 +217,14 @@ function RLMenuTransferFrame:onFrameOpen()
         FocusManager:linkElements(self.subCategorySelector, FocusManager.BOTTOM, self.animalList)
         FocusManager:linkElements(self.animalList, FocusManager.TOP, self.subCategorySelector)
     end
-    if self.animalList ~= nil then
+    -- An empty SmoothList refuses focus; without the selector fallback nothing in the sidebar
+    -- holds focus and the keys cannot reach the pen selector.
+    if self.animalList ~= nil and self.animalList:getItemCount() > 0 then
         FocusManager:setFocus(self.animalList)
+        Log:debug("RLMenuTransferFrame:onFrameOpen: focus on animalList (%d items)", self.animalList:getItemCount())
+    elseif self.subCategorySelector ~= nil then
+        FocusManager:setFocus(self.subCategorySelector)
+        Log:debug("RLMenuTransferFrame:onFrameOpen: list empty, focus on subCategorySelector")
     end
 
     -- Runs after trailer and counterpart are set; a no-op for any other counterpart.
@@ -285,7 +315,7 @@ end
 
 --- Controller callback the trailer fires when its trigger contents change. Re-enumerates
 --- the world source from fresh engine state so the list and both headers self-correct,
---- and prunes any checked identity the mutation removed.
+--- revalidates the saved filter, and prunes any checked identity the mutation removed.
 --- @param obj table  the trailer firing the callback (must match self.trailer)
 --- @param clusters table|nil  deliberately unused: the callback re-enumerates from scratch (passed nil)
 function RLMenuTransferFrame:onAnimalsChanged(obj, clusters)
@@ -296,6 +326,14 @@ function RLMenuTransferFrame:onAnimalsChanged(obj, clusters)
     end
 
     self:reloadAnimalList()
+    -- The world side can gain its first animals while open, so its type can change.
+    local savedBefore = self.activeFilterId
+    self:revalidateActiveFilter()
+    if self.activeFilterId ~= savedBefore then
+        Log:debug("RLMenuTransferFrame:onAnimalsChanged: saved filter left scope, re-applying")
+        self:reloadAnimalList()
+    end
+    self:updateFilterChip()
     self:pruneSelectionToList()
     self:updateSourceLabels()
     self:updatePenDisplay()
@@ -412,8 +450,7 @@ function RLMenuTransferFrame:refreshSources()
 end
 
 
---- MultiTextOption onClick callback. Switches the active side, clears the
---- cross-side selection, and rebuilds the list + detail + buttons.
+--- Side picker callback: switch side, clear selection and Quick filter, revalidate the saved one, rebuild.
 --- @param state number 1 = counterpart, 2 = trailer
 function RLMenuTransferFrame:onSourceChanged(state)
     if state == nil or state < 1 or state > 2 then return end
@@ -425,10 +462,23 @@ function RLMenuTransferFrame:onSourceChanged(state)
     -- it cannot leak across the switch.
     self.selectedAnimals = {}
 
+    -- The Quick filter belongs to one side; a saved filter stays while in scope.
+    if next(self.filters) ~= nil then
+        Log:debug("RLMenuTransferFrame:onSourceChanged: Quick filter cleared on side switch")
+        self.filters = {}
+    end
+
     Log:debug("RLMenuTransferFrame:onSourceChanged: state=%d side=%s (selection cleared, labels refreshed)",
         state, self.currentSide)
 
     self:reloadAnimalList()
+    local savedBefore = self.activeFilterId
+    self:revalidateActiveFilter()
+    if self.activeFilterId ~= savedBefore then
+        Log:debug("RLMenuTransferFrame:onSourceChanged: saved filter left scope, re-applying")
+        self:reloadAnimalList()
+    end
+    self:updateFilterChip()
     -- Recompute BOTH sidebar headers on a side flip; the counts are capacity-based.
     self:updateSourceLabels()
     self:updatePenDisplay()
@@ -440,10 +490,22 @@ end
 -- Animal list
 -- =============================================================================
 
---- Build the item list for the active side, group into sections, refresh the
---- SmoothList, and seed the detail pane for the first row.
+--- Build the side's list, narrow it by the Quick then the saved filter, and refresh the list.
 function RLMenuTransferFrame:reloadAnimalList()
-    self.items = self:buildSideItems(self.currentSide)
+    self.sideItemsUnfiltered = self:buildSideItems(self.currentSide)
+    self.filterTypeIndex = RLTransferAdapter.filterTypeIndexOf(self.sideItemsUnfiltered)
+
+    local items = self.sideItemsUnfiltered
+    if next(self.filters) ~= nil
+        and AnimalFilterDialog ~= nil and AnimalFilterDialog.applyFilters ~= nil then
+        items = AnimalFilterDialog.applyFilters(items, self.filters, false)
+    end
+    local afterQuick = #items
+    self.items = RLFilterCycleHelper.applyFilter(items, self.activeFilter)
+    Log:debug("RLMenuTransferFrame:reloadAnimalList: side=%s type=%s universe=%d afterQuick=%d afterSaved=%d",
+        tostring(self.currentSide), tostring(self.filterTypeIndex), #self.sideItemsUnfiltered,
+        afterQuick, #self.items)
+
     self.sectionOrder, self.itemsBySection, self.titlesBySection =
         RLAnimalQuery.buildSections(self.items)
 
@@ -596,8 +658,7 @@ function RLMenuTransferFrame:updateEmptyState()
 end
 
 
---- Refresh the pen detail column. Shell: no side supplies a husbandry, so the
---- pen column stays hidden (updatePenDisplay hides penBox on nil husbandry).
+--- Refresh the pen detail column; it hides when the active side supplies no husbandry.
 function RLMenuTransferFrame:updatePenDisplay()
     RLDetailPaneHelper.updatePenDisplay(self, self:detailHusbandry(), self.farmId)
 end
@@ -729,18 +790,185 @@ end
 
 
 -- =============================================================================
+-- Filters (Quick filter, chip, saved-filter cycle)
+-- =============================================================================
+
+--- Open the Quick filter dialog on the side's list narrowed by the saved filter only.
+function RLMenuTransferFrame:onClickFilter()
+    if AnimalFilterDialog == nil or AnimalFilterDialog.show == nil then
+        Log:warning("RLMenuTransferFrame:onClickFilter: AnimalFilterDialog unavailable")
+        return
+    end
+
+    local source = RLFilterCycleHelper.applyFilter(self.sideItemsUnfiltered, self.activeFilter)
+    Log:debug("RLMenuTransferFrame:onClickFilter: opening dialog (savedFilterId=%s, universe=%d, source=%d, type=%s)",
+        tostring(self.activeFilterId), #self.sideItemsUnfiltered, #source, tostring(self.filterTypeIndex))
+    AnimalFilterDialog.show(source, self.filterTypeIndex, self.onFilterApplied, self, false, true, RLFilterUsage.OWNED)
+end
+
+
+--- AnimalFilterDialog callback: store the Quick filter, clear the selection, and reload.
+--- @param filters table|nil  the Quick filter set
+--- @param _items table  unused
+function RLMenuTransferFrame:onFilterApplied(filters, _items)
+    self.filters = filters or {}
+    self.selectedAnimals = {}
+    Log:debug("RLMenuTransferFrame:onFilterApplied: Quick filter applied, selection cleared")
+    self:updateFilterChip()
+    self:reloadAnimalList()
+    self:pruneSelectionToList()
+    self:updateButtonVisibility()
+end
+
+
+--- Step the saved filter to the next OWNED filter for the side's animal type, or back to none.
+function RLMenuTransferFrame:onCycleFilter()
+    if self.farmId == nil or self.farmId == 0 then
+        Log:trace("RLMenuTransferFrame:onCycleFilter: no farm, aborting")
+        return
+    end
+
+    local filters = RLFilterCycleHelper.getAvailableFilters(self.filterTypeIndex, self.farmId,
+        RLFilterCycleHelper.USAGE.OWNED)
+    if #filters == 0 then
+        self.activeFilterId = nil
+        self.activeFilter = nil
+        Log:trace("RLMenuTransferFrame:onCycleFilter: no filters available, chip reset")
+    else
+        local prevId = self.activeFilterId
+        local nextId = RLFilterCycleHelper.cycleFilterId(self.activeFilterId, filters)
+        self.activeFilterId = nextId
+        self.activeFilter = (nextId ~= nil and g_rlFilterService ~= nil
+            and g_rlFilterService:getById(nextId)) or nil
+        Log:debug("RLMenuTransferFrame:onCycleFilter: from=%s to=%s (count=%d, type=%s)",
+            tostring(prevId), tostring(nextId), #filters, tostring(self.filterTypeIndex))
+    end
+
+    self:updateFilterChip()
+    self:reloadAnimalList()
+    self:pruneSelectionToList()
+    self:updateButtonVisibility()
+end
+
+
+--- Render the filter chip from the Quick and saved filter state through the shared helper.
+function RLMenuTransferFrame:updateFilterChip()
+    local chip = self.filterChip
+    if chip == nil then
+        Log:warning("RLMenuTransferFrame:updateFilterChip: filterChip element missing from XML")
+        return
+    end
+
+    local s = RLFilterChipHelper.composeChipState(self.filters, self.activeFilter)
+    chip:setVisible(s.visible)
+    if s.visible then
+        if s.savedName ~= nil then
+            chip:setText(string.format(g_i18n:getText(s.textKey), s.savedName))
+        else
+            chip:setText(g_i18n:getText(s.textKey))
+        end
+    end
+    Log:trace("RLMenuTransferFrame:updateFilterChip: visible=%s key=%s saved=%s",
+        tostring(s.visible), tostring(s.textKey), tostring(s.savedName))
+
+    if chip.absPosition ~= nil and chip.size ~= nil then
+        Log:debug("RLMenuTransferFrame:updateFilterChip: absPos=(%.0f,%.0f)px size=(%.0f,%.0f)px",
+            chip.absPosition[1] * 1920, chip.absPosition[2] * 1080,
+            (chip.size[1] or 0) * 1920, (chip.size[2] or 0) * 1080)
+    end
+end
+
+
+--- Clear the saved filter once it is out of scope for the side's type; else refresh it.
+function RLMenuTransferFrame:revalidateActiveFilter()
+    if self.activeFilterId == nil then
+        Log:trace("RLMenuTransferFrame:revalidateActiveFilter: no active filter, nothing to revalidate")
+        return
+    end
+
+    if self.farmId == nil or self.farmId == 0 then
+        self.activeFilterId = nil
+        self.activeFilter = nil
+        Log:debug("RLMenuTransferFrame:revalidateActiveFilter: no farm, cleared")
+        return
+    end
+
+    local available = RLFilterCycleHelper.getAvailableFilters(self.filterTypeIndex, self.farmId,
+        RLFilterCycleHelper.USAGE.OWNED)
+    local stillInScope = false
+    for _, f in ipairs(available) do
+        if f.id == self.activeFilterId then
+            stillInScope = true
+            break
+        end
+    end
+
+    if not stillInScope then
+        Log:debug("RLMenuTransferFrame:revalidateActiveFilter: id=%s out of scope for type=%s, cleared",
+            tostring(self.activeFilterId), tostring(self.filterTypeIndex))
+        self.activeFilterId = nil
+        self.activeFilter = nil
+    else
+        if g_rlFilterService ~= nil then
+            self.activeFilter = g_rlFilterService:getById(self.activeFilterId)
+        end
+        Log:trace("RLMenuTransferFrame:revalidateActiveFilter: id=%s still in scope, snapshot refreshed",
+            tostring(self.activeFilterId))
+    end
+end
+
+
+--- Peer refresh for a remote saved-filter change; acts only while open, on the active id.
+--- @param filterId string  the changed filter's id
+--- @param changeType string  "create" | "update" | "delete"
+function RLMenuTransferFrame:onRemoteFilterChange(filterId, changeType)
+    Log:trace("RLMenuTransferFrame:onRemoteFilterChange: id=%s change=%s activeId=%s isFrameOpen=%s",
+        tostring(filterId), tostring(changeType), tostring(self.activeFilterId), tostring(self.isFrameOpen))
+
+    if self.isFrameOpen ~= true then
+        Log:trace("RLMenuTransferFrame:onRemoteFilterChange: frame not open, ignoring")
+        return
+    end
+    if filterId ~= self.activeFilterId then
+        Log:trace("RLMenuTransferFrame:onRemoteFilterChange: no-op (non-active change)")
+        return
+    end
+
+    self:revalidateActiveFilter()
+    self:updateFilterChip()
+    self:reloadAnimalList()
+    self:pruneSelectionToList()
+    self:updateButtonVisibility()
+
+    if self.activeFilter == nil then
+        Log:debug("RLMenuTransferFrame:onRemoteFilterChange: active filter cleared (delete or scope-narrow)")
+    else
+        Log:debug("RLMenuTransferFrame:onRemoteFilterChange: active filter snapshot refreshed")
+    end
+end
+
+
+-- =============================================================================
 -- Footer action (Load / Unload)
 -- =============================================================================
 
---- Rebuild the footer buttons. Both action buttons share the adapter's verb: the single
---- shows whenever rows exist, the selected one only once something is checked. That
---- divergence from the always-shown siblings is deliberate - a shared verb would
---- otherwise render two identical buttons at zero checked.
+--- Rebuild the footer: Filter while the side has animals, Cycle also needs a farm; the selected action needs a check.
 function RLMenuTransferFrame:updateButtonVisibility()
     self.menuButtonInfo = { self.backButtonInfo }
 
     local hasItems = #self.items > 0
     local selectedCount = self:getSelectedCount()
+
+    -- Keyed on the unfiltered side, so a filter that hides every row can still be changed.
+    if #self.sideItemsUnfiltered > 0 then
+        local hasFarm = self.farmId ~= nil and self.farmId ~= 0
+        Log:trace("RLMenuTransferFrame:updateButtonVisibility: side has %d animal(s), Filter shown, Cycle shown=%s",
+            #self.sideItemsUnfiltered, tostring(hasFarm))
+        table.insert(self.menuButtonInfo, self.filterButtonInfo)
+        if hasFarm then
+            table.insert(self.menuButtonInfo, self.cycleFilterButtonInfo)
+        end
+    end
 
     if hasItems then
         table.insert(self.menuButtonInfo, self.selectButtonInfo)
@@ -831,7 +1059,7 @@ function RLMenuTransferFrame:dispatchTransfer(animals)
     local handled = self.adapter:dispatch(direction, animals, self.context)
     if not handled then
         self.movePending = false
-        Log:debug("RLMenuTransferFrame:dispatchTransfer: dispatch returned false, state unchanged (shell no-op)")
+        Log:debug("RLMenuTransferFrame:dispatchTransfer: dispatch returned false, state unchanged")
         return
     end
 

@@ -102,4 +102,25 @@ function RLAnimalDisplayHelper.sortAnimals(a, b)
 
 end
 
+--- Decimals for a per-day amount: one below 1 L/day so small rates do not read as 0, else none.
+---@param litresPerDay number per-day amount
+---@return number precision 1 or 0
+function RLAnimalDisplayHelper.amountPerDayPrecision(litresPerDay)
+    if litresPerDay > 0 and litresPerDay < 1 then return 1 end
+    return 0
+end
+
+--- A per-day amount rendered with the translated `rl_ui_amountPerDay` label, such as "0.2L / day".
+---@param litresPerDay number per-day amount
+---@return string text localised amount
+function RLAnimalDisplayHelper.formatAmountPerDay(litresPerDay)
+    local precision = RLAnimalDisplayHelper.amountPerDayPrecision(litresPerDay)
+    -- formatNumber truncates at precision 0, so round first to keep 12.6 reading as 13.
+    local rounded = MathUtil.round(litresPerDay, precision)
+    local text = string.format(g_i18n:getText("rl_ui_amountPerDay"), g_i18n:formatNumber(rounded, precision))
+    Log:trace("RLAnimalDisplayHelper.formatAmountPerDay: %s -> '%s' (precision %d)",
+        tostring(litresPerDay), text, precision)
+    return text
+end
+
 Log:trace("RLAnimalDisplayHelper: loaded")

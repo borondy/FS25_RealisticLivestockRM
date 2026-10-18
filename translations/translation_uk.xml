@@ -175,8 +175,9 @@
         <text name="rl_ui_output_pallets_eggs" text="Яйця"/>
         <text name="rl_ui_output_pallets_wool" text="Шерсть"/>
         <text name="rl_ui_output_pallets_goatMilk" text="Козяче молоко"/>
-        <text name="rl_ui_amountPerDay" text="%.0fЛ / день" tag="format"/>
+        <text name="rl_ui_amountPerDay" text="%sЛ / день" tag="format"/>
         <text name="rl_ui_feePerMonth" text="%s / місяць" tag="format"/>
+        <text name="rl_ui_feePerDose" text="%s / dose" tag="format"/>
 
         <text name="rl_ui_animalType" text="Тип"/>
         <text name="rl_ui_amountMonitored" text="Під контролем"/>
@@ -400,6 +401,7 @@
         <text name="rl_settings_exportCSV_label" text="Експорт до CSV"/>
         <text name="rl_settings_exportCSV_tooltip" text="Експорт статистики в CSV"/>
         <text name="rl_settings_exportCSV_text" text="Експорт до CSV"/>
+        <text name="rl_settings_exportCSV_failed" text="Could not write %s. Close it in other programs and try again."/>
 
         <text name="rl_settings_maxNumMessages_label" text="Максимальна кількість повідомлень"/>
         <text name="rl_settings_maxNumMessages_tooltip" text="Більша кількість призведе до того, що папка збереження займатиме більше місця. Після досягнення ліміту найдавніші повідомлення будуть видалятися."/>
@@ -458,11 +460,18 @@
 
 
         <text name="rl_ui_immune" text="Імунітет"/>
+        <text name="rl_ui_vaccinated" text="Vaccinated"/>
+        <text name="rl_ui_vaccinate" text="Vaccinate"/>
+        <text name="rl_ui_vaccinateConfirm" text="Vaccinate %s against %s? One dose costs %s."/>
+        <text name="rl_ui_notVaccinated" text="Not vaccinated"/>
         <text name="rl_ui_startTreatment" text="Розпочати лікування"/>
         <text name="rl_ui_resumeTreatment" text="Відновити лікування"/>
         <text name="rl_ui_stopTreatment" text="Зупинити лікування"/>
         <text name="rl_ui_cull" text="Cull"/>
         <text name="rl_ui_cullConfirm" text="Cull %s? It is removed from your herd for good, and you receive %s in compensation."/>
+        <text name="rl_ui_startTreatmentConfirm" text="Start treating %s for %s? The course lasts %s and costs %s a month."/>
+        <text name="rl_ui_resumeTreatmentConfirm" text="Resume treating %s for %s? The course has %s left and costs %s a month."/>
+        <text name="rl_ui_stopTreatmentConfirm" text="Stop treating %s for %s? No fee is charged while it is stopped, and the months already served are kept if you resume."/>
         <text name="rl_ui_duration" text="Тривалість"/>
         <text name="rl_ui_beingTreated" text="Лікується"/>
         <text name="rl_ui_notTreated" text="Не лікується"/>
@@ -485,6 +494,7 @@
         <text name="rl_disease_brd" text="BRD"/>
         <text name="rl_disease_clostridial" text="Pulpy Kidney"/>
         <text name="rl_disease_colic" text="Colic"/>
+        <text name="rl_disease_footRot" text="Footrot"/>
 
 
 

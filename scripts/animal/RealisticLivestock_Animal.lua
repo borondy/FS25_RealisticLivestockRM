@@ -1087,7 +1087,7 @@ function Animal:showMonitorInfo(box)
 
     for fillType, amount in pairs(self.input) do
         box:addLine(g_i18n:getText("rl_ui_input_" .. fillType),
-            string.format(g_i18n:getText("rl_ui_amountPerDay"), (amount * 24) / daysPerMonth))
+            RLAnimalDisplayHelper.formatAmountPerDay((amount * 24) / daysPerMonth))
     end
 
     for fillType, amount in pairs(self.output) do
@@ -1103,7 +1103,7 @@ function Animal:showMonitorInfo(box)
         end
 
         box:addLine(g_i18n:getText("rl_ui_output_" .. outputText),
-            string.format(g_i18n:getText("rl_ui_amountPerDay"), (amount * 24) / daysPerMonth))
+            RLAnimalDisplayHelper.formatAmountPerDay((amount * 24) / daysPerMonth))
     end
 end
 
@@ -1479,7 +1479,7 @@ function Animal:onDayChanged(spec, isServer, day, month, year, currentDayInPerio
 
     -- Death evaluation: low health -> old age -> random accidents (with AnimalDeathEvent broadcast)
     local lowHealthDeath, oldDeath, randomDeath, randomDeathMoney =
-        AnimalHealth.evaluateDaily(self, spec)
+        AnimalHealth.evaluateDaily(self, spec, daysPerPeriod)
 
     return children, deadAnimals, childrenSold, childrenSoldAmount, lowHealthDeath, oldDeath, randomDeath,
         randomDeathMoney
@@ -1501,12 +1501,13 @@ end
 -- Health/death delegates -> AnimalHealth module
 function Animal:die(reason) AnimalHealth.die(self, reason) end
 
-function Animal:calculateLowHealthMonthlyAnimalDeaths() return AnimalHealth.calculateLowHealthMonthlyAnimalDeaths(self) end
+function Animal:calculateLowHealthDailyAnimalDeaths() return AnimalHealth.calculateLowHealthDailyAnimalDeaths(self) end
 
-function Animal:calculateOldAgeMonthlyAnimalDeaths() return AnimalHealth.calculateOldAgeMonthlyAnimalDeaths(self) end
+function Animal:calculateOldAgeMonthlyAnimalDeaths(daysPerPeriod) return AnimalHealth.calculateOldAgeMonthlyAnimalDeaths(
+        self, daysPerPeriod) end
 
-function Animal:calculateRandomMonthlyAnimalDeaths(spec) return AnimalHealth.calculateRandomMonthlyAnimalDeaths(self,
-        spec) end
+function Animal:calculateRandomMonthlyAnimalDeaths(spec, daysPerPeriod) return AnimalHealth.calculateRandomMonthlyAnimalDeaths(
+        self, spec, daysPerPeriod) end
 
 -- ##################################
 --             HORSES

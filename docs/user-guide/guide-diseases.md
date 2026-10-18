@@ -1,6 +1,6 @@
 # Disease Guide
 
-Realistic Livestock RM has nine diseases that can make your animals sick and, with **Animal Death** on, kill them; most of them also spread through a pen. Each one affects specific animals and differs in whether and how fast it spreads, how dangerous it is and whether it can be treated. The **Diseases** setting sets how often animals fall ill and how fast diseases spread - see [Difficulty Levels](#difficulty-levels).
+Realistic Livestock RM has ten diseases that can make your animals sick and, with **Animal Death** on, kill them; most of them also spread through a pen. Each one affects specific animals and differs in whether and how fast it spreads, how dangerous it is and whether it can be treated. The **Diseases** setting sets how often animals fall ill and how fast diseases spread - see [Difficulty Levels](#difficulty-levels).
 
 > **Note:** This documentation was generated with AI assistance and may contain inaccuracies. If you spot an error, please [open an issue](https://github.com/rittermod/FS25_RealisticLivestockRM/issues).
 
@@ -19,6 +19,7 @@ Realistic Livestock RM has nine diseases that can make your animals sick and, wi
 | **BRD** | Cattle | Moderate | Moderate - worst in calves | 1 month, $300 | Moderate reduction |
 | **Pulpy Kidney** | Sheep, goats | None | High - worst in lambs and kids | 1 month, $150 (cures about half the time) | Major reduction |
 | **Colic** | Horses | None | Moderate | 1 month, $500 (cures about half the time) | Major reduction |
+| **Footrot** | Cattle, sheep, goats | Slow | Never | 1 month, $100 (cures about 9 times in 10) | Major reduction |
 
 *The Fatal column holds while **Animal Death** is on (the ModHub build labels the setting "Animal Removal"). With it off, no animal dies of a disease: every disease but CVM ends in recovery, and an animal affected by CVM stays sick.*
 
@@ -52,19 +53,19 @@ When a disease shows in an animal in one of your pens, a "Contracted" message po
 
 ### Treatment
 
-Treat a sick animal from the **Diseases** dialog: open it from the RL Menu's Info tab, where **D** ("Animal Diseases" in Controls) opens it too. Every treatable disease has a 1-month course. The dialog shows the fee per month, and it is charged day by day while the course runs, so a finished course costs about the listed fee in total.
+Treat a sick animal from the **Diseases** dialog: open it from the RL Menu's Info tab, where **D** ("Animal Diseases" in Controls) opens it too. Every treatable disease has a 1-month course. A sick animal's row in the dialog shows the fee per month, and it is charged day by day while the course runs, so a finished course costs about the listed fee in total. The dialog lists the disease that most needs you first - an untreated illness before a vaccine you have not given, a course already running below both - and when it opens and after each treatment or dose it selects the first row you can start, resume or vaccinate. Each row starts with an icon: a red triangle for an illness that needs you, an orange triangle for a vaccine the animal has not had, and a green circle for an animal that is immune or vaccinated; a course already running, a CVM carrier and anything else have none. In colour-blind mode the colours change but the shapes stay the same.
 
-You can stop a course and resume it later. A stopped course keeps the progress it has made and costs nothing while it is stopped, and the detail panel reads **Treatment paused**.
+Starting, resuming or stopping a course asks you to confirm first, and Start and Resume name the monthly fee. You can stop a course and resume it later. A stopped course keeps the progress it has made and costs nothing while it is stopped, and the detail panel reads **Treatment paused**.
 
-A course that cures ends the illness when it finishes (for the two diseases whose course can fail, see [Treatment that fails](#treatment-that-fails)); it does not protect the animal before then, so an animal can still die while it is being treated. An animal in the hidden phase cannot be treated.
+A course that cures ends the illness when it finishes (for the three diseases whose course can fail, see [Treatment that fails](#treatment-that-fails)); it does not protect the animal before then, so an animal can still die while it is being treated. An animal in the hidden phase cannot be treated.
 
 ### Treatment that fails
 
-A course for pulpy kidney or colic cures only about half the time. When a course fails, a message says the treatment ended without a cure, the status goes back to **Not treated** and the red medical bag returns. You can start a new course straight away. For every other treatable disease, a course that runs to the end cures the animal.
+A course for pulpy kidney or colic cures only about half the time, and a course for footrot about 9 times in 10. When a course fails, a message says the treatment ended without a cure, the status goes back to **Not treated** and the red medical bag returns. You can start a new course straight away. For every other treatable disease, a course that runs to the end cures the animal.
 
 ### Natural recovery
 
-For every disease but Avian Flu (HPAI) and CVM, an untreated animal stays sick for at least 2 months unless it dies first, and after that has a chance to recover every day - so how long an untreated illness lasts varies. While **Animal Death** is on, a bird with HPAI rarely survives it. CVM never recovers.
+For every disease but Avian Flu (HPAI) and CVM, an untreated animal stays sick for at least 2 months (footrot: at least 6) unless it dies first, and after that has a chance to recover every day - so how long an untreated illness lasts varies. While **Animal Death** is on, a bird with HPAI rarely survives it. CVM never recovers.
 
 ### Death risk
 
@@ -75,6 +76,41 @@ Young animals, old animals and animals with poor health genetics are more at ris
 ### Immunity
 
 An animal that recovers is immune to that disease for a time - between 6 and 24 months depending on the disease (see each disease below). While immune it cannot catch that disease again and does not spread it, and its detail panel lists the disease as **Immune** with the time left. When the immunity runs out the entry disappears and the animal can catch the disease again.
+
+### Vaccination
+
+Five diseases have a vaccine. A dose protects the animal straight away: while protected it cannot catch that disease and does not spread it.
+
+| Disease | Animals | Protection | One dose |
+|---------|---------|------------|----------|
+| [Mastitis](#mastitis) | Female cows and female goats - the animals that can catch it | 12 months | $20 |
+| [PED](#porcine-epidemic-diarrhoea-ped) | Pigs | 6 months | $15 |
+| [BRD](#brd-bovine-respiratory-disease) | Cattle | 12 months | $30 |
+| [Pulpy Kidney](#pulpy-kidney) | Sheep and goats | 12 months | $15 |
+| [Footrot](#footrot) | Cattle, sheep and goats | 6 months | $10 |
+
+To vaccinate an animal, open its **Diseases** dialog (the Diseases button on the animal's Info page), select the disease and press **Vaccinate**, then confirm the price. The dialog lists every vaccine the animal can take: a disease the animal shows no entry for reads **Not vaccinated**, and an animal that is already vaccinated, or immune after recovering, gets a booster from that disease's own row. A row you can vaccinate from shows how long the vaccine protects and its price per dose.
+
+- One dose takes at once. There is no course and no second dose to come back for.
+- A booster never shortens the protection: it tops it back up to the full length when less is left.
+- A dose given to an animal that has already caught the disease does nothing, and is still charged.
+- A vaccinated animal reads **Vaccinated** with the months left, and reads healthy in the lists. When the protection runs out the entry disappears and the animal can catch the disease again.
+
+#### Protection from the mother
+
+For two diseases, a newborn is born protected when its mother is. What counts is the mother on the day she gives birth: if she is protected against the disease then - vaccinated, or immune after recovering from it - each of her newborns starts out immune for a short time.
+
+| Disease | Newborns | Protected for |
+|---------|----------|---------------|
+| [PED](#porcine-epidemic-diarrhoea-ped) | Piglets | 1 month |
+| [Pulpy Kidney](#pulpy-kidney) | Lambs and kids | 2 months |
+
+Mastitis, BRD and footrot pass nothing on.
+
+- The newborn's detail panel lists the disease as **Immune** with the time left, and it reads healthy in the lists. When the protection runs out the entry disappears.
+- The mother's own protection has to last until the birth: a dose that runs out during the pregnancy passes nothing on.
+- Vaccinating a newborn that already has its mother's protection raises it to the vaccine's full length.
+- While the **Diseases** setting is **Off**, newborns get no protection from their mother.
 
 ---
 
@@ -138,6 +174,8 @@ These states can hide a disease record behind an animal that reads as **healthy*
 - **Recovered animals.** After recovery the disease stays listed as "Immune" in the detail panel
   while the immunity runs. The animal sits in its normal breed section, carries no status icon,
   and matches the "Healthy" filter.
+- **Vaccinated animals.** A vaccinated animal lists the disease as "Vaccinated" in the detail
+  panel while the protection runs, and otherwise reads exactly like a recovered animal.
 - **CVM carriers.** A carrier keeps its CVM entry for life, but it is not sick - it sits in its
   normal section and matches "Healthy" too. It does carry the grey DNA icon, so you can spot
   carriers from the list rather than opening each detail panel.
@@ -208,6 +246,7 @@ Mastitis is an udder infection that stops milk production. Only an animal that i
 | Treatment | 1 month, $200 |
 | Natural recovery | At least 2 months without treatment, sometimes longer |
 | Immunity after recovery | 12 months |
+| Vaccine | 12 months, $20 a dose (female cows and goats) |
 
 ### Impact on Production
 
@@ -224,6 +263,7 @@ Mastitis is an udder infection that stops milk production. Only an animal that i
 - After recovery, the animal is immune for 12 months
 - Only a lactating animal can catch it, so your milking herd is where it shows up
 - In a large dairy herd, keep treatment funds available - cases come regularly
+- Vaccinate your cows and does ($20) before they calve or kid: a vaccinated animal cannot catch it for 12 months
 
 ---
 
@@ -317,6 +357,8 @@ PED is a diarrhoeal disease that hits young piglets hardest. Newborn piglets in 
 | Treatment | 1 month, $150 |
 | Natural recovery | At least 2 months without treatment, sometimes longer |
 | Immunity after recovery | 12 months |
+| Vaccine | 6 months, $15 a dose |
+| Protection from the mother | 1 month, for the piglets of a protected sow |
 
 ### Impact on Production
 
@@ -332,6 +374,8 @@ PED is a diarrhoeal disease that hits young piglets hardest. Newborn piglets in 
 - Treatment is cheap ($150) and takes 1 month - treat every case at once, piglets first
 - An untreated pig stays sick for at least 2 months, and every sick day carries a risk
 - Watch pens with newborn piglets: they catch it most often
+- Vaccinate your sows ($15 a dose) so the protection still runs when they farrow: their piglets are then born protected for their first month, when they catch PED most often
+- Vaccinate the piglets themselves before that month runs out; a dose protects for 6 months
 - If PED keeps recurring, consider a lower **Diseases** level
 
 ---
@@ -422,6 +466,7 @@ BRD is a respiratory disease that hits calves hardest. Calves up to 6 months old
 | Treatment | 1 month, $300 |
 | Natural recovery | At least 2 months without treatment, sometimes longer |
 | Immunity after recovery | 12 months |
+| Vaccine | 12 months, $30 a dose |
 
 ### Impact on Production
 
@@ -436,6 +481,7 @@ BRD is a respiratory disease that hits calves hardest. Calves up to 6 months old
 
 - Treat every case at once ($300) - calves are the ones most likely to die of it
 - Watch your calf pens: calves up to 6 months old catch it most often
+- Vaccinating a calf ($30) costs a tenth of a course of treatment and protects it for 12 months
 - After recovery, the animal is immune for 12 months
 
 ---
@@ -453,6 +499,8 @@ Pulpy kidney never spreads between animals - every case starts on its own. Lambs
 | Treatment | 1 month, $150, which cures about half the time |
 | Natural recovery | At least 2 months without treatment, sometimes longer |
 | Immunity after recovery | 12 months |
+| Vaccine | 12 months, $15 a dose |
+| Protection from the mother | 2 months, for the lambs and kids of a protected ewe or doe |
 
 ### Impact on Production
 
@@ -464,6 +512,8 @@ Pulpy kidney never spreads between animals - every case starts on its own. Lambs
 
 ### Management Tips
 
+- Vaccinate lambs and kids ($15): treatment cures only about half the time, a vaccine protects for 12 months
+- A protected ewe or doe passes 2 months of protection to her lambs and kids - vaccinate the young ones before it runs out
 - Start treatment the day it shows
 - A failed course is worth following with another - a message tells you when a course ends without a cure
 - After recovery, the animal is immune for 12 months
@@ -501,6 +551,41 @@ Colic is a painful digestive condition. It never passes between horses - every c
 
 ---
 
+## Footrot
+
+**Affects:** Cattle, sheep and goats
+
+Footrot is a contagious hoof infection that lames an animal and cuts what it produces. It never kills, but it lingers: an untreated case lasts at least 6 months, usually about 7. From 6 months old, animals can catch it on their own; younger stock do not, but any animal can still catch it from a sick pen mate. It spreads slowly through a pen.
+
+| Parameter | Value |
+|-----------|-------|
+| Spread | Slow |
+| Fatality | Never |
+| Treatment | 1 month, $100 (cures about 9 times in 10) |
+| Natural recovery | At least 6 months without treatment, usually about 7 |
+| Immunity after recovery | 6 months |
+| Vaccine | 6 months, $10 a dose |
+
+### Impact on Production
+
+| Impact | Effect |
+|--------|--------|
+| Milk | Noticeably reduced |
+| Wool and goat milk | Considerably reduced |
+| Manure | Noticeably reduced |
+| Growth | Slightly slower |
+| Value while sick | Major reduction |
+
+### Management Tips
+
+- Treat a case as soon as it shows ($100): a month of treatment instead of half a year of lost milk or wool, and one fewer animal passing it on
+- A course that fails leaves the animal sick - start another one straight away
+- A sick animal cannot be sold at the dealer until it recovers - untreated, that is at least 6 months
+- Where footrot keeps coming back, vaccinate the herd ($10 a dose, every 6 months); in a herd where it is rare, treating the odd case can be cheaper
+- After recovery, the animal is immune for 6 months
+
+---
+
 ## Disease Settings
 
 These settings decide how diseases play. The Settings Reference has their full text, under [Diseases](reference-settings.md#diseases) and [Death & Accidents](reference-settings.md#death-accidents).
@@ -509,11 +594,11 @@ These settings decide how diseases play. The Settings Reference has their full t
 
 Sets the level - **Off**, **Easy**, **Normal** (the default), **Hard** or **Very hard**. What each level changes is under [Difficulty Levels](#difficulty-levels). Admin only in multiplayer.
 
-*Choosing **Off** stops new infections and all disease progression, spread, and effects, and no calf inherits CVM and no dealer animal is stocked carrying it. Animals already infected are not cured - their diseases resume where they stopped when a level is chosen again - and existing diseases are hidden and a CVM carrier's extra milk stops while the setting is **Off**. While it is **Off**, a sick animal reads as healthy, so nothing stops it being sold and it cannot be culled.*
+*Choosing **Off** stops new infections and all disease progression, spread, and effects, and no calf inherits CVM and no dealer animal is stocked carrying it. Animals already infected are not cured - their diseases resume where they stopped when a level is chosen again - and existing diseases are hidden and a CVM carrier's extra milk stops while the setting is **Off**. While it is **Off**, a sick animal reads as healthy, so nothing stops it being sold and it cannot be culled. The Diseases dialog does not open, so no animal can be vaccinated, and no newborn gets [protection from its mother](#protection-from-the-mother).*
 
 ### Choose Diseases
 
-Directly below the **Diseases** row. Untick a disease and no new case of it starts, and it stops spreading - even from animals already ill with it. Existing cases carry on: an animal already ill with it still recovers or dies as usual, treatment still works, and a CVM carrier keeps its extra milk. An animal already in the hidden phase still falls ill and gets the "Contracted" message; the Settings Reference lists every case that keeps a switched-off disease. For CVM, unticking it also means no dealer animal stocked from then on carries it and no calf conceived from then on inherits it. While **Diseases** is **Off**, no disease starts whatever is ticked. Admin only in multiplayer.
+Directly below the **Diseases** row. Untick a disease and no new case of it starts, and it stops spreading - even from animals already ill with it. Existing cases carry on: an animal already ill with it still recovers or dies as usual, treatment still works, and a CVM carrier keeps its extra milk. An animal already in the hidden phase still falls ill and gets the "Contracted" message; the Settings Reference lists every case that keeps a switched-off disease. For CVM, unticking it also means no dealer animal stocked from then on carries it and no calf conceived from then on inherits it. An unticked disease's vaccine still works: you can still vaccinate against it, and newborns still get their mother's protection. While **Diseases** is **Off**, no disease starts whatever is ticked. Admin only in multiplayer.
 
 ### Animal Death
 

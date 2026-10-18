@@ -273,10 +273,10 @@ function RLMenu:onOpen()
 end
 
 --- Called by the GUI manager when the menu is closing.
---- Clears open state + resets per-frame saved-filter session state
----.
+--- Clears open state + resets per-frame saved-filter session state.
 function RLMenu:onClose()
-    -- Saved-filter session reset across the 4 consumer frames. Runs before
+    -- Saved-filter session reset for the four frames that reset on close (Transfer
+    -- resets on its own open). Runs before
     -- superClass().onClose so frame references are still live. Nil-guards
     -- each frame (early-init edge case: menu close before a frame finished
     -- .new()).

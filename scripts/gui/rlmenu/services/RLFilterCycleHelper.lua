@@ -1,5 +1,5 @@
--- Saveable-filter cycle + apply helper shared by the four consumer frames
--- (Info / Buy / Sell / Move). Pure table operations; no GUI state.
+-- Saveable-filter cycle + apply helper shared by the five consumer frames
+-- (Info / Buy / Sell / Move / Transfer). Pure table operations; no GUI state.
 
 RLFilterCycleHelper = {}
 

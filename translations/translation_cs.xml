@@ -192,8 +192,9 @@
         <text name="rl_ui_output_pallets_eggs" text="鸡蛋"/>
         <text name="rl_ui_output_pallets_wool" text="羊毛"/>
         <text name="rl_ui_output_pallets_goatMilk" text="羊奶"/>
-        <text name="rl_ui_amountPerDay" text="%.0fL / day" tag="format"/>
+        <text name="rl_ui_amountPerDay" text="%sL / day" tag="format"/>
         <text name="rl_ui_feePerMonth" text="%s / month" tag="format"/>
+        <text name="rl_ui_feePerDose" text="%s / dose" tag="format"/>
 
         <text name="rl_ui_animalType" text="类型"/>
         <text name="rl_ui_amountMonitored" text="已监测"/>
@@ -438,6 +439,7 @@
         <text name="rl_settings_exportCSV_label" text="导出为CSV"/>
         <text name="rl_settings_exportCSV_tooltip" text="将统计信息导出为CSV"/>
         <text name="rl_settings_exportCSV_text" text="导出为CSV"/>
+        <text name="rl_settings_exportCSV_failed" text="Could not write %s. Close it in other programs and try again."/>
 
         <text name="rl_settings_maxNumMessages_label" text="最大消息数量"/>
         <text name="rl_settings_maxNumMessages_tooltip" text="数量较大会导致存档文件夹占用更多空间。达到此限制后，最早的消息将被删除。"/>
@@ -500,11 +502,18 @@
 
 
         <text name="rl_ui_immune" text="免疫"/>
+        <text name="rl_ui_vaccinated" text="Vaccinated"/>
+        <text name="rl_ui_vaccinate" text="Vaccinate"/>
+        <text name="rl_ui_vaccinateConfirm" text="Vaccinate %s against %s? One dose costs %s."/>
+        <text name="rl_ui_notVaccinated" text="Not vaccinated"/>
         <text name="rl_ui_startTreatment" text="开始治疗"/>
         <text name="rl_ui_resumeTreatment" text="继续治疗"/>
         <text name="rl_ui_stopTreatment" text="停止治疗"/>
         <text name="rl_ui_cull" text="Cull"/>
         <text name="rl_ui_cullConfirm" text="Cull %s? It is removed from your herd for good, and you receive %s in compensation."/>
+        <text name="rl_ui_startTreatmentConfirm" text="Start treating %s for %s? The course lasts %s and costs %s a month."/>
+        <text name="rl_ui_resumeTreatmentConfirm" text="Resume treating %s for %s? The course has %s left and costs %s a month."/>
+        <text name="rl_ui_stopTreatmentConfirm" text="Stop treating %s for %s? No fee is charged while it is stopped, and the months already served are kept if you resume."/>
         <text name="rl_ui_duration" text="持续时间"/>
         <text name="rl_ui_beingTreated" text="治疗中"/>
         <text name="rl_ui_notTreated" text="未治疗"/>
@@ -527,6 +536,7 @@
         <text name="rl_disease_brd" text="BRD"/>
         <text name="rl_disease_clostridial" text="Pulpy Kidney"/>
         <text name="rl_disease_colic" text="Colic"/>
+        <text name="rl_disease_footRot" text="Footrot"/>
 
 
 

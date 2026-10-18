@@ -1,5 +1,5 @@
--- Pure compositor for the filter chip state shown in the four RL Menu tabs
--- (Info / Sell / Move / Buy). Resolves the combined Quick filter + saved
+-- Pure compositor for the filter chip state shown in the five RL Menu tabs
+-- (Info / Buy / Sell / Move / Transfer). Resolves the combined Quick filter + saved
 -- filter render branch into a flat result struct so each frame's
 -- updateFilterChip wrapper duplicates no branch logic.
 

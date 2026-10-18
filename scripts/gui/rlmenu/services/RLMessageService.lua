@@ -80,7 +80,7 @@ end
 --- sentinel row plus a single warning.
 ---
 --- Row schema (contract for the frame layer):
----   importanceSlice  : "realistic_livestock.importance_<1|2|3>"
+---   severity         : RLConstants.SEVERITY value (INFO for an unknown id)
 ---   typeText         : localized rl_messageTitle_<title>
 ---   animalText       : message.animal or "N/A"
 ---   messageText      : localized + token-substituted body
@@ -104,7 +104,7 @@ function RLMessageService.formatMessage(message, husbandry, husbandryIndex, inse
         Log:warning("RLMessageService.formatMessage: unknown message id '%s' (date=%s)",
             tostring(message.id), tostring(message.date))
         return {
-            importanceSlice = "realistic_livestock.importance_3",
+            severity        = RLConstants.SEVERITY.INFO,
             typeText        = "?",
             animalText      = message.animal or "N/A",
             messageText     = string.format(g_i18n:getText("rl_menu_messages_unknown"), tostring(message.id)),
@@ -120,7 +120,7 @@ function RLMessageService.formatMessage(message, husbandry, husbandryIndex, inse
     local messageText = substituteTokens(template, message.args)
 
     return {
-        importanceSlice = string.format("realistic_livestock.importance_%d", baseMessage.importance),
+        severity        = baseMessage.severity,
         typeText        = g_i18n:getText("rl_messageTitle_" .. baseMessage.title),
         animalText      = message.animal or "N/A",
         messageText     = messageText,
