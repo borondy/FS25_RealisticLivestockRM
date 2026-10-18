@@ -667,9 +667,7 @@
         <text name="input_RL_RENAME" text="Переименовать"/>
         <text name="input_RL_CYCLE_FILTER" text="Переключить сохраненный фильтр"/>
         <text name="rl_bridge_version_unknown" text="Realistic Livestock: модификация %s версии %s не тестировалась с версией %s для Realistic Livestock. Используется конфигурация '%s'. Если вы столкнетесь с проблемами при использовании экзотических животных, пожалуйста, сообщите о них по ссылке: %s."/>
-        <!-- TODO: localise -->
         <text name="rl_bridge_configoverride_conflict_header" text="Realistic Livestock: Обнаружен конфликт. Два или более модов/паков заменили конфигурацию для одного и того же типа животных. Последний загруженный мод имеет приоритет. Если вы продолжите, возможны визуальные баги и появление 'призрачных' животных."/>
-        <!-- TODO: localise -->
         <text name="rl_bridge_configoverride_conflict_line" text="%s: применено модом %s"/>
         <text name="rl_menu_info_children" text="Детеныши"/>
         <text name="rl_menu_info_diseases_header" text="Болезни"/>

@@ -1,6 +1,6 @@
 <modDesc descVersion="114">
     <author>Ritter</author>
-    <version>1.4.1.0</version>
+    <version>1.4.2.0-dev.1</version>
     <title>
         <en>Realistic Livestock - Ritter version</en>
         <it>Allevamento Realistico - Versione Ritter</it>
@@ -25,6 +25,10 @@ Documentation: https://rittermod.github.io/FS25_RealisticLivestockRM
 Source code and issue tracker: https://github.com/rittermod/FS25_RealisticLivestockRM
 
 Changelog:
+1.4.2.0-dev.1:
+- Fixed castrating a male lowering his overall genetics rating.
+- Updated the Russian translation (contributed by frezer89).
+
 1.4.1.0:
 Added:
 - Added vaccination: from the Diseases dialog, vaccinate cattle against BRD, pigs against PED, sheep and goats against pulpy kidney, and cows and female goats against mastitis.

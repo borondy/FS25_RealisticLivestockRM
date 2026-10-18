@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.2.0-dev.1:
+- Fixed castrating a male lowering his overall genetics rating.
+- Updated the Russian translation (contributed by frezer89).
+
 ## 1.4.1.0:
 
 ### Added
