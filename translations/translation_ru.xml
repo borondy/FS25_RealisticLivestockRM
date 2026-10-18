@@ -386,7 +386,7 @@
 
         <text name="rl_settings_off" text="Выкл"/>
         <text name="rl_settings_on" text="Вкл"/>
-        <text name="rl_settings_veryHard" text="Very hard"/>
+        <text name="rl_settings_veryHard" text="Очень сложно"/>
 
         <text name="rl_settings_deathEnabled_label" text="Выбраковка животных"/>
         <text name="rl_settings_deathEnabled_tooltip_1" text="Животные не будут погибать или удаляться из стада по причине беременности, болезней, старости или несчастных случаев."/>
@@ -420,7 +420,7 @@
         <text name="rl_settings_exportCSV_label" text="Экспорт в CSV"/>
         <text name="rl_settings_exportCSV_tooltip" text="Экспортировать статистику в формат CSV"/>
         <text name="rl_settings_exportCSV_text" text="Экспортировать в CSV"/>
-        <text name="rl_settings_exportCSV_failed" text="Could not write %s. Close it in other programs and try again."/>
+        <text name="rl_settings_exportCSV_failed" text="Не удалось записать в %s. Закройте этот файл в других программах и повторите попытку."/>
 
         <text name="rl_settings_maxNumMessages_label" text="Макс. количество сообщений"/>
         <text name="rl_settings_maxNumMessages_tooltip" text="Более высокое значение приведет к тому, что файлы сохранений будут занимать больше места. При достижении этого лимита самые старые сообщения будут автоматически удаляться."/>
@@ -479,18 +479,18 @@
 
 
         <text name="rl_ui_immune" text="Иммунитет"/>
-        <text name="rl_ui_vaccinated" text="Vaccinated"/>
-        <text name="rl_ui_vaccinate" text="Vaccinate"/>
-        <text name="rl_ui_vaccinateConfirm" text="Vaccinate %s against %s? One dose costs %s."/>
-        <text name="rl_ui_notVaccinated" text="Not vaccinated"/>
+        <text name="rl_ui_vaccinated" text="Вакцинированный"/>
+        <text name="rl_ui_vaccinate" text="Вакцинировать"/>
+        <text name="rl_ui_vaccinateConfirm" text="Вакцинировать %s против %s? Одна доза стоит %s."/>
+        <text name="rl_ui_notVaccinated" text="Не вакцинирован"/>
         <text name="rl_ui_startTreatment" text="Начать лечение"/>
         <text name="rl_ui_resumeTreatment" text="Возобновить лечение"/>
         <text name="rl_ui_stopTreatment" text="Прервать лечение"/>
         <text name="rl_ui_cull" text="Выбраковка"/>
         <text name="rl_ui_cullConfirm" text="Выбраковать %s? Животное будет навсегда удалено из вашего стада, а вы получите %s в качестве компенсации."/>
-        <text name="rl_ui_startTreatmentConfirm" text="Start treating %s for %s? The course lasts %s and costs %s a month."/>
-        <text name="rl_ui_resumeTreatmentConfirm" text="Resume treating %s for %s? The course has %s left and costs %s a month."/>
-        <text name="rl_ui_stopTreatmentConfirm" text="Stop treating %s for %s? No fee is charged while it is stopped, and the months already served are kept if you resume."/>
+        <text name="rl_ui_startTreatmentConfirm" text="Начать лечение %s от %s? Курс длится %s и стоит %s в месяц."/>
+        <text name="rl_ui_resumeTreatmentConfirm" text="Возобновить лечение %s от %s? Осталось %s , стоимость %s в месяц."/>
+        <text name="rl_ui_stopTreatmentConfirm" text="Прервать лечение %s от %s? В период приостановки плата не взимается, а уже пройденные месяцы сохранятся при возобновлении."/>
         <text name="rl_ui_duration" text="Длительность"/>
         <text name="rl_ui_beingTreated" text="Лечится"/>
         <text name="rl_ui_notTreated" text="Не лечится"/>
@@ -513,7 +513,7 @@
         <text name="rl_disease_brd" text="РБР (Респираторная болезнь рогатого скота)"/>
         <text name="rl_disease_clostridial" text="Размягчённая почка (Клостридиоз)"/>
         <text name="rl_disease_colic" text="Колика"/>
-        <text name="rl_disease_footRot" text="Footrot"/>
+        <text name="rl_disease_footRot" text="Копытная гниль"/>
 
 
 
@@ -650,15 +650,15 @@
         <text name="rm_rl_conflict_title" text="Обнаружен конфликт модов"/>
         <text name="rm_rl_migration_continue" text="Продолжить"/>
         <text name="rm_rl_migration_files_found" text="Найденные файлы данных:"/>
-        <text name="rm_rl_migration_message" text="В этом сохранении найдены предыдущие данные Realistic Livestock. Ваши настройки, данные животных, Дьюары и ручные инструменты AI Straw будут автоматически перенесены в версию Realistic Livestock - RitterMod при сохранении игры."/>
+        <text name="rm_rl_migration_message" text="В этом сохранении найдены предыдущие данные Realistic Livestock. Ваши настройки, данные животных, сосуды Дьюара и ручные инструменты (соломинки ИО) будут автоматически перенесены в версию Realistic Livestock - RitterMod при сохранении игры."/>
         <text name="rm_rl_migration_quit" text="Выйти"/>
         <text name="rm_rl_migration_title" text="Уведомление о миграции данных"/>
         <text name="rm_rl_mod_conflict_message" text="Следующие моды конфликтуют с 'Realistic Livestock - Ritter version' и не могут использоваться вместе: %s &#10;&#10;Пожалуйста, отключите конфликтующие моды и перезапустите игру."/>
 
-        <text name="rl_mod_warn_title" text="Mod Compatibility Warning"/>
-        <text name="rl_mod_warn_message" text="The following mod(s) loaded with Realistic Livestock RM may cause issues:%s&#10;&#10;See %s for details. The game will continue."/>
+        <text name="rl_mod_warn_title" text="Предупреждение о совместимости модов"/>
+        <text name="rl_mod_warn_message" text="Следующие моды, загруженные вместе с Realistic Livestock RM, могут вызвать проблемы:%s&#10;&#10;Подробности см. по ссылке: %s . Игра будет продолжена."/>
         <text name="rl_mod_compat_url" text="https://rittermod.github.io/FS25_RealisticLivestockRM/user-guide/reference-mod-compatibility"/>
-        <text name="rl_mod_warn_FS25_AnimalFoodCalculator" text="FS25_AnimalFoodCalculator: significant performance impact that grows with herd size."/>
+        <text name="rl_mod_warn_FS25_AnimalFoodCalculator" text="FS25_AnimalFoodCalculator: значительное падение производительности, возрастающее с увеличением размера стада."/>
 
 
 
@@ -666,7 +666,7 @@
         <text name="input_RL_MENU" text="Открыть меню Realistic Livestock"/>
         <text name="input_RL_RENAME" text="Переименовать"/>
         <text name="input_RL_CYCLE_FILTER" text="Переключить сохраненный фильтр"/>
-        <text name="rl_bridge_version_unknown" text="Realistic Livestock: %s version %s has not been tested with version %s of Realistic Livestock. Using config '%s'. If you experience issues with exotic animals, please report them at %s."/>
+        <text name="rl_bridge_version_unknown" text="Realistic Livestock: модификация %s версии %s не тестировалась с версией %s для Realistic Livestock. Используется конфигурация '%s'. Если вы столкнетесь с проблемами при использовании экзотических животных, пожалуйста, сообщите о них по ссылке: %s."/>
         <!-- TODO: localise -->
         <text name="rl_bridge_configoverride_conflict_header" text="Realistic Livestock: Обнаружен конфликт. Два или более модов/паков заменили конфигурацию для одного и того же типа животных. Последний загруженный мод имеет приоритет. Если вы продолжите, возможны визуальные баги и появление 'призрачных' животных."/>
         <!-- TODO: localise -->
