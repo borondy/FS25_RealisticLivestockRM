@@ -542,6 +542,51 @@ function Animal:getMaxNumAnimals()
     return 1
 end
 
+--- Store the world position and rotation this animal should spawn at when it next joins a pen.
+--- @param x number world x
+--- @param y number world y
+--- @param z number world z
+--- @param rx number world rotation x
+--- @param ry number world rotation y
+--- @param rz number world rotation z
+function Animal:setPendingSpawnWorldPosition(x, y, z, rx, ry, rz)
+    self.pendingSpawnX, self.pendingSpawnY, self.pendingSpawnZ = x, y, z
+    self.pendingSpawnRX, self.pendingSpawnRY, self.pendingSpawnRZ = rx, ry, rz
+
+    Log:trace(">>> Animal:setPendingSpawnWorldPosition(%s, %s, %s, %s, %s, %s) (farmId=%s uniqueId=%s)",
+        tostring(x), tostring(y), tostring(z), tostring(rx), tostring(ry), tostring(rz),
+        tostring(self.farmId), tostring(self.uniqueId))
+end
+
+--- The stored spawn position and rotation, or a single nil when none is set.
+--- @return number|nil x
+--- @return number|nil y
+--- @return number|nil z
+--- @return number|nil rx
+--- @return number|nil ry
+--- @return number|nil rz
+function Animal:getPendingSpawnWorldPosition()
+    if self.pendingSpawnX == nil then
+        Log:trace("<<< Animal:getPendingSpawnWorldPosition = unset (farmId=%s uniqueId=%s)",
+            tostring(self.farmId), tostring(self.uniqueId))
+        return nil
+    end
+
+    Log:trace("<<< Animal:getPendingSpawnWorldPosition = set (farmId=%s uniqueId=%s)", tostring(self.farmId),
+        tostring(self.uniqueId))
+    return self.pendingSpawnX, self.pendingSpawnY, self.pendingSpawnZ,
+        self.pendingSpawnRX, self.pendingSpawnRY, self.pendingSpawnRZ
+end
+
+--- Forget the stored spawn position and rotation.
+function Animal:clearPendingSpawnWorldPosition()
+    self.pendingSpawnX, self.pendingSpawnY, self.pendingSpawnZ = nil, nil, nil
+    self.pendingSpawnRX, self.pendingSpawnRY, self.pendingSpawnRZ = nil, nil, nil
+
+    Log:trace(">>> Animal:clearPendingSpawnWorldPosition: cleared (farmId=%s uniqueId=%s)", tostring(self.farmId),
+        tostring(self.uniqueId))
+end
+
 function Animal:getName()
     return self.name or ""
 end
