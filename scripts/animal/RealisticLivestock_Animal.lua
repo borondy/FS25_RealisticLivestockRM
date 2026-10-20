@@ -520,6 +520,28 @@ function Animal:getAge()
     return self.age
 end
 
+--- The age visual for this animal's own subtype and age, or nil when no visual band covers that age.
+--- @return table|nil visual
+function Animal:getVisual()
+    local subTypeIndex = self:getSubTypeIndex()
+    local age = self:getAge()
+    local visual = g_currentMission.animalSystem:getVisualByAge(subTypeIndex, age)
+
+    Log:trace("<<< Animal:getVisual = minAge %s (farmId=%s uniqueId=%s subType=%s (%s) age=%s)",
+        tostring(visual and visual.minAge), tostring(self.farmId), tostring(self.uniqueId),
+        tostring(self.subType), tostring(subTypeIndex), tostring(age))
+
+    return visual
+end
+
+--- The most animals this record can hold: an RLRM animal is always exactly one animal.
+--- @return integer maxNumAnimals
+function Animal:getMaxNumAnimals()
+    Log:trace("<<< Animal:getMaxNumAnimals = 1 (farmId=%s uniqueId=%s)", tostring(self.farmId),
+        tostring(self.uniqueId))
+    return 1
+end
+
 function Animal:getName()
     return self.name or ""
 end
