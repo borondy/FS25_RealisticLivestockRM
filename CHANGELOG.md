@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.2.0-dev.2:
+- Fixed the Animals page of the in-game menu showing no animals on game version 1.25.
+- Fixed a horse ridden back into its stable on game version 1.25 staying frozen outside instead of rejoining the herd.
+- Fixed horses in multiplayer on game version 1.25 being sent to other players in a format they could not read.
+
 ## 1.4.2.0-dev.1:
 - Fixed castrating a male lowering his overall genetics rating.
 - Updated the Russian translation (contributed by frezer89).
