@@ -685,14 +685,15 @@
          the frame's own tint pass invalidates the layout on every render, which re-wraps focus
          handlers on a scrolling layout's children.
 
-         Every state is declared explicitly rather than left to inherit: an undeclared one resolves
-         through its own fallback chain, which is how a row ends up painting both strings or neither.
+         Six of the seven text states are declared, because an undeclared one resolves through its
+         own fallback chain and can paint both strings or neither; highlighted-selected falls back to
+         the transparent selected colour.
+
          `textDisabledColor` is deliberately the VISIBLE colour - a disabled row that is still
          missing required data must keep saying so.
 
-         Residual, queued as a manual check: the SELECTED states are not declared by the profile this
-         one extends, so a row that is ever `selected` may paint neither string. Whether a row here
-         can reach that state is unverified.
+         In the selected states neither string paints, and neither Text nor the value widget holding
+         them is ever selected, so those states are never reached.
 
          Position / width / colours only - never the anchor. Overriding the anchor knocks the
          inherited sizing traits off the chain and silently disables text wrap, which is why the

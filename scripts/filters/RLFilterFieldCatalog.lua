@@ -267,8 +267,9 @@ RLFilterFieldCatalog.FIELDS = {
         cmps        = NUMBER_CMPS,
         animalTypes = "all",
         scale       = "0-99",
+        -- The effective value, 0 for a castrated male; RLGenetics is read inside the closure.
         getter      = function(animal)
-            return animal.genetics and scaled(animal.genetics.fertility) or nil
+            return scaled(RLGenetics.effectiveFertility(animal.genetics, animal.isCastrated))
         end,
         monitorGated = false,
         min          = 0,

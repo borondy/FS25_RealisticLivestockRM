@@ -2,7 +2,9 @@
     RLGenetics.lua
     The one home for genetics banding: the two tier ladders, the single-value
     domain predicate, the guarded domain entries on top of them, and the
-    whole-table layer - the validity verdict and the aggregate.
+    whole-table layer - the validity verdict and the aggregate. Also the one
+    home of the effective-fertility read: a castrated male keeps his gene and
+    reads fertility 0.
 
     Engine-free apart from RmLogging and RLConstants, so it dual-runs headless.
     Not side-effect-free: five rejection counters with latest-offender snapshots,
@@ -22,8 +24,8 @@ RLGenetics.MIN = RLConstants.GENETICS_MIN
 RLGenetics.MAX = RLConstants.GENETICS_MAX
 
 -- The one value outside [MIN, MAX] that is legitimate rather than corrupt, and
--- only for fertility: a castrated male, a freemartin heifer or an animal bred
--- sterile stores exactly 0.
+-- only for fertility: a freemartin heifer or an animal bred sterile stores
+-- exactly 0, and so does a steer castrated in an older save.
 RLGenetics.INFERTILE_VALUE = 0
 
 
@@ -262,7 +264,7 @@ end
 ---
 --- Trait-AGNOSTIC by signature, so it validates against the UNION and accepts the
 --- infertile 0 silently; tightening it to [MIN, MAX] would warn on every
---- castrated male, because generic loops feed it `animal.genetics` wholesale. Two
+--- stored-0 animal, because generic loops feed it `animal.genetics` wholesale. Two
 --- consequences are contract: an absent trait bands lowest silently, and
 --- fertility 0 bands lowest here while `fertility` bands it infertile.
 --- @param value number|nil Trait value; `nil` is treated as absent
@@ -307,6 +309,23 @@ function RLGenetics.fertility(value, context)
     if value == RLGenetics.INFERTILE_VALUE then return RLGenetics.INFERTILE_KEY end
 
     return RLGenetics.resolve(value, RLGenetics.PER_TRAIT_THRESHOLDS, RLGenetics.PER_TRAIT_KEYS)
+end
+
+
+--- Fertility as the animal can use it: 0 for a castrated male, else the stored gene.
+--- @param genetics table|nil The animal's genetics table
+--- @param isCastrated boolean|nil The animal's castration flag
+--- @return number|nil fertility 0 when castrated, the stored value otherwise, nil without a table
+function RLGenetics.effectiveFertility(genetics, isCastrated)
+    if type(genetics) ~= "table" then return nil end
+
+    if isCastrated == true then
+        Log:trace("RLGenetics.effectiveFertility: castrated, stored %s reads %s",
+            tostring(genetics.fertility), tostring(RLGenetics.INFERTILE_VALUE))
+        return RLGenetics.INFERTILE_VALUE
+    end
+
+    return genetics.fertility
 end
 
 

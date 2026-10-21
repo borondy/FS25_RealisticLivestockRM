@@ -84,6 +84,35 @@ local function hasCreatePermission()
 end
 
 
+--- The value a layered slider reads: effective fertility for the fertility slider, else the field path.
+--- @param animal table list item's animal or cluster
+--- @param target table field path, such as { "genetics", "metabolism" }
+--- @return any value
+local function getLayeredValue(animal, target)
+    if #target == 2 and target[1] == "genetics" and target[2] == "fertility" then
+        local fertility = RLGenetics.effectiveFertility(animal.genetics, animal.isCastrated)
+        Log:trace("[AnimalFilterDialog] getLayeredValue: farmId=%s uniqueId=%s castrated=%s fertility=%s",
+            tostring(animal.farmId), tostring(animal.uniqueId), tostring(animal.isCastrated), tostring(fertility))
+        return fertility
+    end
+
+    local value = animal
+    for _, key in ipairs(target) do value = value[key] end
+    return value
+end
+
+
+--- A slider's log label: the dotted field path for a layered slider, else the plain target.
+--- @param filter table filter row
+--- @return string label, such as "genetics.health" or "health"
+local function sliderLabel(filter)
+    if type(filter.target) == "table" then return table.concat(filter.target, ".") end
+    return tostring(filter.target)
+end
+
+
+--- Build the filter rows, deriving each slider's range from the items it filters.
+--- @return nil
 function AnimalFilterDialog:onOpen()
 
     AnimalFilterDialog:superClass().onOpen(self)
@@ -369,6 +398,8 @@ function AnimalFilterDialog:onOpen()
             ["max"] = 1,
             ["multiplier"] = 100
         })
+        Log:trace("[AnimalFilterDialog] onOpen: productivity slider added (animalTypeIndex=%s)",
+            tostring(self.animalTypeIndex))
 
     end
 
@@ -395,6 +426,7 @@ function AnimalFilterDialog:onOpen()
             },
             ["default"] = 2
         })
+        Log:trace("[AnimalFilterDialog] onOpen: lactating filter added")
 
     end
 
@@ -405,19 +437,19 @@ function AnimalFilterDialog:onOpen()
 
         for _, filter in pairs(filters) do
 
-            if (filter.requiresMonitor and not animal.monitor.active and not animal.monitor.removed) or filter.template ~= "sliderTemplate" then continue end
+            if filter.template ~= "sliderTemplate" then continue end
+
+            if filter.requiresMonitor and not animal.monitor.active and not animal.monitor.removed then
+                Log:trace("[AnimalFilterDialog] onOpen: farmId=%s uniqueId=%s not in slider '%s' range (no monitor)",
+                    tostring(animal.farmId), tostring(animal.uniqueId), sliderLabel(filter))
+                continue
+            end
 
             local value
 
             if filter.isLayered then
 
-                value = animal
-
-                for _, target in pairs(filter.target) do
-
-                    value = value[target]
-
-                end
+                value = getLayeredValue(animal, filter.target)
 
             elseif filter.isFunction then
 
@@ -433,6 +465,8 @@ function AnimalFilterDialog:onOpen()
                 -- accessor, so they cannot drift apart when the preset changes.
                 if filter.target == "getSellPrice" and self.isBuyMode then
                     value = value * RLDealerQualityResolver.getMarkup()
+                    Log:trace("[AnimalFilterDialog] onOpen: buy markup farmId=%s uniqueId=%s value=%s",
+                        tostring(animal.farmId), tostring(animal.uniqueId), tostring(value))
                 end
 
             else
@@ -453,7 +487,18 @@ function AnimalFilterDialog:onOpen()
 
     for i = #filters, 1, -1 do
 
-        if filters[i].template == "sliderTemplate" and not filters[i].hasValues then table.remove(filters, i) end
+        local filter = filters[i]
+
+        if filter.template == "sliderTemplate" then
+            local label = sliderLabel(filter)
+            if not filter.hasValues then
+                Log:trace("[AnimalFilterDialog] onOpen: slider '%s' pruned (no item has a value)", label)
+                table.remove(filters, i)
+            else
+                Log:trace("[AnimalFilterDialog] onOpen: slider '%s' range [%s, %s]",
+                    label, tostring(filter.min), tostring(filter.max))
+            end
+        end
 
     end
 
@@ -899,6 +944,11 @@ function AnimalFilterDialog:populateCellForItemInSection(list, section, index, c
 end
 
 
+--- Keep the items that pass every slider and binary filter.
+--- @param items table list items, each carrying `animal` or `cluster`
+--- @param filters table filter rows from the dialog
+--- @param isBuyMode boolean|nil true applies the dealer markup to the Value slider
+--- @return table result the passing items, each stamped with `originalIndex`
 function AnimalFilterDialog.applyFilters(items, filters, isBuyMode)
 
     local result = {}
@@ -910,7 +960,11 @@ function AnimalFilterDialog.applyFilters(items, filters, isBuyMode)
 
         for _, filter in pairs(filters) do
 
-            if filter.requiresMonitor and not animal.monitor.active and not animal.monitor.removed then continue end
+            if filter.requiresMonitor and not animal.monitor.active and not animal.monitor.removed then
+                Log:trace("[AnimalFilterDialog] applyFilters: farmId=%s uniqueId=%s skips filter '%s' (no monitor)",
+                    tostring(animal.farmId), tostring(animal.uniqueId), sliderLabel(filter))
+                continue
+            end
 
             if filter.template == "sliderTemplate" then
 
@@ -918,9 +972,7 @@ function AnimalFilterDialog.applyFilters(items, filters, isBuyMode)
 
                 if filter.isLayered then
 
-                    value = animal
-
-                    for _, target in pairs(filter.target) do value = value[target] end
+                    value = getLayeredValue(animal, filter.target)
 
                 elseif filter.isFunction then
 
@@ -933,6 +985,8 @@ function AnimalFilterDialog.applyFilters(items, filters, isBuyMode)
                     -- one space under every dealer-quality preset.
                     if filter.target == "getSellPrice" and isBuyMode then
                         value = value * RLDealerQualityResolver.getMarkup()
+                        Log:trace("[AnimalFilterDialog] applyFilters: buy markup farmId=%s uniqueId=%s value=%s",
+                            tostring(animal.farmId), tostring(animal.uniqueId), tostring(value))
                     end
 
                 else
@@ -942,6 +996,10 @@ function AnimalFilterDialog.applyFilters(items, filters, isBuyMode)
                 end
 
                 if value < filter.min or value > filter.max then
+                    Log:trace("[AnimalFilterDialog] applyFilters: farmId=%s uniqueId=%s dropped by slider '%s'"
+                        .. " (value=%s range=[%s, %s])",
+                        tostring(animal.farmId), tostring(animal.uniqueId), sliderLabel(filter),
+                        tostring(value), tostring(filter.min), tostring(filter.max))
                     meetsFilters = false
                     break
                 end
@@ -964,6 +1022,10 @@ function AnimalFilterDialog.applyFilters(items, filters, isBuyMode)
                 end
 
                 if value ~= filter.value then
+                    Log:trace("[AnimalFilterDialog] applyFilters: farmId=%s uniqueId=%s dropped by option '%s'"
+                        .. " (value=%s want=%s)",
+                        tostring(animal.farmId), tostring(animal.uniqueId), tostring(filter.target),
+                        tostring(value), tostring(filter.value))
                     meetsFilters = false
                     break
                 end
@@ -978,6 +1040,8 @@ function AnimalFilterDialog.applyFilters(items, filters, isBuyMode)
         end
 
     end
+
+    Log:trace("[AnimalFilterDialog] applyFilters: kept %d of %d (buyMode=%s)", #result, #items, tostring(isBuyMode))
 
     return result
 

@@ -11,7 +11,7 @@ function AnimalCastrateEvent.emptyNew()
 end
 
 
---- Castrate an animal (set isCastrated=true, fertility=0).
+--- Castrate an animal (set isCastrated=true; the fertility gene is kept).
 --- @param object table Husbandry placeable (animal.clusterSystem.owner)
 --- @param animal table Animal object or identifiers table
 --- @return table self
@@ -43,6 +43,7 @@ end
 
 --- Apply castration mutation. Rebroadcasts from server to other clients.
 --- @param connection table Network connection the event arrived on
+--- @return nil
 function AnimalCastrateEvent:run(connection)
     if self.object == nil then
         Log:warning("AnimalCastrateEvent:run: nil object (stale husbandry?), aborting")
@@ -62,9 +63,6 @@ function AnimalCastrateEvent:run(connection)
 
     if animal ~= nil then
         animal.isCastrated = true
-        if animal.genetics ~= nil then
-            animal.genetics.fertility = 0
-        end
         Log:trace("AnimalCastrateEvent:run: castrated uniqueId=%s", tostring(identifiers.uniqueId))
     else
         Log:warning("AnimalCastrateEvent:run: animal not found uniqueId=%s", tostring(identifiers.uniqueId))

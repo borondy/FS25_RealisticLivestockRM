@@ -374,9 +374,8 @@ function RLAnimalQuery.formatAnimalRow(item)
     row.isRecoveringFromBirth = isFemale
         and (cluster.isParent == true)
         and (cluster.monthsSinceLastBirth ~= nil and cluster.monthsSinceLastBirth <= 2)
-    row.isInfertile = cluster.genetics ~= nil
-        and cluster.genetics.fertility ~= nil
-        and cluster.genetics.fertility <= 0
+    local fertility = RLGenetics.effectiveFertility(cluster.genetics, cluster.isCastrated)
+    row.isInfertile = fertility ~= nil and fertility <= 0
 
     -- Status icon fields (Category 2: production, monitor-gated).
     -- Follows the buildOutputRows pattern from RLAnimalInfoService.

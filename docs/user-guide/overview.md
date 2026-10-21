@@ -50,7 +50,7 @@ Individual animals can be monitored, marked, and castrated:
 
 - **Monitoring** - Place monitors on animals to track their stats over time. View active monitors in the livestock menu.
 - **Marking** - Mark animals for visual identification in your herd
-- **Castration** - Castrate males for a small sell price bonus. Castrated animals grow faster but cannot breed.
+- **Castration** - Castrate males for a small sell price bonus. Castrated animals grow faster but cannot breed. They keep their genetics; only their fertility reads Infertile.
 
 ### Diseases
 

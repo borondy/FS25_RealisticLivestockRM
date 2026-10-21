@@ -77,9 +77,10 @@ end
 ---@param genetics table|nil
 ---@param animalTypeIndex number|nil
 ---@param subTypeName string|nil
+---@param isCastrated boolean|nil true reads the fertility cell as 0
 ---@return table cells six strings
-function RLAnimalExport.geneticsCells(genetics, animalTypeIndex, subTypeName)
-    local rows = RLGeneticsFormatter.format(genetics, animalTypeIndex, subTypeName)
+function RLAnimalExport.geneticsCells(genetics, animalTypeIndex, subTypeName, isCastrated)
+    local rows = RLGeneticsFormatter.format(genetics, animalTypeIndex, subTypeName, isCastrated)
     local cells = {}
     for i = 1, GENETICS_CELLS do
         local row = rows[i]
@@ -166,7 +167,8 @@ function RLAnimalExport.formatRow(animal, pen, ctx)
         for _ = 1, 7 do cells[#cells + 1] = "" end
     end
 
-    for _, cell in ipairs(RLAnimalExport.geneticsCells(animal.genetics, animal.animalTypeIndex, animal.subType)) do
+    for _, cell in ipairs(RLAnimalExport.geneticsCells(animal.genetics, animal.animalTypeIndex, animal.subType,
+        animal.isCastrated)) do
         cells[#cells + 1] = cell
     end
 

@@ -168,10 +168,13 @@ function AnimalCleanEvent:run(connection)
 end
 
 
--- Fix MP horse riding: RL Animal's stream format differs from the
--- AnimalClusterHorse format that the client expects when reading.
--- Override to write/read cluster in AnimalClusterHorse-compatible format.
+-- The client reads a horse vehicle's cluster with the base horse-cluster reader, so the server
+-- writes an RLRM Animal in that same layout rather than its own.
 
+--- Write a horse vehicle's join stream: ground state, the cluster in base layout, the rider to enter.
+---@param streamId number the stream to write
+---@param connection table the receiving connection
+---@return nil
 function Rideable:onWriteStream(streamId, connection)
     local spec = self.spec_rideable
 
@@ -182,17 +185,9 @@ function Rideable:onWriteStream(streamId, connection)
     local cluster = spec.cluster
     if streamWriteBool(streamId, cluster ~= nil) then
         streamWriteUIntN(streamId, cluster:getSubTypeIndex(), AnimalCluster.NUM_BITS_SUB_TYPE)
-        -- Write in AnimalClusterHorse format (not RL Animal format)
-        -- Base AnimalCluster fields:
-        streamWriteUIntN(streamId, cluster.numAnimals or 1, AnimalCluster.NUM_BITS_NUM_ANIMALS)
-        streamWriteUIntN(streamId, math.floor(cluster.age or 0), AnimalCluster.NUM_BITS_AGE)
-        streamWriteUIntN(streamId, math.floor(cluster.health or 0), AnimalCluster.NUM_BITS_HEALTH)
-        streamWriteUIntN(streamId, math.floor(cluster.reproduction or 0), AnimalCluster.NUM_BITS_REPRODUCTION)
-        -- AnimalClusterHorse fields:
-        streamWriteString(streamId, cluster.name or "")
-        streamWriteUIntN(streamId, math.floor(cluster.fitness or 0), AnimalClusterHorse.NUM_BITS_FITNESS)
-        streamWriteUIntN(streamId, math.floor(cluster.riding or 0), AnimalClusterHorse.NUM_BITS_RIDING)
-        streamWriteUIntN(streamId, math.floor(cluster.dirt or 0), AnimalClusterHorse.NUM_BITS_DIRT)
+        RLRideableClusterStream.write(streamId, cluster)
+    else
+        Log:trace("Rideable:onWriteStream: no cluster yet, wrote cluster-present false")
     end
 
     if streamWriteBool(streamId, spec.playerToEnter ~= nil) then

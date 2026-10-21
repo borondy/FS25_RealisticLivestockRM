@@ -520,6 +520,73 @@ function Animal:getAge()
     return self.age
 end
 
+--- The age visual for this animal's own subtype and age, or nil when no visual band covers that age.
+--- @return table|nil visual
+function Animal:getVisual()
+    local subTypeIndex = self:getSubTypeIndex()
+    local age = self:getAge()
+    local visual = g_currentMission.animalSystem:getVisualByAge(subTypeIndex, age)
+
+    Log:trace("<<< Animal:getVisual = minAge %s (farmId=%s uniqueId=%s subType=%s (%s) age=%s)",
+        tostring(visual and visual.minAge), tostring(self.farmId), tostring(self.uniqueId),
+        tostring(self.subType), tostring(subTypeIndex), tostring(age))
+
+    return visual
+end
+
+--- The most animals this record can hold: an RLRM animal is always exactly one animal.
+--- @return integer maxNumAnimals
+function Animal:getMaxNumAnimals()
+    Log:trace("<<< Animal:getMaxNumAnimals = 1 (farmId=%s uniqueId=%s)", tostring(self.farmId),
+        tostring(self.uniqueId))
+    return 1
+end
+
+--- Store the world position and rotation this animal should spawn at when it next joins a pen.
+--- @param x number world x
+--- @param y number world y
+--- @param z number world z
+--- @param rx number world rotation x
+--- @param ry number world rotation y
+--- @param rz number world rotation z
+function Animal:setPendingSpawnWorldPosition(x, y, z, rx, ry, rz)
+    self.pendingSpawnX, self.pendingSpawnY, self.pendingSpawnZ = x, y, z
+    self.pendingSpawnRX, self.pendingSpawnRY, self.pendingSpawnRZ = rx, ry, rz
+
+    Log:trace(">>> Animal:setPendingSpawnWorldPosition(%s, %s, %s, %s, %s, %s) (farmId=%s uniqueId=%s)",
+        tostring(x), tostring(y), tostring(z), tostring(rx), tostring(ry), tostring(rz),
+        tostring(self.farmId), tostring(self.uniqueId))
+end
+
+--- The stored spawn position and rotation, or a single nil when none is set.
+--- @return number|nil x
+--- @return number|nil y
+--- @return number|nil z
+--- @return number|nil rx
+--- @return number|nil ry
+--- @return number|nil rz
+function Animal:getPendingSpawnWorldPosition()
+    if self.pendingSpawnX == nil then
+        Log:trace("<<< Animal:getPendingSpawnWorldPosition = unset (farmId=%s uniqueId=%s)",
+            tostring(self.farmId), tostring(self.uniqueId))
+        return nil
+    end
+
+    Log:trace("<<< Animal:getPendingSpawnWorldPosition = set (farmId=%s uniqueId=%s)", tostring(self.farmId),
+        tostring(self.uniqueId))
+    return self.pendingSpawnX, self.pendingSpawnY, self.pendingSpawnZ,
+        self.pendingSpawnRX, self.pendingSpawnRY, self.pendingSpawnRZ
+end
+
+--- Forget the stored spawn position and rotation.
+function Animal:clearPendingSpawnWorldPosition()
+    self.pendingSpawnX, self.pendingSpawnY, self.pendingSpawnZ = nil, nil, nil
+    self.pendingSpawnRX, self.pendingSpawnRY, self.pendingSpawnRZ = nil, nil, nil
+
+    Log:trace(">>> Animal:clearPendingSpawnWorldPosition: cleared (farmId=%s uniqueId=%s)", tostring(self.farmId),
+        tostring(self.uniqueId))
+end
+
 function Animal:getName()
     return self.name or ""
 end
@@ -761,6 +828,9 @@ function Animal:showInfo(box)
     if self.isCastrated then box:addLine(g_i18n:getText("rl_ui_castrated"), g_i18n:getText("rl_ui_yes")) end
 end
 
+--- Add the genetics lines to the look-at box: Overall on the raw genes, Fertility as the animal can use it.
+--- @param box table info box taking addLine(label, value)
+--- @return nil
 function Animal:showGeneticsInfo(box)
     local genetics = self.genetics
     local metabolism = genetics.metabolism
@@ -827,7 +897,9 @@ function Animal:showGeneticsInfo(box)
 
     box:addLine(g_i18n:getText("rl_ui_health"), "rl_ui_genetics_" .. qualityText)
 
-    local fertility = genetics.fertility
+    local fertility = RLGenetics.effectiveFertility(genetics, self.isCastrated)
+    Log:trace("Animal:showGeneticsInfo: uniqueId=%s castrated=%s fertility=%s",
+        tostring(self.uniqueId), tostring(self.isCastrated), tostring(fertility))
 
     if fertility >= 1.65 then
         qualityText = "extremelyHigh"
